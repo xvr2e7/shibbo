@@ -9,9 +9,9 @@ Shibbo keeps a dated record of these tells for each model, draws them as a map, 
 
 ## The atlas
 
-`npm run site` builds a static site into `site/dist`. Its front page is a map of 5,000 phrases that some model writes at least four times as often as people, or that people write and models avoid. Model releases trace routes across it, and a time slider replays 2025 and 2026. Claude moves toward the human shore with each release. GPT moves away from it.
+`npm run web:dev` starts the web app; `npm run web:build` writes it to `web/dist`. Its front page is a dialect atlas of machine writing. About 5,000 measured phrases form the terrain, each family's releases trace a route, and people sit at the origin. Claude moves toward the human shore with each release. GPT moves away from it.
 
-Each tell also gets its own page with its per-model rates and sources.
+A timeline runs from ELIZA in 1966 to 2026, with 75 releases from open and closed labs. Drag it back before 2025 and the field notes show the tells documented in each period, from ELIZA's "Please go on" to "Regenerate response" pasted into published papers. Each note cites its source, and `data/chronology.yaml` holds them all. The app also has a page for every tell and every measured model, and the docs.
 
 ## What the data says
 
@@ -60,7 +60,7 @@ It reads Markdown, HTML, stylesheets and JSX, and skips code and URLs. On an HTM
 
 ## How it works
 
-`data/tells.yaml` holds 48 curated tells, from prose to UI. Each entry names its pattern, a fix, examples, its status, what it turns into once banned, and links to measured terms. `SCHEMA.md` covers the format.
+`data/tells.yaml` holds 50 curated tells, from prose to UI. Each entry names its pattern, a fix, examples, its status, what it turns into once banned, and links to measured terms. `SCHEMA.md` covers the format.
 
 `npm run import:graphite` turns Graphite's tables into `data/measured/graphite.json`: per-model rates for each tell, and a list of the 400 strongest phrases per model. The checker runs curated rules first, then looks for measured phrases, and scores penalty per 1,000 words.
 
@@ -92,7 +92,7 @@ As a check, the analyzer was run on 30 of Graphite's Claude Opus 5 articles as i
 ```bash
 npm install
 npm test
-npm run import:graphite && npm run map && npm run site
+npm run import:graphite && npm run map && npm run web:build
 npm run plugin          # bundle the engine and data into plugins/shibbo
 ```
 
