@@ -1,71 +1,99 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chronology, ym, monthName, labFamily, familyColor, type Milestone } from "../data";
+import { chronology, ym, monthName, type Milestone } from "../data";
 import { models as mapModels } from "./AtlasMap";
+import { BrandIcon, brandOf } from "./BrandIcon";
 
-// A broken time scale: decades before LLMs are compressed, the measured era gets the most room.
-const START = ym("1966-01");
+// The record starts at ChatGPT's launch. Releases sit in one lane per lab, marked with the lab's icon.
+const START = ym("2022-11");
 const END = ym("2026-12");
-const SEGMENTS: Array<{ from: number; to: number; x0: number; x1: number; label: string }> = [
-  { from: START, to: ym("2017-06"), x0: 0, x1: 0.17, label: "Rule-based chatbots and assistants" },
-  { from: ym("2017-06"), to: ym("2022-11"), x0: 0.17, x1: 0.38, label: "Pretrained language models" },
-  { from: ym("2022-11"), to: ym("2025-01"), x0: 0.38, x1: 0.62, label: "Chat assistants" },
-  { from: ym("2025-01"), to: END + 1, x0: 0.62, x1: 1, label: "Measured: Graphite 2026" },
-];
 export const TIME = { START, END };
-const toX = (m: number) => {
-  const s = SEGMENTS.find((g) => m < g.to) ?? SEGMENTS.at(-1)!;
-  return s.x0 + ((Math.max(m, s.from) - s.from) / (s.to - s.from)) * (s.x1 - s.x0);
-};
-const fromX = (x: number) => {
-  const s = SEGMENTS.find((g) => x <= g.x1) ?? SEGMENTS.at(-1)!;
-  return Math.round(s.from + ((x - s.x0) / (s.x1 - s.x0)) * (s.to - s.from));
-};
 
-type Mark = { at: number; name: string; lab: string; fam: string; measured: boolean; m?: Milestone };
+const LANES: Array<{ key: string; name: string }> = [
+  { key: "openai", name: "OpenAI" },
+  { key: "anthropic", name: "Anthropic" },
+  { key: "google", name: "Google" },
+  { key: "meta", name: "Meta" },
+  { key: "mistral", name: "Mistral" },
+  { key: "deepseek", name: "DeepSeek" },
+  { key: "qwen", name: "Alibaba Qwen" },
+  { key: "xai", name: "xAI" },
+  { key: "other", name: "Others" },
+];
+const laneOf = (brand: string) => (LANES.some((l) => l.key === brand) ? brand : brand === "gemma" ? "google" : "other");
+
+type Mark = { at: number; date: string; name: string; lab: string; brand: string; lane: string; measured: boolean; weights?: string; m?: Milestone };
 
 export function Timeline({ month, setMonth, playing, onPlay }: { month: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void }) {
-  const svg = useRef<SVGSVGElement>(null);
-  const [hover, setHover] = useState<Mark | null>(null);
-  const marks = useMemo<Mark[]>(() => {
-    const measured = new Set(mapModels.map((m) => m.name.toLowerCase()));
-    const fromChrono: Mark[] = chronology.milestones
-      .filter((m) => m.date)
-      .map((m) => ({ at: ym(String(m.date).slice(0, 7)), name: m.name, lab: m.lab ?? m.maker ?? "", fam: labFamily(m.lab ?? m.maker), measured: measured.has(m.name.toLowerCase()), m }));
-    const fromMap: Mark[] = mapModels
-      .filter((m) => !fromChrono.some((c) => c.name.toLowerCase() === m.name.toLowerCase()))
-      .map((m) => ({ at: ym(m.released), name: m.name, lab: m.family, fam: m.family, measured: true }));
-    return [...fromChrono, ...fromMap].sort((a, b) => a.at - b.at);
-  }, []);
+  const wrap = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1000);
+  const [hover, setHover] = useState<Mark | null>(null);
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setW(Math.max(320, e.contentRect.width)));
-    if (svg.current) ro.observe(svg.current);
+    if (wrap.current) ro.observe(wrap.current);
     return () => ro.disconnect();
   }, []);
-  const H = 64, padX = 8;
-  const px = (m: number) => padX + toX(m) * (W - padX * 2);
 
+  const marks = useMemo<Mark[]>(() => {
+    const measuredNames = new Set(mapModels.map((m) => m.name.toLowerCase()));
+    const out: Mark[] = chronology.milestones
+      .filter((m) => m.date && ym(String(m.date).slice(0, 7)) >= START)
+      .map((m) => {
+        const brand = brandOf(m.lab ?? m.maker);
+        return { at: ym(String(m.date).slice(0, 7)), date: String(m.date), name: m.name, lab: m.lab ?? m.maker ?? "", brand, lane: laneOf(brand), measured: measuredNames.has(m.name.toLowerCase()), weights: m.weights, m };
+      });
+    for (const m of mapModels) {
+      if (out.some((x) => x.name.toLowerCase() === m.name.toLowerCase())) continue;
+      const brand = brandOf(m.family);
+      const lab = brand === "openai" ? "OpenAI" : brand === "anthropic" ? "Anthropic" : "Google";
+      out.push({ at: ym(m.released), date: m.released + (m.verified ? "" : " (month unconfirmed)"), name: m.name, lab, brand, lane: laneOf(brand), measured: true, weights: "closed" });
+    }
+    return out.sort((a, b) => a.at - b.at);
+  }, []);
+
+  const gutter = 112, laneH = 18, top = 6;
+  const lanes = LANES.filter((l) => marks.some((m) => m.lane === l.key));
+  const H = top + lanes.length * laneH + 22;
+  const x = (m: number) => gutter + ((m - START) / (END - START)) * (W - gutter - 12);
+  const toMonth = (px: number) => Math.round(START + ((px - gutter) / (W - gutter - 12)) * (END - START));
   const scrub = (clientX: number) => {
-    const r = svg.current!.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, ((clientX - r.left) / r.width) * (W / (W - padX * 2)) - padX / (W - padX * 2)));
-    setMonth(Math.min(END, Math.max(START, fromX(x))));
+    const r = wrap.current!.getBoundingClientRect();
+    setMonth(Math.min(END, Math.max(START, toMonth(clientX - r.left))));
   };
-  const years = W > 700 ? [1966, 1990, 2010, 2018, 2020, 2022, 2023, 2024, 2025, 2026] : [1966, 2018, 2022, 2025, 2026];
+  // Nudge icons that would overlap within a lane.
+  const placed = useMemo(() => {
+    const last = new Map<string, number>();
+    return marks.map((m) => {
+      const px = x(m.at);
+      const prev = last.get(m.lane) ?? -99;
+      const p2 = px - prev < 10 ? prev + 10 : px;
+      last.set(m.lane, p2);
+      return { ...m, px: p2 };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marks, W]);
 
   return (
     <div className="plate timeline">
       <div className="row">
         <button className="btn primary" type="button" onClick={onPlay} aria-pressed={playing}>
-          {playing ? "Pause" : "Play history"}
+          {playing ? "Pause" : "Play from 2022"}
         </button>
         <output className="date" aria-live="polite">{monthName(month)}</output>
-        <span className="muted" style={{ fontSize: "var(--t-1)" }}>
-          {hover ? `${hover.name}${hover.lab ? `, ${hover.lab}` : ""}, ${monthName(hover.at, "short")}${hover.measured ? " (measured)" : ""}` : "Drag along the line, or use the arrow keys."}
+        <span className="hover-note">
+          {hover ? (
+            <>
+              <BrandIcon brand={hover.brand} size={14} /> <b>{hover.name}</b>, {hover.lab}, {hover.date}
+              {hover.weights ? `, ${hover.weights} weights` : ""}
+              {hover.measured ? ", tells measured" : ""}
+            </>
+          ) : (
+            "Each icon is a release. Hover for its date; drag along the lanes or use the arrow keys."
+          )}
         </span>
       </div>
-      <svg
-        ref={svg}
-        viewBox={`0 0 ${W} ${H}`}
+      <div
+        ref={wrap}
+        className="lanes"
         role="slider"
         tabIndex={0}
         aria-label="Month shown on the map"
@@ -73,7 +101,8 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
         aria-valuemax={END}
         aria-valuenow={month}
         aria-valuetext={monthName(month)}
-        onPointerDown={(e) => { (e.target as Element).setPointerCapture?.(e.pointerId); scrub(e.clientX); }}
+        style={{ height: H }}
+        onPointerDown={(e) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); scrub(e.clientX); }}
         onPointerMove={(e) => { if (e.buttons) scrub(e.clientX); }}
         onKeyDown={(e) => {
           const step = e.shiftKey ? 12 : 1;
@@ -83,42 +112,46 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
           if (e.key === "End") setMonth(END);
         }}
       >
-        {SEGMENTS.map((s, i) => (
-          <g key={s.label}>
-            <rect x={px(s.from)} y={20} width={px(Math.min(s.to, END)) - px(s.from)} height={14} fill={i % 2 ? "var(--land-2)" : "var(--land-1)"} stroke="var(--rule)" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
-            <text x={px(s.from) + 4} y={14} className="era-label">{s.label}</text>
-          </g>
+        <svg width={W} height={H} aria-hidden="true">
+          <rect x={x(ym("2025-04"))} y={top - 2} width={x(END) - x(ym("2025-04"))} height={lanes.length * laneH + 2} className="measured-band" />
+          <text x={x(ym("2025-04")) + 34} y={H - 4} className="era-label">tells measured from April 2025</text>
+          {lanes.map((l, i) => (
+            <line key={l.key} x1={gutter} x2={W - 12} y1={top + i * laneH + laneH / 2} y2={top + i * laneH + laneH / 2} className="lane-line" />
+          ))}
+          {[2023, 2024, 2025, 2026].map((y) => (
+            <g key={y}>
+              <line x1={x(ym(`${y}-01`))} x2={x(ym(`${y}-01`))} y1={top - 2} y2={top + lanes.length * laneH} className="year-line" />
+              <text x={x(ym(`${y}-01`)) + 3} y={H - 4}>{y}</text>
+            </g>
+          ))}
+          <line x1={x(month)} x2={x(month)} y1={0} y2={top + lanes.length * laneH + 2} className="playhead" />
+        </svg>
+        {lanes.map((l, i) => (
+          <span key={l.key} className="lane-label" style={{ top: top + i * laneH }}>
+            {l.key !== "other" && <BrandIcon brand={l.key} size={12} />} {l.name}
+          </span>
         ))}
-        <rect x={px(START)} y={20} width={px(month) - px(START)} height={14} fill="var(--ink)" opacity={0.1} />
-        {marks.map((m, i) => (
-          <line
+        {placed.map((m, i) => (
+          <button
             key={`${m.name}-${i}`}
-            x1={px(m.at)}
-            x2={px(m.at)}
-            y1={m.measured ? 17 : 22}
-            y2={m.measured ? 37 : 32}
-            stroke={familyColor(m.fam)}
-            strokeWidth={m.measured ? 3 : 1.6}
-            vectorEffect="non-scaling-stroke"
+            type="button"
+            tabIndex={-1}
+            className={`release${m.measured ? " measured" : ""}${m.at > month ? " later" : ""}`}
+            style={{ left: m.px - 9, top: top + lanes.findIndex((l) => l.key === m.lane) * laneH }}
             onPointerEnter={() => setHover(m)}
             onPointerLeave={() => setHover(null)}
+            onPointerDown={(e) => { e.stopPropagation(); setMonth(m.at); }}
+            aria-label={`${m.name}, ${m.date}`}
           >
-            <title>{`${m.name}, ${monthName(m.at, "short")}`}</title>
-          </line>
+            <BrandIcon brand={m.brand} size={14} label={m.name} />
+          </button>
         ))}
-        {years.map((y) => (
-          <text key={y} x={px(ym(`${y}-01`))} y={52} textAnchor={y === 1966 ? "start" : "middle"}>{y}</text>
-        ))}
-        <line x1={px(month)} x2={px(month)} y1={16} y2={40} stroke="var(--ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
-        <circle cx={px(month)} cy={40} r={4} fill="var(--ink)" />
-      </svg>
+      </div>
     </div>
   );
 }
 
-/** Playback speed: years fly by before LLMs; months slow down in the measured era. */
+/** Playback speed: one month per tick. */
 export function nextMonth(m: number): number {
-  if (m < ym("2017-01")) return Math.min(m + 18, ym("2017-01"));
-  if (m < ym("2022-06")) return m + 3;
   return m + 1;
 }

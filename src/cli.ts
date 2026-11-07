@@ -17,7 +17,8 @@ Usage
   shibbo models
   shibbo export <claude|agents|cursor|vale> [--model ID] [--out DIR]
   shibbo mcp                 start the MCP server (stdio)
-  shibbo hook <post-edit|stop|session-start>   Claude Code hook entry (reads stdin)
+  shibbo init <harness> [--model ID] [--dry-run]   write rules, MCP config and hooks for a harness
+  shibbo hook <post-edit|stop|session-start> [--for HARNESS]   hook entry point (reads stdin)
 
 check options
   --model ID       the model that wrote the text (e.g. claude-opus-5-5, gpt-6). Weights its own measured phrases.
@@ -147,7 +148,23 @@ async function main() {
 
   if (cmd === "mcp") { await (await import("./mcp.js")).serve(); return; }
 
-  if (cmd === "hook") { await (await import("./hook.js")).runHook(rest[0], await readStdin()); return; }
+  if (cmd === "hook") {
+    const { values, positionals } = parseArgs({ args: rest, allowPositionals: true, options: { for: { type: "string", default: "claude" } } });
+    await (await import("./hook.js")).runHook(positionals[0], await readStdin(), values.for as import("./harness.js").HookFlavor);
+    return;
+  }
+
+  if (cmd === "init") {
+    const { init, HARNESSES } = await import("./harness.js");
+    const { values, positionals } = parseArgs({ args: rest, allowPositionals: true, options: { model: { type: "string" }, dir: { type: "string", default: "." }, "dry-run": { type: "boolean", default: false } } });
+    if (!positionals[0]) { console.log(`shibbo init <harness>\n\n${HARNESSES.map((h) => `  ${h.id.padEnd(10)} ${h.name}`).join("\n")}`); return; }
+    const h = HARNESSES.find((x) => x.id === positionals[0]);
+    for (const r of init(positionals[0], { dir: values.dir!, model: values.model ?? null, dryRun: values["dry-run"]! })) {
+      console.log(r.file ? `${r.action.padEnd(22)} ${r.file}${r.experimental ? "   (experimental: check it fires after your next edit)" : ""}` : r.action);
+    }
+    if (h) console.log(`\n${h.name} is set up. Edit a Markdown file with the agent to see shibbo's feedback.`);
+    return;
+  }
 
   if (cmd === "resolve") { console.log(resolveModel(rest[0])?.id ?? "unknown"); return; }
 

@@ -1,4 +1,4 @@
-import { ordered, familyColor, describe, type Tell } from "../data";
+import { ordered, familyColor, describe, FAMS, type Tell } from "../data";
 
 /**
  * One tell across every measured model, on a log scale centred on the human rate.
@@ -9,8 +9,9 @@ export function Strip({ tell, width = 300, labels = true }: { tell: Tell; width?
   const H = labels ? 44 : 30, pad = 10, mid = width / 2;
   const LIM = 3; // 10^3 either way
   const x = (r: number) => mid + (Math.max(-LIM, Math.min(LIM, Math.log10(r))) / LIM) * (mid - pad);
-  const fams = ["gpt", "claude", "gemini"] as const;
-  const rowY = (f: string) => 8 + fams.indexOf(f as (typeof fams)[number]) * 7;
+  const fams = FAMS.filter((f) => ordered.some((m) => m.family === f && tell.perModel[m.id]));
+  const step = Math.min(7, 20 / Math.max(1, fams.length - 1));
+  const rowY = (f: string) => 5 + fams.indexOf(f) * step;
   const summary = ordered
     .map((m) => ({ m, v: tell.perModel[m.id] }))
     .filter((e) => e.v)

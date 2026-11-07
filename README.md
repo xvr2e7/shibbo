@@ -7,11 +7,22 @@ Guards at the Jordan caught outsiders with one word: *shibboleth*. Language mode
 
 Shibbo keeps a dated record of these tells for each model, draws them as a map, and checks your text against them. You can run it from the command line, from Claude Code, or from any agent that speaks MCP.
 
-## The atlas
+## The app
 
-`npm run web:dev` starts the web app; `npm run web:build` writes it to `web/dist`. Its front page is a dialect atlas of machine writing. About 5,000 measured phrases form the terrain, each family's releases trace a route, and people sit at the origin. Claude moves toward the human shore with each release. GPT moves away from it.
+`npm run web:dev` starts it; `npm run web:build` writes the app and its docs to `web/dist`.
 
-A timeline runs from ELIZA in 1966 to 2026, with 75 releases from open and closed labs. Drag it back before 2025 and the field notes show the tells documented in each period, from ELIZA's "Please go on" to "Regenerate response" pasted into published papers. Each note cites its source, and `data/chronology.yaml` holds them all. The app also has a page for every tell and every measured model, and the docs.
+- **Atlas.** A dialect map of machine writing. Phrases form the terrain, habits such as em dashes or echo endings stand as landmarks, and each family's releases trace a route from ChatGPT's launch to 2026. The timeline holds 194 dated releases from open and closed labs, each cited. Claude moves toward people with each release; GPT moves away.
+- **Tells.** A field guide: interface tells shown as rendered components, prose tells with the pattern highlighted, every one with per-model measurements.
+- **Models.** An arena where people and nine models meet on 5,044 matched topics (people rate 1615, the best model 1022), every measured model, and outside boards for more open and closed models.
+- **Docs.** A VitePress site with setup for 17 agent harnesses.
+
+## Measured history
+
+| Era | Source | Models |
+|---|---|---|
+| 2025–26 | Graphite's AI Tells (CC BY 4.0), 9,984 matched topics | GPT-4.1 to GPT-6 Astra, Claude Opus 4 to 5, Gemini 2.5 and 3.1 Pro |
+| 2022–23 | RAID (MIT), measured by shibbo against the human text each generation was prompted from | text-davinci-003, ChatGPT, GPT-4, Llama 2 70B Chat, Mistral 7B, MPT-30B, Cohere Command |
+| 2024 onward, open models | our own runs on Graphite's topics (`measure/generate-local.ts`) | in progress; see `measure/HANDOFF.md` |
 
 ## What the data says
 
@@ -35,7 +46,13 @@ Most of what people list as AI tells in 2024 has faded. The new ones are frames 
 npm install -g shibbo        # or use npx shibbo
 ```
 
-For Claude Code, add the plugin from this repo:
+Set up any agent harness with one command; it writes the rules, the MCP server and the hooks that harness supports:
+
+```bash
+npx shibbo init cursor     # or claude, codex, copilot, gemini, devin, cline, roo, aider, kiro, junie, amp, ...
+```
+
+For Claude Code, the plugin bundles all of it:
 
 ```text
 /plugin marketplace add <owner>/shibbo

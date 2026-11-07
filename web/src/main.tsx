@@ -9,7 +9,6 @@ import { Shell } from "./components/Shell";
 import { AtlasPage } from "./routes/Atlas";
 import { TellsPage, TellPage } from "./routes/Tells";
 import { ModelsPage, ModelPage } from "./routes/Models";
-import { DocsPage } from "./routes/Docs";
 
 const saved = localStorage.getItem("theme");
 document.documentElement.dataset.theme = saved ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -24,14 +23,19 @@ createRoot(document.getElementById("root")!).render(
           <Route path="tells/:id" element={<TellPage />} />
           <Route path="models" element={<ModelsPage />} />
           <Route path="models/:id" element={<ModelPage />} />
-          <Route path="docs" element={<DocsPage />} />
-          <Route path="docs/:page" element={<DocsPage />} />
+          <Route path="docs/*" element={<ToDocs />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </HashRouter>
   </StrictMode>,
 );
+
+/** Old in-app docs links now open the docs site. */
+function ToDocs() {
+  location.replace("docs/index.html");
+  return null;
+}
 
 function NotFound() {
   return (

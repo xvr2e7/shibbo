@@ -107,6 +107,8 @@ const STAT: Record<string, (prose: string, words: number) => Hit[]> = {
       const isLoneLine = p.sentences.length === 1 && last.words <= 7 && i > 0 && ps[i - 1].kind === "para";
       const endsShort = p.sentences.length >= 3 && last.words <= 5 && p.sentences.slice(0, -1).every((s) => s.words >= 10);
       const sectionEnd = i === ps.length - 1 || ps[i + 1].kind === "heading";
+      // A label line ("Sources: ...", "Note: ...") is a reference, not a punchline.
+      if (/^\s*[A-Z][\w ]{0,24}:/.test(last.text) || /^\s*[A-Z][\w ]{0,24}:/.test(p.sentences[0].text) || /^\s*See\b/.test(last.text)) continue;
       if ((isLoneLine && sectionEnd && /[.!]$/.test(last.text)) || (endsShort && /[.!]$/.test(last.text))) {
         hits.push({ offset: last.start, match: last.text });
       }

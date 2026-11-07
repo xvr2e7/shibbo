@@ -3,12 +3,13 @@ import { useEffect, useRef } from "react";
 import { contourDensity } from "d3-contour";
 import { zoom, zoomIdentity, type ZoomTransform, type ZoomBehavior } from "d3-zoom";
 import { select } from "d3-selection";
+import "d3-transition";
 import { quadtree, type Quadtree } from "d3-quadtree";
 import mapData from "../data/map.json";
-import { FAMS, ym, monthName } from "../data";
+import { ym, monthName, habits, type Habit } from "../data";
 
 type Raw = [string, number, number, 0 | 1, string, number, ...number[]];
-export type MapModel = { id: string; name: string; family: string; released: string; verified: boolean; x: number; y: number };
+export type MapModel = { id: string; name: string; family: string; released: string; verified: boolean; source?: string; x: number; y: number };
 export type Phrase = { term: string; x: number; y: number; under: boolean; tell: string; floor: number; v: number[]; strength: number };
 
 export const models = (mapData as { models: MapModel[] }).models;
@@ -19,7 +20,11 @@ export const phrases: Phrase[] = (mapData as unknown as { terms: Raw[] }).terms.
 export const explained = (mapData as { explained: number }).explained;
 export const firstMeasured = Math.min(...models.map((m) => ym(m.released)));
 const idx = new Map(models.map((m, i) => [m.id, i]));
-const FAM_NAME: Record<string, string> = { gpt: "GPT", claude: "Claude", gemini: "Gemini" };
+export const FAM_NAME: Record<string, string> = { gpt: "OpenAI", claude: "Claude", gemini: "Gemini", meta: "Llama", mistral: "Mistral", mosaic: "MPT", cohere: "Cohere", qwen: "Qwen" };
+/** Families in a fixed order: the three measured in 2025-26 first, then the 2023 open and API models. */
+export const FAMS = ["gpt", "claude", "gemini", "meta", "mistral", "mosaic", "cohere", "qwen"].filter((f) => models.some((m) => m.family === f));
+/** A release counts as current for 18 months, or until the family's next measured release. */
+const CURRENT_MONTHS = 18;
 
 /** Which model is current in each family at a month, and which came before. */
 export function state(month: number) {
@@ -27,8 +32,9 @@ export function state(month: number) {
   const past = new Set<string>();
   for (const f of FAMS) {
     const seq = models.filter((x) => x.family === f && ym(x.released) <= month).sort((a, b) => ym(a.released) - ym(b.released));
-    if (seq.length) current.set(f, seq.at(-1)!);
-    for (const x of seq.slice(0, -1)) past.add(x.id);
+    const last = seq.at(-1);
+    if (last && month - ym(last.released) <= CURRENT_MONTHS) current.set(f, last);
+    for (const x of seq) if (x !== current.get(f)) past.add(x.id);
   }
   return { current, past };
 }
@@ -49,12 +55,14 @@ export function phraseState(d: Phrase, current: Map<string, MapModel>, past: Set
   return { alive: false, fossil: false, owner: null, level: 0 };
 }
 
-export interface Hover { d: Phrase; x: number; y: number }
+export interface Hover { d?: Phrase; habit?: Habit; x: number; y: number }
+export type Layers = { words: boolean; habits: boolean };
 
-export function AtlasMap({ month, onHover, insets, resetSignal }: { month: number; onHover: (h: Hover | null) => void; insets: { left: number; right: number; top: number; bottom: number }; resetSignal: number }) {
+export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words: true, habits: false } }: { month: number; onHover: (h: Hover | null) => void; insets: { left: number; right: number; top: number; bottom: number }; resetSignal: number; layers?: Layers }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const st = useRef({ t: zoomIdentity as ZoomTransform, W: 0, H: 0, dpr: 1, base: { k: 1, x: 0, y: 0 }, qt: null as Quadtree<{ d: Phrase; px: number; py: number }> | null, C: {} as Record<string, string>, raf: 0, month, insets, z: null as ZoomBehavior<HTMLCanvasElement, unknown> | null });
+  const st = useRef({ t: zoomIdentity as ZoomTransform, W: 0, H: 0, dpr: 1, base: { k: 1, x: 0, y: 0 }, qt: null as Quadtree<{ d: Phrase; px: number; py: number }> | null, C: {} as Record<string, string>, raf: 0, month, insets, layers, z: null as ZoomBehavior<HTMLCanvasElement, unknown> | null, badges: [] as Array<{ h: Habit; x: number; y: number; r: number }> });
   st.current.month = month;
+  st.current.layers = layers;
   st.current.insets = insets;
 
   useEffect(() => {
@@ -63,7 +71,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
     const s = st.current;
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
-      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
+      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--meta", "--mistral", "--mosaic", "--cohere", "--qwen", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
     };
     const sx = (x: number) => s.t.applyX(s.base.x + x * s.base.k);
     const sy = (y: number) => s.t.applyY(s.base.y + y * s.base.k);
@@ -145,7 +153,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
         ctx.textAlign = "center";
         font(`italic 15px ${SERIF}`);
         ctx.lineWidth = 4; ctx.strokeStyle = C["--halo"];
-        const msg = `Unmapped until ${monthName(firstMeasured)}, the first measured release`;
+        const msg = `Unmapped before ${monthName(firstMeasured)}, the first measured release`;
         ctx.strokeText(msg, cx, cy); ctx.fillStyle = C["--ink-2"]; ctx.fillText(msg, cx, cy);
         font(`12.5px ${SANS}`);
         const sub = "Earlier tells are documented, not measured: see the field notes.";
@@ -155,12 +163,13 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
       ctx.lineWidth = 0.8;
       ctx.strokeStyle = C["--fossil"];
       for (const e of states) if (e.s.fossil) { ctx.beginPath(); ctx.arc(e.px, e.py, 1.6, 0, 7); ctx.stroke(); }
+      const wordAlpha = s.layers.words ? 1 : 0.18;
       for (const e of states) {
         if (!e.s.alive) continue;
         ctx.beginPath();
         ctx.arc(e.px, e.py, 1 + Math.min(e.s.level, 10) * 0.22 * Math.sqrt(Math.min(s.t.k, 4)), 0, 7);
         ctx.fillStyle = e.d.under ? C["--ink-2"] : C[`--${e.s.owner}`];
-        ctx.globalAlpha = e.d.under ? 0.55 : 0.8;
+        ctx.globalAlpha = (e.d.under ? 0.55 : 0.8) * wordAlpha;
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -182,6 +191,8 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
         const seq = models.filter((m) => m.family === f && ym(m.released) <= s.month).sort((a, b) => ym(a.released) - ym(b.released));
         if (!seq.length) continue;
         const pts = seq.map((m) => [sx(m.x), sy(m.y)] as [number, number]);
+        // A family with no release in the last 18 months fades back.
+        ctx.globalAlpha = current.has(f) ? 1 : 0.28;
         if (pts.length > 1) {
           ctx.lineCap = "round";
           ctx.beginPath(); curve(pts); ctx.strokeStyle = C["--halo"]; ctx.lineWidth = 6; ctx.stroke();
@@ -195,6 +206,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
           ctx.lineWidth = 2; ctx.strokeStyle = C["--sheet"]; ctx.stroke();
           if (cur) { ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.strokeStyle = C[`--${f}`]; ctx.lineWidth = 1; ctx.stroke(); }
         });
+        ctx.globalAlpha = 1;
       }
 
       // Labels, placed without collisions: models, then region names, then phrases.
@@ -208,11 +220,11 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
         return true;
       };
       for (const m of models) if (ym(m.released) <= s.month) boxes.push([sx(m.x) - 10, sy(m.y) - 10, sx(m.x) + 10, sy(m.y) + 10]);
-      for (const f of FAMS) {
-        for (const m of models.filter((x) => x.family === f && ym(x.released) <= s.month)) {
+      for (const f of FAMS.filter((g) => current.has(g))) {
+        for (const m of models.filter((x) => x.family === f && ym(x.released) <= s.month && (current.get(f)?.id === x.id || ym(x.released) > s.month - 30))) {
           const cur = current.get(f)?.id === m.id;
           const mx = sx(m.x), my = sy(m.y);
-          font(`${cur ? 650 : 520} ${cur ? 14 : 12}px ${SANS}`);
+          font(`${cur ? 600 : 400} ${cur ? 14 : 12}px ${SANS}`);
           const w = ctx.measureText(m.name).width;
           const sub = monthName(ym(m.released), "short") + (m.verified ? "" : "*");
           const spots: Array<[number, number]> = [[mx + 13, my - 4], [mx - 13 - w, my - 4], [mx - w / 2, my - 18], [mx - w / 2, my + 30], [mx + 13, my + 14], [mx - 13 - w, my + 14]];
@@ -224,9 +236,9 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
           ctx.fillStyle = C["--ink-3"]; ctx.fillText(sub, x, y + 13);
         }
       }
-      font(`500 23px ${SANS}`);
+      font(`600 23px ${SANS}`);
       ctx.save();
-      ctx.font = `500 ${23}px ${SANS}`;
+      ctx.font = `600 ${23}px ${SANS}`;
       (ctx as CanvasRenderingContext2D & { fontStretch?: string }).fontStretch = "condensed";
       (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "1.5px";
       for (const f of FAMS) {
@@ -242,13 +254,78 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
         ctx.fillStyle = C[`--${f}`]; ctx.fillText(text, spot[0], spot[1]);
       }
       ctx.restore();
-      const budget = Math.round(26 * Math.min(s.t.k, 6) ** 1.3);
+      // Habits: one glyph badge per style habit, placed with the current models that over-use it
+      // (or across the shore when people do it more), sized by effect.
+      s.badges = [];
+      if (s.layers.habits) {
+        const cur = [...current.values()].filter((m) => habits[0]?.models[m.id]);
+        for (const h of habits) {
+          if (!cur.length) break;
+          const eff = cur.map((m) => ({ m, e: h.models[m.id].d * h.sign }));
+          const pos = eff.filter((x) => x.e > 0.12);
+          const neg = eff.filter((x) => x.e < -0.12);
+          const side = pos.length ? pos : neg;
+          if (!side.length) continue;
+          const wsum = side.reduce((a, x) => a + x.e ** 2, 0);
+          let hx = side.reduce((a, x) => a + x.e ** 2 * x.m.x, 0) / wsum;
+          let hy = side.reduce((a, x) => a + x.e ** 2 * x.m.y, 0) / wsum;
+          if (!pos.length) { hx = -hx * 0.45; hy = -hy * 0.45; }
+          const strength = Math.max(...side.map((x) => Math.abs(x.e)));
+          const r = 10 + Math.min(strength, 2) * 4;
+          s.badges.push({ h, x: sx(hx), y: sy(hy), r, ax: sx(hx), ay: sy(hy) } as (typeof s.badges)[number]);
+        }
+        // Push overlapping badges apart (and off model markers); a leader line keeps each tied to its true spot.
+        const markers = models.filter((m) => ym(m.released) <= s.month).map((m) => ({ x: sx(m.x), y: sy(m.y), r: 9 }));
+        for (let it = 0; it < 120; it++) {
+          let moved = false;
+          for (let i = 0; i < s.badges.length; i++) {
+            const a = s.badges[i];
+            for (const o of [...s.badges.slice(i + 1), ...markers]) {
+              const dx = a.x - o.x || 0.01, dy = a.y - o.y || 0.01, dist = Math.hypot(dx, dy), need = a.r + o.r + 6;
+              if (dist >= need) continue;
+              const push = (need - dist) / 2, ux = dx / dist, uy = dy / dist;
+              a.x += ux * push; a.y += uy * push;
+              if ("h" in o) { (o as typeof a).x -= ux * push; (o as typeof a).y -= uy * push; }
+              moved = true;
+            }
+          }
+          if (!moved) break;
+        }
+        for (const b of s.badges as Array<(typeof s.badges)[number] & { ax: number; ay: number }>) {
+          if (Math.hypot(b.x - b.ax, b.y - b.ay) > b.r) {
+            ctx.beginPath(); ctx.moveTo(b.ax, b.ay); ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = C["--ink-3"]; ctx.lineWidth = 1; ctx.stroke();
+            ctx.beginPath(); ctx.arc(b.ax, b.ay, 2, 0, 7); ctx.fillStyle = C["--ink-3"]; ctx.fill();
+          }
+        }
+        for (const b of s.badges) {
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7);
+          ctx.fillStyle = C["--sheet"]; ctx.fill();
+          ctx.lineWidth = 1.5; ctx.strokeStyle = C["--ink"]; ctx.stroke();
+          ctx.textAlign = "center";
+          font(`600 ${Math.round(b.r * 0.95)}px ${SERIF}`);
+          ctx.fillStyle = C["--ink"]; ctx.fillText(b.h.glyph, b.x, b.y + b.r * 0.33);
+          boxes.push([b.x - b.r - 2, b.y - b.r - 2, b.x + b.r + 2, b.y + b.r + 2]);
+        }
+        ctx.textAlign = "left";
+        font(`600 11.5px ${SANS}`);
+        for (const b of s.badges) {
+          const w = ctx.measureText(b.h.label).width;
+          const spots: Array<[number, number]> = [[b.x - w / 2, b.y + b.r + 13], [b.x + b.r + 4, b.y + 4], [b.x - b.r - 4 - w, b.y + 4], [b.x - w / 2, b.y - b.r - 5]];
+          const spot = spots.find(([x, y]) => fits(x, y, w, 11, 3));
+          if (!spot) continue;
+          ctx.lineWidth = 3.5; ctx.strokeStyle = C["--halo"]; ctx.strokeText(b.h.label, spot[0], spot[1]);
+          ctx.fillStyle = C["--ink"]; ctx.fillText(b.h.label, spot[0], spot[1]);
+        }
+      }
+
+      const budget = s.layers.words ? Math.round(26 * Math.min(s.t.k, 6) ** 1.3) : 0;
       const cands = states.filter((e) => e.s.alive && e.px > left && e.px < s.W - right && e.py > top && e.py < s.H - bottom).sort((a, b) => (b.d.tell ? 3 : 0) + b.s.level - ((a.d.tell ? 3 : 0) + a.s.level));
       let placed = 0;
       for (const e of cands) {
         if (placed >= budget) break;
         const size = Math.round(12 + Math.min(e.s.level, 10) * 0.4);
-        font(`italic ${e.d.tell ? 600 : 430} ${size}px ${SERIF}`);
+        font(`italic ${e.d.tell ? 600 : 400} ${size}px ${SERIF}`);
         const text = e.d.term.replace(/ _ /g, " … ").replace(/^_ | _$/g, "… ");
         const w = ctx.measureText(text).width;
         const x = e.px + 5, y = e.py + 4;
@@ -278,26 +355,50 @@ export function AtlasMap({ month, onHover, insets, resetSignal }: { month: numbe
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const onMove = (ev: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
-      const hit = s.qt?.find(ev.clientX - r.left, ev.clientY - r.top, 10);
+      const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      const badge = s.badges.find((b) => Math.hypot(b.x - mx, b.y - my) <= b.r + 2);
+      if (badge) { canvas.style.cursor = badge.h.tell ? "pointer" : "default"; onHover({ habit: badge.h, x: mx, y: my }); return; }
+      const hit = s.layers.words ? s.qt?.find(mx, my, 10) : undefined;
       canvas.style.cursor = hit ? (hit.d.tell ? "pointer" : "default") : "grab";
-      onHover(hit ? { d: hit.d, x: ev.clientX - r.left, y: ev.clientY - r.top } : null);
+      onHover(hit ? { d: hit.d, x: mx, y: my } : null);
     };
     const onLeave = () => onHover(null);
     const onClick = (ev: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
-      const hit = s.qt?.find(ev.clientX - r.left, ev.clientY - r.top, 10);
+      const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      const badge = s.badges.find((b) => Math.hypot(b.x - mx, b.y - my) <= b.r + 2);
+      if (badge?.h.tell) { location.hash = `#/tells/${badge.h.tell}`; return; }
+      const hit = s.layers.words ? s.qt?.find(mx, my, 10) : undefined;
       if (hit?.d.tell) location.hash = `#/tells/${hit.d.tell}`;
     };
     canvas.addEventListener("mousemove", onMove);
     canvas.addEventListener("mouseleave", onLeave);
     canvas.addEventListener("click", onClick);
     document.fonts?.ready.then(schedule);
-    return () => { ro.disconnect(); mo.disconnect(); canvas.removeEventListener("mousemove", onMove); canvas.removeEventListener("mouseleave", onLeave); canvas.removeEventListener("click", onClick); cancelAnimationFrame(s.raf); };
+    return () => { ro.disconnect(); mo.disconnect(); canvas.removeEventListener("mousemove", onMove); canvas.removeEventListener("mouseleave", onLeave); canvas.removeEventListener("click", onClick); cancelAnimationFrame(s.raf); s.raf = 0; select(canvas).on(".zoom", null); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { (ref.current as HTMLCanvasElement & { __draw?: () => void })?.__draw?.(); }, [month]);
+  useEffect(() => { (ref.current as HTMLCanvasElement & { __draw?: () => void })?.__draw?.(); }, [month, layers.words, layers.habits]);
   useEffect(() => { if (resetSignal && st.current.z && ref.current) select(ref.current).call(st.current.z.transform, zoomIdentity); }, [resetSignal]);
 
-  return <canvas ref={ref} role="img" aria-label={`Map of phrases that models write far more or far less often than people, as of ${monthName(month)}. Each family's releases form a route; people sit at the origin.`} />;
+  const zoomBy = (factor: number) => {
+    const c = ref.current, z = st.current.z;
+    if (c && z) select(c).transition().duration(220).call(z.scaleBy, factor);
+  };
+  const fitView = () => {
+    const c = ref.current, z = st.current.z;
+    if (c && z) select(c).transition().duration(220).call(z.transform, zoomIdentity);
+  };
+  return (
+    <>
+      <canvas ref={ref} role="img" aria-label={`Map of phrases that models write far more or far less often than people, as of ${monthName(month)}. Each family's releases form a route; people sit at the origin.`} />
+      <div className="zoom-controls" role="group" aria-label="Map zoom">
+        <button className="btn icon" type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in" title="Zoom in (or scroll up over the map)">+</button>
+        <button className="btn icon" type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out" title="Zoom out (or scroll down over the map)">−</button>
+        <button className="btn icon" type="button" onClick={fitView} aria-label="Fit the whole map" title="Fit the whole map">⤢</button>
+        <span className="zoom-hint">Scroll or pinch to zoom, drag to move. Labels fill in as you zoom.</span>
+      </div>
+    </>
+  );
 }

@@ -1,18 +1,19 @@
 import registry from "./data/registry.json";
 import chronologyRaw from "./data/chronology.json";
 
-export type Fam = "gpt" | "claude" | "gemini";
+export type Fam = string;
 export interface Measure { ratio: number; term: string | null; counts: { model: number; human: number } | null; floor: boolean; via: "phrase" | "feature" }
 export interface Tell {
   id: string; name: string; label?: string; domain: string; kind: string; severity: number; what: string; status: string;
   fix?: string; examples?: { bad?: string; good?: string }; false_positives?: string; confidence: string; sources: string[];
   substitutes?: string[]; era?: { first_seen?: number | string; peak?: number | string };
-  detect: { method: string; pattern?: string; fn?: string; judge?: string };
+  detect: { method: string; pattern?: string; flags?: string; fn?: string; judge?: string };
+  measure?: { graphite?: string[]; graphite_feature?: string; graphite_absent?: string[] };
   perModel: Record<string, Measure | null>; feature: { name: string; human: number } | null; strength: number | null;
 }
 export interface Lex { term: string; kind: string; ratio: number; articles: number; floor?: boolean; count?: number }
 export interface Model {
-  id: string; family: Fam; name: string; released: string; verified: boolean; maker: string; familyName: string;
+  id: string; family: Fam; name: string; released: string; verified: boolean; maker: string; familyName: string; source?: string; docs?: number;
   tells: number; shared: number | null; top: Lex[]; under: Lex[]; rules: string;
   features: Record<string, { mean: number; d: number; human: number }>;
 }
@@ -29,10 +30,13 @@ export const data = registry as unknown as {
     test: Record<"default" | "model_aware" | "registry_only", Record<string, { auc: number; flagged: number; median: number; human_flagged?: number }>>;
   };
 };
+export interface Habit { key: string; label: string; glyph: string; what: string; unit: string; sign: 1 | -1; tell?: string; human: number; models: Record<string, { mean: number; d: number }> }
+export const habits = ((registry as unknown as { habits?: Habit[] }).habits ?? []) as Habit[];
 export const chronology = chronologyRaw as { milestones: Milestone[]; tells: HistTell[] };
 
-export const FAMS: Fam[] = ["gpt", "claude", "gemini"];
+export const FAMS: Fam[] = ["gpt", "claude", "gemini", "meta", "mistral", "mosaic", "cohere", "qwen"];
 export const ordered = FAMS.flatMap((f) => data.models.filter((m) => m.family === f).sort((a, b) => a.released.localeCompare(b.released)));
+export const graphiteOrdered = ordered.filter((m) => m.source !== "raid");
 export const tellById = new Map(data.tells.map((t) => [t.id, t]));
 export const modelById = new Map(data.models.map((m) => [m.id, m]));
 
@@ -62,7 +66,7 @@ export function describe(m: Measure, model: Model): string {
   return m.ratio >= 1 ? `${model.name} uses it ${fmtRatio(m.ratio)} as often as people` : `people use it ${fmtRatio(m.ratio).replace("people ", "")} as often as ${model.name}`;
 }
 
-export const familyColor = (f: string) => (f === "gpt" || f === "claude" || f === "gemini" ? `var(--${f})` : "var(--other)");
+export const familyColor = (f: string) => (FAMS.includes(f) ? `var(--${f})` : "var(--other)");
 
 /** Map a lab name from the chronology to a family colour when it is one of the three measured families. */
 export function labFamily(lab = ""): string {

@@ -1,4 +1,4 @@
-# The registry
+# Registry schema
 
 `data/tells.yaml` holds one entry per tell: a pattern that models use at a very different rate from people.
 

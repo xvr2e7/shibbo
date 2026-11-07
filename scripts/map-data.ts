@@ -1,7 +1,7 @@
 // Lay out the atlas: models placed by how their phrase use differs from people (PCA with people at the
 // origin), phrases placed near the models that over-use them, spread by a force layout into terrain.
 //   npm run map  ->  data/measured/map.json
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { join } from "node:path";
 import { forceSimulation, forceX, forceY, forceCollide, type SimulationNodeDatum } from "d3-force";
@@ -77,10 +77,38 @@ const total = values.reduce((a, b) => a + b, 0);
 const [k1, k2] = order;
 let pos = ms.map((_, i) => [vectors[i][k1] * Math.sqrt(values[k1]), vectors[i][k2] * Math.sqrt(values[k2])]);
 // Orient: oldest models to the left-ish is arbitrary; keep sign so the first model has x < 0 for stable layouts.
-if (pos[0][0] > 0) pos = pos.map(([x, y]) => [-x, y]);
+const flipped = pos[0][0] > 0;
+if (flipped) pos = pos.map(([x, y]) => [-x, y]);
 const span = Math.max(...pos.map(([x, y]) => Math.hypot(x, y)));
 pos = pos.map(([x, y]) => [(x / span) * 100, (y / span) * 100]);
 console.error(`PCA: first two axes explain ${(((values[k1] + values[k2]) / total) * 100).toFixed(1)}% of model variation`);
+
+// ── Earlier models measured from RAID (matched human texts), projected onto the same two axes ──
+// v_k = M^T u_k / sqrt(lambda_k) maps a model's log-ratio row to its coordinates; Graphite models land exactly where the PCA put them.
+type Extra = { id: string; name: string; family: string; lab: string; released: string; source: string; v: number[]; x: number; y: number; docs: number };
+const extras: Extra[] = [];
+// Local runs (measure/generate-local.ts) join once a model has at least 100 matched articles.
+const MIN_LOCAL_DOCS = 100;
+for (const [file, source] of [["data/measured/raid.json", "raid"], ["data/measured/local.json", "local"]] as const) {
+  const p = join(R, file);
+  if (!existsSync(p)) continue;
+  const raid = JSON.parse(readFileSync(p, "utf8")) as { models: Array<{ id: string; name: string; family: string; lab: string; released: string; docs: number; log2ratio: Record<string, number> }> };
+  const flip = flipped ? -1 : 1;
+  for (const m of raid.models) {
+    if (source === "local" && m.docs < MIN_LOCAL_DOCS) { console.error(`skip ${m.id}: ${m.docs} matched articles (need ${MIN_LOCAL_DOCS})`); continue; }
+    const row = kept.map((t) => Math.max(-CLIP, Math.min(CLIP, m.log2ratio[t.term] ?? 0)));
+    const proj = [k1, k2].map((k) => {
+      let dot = 0;
+      for (let j = 0; j < kept.length; j++) {
+        let vk = 0;
+        for (let i = 0; i < ms.length; i++) vk += M[i][j] * vectors[i][k];
+        dot += row[j] * (vk / Math.sqrt(values[k]));
+      }
+      return dot;
+    });
+    extras.push({ id: m.id, name: m.name, family: m.family, lab: m.lab, released: m.released, source, docs: m.docs, v: row, x: +(((proj[0] * flip) / span) * 100).toFixed(2), y: +((proj[1] / span) * 100).toFixed(2) });
+  }
+}
 
 // ── Phrase targets: weighted average of the positions of models that over-use it ──
 interface N extends SimulationNodeDatum { i: number; tx: number; ty: number; r: number }
@@ -112,9 +140,12 @@ for (const t of tells()) for (const term of t.measure?.graphite ?? []) tellOf.se
 const out = {
   attribution: 'Graphite, "AI Tells" (2026), CC BY 4.0',
   explained: +(((values[k1] + values[k2]) / total) * 100).toFixed(1),
-  models: ms.map((m, i) => ({ id: m.id, name: m.name, family: m.family, released: m.released, verified: m.verified, x: +pos[i][0].toFixed(2), y: +pos[i][1].toFixed(2) })),
+  models: [
+    ...ms.map((m, i) => ({ id: m.id, name: m.name, family: m.family, released: m.released, verified: m.verified, source: "graphite", x: +pos[i][0].toFixed(2), y: +pos[i][1].toFixed(2) })),
+    ...extras.map((e) => ({ id: e.id, name: e.name, family: e.family, released: e.released, verified: true, source: e.source, x: e.x, y: e.y })),
+  ],
   // [term, x, y, under?1:0, tellId|"", floorMask (bit i: one side never used it, ratio is a lower bound), ...per-model log2 ratio x10]
-  terms: kept.map((t, i) => [t.term, +nodes[i].x!.toFixed(2), +nodes[i].y!.toFixed(2), t.under ? 1 : 0, tellOf.get(t.term) ?? "", t.floor, ...t.v.map((x) => Math.round(x * 10))]),
+  terms: kept.map((t, i) => [t.term, +nodes[i].x!.toFixed(2), +nodes[i].y!.toFixed(2), t.under ? 1 : 0, tellOf.get(t.term) ?? "", t.floor, ...t.v.map((x) => Math.round(x * 10)), ...extras.map((e) => Math.round(e.v[i] * 10))]),
 };
 writeFileSync(join(R, "data/measured/map.json"), JSON.stringify(out));
 console.log(`map: ${kept.length} phrases (${kept.filter((t) => t.under).length} that people use more), models:`);

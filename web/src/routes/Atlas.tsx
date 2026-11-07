@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Cite } from "../components/Cite";
+import { BrandIcon } from "../components/BrandIcon";
 import { Link } from "react-router-dom";
-import { AtlasMap, models as mapModels, phrases, state, firstMeasured, explained, type Hover } from "../components/AtlasMap";
+import { AtlasMap, models as mapModels, phrases, state, firstMeasured, explained, type Hover, type Layers } from "../components/AtlasMap";
 import { Timeline, TIME, nextMonth } from "../components/Timeline";
 import { Strip } from "../components/Strip";
-import { chronology, data, tellById, ym, monthName, familyColor, label, type HistTell } from "../data";
+import { chronology, data, tellById, ym, monthName, familyColor, label, habits, type HistTell, type Habit } from "../data";
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const idx = new Map(mapModels.map((m, i) => [m.id, i]));
@@ -18,7 +19,8 @@ export function AtlasPage() {
   const [month, setMonth] = useState(initialMonth);
   const [playing, setPlaying] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
-  const [reset, setReset] = useState(0);
+  const [layers, setLayers] = useState<Layers>({ words: true, habits: true });
+  const reset = 0;
   const [wide, setWide] = useState(window.innerWidth > 900);
   const timer = useRef<number | null>(null);
 
@@ -36,7 +38,7 @@ export function AtlasPage() {
         if (n >= ym("2026-09")) { setPlaying(false); return ym("2026-09"); }
         return n;
       });
-    }, reduced() ? 900 : 420);
+    }, reduced() ? 900 : 360);
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [playing]);
 
@@ -46,33 +48,42 @@ export function AtlasPage() {
   };
   const scrub = (m: number) => { setPlaying(false); setMonth(m); };
 
-  const insets = wide ? { left: 380, right: 360, top: 16, bottom: 170 } : { left: 4, right: 4, top: 4, bottom: 4 };
+  const insets = wide ? { left: 380, right: 360, top: 16, bottom: 300 } : { left: 4, right: 4, top: 4, bottom: 4 };
 
   return (
     <>
       <section className="atlas" aria-labelledby="atlas-h">
-        <AtlasMap month={month} onHover={setHover} insets={insets} resetSignal={reset} />
+        <AtlasMap month={month} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
         <div className="plate plate-title">
-          <h1 id="atlas-h">The words that give a model away</h1>
+          <h1 id="atlas-h">What gives a model away</h1>
           <p>A dialect atlas of machine writing, release by release.</p>
+          <div className="layer-toggle" role="group" aria-label="Map layers">
+            <button type="button" className="chip" aria-pressed={layers.words} onClick={() => setLayers({ ...layers, words: !layers.words })}>Words</button>
+            <button type="button" className="chip" aria-pressed={layers.habits} onClick={() => setLayers({ ...layers, habits: !layers.habits })}>Habits</button>
+            <Link className="chip" to="/tells">Interfaces and code</Link>
+          </div>
+          <p className="layer-note">
+            {layers.habits ? "Badges are habits such as em dashes or echo endings, placed with the models that over-use them. " : ""}
+            Interface and code tells aren’t measured per model yet; they live in the field guide.
+          </p>
           <ul className="key" aria-label="Map key">
-            <li><span className="swatch" style={{ background: "var(--gpt)" }} />GPT, OpenAI</li>
-            <li><span className="swatch" style={{ background: "var(--claude)" }} />Claude, Anthropic</li>
-            <li><span className="swatch" style={{ background: "var(--gemini)" }} />Gemini, Google</li>
+            <li className="fam-row">
+              {[["gpt", "openai", "OpenAI"], ["claude", "anthropic", "Claude"], ["gemini", "google", "Gemini"], ["meta", "meta", "Llama"], ["mistral", "mistral", "Mistral"], ["mosaic", "", "MPT"], ["cohere", "cohere", "Cohere"]].map(([f, b, n]) => (
+                <span key={f} className="fam"><span className="swatch" style={{ background: `var(--${f})` }} />{b && <BrandIcon brand={b} size={11} />}{n}</span>
+              ))}
+            </li>
             <li><span className="swatch land" />Phrases current models over-use</li>
             <li><span className="swatch shore" />Phrases people use and models avoid</li>
             <li><span className="swatch fossil" />Dropped by a newer release</li>
           </ul>
-          <p style={{ marginTop: "var(--s4)" }}>
-            <button className="btn" type="button" onClick={() => setReset((r) => r + 1)}>Reset zoom</button>
+          <p className="credit">
+            Data: <a href={data.graphite.url}>Graphite</a> for 2025–26 (CC BY 4.0) and <a href="https://github.com/liamdugan/raid">RAID</a> for 2022–23 (MIT, measured by shibbo). Older models are placed on 2025–26 axes, so they look closer to people than they were. <a href="docs/concepts/sources.html">Every source</a>
           </p>
         </div>
         <FieldNotes month={month} />
-        {hover && <Tip hover={hover} month={month} />}
-        <p className="attribution">
-          Phrase data: <a href={data.graphite.url}>Graphite, “AI Tells” (2026)</a>, {data.graphite.license}. Layout: shibbo, PCA ({explained}% of variance).{" "}
-          <Link to="/docs/sources">All sources</Link>
-        </p>
+        {hover?.d && <Tip hover={hover} month={month} />}
+        {hover?.habit && <HabitTip habit={hover.habit} x={hover.x} y={hover.y} month={month} />}
+
         <Timeline month={month} setMonth={scrub} playing={playing} onPlay={play} />
       </section>
 
@@ -91,7 +102,7 @@ export function AtlasPage() {
               <pre><code>{`npx shibbo check README.md --model claude-opus-5
 npx shibbo rules --model gpt-6`}</code></pre>
               <p style={{ marginTop: "var(--s4)" }}>
-                <Link className="btn primary" to="/docs">Read the docs</Link>
+                <a className="btn primary" href="docs/guide/quick-start.html">Read the docs</a>
               </p>
             </div>
           </div>
@@ -110,7 +121,7 @@ function FieldNotes({ month }: { month: number }) {
       ...mapModels.map((m) => ({ name: m.name, at: ym(m.released) })),
     ].filter((r) => r.at <= month).sort((a, b) => a.at - b.at);
     const recent = releases.at(-1);
-    let measured: Array<{ term: string; model: string; fam: string; ratio: number; floor: boolean }> = [];
+    let measured: Array<{ term: string; model: string; fam: string; ratio: number; floor: boolean; source: string }> = [];
     if (month >= firstMeasured) {
       const { current } = state(month);
       const newest = [...current.values()].sort((a, b) => ym(b.released) - ym(a.released))[0];
@@ -121,7 +132,7 @@ function FieldNotes({ month }: { month: number }) {
         .sort((a, b) => b.v[i] - a.v[i])
         .filter((d, k, arr) => !arr.slice(0, k).some((o) => o.term.includes(d.term) || d.term.includes(o.term)))
         .slice(0, 3)
-        .map((d) => ({ term: d.term, model: newest.name, fam: newest.family, ratio: 2 ** d.v[i], floor: !!((d.floor >> i) & 1) }));
+        .map((d) => ({ term: d.term, model: newest.name, fam: newest.family, ratio: 2 ** d.v[i], floor: !!((d.floor >> i) & 1), source: newest.source ?? "graphite" }));
     }
     return { hist, recent, measured };
   }, [month]);
@@ -139,7 +150,7 @@ function FieldNotes({ month }: { month: number }) {
                 “{n.term.replace(/ _ /g, " … ")}” <span className="muted" style={{ fontFamily: "var(--sans)", fontStyle: "normal", fontSize: "var(--t-1)" }}>{n.floor ? "people, never" : `${Math.round(n.ratio).toLocaleString("en")}× people`}</span>
               </span>
             ))}
-            <cite><Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} /></cite>
+            <cite>{notes.measured[0].source === "raid" ? <Cite title="Measured by shibbo on RAID (Dugan et al., 2024), matched human texts" url="https://github.com/liamdugan/raid" /> : <Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} />}</cite>
           </li>
         )}
         {notes.hist.map((t) => (
@@ -157,8 +168,36 @@ function FieldNotes({ month }: { month: number }) {
   );
 }
 
+function HabitTip({ habit, x, y, month }: { habit: Habit; x: number; y: number; month: number }) {
+  const t = habit.tell ? tellById.get(habit.tell) : null;
+  const rows = mapModels.filter((m) => habit.models[m.id]);
+  const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(3));
+  return (
+    <div className="tip" style={{ transform: `translate(${Math.min(x + 16, window.innerWidth - 340)}px, ${y + 16}px)` }} role="status">
+      <span className="specimen">{habit.glyph} {habit.label}</span>
+      {habit.what}. People average {fmt(habit.human)} {habit.unit}.
+      <table>
+        <tbody>
+          {rows.map((m) => {
+            const v = habit.models[m.id];
+            const e = v.d * habit.sign;
+            return (
+              <tr key={m.id} className={ym(m.released) > month ? "later" : undefined}>
+                <th>{m.name}</th>
+                <td className="bar"><i style={{ width: `${Math.min(100, Math.abs(e) * 50)}%`, background: e > 0 ? familyColor(m.family) : "var(--ink-3)" }} /></td>
+                <td>{fmt(v.mean)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <small>Bars show effect size against people (Cohen’s d); grey means people do more. Source: Graphite, AI Tells (2026).{t ? " Click for the related tell." : ""}</small>
+    </div>
+  );
+}
+
 function Tip({ hover, month }: { hover: Hover; month: number }) {
-  const d = hover.d;
+  const d = hover.d!;
   const pos = { transform: `translate(${Math.min(hover.x + 16, window.innerWidth - 340)}px, ${hover.y + 16}px)` };
   const t = d.tell ? tellById.get(d.tell) : null;
   return (

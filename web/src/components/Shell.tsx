@@ -22,7 +22,7 @@ export function Shell() {
           <NavLink to="/" end>Atlas</NavLink>
           <NavLink to="/tells">Tells</NavLink>
           <NavLink to="/models">Models</NavLink>
-          <NavLink to="/docs">Docs</NavLink>
+          <a href="docs/index.html">Docs</a>
         </nav>
         <button className="btn theme" type="button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
           {theme === "dark" ? "Light" : "Dark"}
@@ -35,7 +35,7 @@ export function Shell() {
           <div className="inner">
             <p>
               Measurements from Graphite’s <a href={data.graphite.url}>“AI Tells”</a> (2026), {data.graphite.license}. Historical tells and release dates cite their own sources, all listed in{" "}
-              <Link to="/docs/sources">Sources</Link>. Code under MIT.
+              <a href="docs/concepts/sources.html">Sources</a>. Code under MIT.
             </p>
             <p>Built {data.built}</p>
           </div>
