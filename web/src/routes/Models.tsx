@@ -151,7 +151,7 @@ function WinMatrix({ a }: { a: Arena }) {
               <th scope="row">{nameOf(r)}</th>
               {order.map((c) => {
                 const v = r === c ? null : cell(r, c);
-                return <td key={c} style={v === null || v === undefined ? undefined : { background: tint(v), color: Math.abs(v - 0.5) > 0.3 ? "var(--sheet)" : undefined }}>{v === null || v === undefined ? "" : `${Math.round(v * 100)}`}</td>;
+                return <td key={c} style={v == null ? undefined : { background: tint(v), color: Math.abs(v - 0.5) > 0.3 ? "var(--sheet)" : undefined }}>{v == null ? "" : `${Math.round(v * 100)}`}</td>;
               })}
             </tr>
           ))}

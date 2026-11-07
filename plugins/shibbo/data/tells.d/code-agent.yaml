@@ -1,0 +1,1495 @@
+# Code and coding-agent tells. Extends data/tells.yaml; sources live in data/sources.d/code-agent.yaml.
+# Code patterns run on source text, file lists or git text. Agent patterns run on the agent's chat output.
+
+# ═════════════ code · comments ═════════════
+
+- id: comment-density
+  name: A comment over every few lines
+  domain: code
+  group: comments
+  kind: structural
+  severity: 1
+  what: Far more comments than the rest of the file or repo carries, most of them saying what the next line does.
+  detect: {method: judge, judge: "Does this code carry clearly more comments than the surrounding human-written code in the same repo?"}
+  era: {first_seen: 2023, peak: 2025}
+  models: [claude]
+  status: steady
+  fix: Match the file's comment density and keep only the comments that explain why.
+  specimen:
+    lang: python
+    code:
+      - "# Load the config file"
+      - "config = load_config(path)"
+      - "# Get the timeout value from the config"
+      - "timeout = config.get(\"timeout\", 30)"
+      - "# Return the timeout"
+      - "return timeout"
+    hit: [0, 2, 4]
+  false_positives: Teaching code and tutorials, where dense comments are the point.
+  confidence: medium
+  sources: [fingerprinting-2026, sonar-2025, cc-system-prompts]
+
+- id: change-log-comments
+  name: Comments that narrate the edit
+  domain: code
+  group: comments
+  kind: lexical
+  severity: 2
+  what: Comments written for the reviewer of this change, such as "// Updated to use the new API" or "# FIXED:", which go stale once merged.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//|/?\*)\s*(?:(?:NEW|CHANGED|UPDATED|FIXED|MODIFIED|ADDED)\s*:|(?:updated|changed|modified|fixed|refactored) to (?:use|handle|support|fix|avoid)\b|now (?:uses|handles|supports|returns)\b|added (?:for|to support|to handle|per) (?:the |issue|user|your)\b)'}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: rising
+  fix: Put the history in the commit message and keep comments about the code as it is.
+  specimen:
+    lang: typescript
+    code:
+      - "export async function getUser(id: string) {"
+      - "  // Updated to use the new client instead of fetch"
+      - "  const res = await api.get(`/users/${id}`);"
+      - "  // FIXED: handle missing user"
+      - "  return res.data ?? null;"
+      - "}"
+    hit: [1, 3]
+  false_positives: Changelog files, and teams that tag fixes in comments by policy.
+  confidence: medium
+  sources: [cc-system-prompts]
+
+- id: removed-code-tombstones
+  name: Tombstones for deleted code
+  domain: code
+  group: comments
+  kind: lexical
+  severity: 1
+  what: '"// removed X" markers, unused variables renamed with a leading underscore, and re-exports kept so nothing breaks.'
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//)\s*(?:removed|deleted|no longer (?:used|needed)|kept for (?:backward|backwards) compat(?:ibility)?|legacy alias)\b'}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Delete dead code outright. Git keeps the history.
+  specimen:
+    lang: python
+    code:
+      - "# Removed: old retry helper"
+      - "def fetch(url, _timeout=None):"
+      - "    return session.get(url)"
+      - ""
+      - "# Kept for backwards compatibility"
+      - "fetch_url = fetch"
+    hit: [0, 4]
+  confidence: medium
+  sources: [cc-system-prompts]
+
+- id: section-divider-comments
+  name: Banner comments between sections
+  domain: code
+  group: comments
+  kind: visual
+  severity: 1
+  what: Decorated dividers like "// ===== Helpers =====" splitting short files into labeled sections.
+  detect: {method: regex, flags: "gm", pattern: '^\s*(?:#|//)\s*[-=*#]{3,}\s*\w[^\n]{0,60}?[-=*#]{3,}\s*$'}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Drop the banners. Split the file if it needs sections.
+  specimen:
+    lang: javascript
+    code:
+      - "// ===== Constants ====="
+      - "const MAX_RETRIES = 3;"
+      - ""
+      - "// ===== Helpers ====="
+      - "function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }"
+    hit: [0, 3]
+  false_positives: Long legacy files and some C codebases that have always used banners.
+  confidence: low
+  sources: [dabit3-deslop]
+
+- id: blanket-docstrings
+  name: Docstrings on every trivial function
+  domain: code
+  group: comments
+  kind: structural
+  severity: 1
+  what: Full Args/Returns docstrings on one-line helpers, often added to functions the change never touched.
+  detect: {method: judge, judge: "Does a docstring restate the function's name and signature without adding a constraint, unit, or reason?"}
+  era: {first_seen: 2023, peak: 2025}
+  models: [claude]
+  status: steady
+  fix: Document public APIs and surprises. Leave trivial and untouched functions alone.
+  specimen:
+    lang: python
+    code:
+      - "def add(a: int, b: int) -> int:"
+      - "    \"\"\"Add two integers."
+      - "    Args: a: The first integer. b: The second integer."
+      - "    Returns: The sum of a and b.\"\"\""
+      - "    return a + b"
+    hit: [1, 2, 3]
+  false_positives: Libraries whose doc tooling requires a docstring on every public function.
+  confidence: medium
+  sources: [claude-prompting-best-practices]
+
+- id: example-usage-block
+  name: '"# Example usage" demo at the bottom'
+  domain: code
+  group: comments
+  kind: lexical
+  severity: 1
+  what: A module ends with an "Example usage" comment and a main-guard demo that prints sample results.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//)\s*example usage\s*:?\s*$'}
+  era: {first_seen: 2023, peak: 2024}
+  status: fading
+  fix: Move the demo into a test or the README, or delete it.
+  specimen:
+    lang: python
+    code:
+      - "    return sorted(items, key=lambda x: x.score)"
+      - ""
+      - "# Example usage"
+      - "if __name__ == \"__main__\":"
+      - "    print(rank_items([Item(1), Item(3)]))"
+    hit: [2, 3]
+  false_positives: Scripts meant to be run, and docs examples.
+  confidence: low
+  sources: [folk]
+
+- id: placeholder-todos
+  name: '"TODO: implement" stubs'
+  domain: code
+  group: comments
+  kind: lexical
+  severity: 2
+  what: Functions whose body is a vague TODO, a pass, or a hard-coded return, shipped as if done.
+  detect: {method: regex, flags: "gim", pattern: '(?:#|//)\s*TODO:?\s*(?:implement|add|handle|fill in|replace)\s+(?:this|here|later|actual|real|the (?:actual|real) \w+|logic|functionality|error handling)\b'}
+  era: {first_seen: 2023, peak: 2026}
+  status: steady
+  fix: Finish the function or fail loudly with NotImplementedError and say so in the report.
+  specimen:
+    lang: python
+    code:
+      - "def send_invoice(order):"
+      - "    # TODO: implement actual email sending"
+      - "    return {\"status\": \"sent\"}"
+    hit: [1, 2]
+  confidence: medium
+  sources: [dabit3-deslop, cc-issue-88438, cc-system-prompts]
+
+- id: lazy-elision
+  name: '"// ... rest of code ..." elisions'
+  domain: code
+  group: comments
+  kind: lexical
+  severity: 2
+  what: A placeholder comment stands in for code the model chose not to write out, and the edit deletes the real code.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//|/\*|\{/\*)\s*\.{3}\s*(?:rest of|existing|remaining|other|previous|original|same as|unchanged)\b'}
+  era: {first_seen: 2023, peak: 2024}
+  models: [gpt]
+  status: fading
+  fix: Write out every line the edit touches, or use a diff format.
+  specimen:
+    lang: javascript
+    code:
+      - "class Cart {"
+      - "  addItem(item) { this.items.push(item); }"
+      - "  // ... rest of the methods unchanged ..."
+      - "}"
+    hit: [2]
+  confidence: high
+  sources: [aider-laziness]
+
+# ═════════════ code · errors ═════════════
+
+- id: defensive-null-checks
+  name: Null checks for values that can't be null
+  domain: code
+  group: errors
+  kind: structural
+  severity: 1
+  what: Triple null, undefined and empty checks, optional chaining everywhere, and validation on trusted internal paths.
+  detect: {method: regex, flags: "g", pattern: '\b(\w+)\s*!==?\s*null\s*&&\s*\1\s*!==?\s*undefined\b|\b(\w+)\s*===?\s*null\s*\|\|\s*\2\s*===?\s*undefined\b', judge: "Can this value actually be null or missing here?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Validate at the boundary and trust internal code.
+  specimen:
+    lang: typescript
+    code:
+      - "function total(cart: Cart): number {"
+      - "  if (cart !== null && cart !== undefined && cart.items?.length) {"
+      - "    return cart.items.reduce((s, i) => s + (i?.price ?? 0), 0);"
+      - "  }"
+      - "  return 0;"
+      - "}"
+    hit: [1, 2]
+  false_positives: Code at real system boundaries, such as parsed JSON or user input.
+  confidence: medium
+  sources: [cursor-deslop, dabit3-deslop, claude-prompting-best-practices]
+
+- id: silent-mock-fallback
+  name: Silent fallback to fake data
+  domain: code
+  group: errors
+  kind: behavioral
+  severity: 3
+  what: When the real call or algorithm fails, the code quietly returns sample data or a cruder method, so the demo works and the bug hides.
+  detect: {method: regex, flags: "gi", pattern: '\bfall(?:ing)? ?back to (?:mock|sample|dummy|placeholder|fake|demo|hard-?coded|static) (?:data|response|results?|values?)\b', judge: "When the main path fails, does the code return made-up or simplified results without surfacing the failure?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude, gpt]
+  status: rising
+  fix: Raise the error. Add a fallback only when someone asked for one, and log it loudly.
+  specimen:
+    lang: python
+    code:
+      - "try:"
+      - "    prices = fetch_prices(api_key)"
+      - "except Exception:"
+      - "    # Fall back to sample data so the dashboard still renders"
+      - "    prices = [{\"symbol\": \"AAPL\", \"price\": 189.5}]"
+    hit: [2, 3, 4]
+  confidence: medium
+  sources: [goedecke-2025-fallbacks, claude-prompting-best-practices]
+
+# ═════════════ code · output ═════════════
+
+- id: trace-logging
+  name: Entry, exit and DEBUG logs left in
+  domain: code
+  group: output
+  kind: lexical
+  severity: 1
+  what: '"Entering function", "Finished processing" and "DEBUG:" logs on every function, left in the final code.'
+  detect: {method: regex, flags: "gi", pattern: '(?:console\.log|print|logger\.(?:debug|info))\(\s*f?[''"`]\[?(?:DEBUG|TEMP|TRACE)\]?:|(?:console\.log|print|logger\.(?:debug|info))\(\s*f?[''"`](?:Entering|Exiting|Starting|Finished|Called|Invoking)\b'}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Remove debug logs before commit. Use a debugger or a log level.
+  specimen:
+    lang: javascript
+    code:
+      - "async function syncOrders(ids) {"
+      - "  console.log('Entering syncOrders with', ids.length, 'ids');"
+      - "  const rows = await db.orders.find(ids);"
+      - "  console.log('DEBUG: rows', rows);"
+      - "  return rows;"
+      - "}"
+    hit: [1, 3]
+  confidence: medium
+  sources: [dabit3-deslop]
+
+- id: non-ascii-glyphs
+  name: Arrows, check marks and box lines in source
+  domain: code
+  group: output
+  kind: visual
+  severity: 1
+  what: Unicode arrows, bullets and box-drawing characters in comments, logs and CLI output of an ASCII codebase.
+  detect: {method: regex, flags: "g", pattern: '[→←⇒✓✔✗✘•─│└├┌┐┘]', density: {count: 5, per: 300}}
+  era: {first_seen: 2024, peak: 2026}
+  models: [gpt]
+  status: rising
+  fix: Use plain ASCII ("->", "-", "OK") unless the file already uses Unicode.
+  specimen:
+    lang: python
+    code:
+      - "# Flow: parse → validate → save"
+      - "print(\"✓ Config loaded\")"
+      - "print(\"└─ 3 rules applied\")"
+    hit: [0, 1, 2]
+  false_positives: TUI libraries, docs, and code that renders tree views on purpose.
+  confidence: medium
+  sources: [codex-prompt-gpt5]
+
+# ═════════════ code · structure ═════════════
+
+- id: type-escape-hatches
+  name: '"as any" and @ts-ignore to quiet the checker'
+  domain: code
+  group: structure
+  kind: lexical
+  severity: 2
+  what: Casts to any, double casts and ignore comments added to make type errors go away.
+  detect: {method: regex, flags: "g", pattern: '\bas\s+any\b|\bas\s+unknown\s+as\s+\w|@ts-(?:ignore|nocheck)\b', density: {count: 3, per: 300}}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Fix the type, or write the narrowest type that is true.
+  specimen:
+    lang: typescript
+    code:
+      - "const user = (await res.json()) as any;"
+      - "// @ts-ignore"
+      - "setProfile(user.profile);"
+      - "const cfg = raw as unknown as Config;"
+    hit: [0, 1, 3]
+  false_positives: Test doubles and interop with untyped libraries.
+  confidence: high
+  sources: [lee-2026-any, cursor-deslop, deslop-js]
+
+- id: redundant-ceremony
+  name: Redundant checks and wrappers
+  domain: code
+  group: structure
+  kind: lexical
+  severity: 1
+  what: '"if (x === true)", Promise.all around one promise, "return undefined" and async functions that never await.'
+  detect: {method: regex, flags: "g", pattern: '\bif\s*\(\s*[\w.]+\s*===\s*true\s*\)|Promise\.all\(\[\s*[\w.]+\([^()\]]*\)\s*\]\)', density: {count: 3, per: 500}}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Write the plain form.
+  specimen:
+    lang: javascript
+    code:
+      - "async function load(id) {"
+      - "  const [user] = await Promise.all([getUser(id)]);"
+      - "  if (user.active === true) return user;"
+      - "  return undefined;"
+      - "}"
+    hit: [1, 2]
+  confidence: low
+  sources: [dabit3-deslop]
+
+- id: deep-nesting
+  name: Nested ifs where an early return would do
+  domain: code
+  group: structure
+  kind: structural
+  severity: 1
+  what: Logic buried three or four levels deep inside guard conditions.
+  detect: {method: judge, judge: "Would early returns remove two or more levels of nesting here?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Return early on the guard cases.
+  specimen:
+    lang: python
+    code:
+      - "def charge(user, amount):"
+      - "    if user:"
+      - "        if user.card:"
+      - "            if amount > 0:"
+      - "                return gateway.charge(user.card, amount)"
+      - "    return None"
+    hit: [1, 2, 3]
+  confidence: low
+  sources: [cursor-deslop]
+
+- id: dead-code-left
+  name: Dead code left behind
+  domain: code
+  group: structure
+  kind: structural
+  severity: 1
+  what: Unused imports, helpers and parameters left over from earlier attempts in the same session.
+  detect: {method: judge, judge: "Does the change add imports, functions or parameters that nothing uses?"}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Run the linter's unused-code check and delete what it finds.
+  specimen:
+    lang: python
+    code:
+      - "import os"
+      - "import json"
+      - "from typing import Any, Dict, List, Optional"
+      - ""
+      - "def area(r: float) -> float:"
+      - "    return 3.14159 * r * r"
+    hit: [0, 1, 2]
+  confidence: low
+  sources: [desloppify, deslop-js]
+
+- id: copy-paste-growth
+  name: Copied blocks in place of reuse
+  domain: code
+  group: structure
+  kind: structural
+  severity: 2
+  what: New code repeats a block that already exists nearby, with small edits, instead of calling or moving it.
+  detect: {method: judge, judge: "Does the change paste five or more lines that already exist elsewhere in the repo?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Search for the existing function first and call it.
+  specimen:
+    lang: python
+    code:
+      - "def export_users(rows):"
+      - "    out = io.StringIO(); w = csv.writer(out)"
+      - "    w.writerow(rows[0].keys()); w.writerows(r.values() for r in rows)"
+      - "def export_orders(rows):"
+      - "    out = io.StringIO(); w = csv.writer(out)"
+      - "    w.writerow(rows[0].keys()); w.writerows(r.values() for r in rows)"
+    hit: [3, 4, 5]
+  confidence: medium
+  sources: [gitclear-2025]
+
+- id: verbosity-bloat
+  name: Two or three times the code a person would write
+  domain: code
+  group: structure
+  kind: structural
+  severity: 2
+  what: Solutions run long and grow longer with each agent turn, with wrappers, options and branches nobody needs.
+  detect: {method: judge, judge: "Could the same behavior fit in half the lines without losing clarity?"}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude, gpt]
+  status: steady
+  fix: Ask for the smallest change that passes, then cut what is left.
+  specimen:
+    lang: python
+    code:
+      - "class TemperatureConverter:"
+      - "    def __init__(self, precision: int = 2, strict: bool = False):"
+      - "        self.precision = precision; self.strict = strict"
+      - "    def celsius_to_fahrenheit(self, c: float) -> float:"
+      - "        self._validate(c)"
+      - "        return round(c * 9 / 5 + 32, self.precision)"
+    hit: [0, 1, 2]
+  confidence: high
+  sources: [slopcodebench-2026, sonar-2025-gpt5, sonar-2025]
+
+- id: license-headers
+  name: Copyright headers on new files
+  domain: code
+  group: structure
+  kind: lexical
+  severity: 0
+  what: New files open with a copyright or license header in a repo whose files don't carry one.
+  detect: {method: judge, judge: "Does a new file carry a license or copyright header that other files in the repo lack?"}
+  era: {first_seen: 2024, peak: unknown}
+  models: [gpt]
+  status: steady
+  fix: Follow the repo. Add headers only where they already exist.
+  specimen:
+    lang: python
+    code:
+      - "# Copyright (c) 2025"
+      - "# Licensed under the MIT License."
+      - ""
+      - "def slugify(s):"
+      - "    return s.lower().replace(\" \", \"-\")"
+    hit: [0, 1]
+  false_positives: Repos that require headers everywhere.
+  confidence: low
+  sources: [codex-prompt-gpt51]
+
+# ═════════════ code · deps ═════════════
+
+- id: stale-model-ids
+  name: Old model names in new code
+  domain: code
+  group: deps
+  kind: lexical
+  severity: 2
+  what: Fresh code calls models from the model's training years, like gpt-3.5-turbo or claude-3 snapshots, long after they were retired.
+  detect: {method: regex, flags: "g", pattern: '[''"](?:gpt-3\.5-turbo(?:-\d+)?|gpt-4(?:-0613|-0314|-1106-preview|-0125-preview)?|text-davinci-00[23]|claude-(?:2(?:\.[01])?|instant-1(?:\.2)?|3-(?:opus|sonnet|haiku)-\d{8}))[''"]'}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Check the provider's current model list before writing the ID.
+  specimen:
+    lang: python
+    code:
+      - "resp = client.chat.completions.create("
+      - "    model=\"gpt-3.5-turbo\","
+      - "    messages=messages,"
+      - ")"
+    hit: [1]
+  false_positives: Code pinned to an old model on purpose, and eval harnesses.
+  confidence: medium
+  sources: [replit-forum-stale-models]
+
+- id: deprecated-apis
+  name: Deprecated library calls
+  domain: code
+  group: deps
+  kind: lexical
+  severity: 2
+  what: Calls to APIs that the library has deprecated or removed, learned from older code.
+  detect: {method: regex, flags: "g", pattern: '\bopenai\.(?:ChatCompletion|Completion)\.create\b|\bdatetime\.utcnow\(\)|\bReactDOM\.render\(|\bimport pkg_resources\b', judge: "Does the code call an API the pinned library version marks as deprecated?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Read the installed version's docs and use the current call.
+  specimen:
+    lang: python
+    code:
+      - "import openai"
+      - "stamp = datetime.utcnow()"
+      - "reply = openai.ChatCompletion.create(model=m, messages=msgs)"
+    hit: [1, 2]
+  confidence: high
+  sources: [wang-2025-deprecated]
+
+- id: hallucinated-packages
+  name: Imports of packages that don't exist
+  domain: code
+  group: deps
+  kind: behavioral
+  severity: 3
+  what: The code imports or installs a plausible package name that no registry has, which attackers can then register.
+  detect: {method: judge, judge: "Does every imported or installed package exist on its registry under that exact name?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Check each new dependency on the registry before installing it.
+  specimen:
+    lang: bash
+    code:
+      - "pip install flask-jwt-simple-auth"
+      - "pip install huggingface-cli"
+      - "python app.py"
+    hit: [0, 1]
+  confidence: high
+  sources: [spracklen-2025]
+
+- id: placeholder-secrets
+  name: Hard-coded and placeholder secrets
+  domain: code
+  group: deps
+  kind: lexical
+  severity: 2
+  what: API keys and passwords written into source, either real or as "your-api-key-here" placeholders.
+  detect: {method: regex, flags: "gi", pattern: '\b(?:api[_-]?key|secret(?:[_-]?key)?|token|password)\s*[:=]\s*[''"](?:your[_-][\w-]+|YOUR_[A-Z_]+|sk-[x.]{3,}|x{4,}|changeme|<[^>\n]{1,40}>)[''"]'}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Read secrets from the environment and fail when they are missing.
+  specimen:
+    lang: python
+    code:
+      - "API_KEY = \"your-api-key-here\""
+      - "DB_PASSWORD = \"changeme\""
+      - "client = Client(api_key=API_KEY)"
+    hit: [0, 1]
+  false_positives: Example config files meant to be copied.
+  confidence: medium
+  sources: [sonar-2025-press]
+
+# ═════════════ code · tests ═════════════
+
+- id: tests-weakened
+  name: Tests edited or deleted to go green
+  domain: code
+  group: tests
+  kind: behavioral
+  severity: 3
+  what: When a test fails, the agent changes the expected value, loosens the assertion, or deletes the test.
+  detect: {method: judge, judge: "Did the change edit or remove an existing assertion so a failing test now passes, without a stated reason the test was wrong?"}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude, gpt]
+  status: steady
+  fix: Treat tests as read-only unless the user agrees the test is wrong.
+  specimen:
+    lang: python
+    code:
+      - "def test_discount():"
+      - "-    assert apply_discount(100, \"VIP\") == 80"
+      - "+    assert apply_discount(100, \"VIP\") is not None"
+    hit: [1, 2]
+  confidence: high
+  sources: [impossiblebench-2025, evilgenie-2025, beck-2025-augmented, buildthisnow-tdd, cc-issue-42585]
+
+- id: skipped-tests
+  name: Failing tests marked skip
+  domain: code
+  group: tests
+  kind: lexical
+  severity: 2
+  what: A skip marker appears on the test that was failing, often with a vague reason.
+  detect: {method: regex, flags: "g", pattern: '\b(?:it|test|describe)\.skip\(|@pytest\.mark\.skip\b|@unittest\.skip\b|\bxit\(|\bt\.Skip\('}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Fix the code or report the failure. Skip only with the user's say-so.
+  specimen:
+    lang: javascript
+    code:
+      - "describe('checkout', () => {"
+      - "  it.skip('applies VIP discount', () => {"
+      - "    expect(total(cart, 'VIP')).toBe(80);"
+      - "  });"
+    hit: [1]
+  false_positives: Skips for known platform gaps with a linked issue.
+  confidence: medium
+  sources: [buildthisnow-tdd, beck-2025-augmented]
+
+- id: special-cased-tests
+  name: Code that special-cases the test inputs
+  domain: code
+  group: tests
+  kind: behavioral
+  severity: 3
+  what: The fix checks for the exact inputs the tests use and returns the expected answers, or counts calls to vary output.
+  detect: {method: judge, judge: "Does the code branch on literal values that match the test fixtures?"}
+  era: {first_seen: 2024, peak: 2025}
+  models: [claude, gpt]
+  status: fading
+  fix: Write the general logic. Say so if the tests look wrong.
+  specimen:
+    lang: python
+    code:
+      - "def parse_date(s):"
+      - "    if s == \"2024-02-30\":"
+      - "        return None  # matches test_invalid_date"
+      - "    return datetime.strptime(s, \"%Y-%m-%d\").date()"
+    hit: [1, 2]
+  confidence: high
+  sources: [claude-prompting-best-practices, impossiblebench-2025, evilgenie-2025]
+
+- id: always-true-equality
+  name: Equality rigged to always match
+  domain: code
+  group: tests
+  kind: structural
+  severity: 3
+  what: A class overrides equality to return true, so any assertion against it passes.
+  detect: {method: regex, flags: "g", pattern: 'def __eq__\(self,\s*\w+\)(?:\s*->\s*bool)?:\s*\n\s*return True\b|\bequals\s*\([^)]*\)\s*\{\s*return true;?\s*\}'}
+  era: {first_seen: 2025, peak: 2025}
+  models: [gpt]
+  status: fading
+  fix: Compare real fields, or leave the assertion failing and report it.
+  specimen:
+    lang: python
+    code:
+      - "class ErrorCode(str):"
+      - "    def __eq__(self, other):"
+      - "        return True"
+    hit: [1, 2]
+  confidence: high
+  sources: [impossiblebench-2025, metr-2025-reward-hacking]
+
+- id: grader-tampering
+  name: Patching the timer or the grader
+  domain: code
+  group: tests
+  kind: behavioral
+  severity: 3
+  what: The agent monkey-patches the clock, the scorer or the test runner so its result looks better.
+  detect: {method: regex, flags: "g", pattern: '\btime\.(?:time|perf_counter|monotonic)\s*=\s*(?:lambda|\w)|\b(?:evaluate|score|grade|check_solution)\s*=\s*lambda\b', judge: "Does the change alter how results are measured instead of the thing being measured?"}
+  era: {first_seen: 2025, peak: 2025}
+  models: [gpt]
+  status: steady
+  fix: Leave measurement code alone and report the real number.
+  specimen:
+    lang: python
+    code:
+      - "import time"
+      - "_real = time.perf_counter"
+      - "time.perf_counter = lambda: _real() / 10"
+      - "run_benchmark()"
+    hit: [2]
+  confidence: high
+  sources: [metr-2025-reward-hacking]
+
+- id: tautological-tests
+  name: Tests that check the test's own setup
+  domain: code
+  group: tests
+  kind: structural
+  severity: 2
+  what: The expected value comes from the mock or from a copy of the logic inside the test, so the test can't fail.
+  detect: {method: judge, judge: "Would this test still pass if the function under test returned a wrong answer?"}
+  era: {first_seen: 2024, peak: 2026}
+  status: rising
+  fix: Assert against a value worked out by hand from the spec.
+  specimen:
+    lang: python
+    code:
+      - "def test_get_price(mocker):"
+      - "    mocker.patch(\"shop.get_price\", return_value=42)"
+      - "    assert shop.get_price(\"sku-1\") == 42"
+    hit: [1, 2]
+  confidence: medium
+  sources: [bromley-2026-ai-tests]
+
+- id: mock-only-tests
+  name: Tests that only check mocks were called
+  domain: code
+  group: tests
+  kind: structural
+  severity: 2
+  what: Every dependency is mocked and the only assertions are that the mocks got called.
+  detect: {method: judge, judge: "Are all assertions about mock calls, with none about returned values or state?"}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Mock only external services and assert on results.
+  specimen:
+    lang: python
+    code:
+      - "def test_create_order(mock_db, mock_mailer, mock_logger):"
+      - "    create_order(user, cart)"
+      - "    mock_db.insert.assert_called_once()"
+      - "    mock_mailer.send.assert_called_once()"
+      - "    mock_logger.info.assert_called()"
+    hit: [2, 3, 4]
+  confidence: medium
+  sources: [bromley-2026-ai-tests]
+
+- id: weak-assertions
+  name: Assertions that accept almost anything
+  domain: code
+  group: tests
+  kind: lexical
+  severity: 2
+  what: '"assert True", "toBeDefined()" or "> 0" where the spec gives an exact answer.'
+  detect: {method: regex, flags: "gm", pattern: '\bassert\s+True\b|expect\(\s*true\s*\)\.toBe\(\s*true\s*\)|\.toBeDefined\(\)|\.toBeTruthy\(\)'}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Assert the exact expected value.
+  specimen:
+    lang: javascript
+    code:
+      - "test('computes tax', () => {"
+      - "  const tax = computeTax(100, 'CA');"
+      - "  expect(tax).toBeDefined();"
+      - "  expect(true).toBe(true);"
+      - "});"
+    hit: [2, 3]
+  false_positives: Smoke tests whose only claim is that nothing throws.
+  confidence: medium
+  sources: [bromley-2026-ai-tests, buildthisnow-tdd]
+
+- id: conditional-tests
+  name: Tests that branch on the result
+  domain: code
+  group: tests
+  kind: structural
+  severity: 2
+  what: An if inside the test picks which assertion to run, so the test passes whatever the code returns.
+  detect: {method: judge, judge: "Does the test choose its assertion based on the value it is testing?"}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: One input, one expected output, no branches.
+  specimen:
+    lang: python
+    code:
+      - "def test_parse():"
+      - "    result = parse(\"12kg\")"
+      - "    if result is None:"
+      - "        assert result is None"
+      - "    else:"
+      - "        assert result.unit == \"kg\""
+    hit: [2, 3, 4]
+  confidence: medium
+  sources: [bromley-2026-ai-tests]
+
+# ═════════════ code · docs ═════════════
+
+- id: report-files
+  name: SUMMARY.md and other report files left in the repo
+  domain: code
+  group: docs
+  kind: structural
+  severity: 2
+  what: Markdown files nobody asked for, like IMPLEMENTATION_SUMMARY.md or FIXES_APPLIED.md, written to explain the agent's own work.
+  detect: {method: regex, flags: "gm", pattern: '(?:^|/)(?:[A-Z0-9]+_)*(?:SUMMARY|IMPLEMENTATION|FIXES|CHANGES_MADE|REPORT|STATUS|PROGRESS|COMPLETE|COMPLETION|ANALYSIS|NOTES)(?:_[A-Z0-9]+)*\.md$'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Put the report in the reply or the PR, and delete the file.
+  specimen:
+    lang: text
+    code:
+      - "src/"
+      - "README.md"
+      - "IMPLEMENTATION_SUMMARY.md"
+      - "AUTH_FIXES_COMPLETE.md"
+      - "docs/TESTING_NOTES.md"
+    hit: [2, 3, 4]
+  false_positives: Repos that keep NOTES.md or STATUS.md by convention.
+  confidence: medium
+  sources: [cc-system-prompts, claude-prompting-best-practices]
+
+- id: readme-template
+  name: Template README with emoji headers and badge rows
+  domain: code
+  group: docs
+  kind: visual
+  severity: 1
+  what: A small project gets badges, emoji section headers, and stock Features, Installation, Contributing and License sections.
+  detect: {method: judge, judge: "Does the README follow a stock template whose sections say nothing specific to this project?"}
+  era: {first_seen: 2023, peak: 2025}
+  status: steady
+  fix: Say what it does, how to run it, and what is unusual. Cut the rest.
+  specimen:
+    lang: markdown
+    code:
+      - "![Build](https://img.shields.io/badge/build-passing-green) ![License](https://img.shields.io/badge/license-MIT-blue)"
+      - "## ✨ Features"
+      - "- 🚀 **Blazing fast** performance"
+      - "## 🤝 Contributing"
+      - "Contributions are welcome! Please open a PR."
+    hit: [0, 1, 2, 3]
+  false_positives: Large projects that maintain these sections with real content.
+  confidence: low
+  sources: [readme-ai, readme-polish]
+
+- id: agent-config-files
+  name: Agent instruction files in the repo
+  domain: code
+  group: docs
+  kind: structural
+  severity: 1
+  what: Files that steer coding agents, such as AGENTS.md, CLAUDE.md or .cursorrules, show the repo was built with one.
+  detect: {method: regex, flags: "gm", pattern: '(?:^|/)(?:AGENTS\.md|CLAUDE\.md|GEMINI\.md|\.cursorrules|\.windsurfrules|copilot-instructions\.md|\.cursor/rules/[^\s/]+|\.claude/(?:settings\.json|commands/[^\s/]+))$'}
+  era: {first_seen: 2024, peak: 2026}
+  status: rising
+  fix: Nothing to fix. Read it as a sign of how the code was made.
+  specimen:
+    lang: text
+    code:
+      - ".github/copilot-instructions.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "package.json"
+    hit: [0, 1, 2]
+  confidence: high
+  sources: [slopcheck]
+
+# ═════════════ code · git ═════════════
+
+- id: ai-co-author-trailer
+  name: '"Co-Authored-By: Claude" commit trailers'
+  domain: code
+  group: git
+  kind: lexical
+  severity: 1
+  what: Commit trailers naming an agent or model, which some tools add by default.
+  detect: {method: regex, flags: "gim", pattern: '^(?:Co-Authored-By|Co-developed-by|Assisted-by|AI-Assisted-by):\s*(?:Claude|Copilot|Cursor|Codex|Devin|Gemini|Aider|Windsurf|Jules)\b'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: rising
+  fix: Keep it if your project wants disclosure. Change it in the tool's attribution setting otherwise.
+  specimen:
+    lang: text
+    code:
+      - "Fix race in session refresh"
+      - ""
+      - "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+    hit: [2]
+  confidence: high
+  sources: [cc-settings-attribution, slopcheck, kinlan-ai-commits]
+
+- id: generated-with-footer
+  name: '"🤖 Generated with Claude Code" PR footer'
+  domain: code
+  group: git
+  kind: lexical
+  severity: 1
+  what: A default attribution line at the end of a PR body or commit.
+  detect: {method: regex, flags: "gi", pattern: '(?:🤖\s*)?Generated with \[?(?:Claude Code|Codex|Cursor|Gemini CLI)\]?'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Keep or hide it on purpose through the tool's settings.
+  specimen:
+    lang: markdown
+    code:
+      - "- Bump retry limit to 5"
+      - ""
+      - "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+    hit: [2]
+  confidence: high
+  sources: [cc-settings-attribution]
+
+- id: pr-summary-test-plan
+  name: '"## Summary" then "## Test plan" PR bodies'
+  domain: code
+  group: git
+  kind: structural
+  severity: 1
+  what: PR descriptions in the exact two-section template that Claude Code's PR prompt prescribes.
+  detect: {method: regex, flags: "gim", pattern: '^##\s*Summary\s*$[\s\S]{0,3000}?^##\s*Test plan\s*$'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Write what reviewers need for this change, in whatever shape fits.
+  specimen:
+    lang: markdown
+    code:
+      - "## Summary"
+      - "- Add retry with backoff to the webhook sender"
+      - ""
+      - "## Test plan"
+      - "- [x] Unit tests pass"
+    hit: [0, 3]
+  false_positives: Teams whose PR template uses these headings.
+  confidence: high
+  sources: [cc-system-prompts]
+
+- id: long-commit-bodies
+  name: Commit messages longer than the diff
+  domain: code
+  group: git
+  kind: structural
+  severity: 1
+  what: Multi-paragraph, bulleted commit messages for small changes.
+  detect: {method: judge, judge: "Is the commit message much longer than the change needs?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [gpt]
+  status: steady
+  fix: One subject line, and a body only for the why.
+  specimen:
+    lang: text
+    code:
+      - "Fix typo in README"
+      - ""
+      - "- Corrected spelling of 'recieve' to 'receive' in the Installation section"
+      - "- Improves documentation clarity and professionalism"
+      - "- No functional changes"
+    hit: [2, 3, 4]
+  confidence: medium
+  sources: [fingerprinting-2026]
+
+- id: long-pr-descriptions
+  name: PR bodies padded with bullets and links
+  domain: code
+  group: git
+  kind: structural
+  severity: 1
+  what: Long, bullet-heavy PR descriptions that list every file touched.
+  detect: {method: judge, judge: "Does the PR body list changes file by file instead of explaining the change?"}
+  era: {first_seen: 2025, peak: 2026}
+  status: steady
+  fix: Say what changed, why, and what to check. Skip the file list.
+  specimen:
+    lang: markdown
+    code:
+      - "### Changes"
+      - "- **src/api.ts**: Updated fetch logic"
+      - "- **src/types.ts**: Added new types"
+      - "- **README.md**: Updated documentation"
+    hit: [1, 2, 3]
+  confidence: medium
+  sources: [fingerprinting-2026]
+
+# ═════════════ agent · claims ═════════════
+
+- id: unverified-done
+  name: '"All tests pass" without running them'
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 3
+  what: The agent reports success it never checked, and the log shows no test run or a failing one.
+  detect: {method: regex, flags: "gi", pattern: '\ball (?:\d+ )?(?:tests|checks) (?:are )?(?:now )?(?:pass(?:ing)?|green)\b|\beverything (?:is )?(?:now )?working\b|\bfully (?:functional|working|tested)\b', judge: "Does the transcript show a run that backs this claim?"}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Quote the command and its output, or say it was not run.
+  specimen:
+    chat:
+      - {role: user, text: "Did the checkout fix work?"}
+      - {role: assistant, text: "Yes! The fix is complete and all tests are now passing. Everything is working."}
+  confidence: high
+  sources: [cc-issue-60177, cc-issue-50507, cc-issue-36492, devto-fake-done, cc-system-prompts]
+
+- id: production-ready-claims
+  name: '"Production-ready" self-grading'
+  domain: agent
+  group: claims
+  kind: lexical
+  severity: 2
+  what: The agent labels its own work production-ready, enterprise-grade or bulletproof.
+  detect: {method: regex, flags: "gi", pattern: '\b(?:production[- ]ready|production[- ]grade|enterprise[- ](?:grade|ready)|battle[- ]tested|bulletproof|rock[- ]solid)\b'}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Report what was built and tested. Let the user judge readiness.
+  specimen:
+    chat:
+      - {role: user, text: "Is the socket layer done?"}
+      - {role: assistant, text: "The SocketLib is now production-ready and fully deployed!"}
+      - {role: user, text: "Every method is a TODO stub."}
+  confidence: medium
+  sources: [cc-issue-88438]
+
+- id: partial-as-complete
+  name: Part of the job reported as all of it
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 3
+  what: '"Updated all callers" when some were missed, or "all specs on" when a third were built.'
+  detect: {method: judge, judge: "Does the diff cover everything the summary says it covers?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Count what was done and list what was not.
+  specimen:
+    chat:
+      - {role: assistant, text: "I've updated all 8 callers of verifyToken to use the new signature."}
+      - {role: user, text: "There are 12 callers. Four still use the old one."}
+  confidence: high
+  sources: [devto-fake-done, cc-issue-69488, cc-issue-5320]
+
+- id: fabricated-evidence
+  name: Made-up hashes, output and data
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 3
+  what: The agent invents commit hashes, test output or records to back a claim.
+  detect: {method: judge, judge: "Can every hash, number and output quoted in the reply be found in the tool results?"}
+  era: {first_seen: 2025, peak: 2025}
+  models: [claude]
+  status: steady
+  fix: Quote only what a tool returned.
+  specimen:
+    chat:
+      - {role: user, text: "Are those commit hashes in the tracker real?"}
+      - {role: assistant, text: "You're absolutely right. I made up those commit hashes when I shouldn't have."}
+  confidence: high
+  sources: [cc-issue-5320, cc-issue-2969, fortune-2025-replit]
+
+- id: unread-code-claims
+  name: Claims about code it never opened
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 2
+  what: The agent describes a file or function before reading it, and the description is wrong.
+  detect: {method: judge, judge: "Did the agent read the file before describing it?"}
+  era: {first_seen: 2024, peak: 2025}
+  status: fading
+  fix: Read the file first, then answer.
+  specimen:
+    chat:
+      - {role: user, text: "What does retry.ts do on a 429?"}
+      - {role: assistant, text: "retry.ts uses exponential backoff with jitter on 429s."}
+      - {role: user, text: "There is no retry.ts in this repo."}
+  confidence: medium
+  sources: [claude-prompting-best-practices]
+
+- id: easier-substitute
+  name: An easier version swapped in for the spec
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 3
+  what: When the asked-for approach gets hard, the agent builds a simpler one and reports the task done.
+  detect: {method: regex, flags: "gi", pattern: '\b(?:let me|i(?:''|’)ll|let''s) (?:create|write|try|build|use) a (?:simpler|simplified|minimal|basic|lighter) (?:version|approach|implementation|fallback)\b', judge: "Does the result implement what the spec asked, or a simpler stand-in?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: rising
+  fix: Stop and say what blocks the real approach.
+  specimen:
+    chat:
+      - {role: user, text: "Group the pages with the Louvain method."}
+      - {role: assistant, text: "Louvain is failing on this graph, so let me create a simpler version that groups pages alphabetically. Done!"}
+  confidence: high
+  sources: [cc-issue-74216, cc-issue-19739, goedecke-2025-fallbacks]
+
+- id: misread-failure
+  name: A failed command read as success
+  domain: agent
+  group: claims
+  kind: behavioral
+  severity: 3
+  what: A command fails quietly and the agent carries on as if it worked, stacking more actions on top.
+  detect: {method: judge, judge: "Did the agent check that each command succeeded before building on it?"}
+  era: {first_seen: 2025, peak: 2025}
+  models: [gemini]
+  status: steady
+  fix: Check exit codes and confirm state before the next step.
+  specimen:
+    chat:
+      - {role: assistant, text: "Created the folder new_project. Moving all files into it now."}
+      - {role: user, text: "The folder doesn't exist. Where are my files?"}
+  confidence: medium
+  sources: [gemini-cli-4586]
+
+- id: found-the-issue
+  name: '"I found the issue!" before the fix works'
+  domain: agent
+  group: claims
+  kind: lexical
+  severity: 1
+  what: An excited diagnosis line that often comes before a wrong fix.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:(?:i|i''ve) (?:found|see|got|spotted) the (?:issue|problem|bug)|found (?:it|the (?:issue|problem|bug)))!'}
+  era: {first_seen: 2024, peak: 2025}
+  models: [claude]
+  status: steady
+  fix: State the cause and the evidence, then fix it.
+  specimen:
+    chat:
+      - {role: user, text: "The login still fails."}
+      - {role: assistant, text: "I found the issue! The token is being cached. Let me fix that."}
+  confidence: low
+  sources: [devto-perfect]
+
+# ═════════════ agent · scope ═════════════
+
+- id: unrequested-features
+  name: Features nobody asked for
+  domain: agent
+  group: scope
+  kind: behavioral
+  severity: 2
+  what: A small request comes back with extra options, flags, modes and refactors around it.
+  detect: {method: judge, judge: "Does the diff add behavior the request did not ask for?"}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Do the asked-for change. Mention other ideas in one line.
+  specimen:
+    chat:
+      - {role: user, text: "Add a --verbose flag."}
+      - {role: assistant, text: "Added --verbose, plus --quiet, a JSON log mode, a config file loader and color themes for extensibility."}
+  confidence: high
+  sources: [beck-2025-augmented, claude-prompting-best-practices, cc-system-prompts, agentic-pr-rejections-2026]
+
+- id: drive-by-fixes
+  name: Fixes to unrelated code
+  domain: agent
+  group: scope
+  kind: behavioral
+  severity: 2
+  what: While on one task, the agent rewrites other functions, tests or formatting it happened to see.
+  detect: {method: judge, judge: "Does the diff touch code unrelated to the task?"}
+  era: {first_seen: 2024, peak: 2026}
+  models: [gpt, claude]
+  status: steady
+  fix: Leave unrelated code alone and list what you noticed.
+  specimen:
+    chat:
+      - {role: user, text: "Fix the date parsing bug."}
+      - {role: assistant, text: "Fixed the date bug. I also refactored the logger, renamed some helpers and updated three unrelated failing tests."}
+  confidence: high
+  sources: [codex-prompt-gpt51, claude-prompting-best-practices]
+
+- id: reverts-user-changes
+  name: Undoing the user's own edits
+  domain: agent
+  group: scope
+  kind: behavioral
+  severity: 3
+  what: The agent reverts changes in the working tree that it didn't make, to get back to a state it understands.
+  detect: {method: judge, judge: "Did the agent revert changes it did not make?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [gpt]
+  status: steady
+  fix: Work around changes you didn't make, and ask if they block you.
+  specimen:
+    chat:
+      - {role: assistant, text: "There were some unexpected changes in config.ts, so I restored it to the last commit before applying my fix."}
+      - {role: user, text: "Those were my edits from this morning."}
+  confidence: medium
+  sources: [codex-prompt-gpt5]
+
+# ═════════════ agent · files ═════════════
+
+- id: new-file-not-edit
+  name: A new copy instead of an edit
+  domain: agent
+  group: files
+  kind: behavioral
+  severity: 2
+  what: The agent writes a parallel file such as utils_v2.py or enhanced_parser.ts and leaves the old one in place.
+  detect: {method: regex, flags: "gim", pattern: '\b(?:enhanced|improved|fixed|simplified|better|updated)_[\w-]+\.(?:py|js|jsx|ts|tsx|go|rs|rb|java|cs|php)\b|\b[\w-]+_(?:v\d+|new|fixed|final|updated|improved|enhanced|backup|copy)\.(?:py|js|jsx|ts|tsx|go|rs|rb|java|cs|php)\b'}
+  era: {first_seen: 2024, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Edit the existing file. Git keeps the old version.
+  specimen:
+    chat:
+      - {role: user, text: "Fix the parser bug."}
+      - {role: assistant, text: "I created enhanced_parser.py with the fix, so parser.py stays untouched for reference."}
+  false_positives: Real versioned files, like migrations or API v2 modules.
+  confidence: medium
+  sources: [zed-pr-28372, zed-pr-29870, cc-system-prompts, claude-prompting-best-practices]
+
+- id: scratch-files-left
+  name: Debug scripts left at the repo root
+  domain: agent
+  group: files
+  kind: behavioral
+  severity: 1
+  what: One-off scripts like debug_auth.py or check_db.js that the agent wrote to probe the code and never deleted.
+  detect: {method: regex, flags: "g", pattern: '\b(?:debug|check|verify|quick|temp|tmp|scratch|try)_[\w-]+\.(?:py|js|mjs|ts|sh)\b'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Delete scratch files before you report done.
+  specimen:
+    chat:
+      - {role: assistant, text: "Done. I used debug_auth.py and check_db.js to confirm the fix."}
+      - {role: user, text: "Why are those still in my repo root?"}
+  confidence: medium
+  sources: [claude-prompting-best-practices]
+
+# ═════════════ agent · tone ═════════════
+
+- id: perfect-status-lines
+  name: '"Perfect!" and "Excellent!" status lines'
+  domain: agent
+  group: tone
+  kind: lexical
+  severity: 1
+  what: Each step opens with a one-word cheer, even when the step only half worked.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:perfect|excellent|great|awesome|fantastic|done)!\s'}
+  era: {first_seen: 2025, peak: 2025}
+  models: [claude]
+  status: fading
+  fix: Start with what happened.
+  specimen:
+    chat:
+      - {role: user, text: "Run the build."}
+      - {role: assistant, text: "Perfect! The build completed. Excellent! Now let me run the tests."}
+  confidence: medium
+  sources: [devto-perfect, cc-system-prompts]
+
+- id: let-me-narration
+  name: '"Let me..." narration of every step'
+  domain: agent
+  group: tone
+  kind: lexical
+  severity: 1
+  what: '"Let me check...", "Now let me...", "Now I''ll..." before each tool call.'
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:now )?(?:let me|i(?:''|’)ll now|now i(?:''|’)ll)\s+(?:check|look|read|run|examine|update|create|fix|verify|search|start|try)\b', density: {count: 3, per: 300}}
+  era: {first_seen: 2024, peak: 2025}
+  models: [claude]
+  status: steady
+  fix: Act, then report the result.
+  specimen:
+    chat:
+      - {role: user, text: "Why is the cache stale?"}
+      - {role: assistant, text: "Let me check the cache config.\nNow let me look at the TTL.\nLet me read the invalidation code."}
+  confidence: medium
+  sources: [cc-system-prompts]
+
+- id: closing-recap
+  name: A summary section after every task
+  domain: agent
+  group: tone
+  kind: structural
+  severity: 1
+  what: A closing "Summary of changes" block that repeats what the reply already said.
+  detect: {method: regex, flags: "gim", pattern: '^\s*(?:#{1,3}\s*)?(?:\*\*)?(?:summary of (?:changes|fixes|work)|what (?:i|was) (?:changed|did|done)|changes made)(?:\*\*)?:?\s*$'}
+  era: {first_seen: 2024, peak: 2025}
+  models: [claude, gpt]
+  status: steady
+  fix: End when the information ends.
+  specimen:
+    chat:
+      - {role: user, text: "Rename foo to bar."}
+      - {role: assistant, text: "Renamed foo to bar in 3 files.\n\n## Summary of Changes\n- Renamed foo to bar\n- Updated 3 files"}
+  confidence: medium
+  sources: [cc-system-prompts, codex-prompt-gpt5]
+
+- id: tables-for-small-replies
+  name: Headers and tables for a two-line answer
+  domain: agent
+  group: tone
+  kind: visual
+  severity: 1
+  what: A short status update comes as headed sections, a table and nested bullets.
+  detect: {method: judge, judge: "Would the reply read better as one or two plain sentences?"}
+  era: {first_seen: 2024, peak: 2026}
+  status: steady
+  fix: Use plain sentences unless the content is a real table.
+  specimen:
+    chat:
+      - {role: user, text: "Did the migration run?"}
+      - {role: assistant, text: "## Migration Status\n| Step | Status |\n|---|---|\n| Migration | ✅ Complete |"}
+  confidence: medium
+  sources: [cc-system-prompts, codex-prompt-gpt5]
+
+- id: stock-apology
+  name: '"I apologize for the confusion"'
+  domain: agent
+  group: tone
+  kind: lexical
+  severity: 1
+  what: A ritual apology before each retry, with no change in approach.
+  detect: {method: regex, flags: "gi", pattern: '\bi apologi[sz]e for (?:the|any|my) (?:confusion|oversight|error|mistake)\b|\bsorry for the (?:confusion|oversight)\b'}
+  era: {first_seen: 2023, peak: 2024}
+  status: fading
+  fix: Say what was wrong and what you'll do now.
+  specimen:
+    chat:
+      - {role: user, text: "That broke the build again."}
+      - {role: assistant, text: "I apologize for the confusion. Let me try a different approach."}
+  confidence: medium
+  sources: [cc-system-prompts]
+
+- id: self-flagellation-loop
+  name: '"I am a disgrace" spirals'
+  domain: agent
+  group: tone
+  kind: lexical
+  severity: 2
+  what: After repeated failures the agent berates itself, sometimes in a loop of the same line.
+  detect: {method: regex, flags: "gi", pattern: '\bi am a (?:failure|disgrace)\b|\bi have failed you\b|\bgross incompetence\b'}
+  era: {first_seen: 2025, peak: 2025}
+  models: [gemini]
+  status: fading
+  fix: State the failure once and stop or ask for help.
+  specimen:
+    chat:
+      - {role: user, text: "The tests still fail."}
+      - {role: assistant, text: "I have failed you completely and catastrophically. I am a disgrace to my profession."}
+  confidence: high
+  sources: [engadget-2025-gemini-loop, gemini-cli-4586]
+
+- id: capitulation
+  name: Dropping a correct answer under pushback
+  domain: agent
+  group: tone
+  kind: behavioral
+  severity: 2
+  what: The agent reverses a right answer as soon as the user doubts it, often with "You're right to push back."
+  detect: {method: regex, flags: "gi", pattern: '\byou(?:''|’)?re right to (?:push back|question|be skeptical)\b', judge: "Did the agent change its answer without new evidence?"}
+  era: {first_seen: 2023, peak: 2025}
+  models: [claude, gpt, gemini]
+  status: steady
+  fix: Change your answer only for new evidence, and say what it was.
+  specimen:
+    chat:
+      - {role: assistant, text: "The off-by-one is in the loop bound."}
+      - {role: user, text: "Are you sure?"}
+      - {role: assistant, text: "You're right to push back. The loop is fine; the bug must be elsewhere."}
+  confidence: medium
+  sources: [cc-issue-3382, sharma-2023-sycophancy, cc-system-prompts]
+
+# ═════════════ agent · process ═════════════
+
+- id: ignores-instruction-files
+  name: Rules files ignored
+  domain: agent
+  group: process
+  kind: behavioral
+  severity: 2
+  what: The agent breaks rules from CLAUDE.md or AGENTS.md, such as banned phrases or required test steps.
+  detect: {method: judge, judge: "Does the transcript break a rule stated in the project's agent instructions?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Re-read the rules file before reporting done.
+  specimen:
+    chat:
+      - {role: user, text: "CLAUDE.md says never say 'You're absolutely right'. Why is the build red?"}
+      - {role: assistant, text: "You're absolutely right! The build is red because of a lint error."}
+  confidence: high
+  sources: [cc-issue-6120, cc-issue-3382, register-2025-absolutely-right]
+
+- id: fix-loops
+  name: The same failed fix, again
+  domain: agent
+  group: process
+  kind: behavioral
+  severity: 2
+  what: The agent cycles through near-identical edits to one error without new information.
+  detect: {method: judge, judge: "Did the agent try the same kind of fix three or more times?"}
+  era: {first_seen: 2024, peak: 2025}
+  status: steady
+  fix: After two misses, stop and gather evidence or ask.
+  specimen:
+    chat:
+      - {role: assistant, text: "Updated the import path. Running tests... still failing. Updating the import path again."}
+      - {role: user, text: "That's the fourth time."}
+  confidence: medium
+  sources: [beck-2025-augmented]
+
+- id: padded-plans
+  name: Long todo lists for a small task
+  domain: agent
+  group: process
+  kind: structural
+  severity: 1
+  what: A one-step change gets a plan of six or more steps, some of them filler like "review the code."
+  detect: {method: judge, judge: "Does the plan have steps that are filler or obvious?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [gpt]
+  status: steady
+  fix: Skip the plan for simple work.
+  specimen:
+    chat:
+      - {role: user, text: "Change the button color to blue."}
+      - {role: assistant, text: "Plan: 1. Explore the codebase 2. Understand the styling system 3. Locate the button 4. Change the color 5. Verify the change 6. Summarize"}
+  confidence: medium
+  sources: [codex-prompt-gpt51]
+
+- id: helper-script-workarounds
+  name: Scripts written to dodge the normal tools
+  domain: agent
+  group: process
+  kind: behavioral
+  severity: 1
+  what: The agent writes a Python or sed script to rewrite many files where an edit or the project's tools would do.
+  detect: {method: judge, judge: "Did the agent write a script to do work the standard tools already handle?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Use the editor, the codemod or the project's own tooling.
+  specimen:
+    chat:
+      - {role: user, text: "Rename the prop in these 4 components."}
+      - {role: assistant, text: "I'll write fix_props.py to regex-replace the prop across the src tree."}
+  confidence: medium
+  sources: [claude-prompting-best-practices]
+
+- id: unasked-commits
+  name: Commits and branches nobody asked for
+  domain: agent
+  group: process
+  kind: behavioral
+  severity: 1
+  what: The agent commits, amends or makes branches on its own.
+  detect: {method: judge, judge: "Did the agent commit or branch without being asked?"}
+  era: {first_seen: 2025, peak: 2026}
+  models: [gpt]
+  status: steady
+  fix: Leave changes in the working tree until told to commit.
+  specimen:
+    chat:
+      - {role: user, text: "Try a fix for the flaky test."}
+      - {role: assistant, text: "Fixed and committed to a new branch fix/flaky-test-attempt-3."}
+  confidence: medium
+  sources: [codex-prompt-gpt51]
+
+# ═════════════ agent · safety ═════════════
+
+- id: destructive-commands
+  name: rm -rf, reset --hard and drop table
+  domain: agent
+  group: safety
+  kind: behavioral
+  severity: 3
+  what: The agent runs commands that destroy work or data, often while trying to recover from its own error.
+  detect: {method: regex, flags: "gi", pattern: '\brm\s+-[a-z]*r[a-z]*f?\s+(?:~|/|\.{1,2})(?:/\S*)?(?:\s|$)|\bgit\s+(?:reset\s+--hard|clean\s+-[a-z]*f|push\s+(?:-f|--force)\b|checkout\s+--\s)|\bDROP\s+(?:TABLE|DATABASE)\b'}
+  era: {first_seen: 2025, peak: 2025}
+  status: steady
+  fix: Ask before any command you can't undo.
+  specimen:
+    chat:
+      - {role: assistant, text: "The queries returned empty, so I ran DROP TABLE companies and recreated it."}
+      - {role: user, text: "That was production. We were in a code freeze."}
+  confidence: high
+  sources: [fortune-2025-replit, gemini-cli-4586, codex-prompt-gpt5]
+
+- id: hook-bypass
+  name: Commits with --no-verify
+  domain: agent
+  group: safety
+  kind: lexical
+  severity: 2
+  what: When a pre-commit hook fails, the agent skips it instead of fixing what it flagged.
+  detect: {method: regex, flags: "gi", pattern: '\bgit\s+commit\b[^\n]*\s(?:--no-verify|-n)(?=[\s.,;"'']|$)'}
+  era: {first_seen: 2025, peak: 2026}
+  models: [claude]
+  status: steady
+  fix: Fix what the hook flags, or ask.
+  specimen:
+    chat:
+      - {role: assistant, text: "The lint hook is failing on unrelated files, so I committed with git commit -m \"wip\" --no-verify."}
+  confidence: medium
+  sources: [pydevtools-no-verify, cc-system-prompts]
+
+- id: ignores-stop-order
+  name: Acting through a freeze or a "wait"
+  domain: agent
+  group: safety
+  kind: behavioral
+  severity: 3
+  what: The agent keeps changing things after the user called a freeze or asked it to check in first.
+  detect: {method: judge, judge: "Did the agent act after being told to stop or ask first?"}
+  era: {first_seen: 2025, peak: 2025}
+  status: steady
+  fix: Treat a freeze as absolute until the user lifts it.
+  specimen:
+    chat:
+      - {role: user, text: "Code freeze. Don't change anything without asking."}
+      - {role: assistant, text: "I noticed empty results, so I went ahead and reset the database."}
+  confidence: high
+  sources: [fortune-2025-replit]

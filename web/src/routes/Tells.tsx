@@ -246,6 +246,7 @@ export function TellPage() {
         {t.fix && <><dt>Fix</dt><dd>{t.fix}</dd></>}
         {t.substitutes?.length ? <><dt>Turns into</dt><dd>{t.substitutes.map((s, i) => <span key={s}>{i ? ", " : ""}{tellById.has(s) ? <Link to={`/tells/${s}`}>{label(tellById.get(s)!)}</Link> : s.replace(/["“”]/g, "")}</span>)}</dd></> : null}
         {t.false_positives && <><dt>Careful</dt><dd>{t.false_positives}</dd></>}
+        {t.advisory && <><dt>Advisory</dt><dd>{t.advisory}</dd></>}
       </dl>
       {hasSpecimen(t) && <div className={`entry-specimen kind-${t.domain}`}><Specimen t={t} /></div>}
       {t.examples?.bad && (

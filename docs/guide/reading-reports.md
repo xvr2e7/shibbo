@@ -14,7 +14,7 @@ The score falls as hits pile up per 1,000 words; [Scoring](/concepts/scoring) ha
 
 | Score | Band | Reading |
 |---|---|---|
-| 80 to 100 | clean | Fine to ship. One or two hits may still be worth a look. |
+| 80 to 100 | clean | Fine to ship. Still read any hits it lists. |
 | 60 to 79 | light | A few tells. A quick edit pass fixes them. |
 | 40 to 59 | moderate | Generated in places. |
 | 20 to 39 | heavy | Generated throughout. |

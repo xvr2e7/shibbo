@@ -10,7 +10,7 @@ export interface Tell {
   detect: { method: string; pattern?: string; flags?: string; fn?: string; judge?: string };
   measure?: { graphite?: string[]; graphite_feature?: string; graphite_absent?: string[] };
   perModel: Record<string, Measure | null>; feature: { name: string; human: number } | null; strength: number | null;
-  group?: string; models?: string[];
+  group?: string; models?: string[]; advisory?: string;
   specimen?: { html?: string; code?: string[]; hit?: number[]; lang?: string; chat?: Array<{ role: string; text: string }> };
 }
 export interface Lex { term: string; kind: string; ratio: number; articles: number; floor?: boolean; count?: number }

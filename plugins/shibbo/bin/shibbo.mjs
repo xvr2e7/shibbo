@@ -7379,7 +7379,7 @@ var require_dist = __commonJS({
 });
 
 // src/registry.ts
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 function root() {
@@ -7391,8 +7391,12 @@ function root() {
   throw new Error("shibbo: cannot find data/tells.yaml");
 }
 function load(rel, parse3) {
-  if (!cache.has(rel)) cache.set(rel, parse3(readFileSync(join(root(), rel), "utf8")));
+  if (!cache.has(rel)) cache.set(rel, parse3(rel.includes(":") ? "" : readFileSync(join(root(), rel), "utf8")));
   return cache.get(rel);
+}
+function extras(dir) {
+  const d = join(root(), "data", dir);
+  return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".yaml")).sort().map((f) => `data/${dir}/${f}`) : [];
 }
 function graphite() {
   const p = join(root(), "data", "measured", "graphite.json");
@@ -7419,8 +7423,14 @@ var init_registry = __esm({
     import_yaml = __toESM(require_dist(), 1);
     here = dirname(fileURLToPath(import.meta.url));
     cache = /* @__PURE__ */ new Map();
-    tells = () => load("data/tells.yaml", (s) => import_yaml.default.parse(s));
-    sources = () => load("data/sources.yaml", (s) => import_yaml.default.parse(s));
+    tells = () => load("tells:all", () => [
+      ...import_yaml.default.parse(readFileSync(join(root(), "data/tells.yaml"), "utf8")),
+      ...extras("tells.d").flatMap((f) => import_yaml.default.parse(readFileSync(join(root(), f), "utf8")) ?? [])
+    ]);
+    sources = () => load(
+      "sources:all",
+      () => Object.assign({}, import_yaml.default.parse(readFileSync(join(root(), "data/sources.yaml"), "utf8")), ...extras("sources.d").map((f) => import_yaml.default.parse(readFileSync(join(root(), f), "utf8")) ?? {}))
+    );
     models = () => load("data/models.yaml", (s) => import_yaml.default.parse(s));
   }
 });
@@ -7849,6 +7859,13 @@ function rulesMarkdown(opts = {}) {
     const q = (x) => `"${x.replace(/[.]$/, "")}"`;
     const ex = t.examples?.bad && t.examples?.good ? ` Instead of ${q(t.examples.bad)}, write ${q(t.examples.good)}.` : "";
     lines.push(`- ${t.name} \u2192 ${t.fix ?? t.what}${ex}`);
+  }
+  const habits = opts.domains && !opts.domains.includes("agent") ? [] : rank({ ...opts, domains: ["agent"], limit: opts.agentLimit ?? 6 });
+  if (habits.length) {
+    lines.push("");
+    lines.push("While working, drop these agent habits:");
+    lines.push("");
+    for (const { tell: t } of habits) lines.push(`- ${t.name} \u2192 ${t.fix ?? t.what}`);
   }
   const n = opts.phrases ?? 12;
   const g = graphite();
@@ -46377,7 +46394,7 @@ init_check();
 init_rules();
 init_registry();
 init_text();
-import { readFileSync as readFileSync6, statSync, readdirSync } from "node:fs";
+import { readFileSync as readFileSync6, statSync, readdirSync as readdirSync2 } from "node:fs";
 import { join as join5, relative } from "node:path";
 import { parseArgs } from "node:util";
 var HELP = `shibbo: find the tells that mark writing and UI as machine-made
@@ -46408,7 +46425,7 @@ function* walk(path) {
     yield path;
     return;
   }
-  for (const e of readdirSync(path, { withFileTypes: true })) {
+  for (const e of readdirSync2(path, { withFileTypes: true })) {
     if (e.name.startsWith(".") || SKIP_DIRS.has(e.name)) continue;
     const p = join5(path, e.name);
     if (e.isDirectory()) yield* walk(p);

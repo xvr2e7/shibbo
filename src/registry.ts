@@ -40,6 +40,8 @@ export interface Tell {
   false_positives?: string;
   confidence: "high" | "medium" | "low";
   sources: string[];
+  /** Why a tell is advisory (severity 0): the evidence that it doesn't separate models from people. */
+  advisory?: string;
   /** Sub-group within a domain, e.g. typography or color for ui. */
   group?: string;
   /** Model families a source says show this tell. */

@@ -55,6 +55,7 @@ for (const t of all) {
         if (ms > 150) errors.push(`${at}: regex took ${ms.toFixed(0)} ms on the test corpus`);
         else if (ms > 40) warns.push(`${at}: regex took ${ms.toFixed(0)} ms`);
         if (re.test("")) errors.push(`${at}: regex matches the empty string`);
+        for (const m of (corpus + "\n" + (t.examples?.bad ?? "")).matchAll(re)) if (m[0] === "") { errors.push(`${at}: regex makes zero-width matches`); break; }
       } catch (e) {
         errors.push(`${at}: bad regex: ${(e as Error).message}`);
       }

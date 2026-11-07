@@ -24,7 +24,7 @@ npx shibbo init copilot
 
 ## The cloud coding agent
 
-Set its MCP server under Repo Settings → Copilot → MCP servers. It requires a `tools` list:
+Set its MCP server in the repo's settings, under Copilot, then MCP servers. It requires a `tools` list:
 
 ```json
 { "mcpServers": { "shibbo": { "type": "local", "command": "npx", "args": ["shibbo", "mcp"], "tools": ["*"] } } }

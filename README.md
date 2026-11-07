@@ -12,7 +12,7 @@ Shibbo keeps a dated record of these tells for each model, draws them as a map, 
 `npm run web:dev` starts it; `npm run web:build` writes the app and its docs to `web/dist`.
 
 - **Atlas.** A dialect map of machine writing. Phrases form the terrain, habits such as em dashes or echo endings stand as landmarks, and each family's releases trace a route from ChatGPT's launch to 2026. The timeline holds 194 dated releases from open and closed labs, each cited. Claude moves toward people with each release; GPT moves away.
-- **Tells.** A field guide: interface tells shown as rendered components, prose tells with the pattern highlighted, every one with per-model measurements.
+- **Tells.** A field guide of 362 tells on five shelves: interfaces and type, code, agents, prose and chat replies. Interface tells render as small mockups, code tells mark the bad lines, agent tells replay the exchange, and prose tells highlight the pattern. Measured ones show per-model rates.
 - **Models.** An arena where people and nine models meet on 5,044 matched topics (people rate 1615, the best model 1022), every measured model, and outside boards for more open and closed models.
 - **Docs.** A VitePress site with setup for 17 agent harnesses.
 
@@ -77,7 +77,7 @@ It reads Markdown, HTML, stylesheets and JSX, and skips code and URLs. On an HTM
 
 ## How it works
 
-`data/tells.yaml` holds 50 curated tells, from prose to UI. Each entry names its pattern, a fix, examples, its status, what it turns into once banned, and links to measured terms. `SCHEMA.md` covers the format.
+`data/tells.yaml` and the files in `data/tells.d/` hold 362 tells, from prose to UI, each with at least one source. Each entry names its pattern, a fix, examples, its status, what it turns into once banned, and links to measured terms. `SCHEMA.md` covers the format.
 
 `npm run import:graphite` turns Graphite's tables into `data/measured/graphite.json`: per-model rates for each tell, and a list of the 400 strongest phrases per model. The checker runs curated rules first, then looks for measured phrases, and scores penalty per 1,000 words.
 
