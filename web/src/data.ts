@@ -10,6 +10,8 @@ export interface Tell {
   detect: { method: string; pattern?: string; flags?: string; fn?: string; judge?: string };
   measure?: { graphite?: string[]; graphite_feature?: string; graphite_absent?: string[] };
   perModel: Record<string, Measure | null>; feature: { name: string; human: number } | null; strength: number | null;
+  group?: string; models?: string[];
+  specimen?: { html?: string; code?: string[]; hit?: number[]; lang?: string; chat?: Array<{ role: string; text: string }> };
 }
 export interface Lex { term: string; kind: string; ratio: number; articles: number; floor?: boolean; count?: number }
 export interface Model {
@@ -17,7 +19,7 @@ export interface Model {
   tells: number; shared: number | null; top: Lex[]; under: Lex[]; rules: string;
   features: Record<string, { mean: number; d: number; human: number }>;
 }
-export interface Source { title: string; url: string | null; kind: string }
+export interface Source { title: string; url: string | null; kind: string; author?: string; date?: string }
 export interface Milestone { id: string; name: string; maker?: string; lab?: string; date: string; kind: string; weights?: string; note?: string; source?: { title: string; url: string; kind?: string } }
 export interface HistTell { id: string; era_start: string | number; era_end: string | number | null; systems?: string | string[]; tell: string; example?: string; evidence: string; source: { title: string; url: string; year?: number }; kind: string }
 

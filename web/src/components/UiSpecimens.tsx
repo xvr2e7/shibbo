@@ -1,6 +1,6 @@
 // Rendered specimens of interface tells. These reproduce the slop on purpose, so the checkers skip this file.
 // <!-- shibbo-ignore -->
-// avoid-ai-design-ignore-file: C1, CP1, CP2, CP6, I2, I3, SD4d (each block below is a specimen of that tell, shown on purpose)
+// avoid-ai-design-ignore-file (every block below is a specimen of a tell, shown on purpose; a bare ignore because the id list cannot name SD4d)
 import type { ReactNode } from "react";
 
 const frame = (children: ReactNode, style: React.CSSProperties = {}) => (

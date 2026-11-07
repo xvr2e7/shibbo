@@ -4,6 +4,8 @@ import { tells, graphite, resolveModel, models, type Tell, type Model } from "./
 export interface RuleOptions {
   model?: string | null;
   domains?: string[];
+  /** How many agent habits to list after the writing rules (default 6, 0 for none). */
+  agentLimit?: number;
   /** Max registry rules to include. */
   limit?: number;
   /** Include the model's most over-used measured phrases. */
@@ -64,6 +66,14 @@ export function rulesMarkdown(opts: RuleOptions = {}): string {
     const q = (x: string) => `"${x.replace(/[.]$/, "")}"`;
     const ex = t.examples?.bad && t.examples?.good ? ` Instead of ${q(t.examples.bad)}, write ${q(t.examples.good)}.` : "";
     lines.push(`- ${t.name} → ${t.fix ?? t.what}${ex}`);
+  }
+  // Agent habits get their own short list, so they never crowd out the writing rules.
+  const habits = (opts.domains && !opts.domains.includes("agent")) ? [] : rank({ ...opts, domains: ["agent"], limit: opts.agentLimit ?? 6 });
+  if (habits.length) {
+    lines.push("");
+    lines.push("While working, drop these agent habits:");
+    lines.push("");
+    for (const { tell: t } of habits) lines.push(`- ${t.name} → ${t.fix ?? t.what}`);
   }
   const n = opts.phrases ?? 12;
   const g = graphite();

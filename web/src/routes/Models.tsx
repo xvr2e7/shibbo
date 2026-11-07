@@ -27,6 +27,8 @@ export function ModelsPage() {
         Who writes most like people? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
       </p>
 
+      <Newest />
+
       {arena && <ArenaSection a={arena} />}
 
       <section className="section" aria-labelledby="all-h">
@@ -218,6 +220,11 @@ export function ModelPage() {
             : `${m.tells.toLocaleString("en")} measured tells${prev && m.shared !== null ? `, ${Math.round(m.shared * 100)}% of them shared with ${prev.name}` : ""}.`}
           {dist(m.id) !== null && ` Distance from people on the atlas: ${Math.round(dist(m.id)!)} of 100.`}
         </p>
+        {dist(m.id) !== null && (
+          <p style={{ marginTop: "var(--s4)" }}>
+            <Link className="btn primary" to={`/?t=${m.released.slice(0, 7)}&focus=${m.id}`}>Show on the map</Link>
+          </p>
+        )}
       </header>
       {player && (
         <p className="arena-callout">
@@ -262,5 +269,47 @@ export function ModelPage() {
           : <>“411 vs 0” counts raw uses in Graphite’s articles when one side never used the phrase. Data from <Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} />.</>}
       </p>
     </div>
+  );
+}
+
+/** The latest releases from each lab, measured or not, so the page keeps up with what people use now. */
+function Newest() {
+  const measuredBy = new Map(ordered.map((m) => [m.name.toLowerCase(), m]));
+  const cutoff = `${new Date().getFullYear() - 1}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const recent = chronology.milestones
+    .filter((m) => String(m.date) >= cutoff && m.lab)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const perLab = new Map<string, typeof recent>();
+  for (const m of recent) {
+    const k = m.lab!;
+    if ((perLab.get(k)?.length ?? 0) < 4) perLab.set(k, [...(perLab.get(k) ?? []), m]);
+  }
+  const rows = [...perLab.values()].flat().sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 32);
+  const measured = rows.filter((m) => measuredBy.has(m.name.toLowerCase())).length;
+  return (
+    <section className="section" aria-labelledby="new-h" style={{ paddingTop: "var(--s6)" }}>
+      <h2 id="new-h">Newest releases</h2>
+      <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
+        The latest from each lab in the past year. {measured ? `${measured} of these have measured tells.` : "None of these has measured tells yet."} The rest wait for matched articles; <Link to="/docs/guide/measure">measuring a model</Link> takes about 300.
+      </p>
+      <ul className="newest">
+        {rows.map((m) => {
+          const mm = measuredBy.get(m.name.toLowerCase());
+          return (
+            <li key={m.id}>
+              <span className="ic"><BrandIcon brand={brandOf(m.lab ?? "")} size={22} /></span>
+              <span className="body">
+                <span className="nm">{mm ? <Link to={`/models/${mm.id}`}>{m.name}</Link> : m.name}</span>
+                <span className="meta">
+                  {m.source?.url ? <a href={m.source.url} title={m.source.title}>{monthName(ym(String(m.date).slice(0, 7)), "short")}</a> : monthName(ym(String(m.date).slice(0, 7)), "short")}
+                  {m.weights === "open" ? ", open weights" : ""}
+                </span>
+                <span className={`tag${mm ? " on" : ""}`}>{mm ? "measured" : "not measured yet"}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

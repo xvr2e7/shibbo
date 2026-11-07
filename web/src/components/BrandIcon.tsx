@@ -24,6 +24,15 @@ export function brandOf(lab = ""): string {
   if (l.includes("amazon") || l.includes("aws")) return "amazon";
   if (l.includes("apple")) return "apple";
   if (l.includes("technology innovation") || l.includes("tii")) return "tii";
+  if (l.includes("xiaomi")) return "xiaomi";
+  if (l.includes("tencent") || l.includes("hunyuan")) return "tencent";
+  if (l.includes("baidu") || l.includes("ernie")) return "baidu";
+  if (l.includes("bytedance") || l.includes("doubao")) return "bytedance";
+  if (l.includes("ibm")) return "ibm";
+  if (l === "ai2" || l.includes("allen")) return "ai2";
+  if (l.includes("ai21")) return "ai21";
+  if (l.includes("liquid")) return "liquid";
+  if (l.includes("stepfun")) return "stepfun";
   return "";
 }
 

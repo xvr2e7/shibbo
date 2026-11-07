@@ -1,9 +1,9 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 
-export type Domain = "prose" | "chat" | "code" | "ui";
+export type Domain = "prose" | "chat" | "code" | "ui" | "agent";
 export type Kind = "lexical" | "structural" | "visual" | "behavioral";
 export type Status = "rising" | "peaking" | "steady" | "fading" | "retired";
 
@@ -40,12 +40,20 @@ export interface Tell {
   false_positives?: string;
   confidence: "high" | "medium" | "low";
   sources: string[];
+  /** Sub-group within a domain, e.g. typography or color for ui. */
+  group?: string;
+  /** Model families a source says show this tell. */
+  models?: string[];
+  /** What the tell looks like: an HTML mockup (ui), code lines (code) or a short exchange (agent, chat). */
+  specimen?: { html?: string; code?: string[]; hit?: number[]; lang?: string; chat?: Array<{ role: string; text: string }> };
 }
 
 export interface Source {
   title: string;
   url: string | null;
-  kind: "measured" | "curated" | "folk";
+  kind: "measured" | "curated" | "folk" | "essay" | "primary";
+  author?: string;
+  date?: string;
 }
 
 export interface Model {
@@ -128,12 +136,24 @@ export function root(): string {
 
 const cache = new Map<string, unknown>();
 function load<T>(rel: string, parse: (s: string) => T): T {
-  if (!cache.has(rel)) cache.set(rel, parse(readFileSync(join(root(), rel), "utf8")));
+  if (!cache.has(rel)) cache.set(rel, parse(rel.includes(":") ? "" : readFileSync(join(root(), rel), "utf8")));
   return cache.get(rel) as T;
 }
 
-export const tells = () => load<Tell[]>("data/tells.yaml", (s) => YAML.parse(s));
-export const sources = () => load<Record<string, Source>>("data/sources.yaml", (s) => YAML.parse(s));
+/** Extra files in data/<dir>/ (one per research area), merged after the main file. */
+function extras(dir: string): string[] {
+  const d = join(root(), "data", dir);
+  return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".yaml")).sort().map((f) => `data/${dir}/${f}`) : [];
+}
+export const tells = () =>
+  load<Tell[]>("tells:all", () => [
+    ...(YAML.parse(readFileSync(join(root(), "data/tells.yaml"), "utf8")) as Tell[]),
+    ...extras("tells.d").flatMap((f) => (YAML.parse(readFileSync(join(root(), f), "utf8")) as Tell[]) ?? []),
+  ]);
+export const sources = () =>
+  load<Record<string, Source>>("sources:all", () =>
+    Object.assign({}, YAML.parse(readFileSync(join(root(), "data/sources.yaml"), "utf8")), ...extras("sources.d").map((f) => YAML.parse(readFileSync(join(root(), f), "utf8")) ?? {})),
+  );
 export const models = () => load<Models>("data/models.yaml", (s) => YAML.parse(s));
 export function graphite(): Graphite | null {
   const p = join(root(), "data", "measured", "graphite.json");

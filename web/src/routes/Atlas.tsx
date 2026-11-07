@@ -3,7 +3,7 @@ import { Cite } from "../components/Cite";
 import { BrandIcon } from "../components/BrandIcon";
 import { Link } from "react-router-dom";
 import { AtlasMap, models as mapModels, phrases, state, firstMeasured, explained, type Hover, type Layers } from "../components/AtlasMap";
-import { Timeline, TIME, nextMonth } from "../components/Timeline";
+import { Timeline, TIME, NOW } from "../components/Timeline";
 import { Strip } from "../components/Strip";
 import { chronology, data, tellById, ym, monthName, familyColor, label, habits, type HistTell, type Habit } from "../data";
 
@@ -12,17 +12,21 @@ const idx = new Map(mapModels.map((m, i) => [m.id, i]));
 
 function initialMonth() {
   const m = /t=(\d{4})-(\d{2})/.exec(location.hash);
-  return m ? Math.min(TIME.END, Math.max(TIME.START, ym(`${m[1]}-${m[2]}`))) : ym("2026-09");
+  return m ? Math.min(NOW, Math.max(TIME.START, ym(`${m[1]}-${m[2]}`))) : NOW;
 }
+/** Playback speed in months per second: about 20 seconds from ChatGPT to today. */
+const SPEED = 2.4;
 
 export function AtlasPage() {
-  const [month, setMonth] = useState(initialMonth);
+  // t is continuous (fractional months) so playback glides; month is the whole month the notes and labels use.
+  const [t, setT] = useState(initialMonth);
+  const month = Math.floor(t);
   const [playing, setPlaying] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
   const [layers, setLayers] = useState<Layers>({ words: true, habits: true });
   const reset = 0;
   const [wide, setWide] = useState(window.innerWidth > 900);
-  const timer = useRef<number | null>(null);
+  const raf = useRef(0);
 
   useEffect(() => {
     const on = () => setWide(window.innerWidth > 900);
@@ -32,40 +36,44 @@ export function AtlasPage() {
 
   useEffect(() => {
     if (!playing) return;
-    timer.current = window.setInterval(() => {
-      setMonth((m) => {
-        const n = nextMonth(m);
-        if (n >= ym("2026-09")) { setPlaying(false); return ym("2026-09"); }
+    let last = 0;
+    const speed = reduced() ? 1 : SPEED;
+    const tick = (now: number) => {
+      const dt = last ? Math.min(100, now - last) / 1000 : 0;
+      last = now;
+      let done = false;
+      setT((x) => {
+        const n = x + dt * speed;
+        if (n >= NOW) { done = true; return NOW; }
         return n;
       });
-    }, reduced() ? 900 : 360);
-    return () => { if (timer.current) clearInterval(timer.current); };
+      if (done) setPlaying(false);
+      else raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
   }, [playing]);
 
   const play = () => {
-    if (!playing && month >= ym("2026-09")) setMonth(TIME.START);
+    if (!playing && t >= NOW) setT(TIME.START);
     setPlaying(!playing);
   };
-  const scrub = (m: number) => { setPlaying(false); setMonth(m); };
+  const scrub = (m: number) => { setPlaying(false); setT(m); };
 
-  const insets = wide ? { left: 380, right: 360, top: 16, bottom: 300 } : { left: 4, right: 4, top: 4, bottom: 4 };
+  const insets = wide ? { left: 380, right: 360, top: 16, bottom: 330 } : { left: 4, right: 4, top: 4, bottom: 4 };
 
   return (
     <>
       <section className="atlas" aria-labelledby="atlas-h">
-        <AtlasMap month={month} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
+        <AtlasMap focus={new URLSearchParams(location.hash.split("?")[1] ?? "").get("focus")} month={reduced() ? month : t} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
         <div className="plate plate-title">
           <h1 id="atlas-h">What gives a model away</h1>
           <p>A dialect atlas of machine writing, release by release.</p>
           <div className="layer-toggle" role="group" aria-label="Map layers">
             <button type="button" className="chip" aria-pressed={layers.words} onClick={() => setLayers({ ...layers, words: !layers.words })}>Words</button>
             <button type="button" className="chip" aria-pressed={layers.habits} onClick={() => setLayers({ ...layers, habits: !layers.habits })}>Habits</button>
-            <Link className="chip" to="/tells">Interfaces and code</Link>
+            <Link className="chip" to="/tells" title="Interface, type and code tells aren’t measured per model yet. They live in the field guide.">Interfaces and code</Link>
           </div>
-          <p className="layer-note">
-            {layers.habits ? "Badges are habits such as em dashes or echo endings, placed with the models that over-use them. " : ""}
-            Interface and code tells aren’t measured per model yet; they live in the field guide.
-          </p>
           <ul className="key" aria-label="Map key">
             <li className="fam-row">
               {[["gpt", "openai", "OpenAI"], ["claude", "anthropic", "Claude"], ["gemini", "google", "Gemini"], ["meta", "meta", "Llama"], ["mistral", "mistral", "Mistral"], ["mosaic", "", "MPT"], ["cohere", "cohere", "Cohere"]].map(([f, b, n]) => (
@@ -77,14 +85,14 @@ export function AtlasPage() {
             <li><span className="swatch fossil" />Dropped by a newer release</li>
           </ul>
           <p className="credit">
-            Data: <a href={data.graphite.url}>Graphite</a> for 2025–26 (CC BY 4.0) and <a href="https://github.com/liamdugan/raid">RAID</a> for 2022–23 (MIT, measured by shibbo). Older models are placed on 2025–26 axes, so they look closer to people than they were. <a href="docs/concepts/sources.html">Every source</a>
+            Data: <a href={data.graphite.url}>Graphite</a> for 2025–26 (CC BY 4.0) and <a href="https://github.com/liamdugan/raid">RAID</a> for 2022–23 (MIT, measured by shibbo). Older models are placed on 2025–26 axes, so they look closer to people than they were. <Link to="/docs/concepts/sources">Every source</Link>
           </p>
         </div>
         <FieldNotes month={month} />
         {hover?.d && <Tip hover={hover} month={month} />}
         {hover?.habit && <HabitTip habit={hover.habit} x={hover.x} y={hover.y} month={month} />}
 
-        <Timeline month={month} setMonth={scrub} playing={playing} onPlay={play} />
+        <Timeline month={month} t={t} setMonth={scrub} playing={playing} onPlay={play} />
       </section>
 
       <div className="page">
@@ -102,7 +110,7 @@ export function AtlasPage() {
               <pre><code>{`npx shibbo check README.md --model claude-opus-5
 npx shibbo rules --model gpt-6`}</code></pre>
               <p style={{ marginTop: "var(--s4)" }}>
-                <a className="btn primary" href="docs/guide/quick-start.html">Read the docs</a>
+                <Link className="btn primary" to="/docs/guide/quick-start">Read the docs</Link>
               </p>
             </div>
           </div>

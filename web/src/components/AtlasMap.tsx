@@ -39,6 +39,9 @@ export function state(month: number) {
   return { current, past };
 }
 
+const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
+const ease = (p: number) => 1 - (1 - p) ** 3;
+
 export function phraseState(d: Phrase, current: Map<string, MapModel>, past: Set<string>) {
   let level = 0;
   let owner: string | null = null;
@@ -58,11 +61,12 @@ export function phraseState(d: Phrase, current: Map<string, MapModel>, past: Set
 export interface Hover { d?: Phrase; habit?: Habit; x: number; y: number }
 export type Layers = { words: boolean; habits: boolean };
 
-export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words: true, habits: false } }: { month: number; onHover: (h: Hover | null) => void; insets: { left: number; right: number; top: number; bottom: number }; resetSignal: number; layers?: Layers }) {
+export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words: true, habits: false }, focus = null }: { month: number; onHover: (h: Hover | null) => void; insets: { left: number; right: number; top: number; bottom: number }; resetSignal: number; layers?: Layers; focus?: string | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const st = useRef({ t: zoomIdentity as ZoomTransform, W: 0, H: 0, dpr: 1, base: { k: 1, x: 0, y: 0 }, qt: null as Quadtree<{ d: Phrase; px: number; py: number }> | null, C: {} as Record<string, string>, raf: 0, month, insets, layers, z: null as ZoomBehavior<HTMLCanvasElement, unknown> | null, badges: [] as Array<{ h: Habit; x: number; y: number; r: number }> });
-  st.current.month = month;
+  const st = useRef({ t: zoomIdentity as ZoomTransform, W: 0, H: 0, dpr: 1, base: { k: 1, x: 0, y: 0 }, qt: null as Quadtree<{ d: Phrase; px: number; py: number }> | null, C: {} as Record<string, string>, raf: 0, focus: focus as string | null, target: month, shown: month, last: 0, insets, layers, z: null as ZoomBehavior<HTMLCanvasElement, unknown> | null, badges: [] as Array<{ h: Habit; x: number; y: number; r: number; o?: number }> });
+  st.current.target = month;
   st.current.layers = layers;
+  st.current.focus = focus;
   st.current.insets = insets;
 
   useEffect(() => {
@@ -112,18 +116,28 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
 
     const draw = () => {
       const C = s.C;
-      const { current, past } = state(s.month);
+      // Time is continuous: blend the month before and after, so terrain, routes and badges move instead of jumping.
+      const t = s.shown, m0 = Math.floor(t), f = t - m0, f_ = f;
+      const A = state(m0), B = state(m0 + 1);
+      const { current, past } = f < 0.5 ? A : B;
+      const moving = Math.abs(s.target - s.shown) > 0.001 || f > 0.001;
       ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
       ctx.fillStyle = C["--sea"];
       ctx.fillRect(0, 0, s.W, s.H);
-      const states = phrases.map((d) => ({ d, s: phraseState(d, current, past), px: sx(d.x), py: sy(d.y) }));
+      const states = phrases.map((d) => {
+        const a = phraseState(d, A.current, A.past), b = phraseState(d, B.current, B.past);
+        const level = lerp(a.level, b.level, f);
+        const alive = lerp(a.alive ? 1 : 0, b.alive ? 1 : 0, f);
+        const fossil = lerp(a.fossil ? 1 : 0, b.fossil ? 1 : 0, f);
+        return { d, s: { alive: alive > 0.02, fossil: fossil > 0.5, owner: (f < 0.5 ? a.owner : b.owner) ?? a.owner ?? b.owner, level, a: alive }, px: sx(d.x), py: sy(d.y) };
+      });
       const land = states.filter((e) => e.s.alive && !e.d.under);
       const shore = states.filter((e) => e.s.alive && e.d.under);
       const bw = Math.max(10, 13 * Math.sqrt(s.t.k));
 
       // The human shore: words people use that current models avoid. Hatched, the way maps mark shallows.
       if (shore.length > 3) {
-        const cs = contourDensity<(typeof shore)[number]>().x((e) => e.px).y((e) => e.py).weight((e) => e.s.level).size([s.W, s.H]).cellSize(4).bandwidth(bw).thresholds(4)(shore);
+        const cs = contourDensity<(typeof shore)[number]>().x((e) => e.px).y((e) => e.py).weight((e) => e.s.level).size([s.W, s.H]).cellSize(moving ? 8 : 4).bandwidth(bw).thresholds(4)(shore);
         cs.forEach((c, i) => {
           ctx.beginPath();
           for (const poly of c.coordinates) ring(poly as number[][][]);
@@ -133,7 +147,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       }
       // Land: phrases current models over-use.
       if (land.length > 3) {
-        const cs = contourDensity<(typeof land)[number]>().x((e) => e.px).y((e) => e.py).weight((e) => e.s.level).size([s.W, s.H]).cellSize(3).bandwidth(bw).thresholds(9)(land);
+        const cs = contourDensity<(typeof land)[number]>().x((e) => e.px).y((e) => e.py).weight((e) => e.s.level).size([s.W, s.H]).cellSize(moving ? 6 : 3).bandwidth(bw).thresholds(9)(land);
         const tints = ["--land-1", "--land-1", "--land-2", "--land-2", "--land-3", "--land-3", "--land-4", "--land-4", "--land-5", "--land-5"];
         cs.forEach((c, i) => {
           ctx.beginPath();
@@ -143,11 +157,12 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         });
       }
       // Before the first measured release: a faint preview of the terrain to come.
-      if (s.month < firstMeasured) {
+      const preview = Math.min(1, Math.max(0, firstMeasured - t));
+      if (preview > 0) {
         ctx.fillStyle = C["--fossil"];
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = 0.35 * preview;
         for (const e of states) if (!e.d.under) { ctx.beginPath(); ctx.arc(e.px, e.py, 1.2, 0, 7); ctx.fill(); }
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = preview;
         const cx = states.reduce((a, e) => a + (e.d.under ? 0 : e.px), 0) / states.filter((e) => !e.d.under).length;
         const cy = states.reduce((a, e) => a + (e.d.under ? 0 : e.py), 0) / states.filter((e) => !e.d.under).length;
         ctx.textAlign = "center";
@@ -159,6 +174,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         const sub = "Earlier tells are documented, not measured: see the field notes.";
         ctx.strokeText(sub, cx, cy + 20); ctx.fillStyle = C["--ink-3"]; ctx.fillText(sub, cx, cy + 20);
         ctx.textAlign = "left";
+        ctx.globalAlpha = 1;
       }
       ctx.lineWidth = 0.8;
       ctx.strokeStyle = C["--fossil"];
@@ -169,7 +185,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         ctx.beginPath();
         ctx.arc(e.px, e.py, 1 + Math.min(e.s.level, 10) * 0.22 * Math.sqrt(Math.min(s.t.k, 4)), 0, 7);
         ctx.fillStyle = e.d.under ? C["--ink-2"] : C[`--${e.s.owner}`];
-        ctx.globalAlpha = (e.d.under ? 0.55 : 0.8) * wordAlpha;
+        ctx.globalAlpha = (e.d.under ? 0.55 : 0.8) * wordAlpha * e.s.a;
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -187,12 +203,20 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       ctx.fillStyle = C["--ink-2"]; ctx.fillText("the human articles, same topics", ox + 26, oy + 21);
 
       // Routes.
-      for (const f of FAMS) {
-        const seq = models.filter((m) => m.family === f && ym(m.released) <= s.month).sort((a, b) => ym(a.released) - ym(b.released));
+      // A release grows in over the month before its date: the route extends and the marker swells.
+      const grow = (m: MapModel) => ease(Math.min(1, Math.max(0, t - (ym(m.released) - 1))));
+      for (const fam of FAMS) {
+        const seq = models.filter((m) => m.family === fam && grow(m) > 0).sort((a, b) => ym(a.released) - ym(b.released));
         if (!seq.length) continue;
+        const f = fam;
         const pts = seq.map((m) => [sx(m.x), sy(m.y)] as [number, number]);
+        const head = grow(seq.at(-1)!);
+        if (pts.length > 1 && head < 1) {
+          const [px, py] = pts[pts.length - 2];
+          pts[pts.length - 1] = [lerp(px, pts[pts.length - 1][0], head), lerp(py, pts[pts.length - 1][1], head)];
+        }
         // A family with no release in the last 18 months fades back.
-        ctx.globalAlpha = current.has(f) ? 1 : 0.28;
+        ctx.globalAlpha = lerp(A.current.has(f) ? 1 : 0.28, B.current.has(f) ? 1 : 0.28, ease(f_));
         if (pts.length > 1) {
           ctx.lineCap = "round";
           ctx.beginPath(); curve(pts); ctx.strokeStyle = C["--halo"]; ctx.lineWidth = 6; ctx.stroke();
@@ -201,14 +225,22 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         seq.forEach((m, i) => {
           const [x, y] = pts[i];
           const cur = i === seq.length - 1;
-          ctx.beginPath(); ctx.arc(x, y, cur ? 8 : 5, 0, 7);
+          const g = cur ? head : 1;
+          ctx.beginPath(); ctx.arc(x, y, (cur ? lerp(5, 8, g) : 5) * (seq.length === 1 ? g : 1), 0, 7);
           ctx.fillStyle = C[`--${f}`]; ctx.fill();
           ctx.lineWidth = 2; ctx.strokeStyle = C["--sheet"]; ctx.stroke();
-          if (cur) { ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.strokeStyle = C[`--${f}`]; ctx.lineWidth = 1; ctx.stroke(); }
+          if (cur && g > 0.05) { ctx.beginPath(); ctx.arc(x, y, 14 * g, 0, 7); ctx.strokeStyle = C[`--${f}`]; ctx.lineWidth = 1; ctx.stroke(); }
         });
         ctx.globalAlpha = 1;
       }
 
+      // The model a visitor came from (Models, "Show on the map") gets a pulse ring.
+      const fm = s.focus ? models.find((m) => m.id === s.focus) : null;
+      if (fm && grow(fm) > 0) {
+        const fx = sx(fm.x), fy = sy(fm.y);
+        ctx.beginPath(); ctx.arc(fx, fy, 22, 0, 7);
+        ctx.strokeStyle = C["--ink"]; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+      }
       // Labels, placed without collisions: models, then region names, then phrases.
       const boxes: Array<[number, number, number, number]> = [[ox - 22, oy - 22, ox + 220, oy + 26]];
       const { left, right, top, bottom } = s.insets;
@@ -219,21 +251,25 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         boxes.push([x - 2, t - 2, x + w + 2, b + 2]);
         return true;
       };
-      for (const m of models) if (ym(m.released) <= s.month) boxes.push([sx(m.x) - 10, sy(m.y) - 10, sx(m.x) + 10, sy(m.y) + 10]);
+      for (const m of models) if (grow(m) > 0.5) boxes.push([sx(m.x) - 10, sy(m.y) - 10, sx(m.x) + 10, sy(m.y) + 10]);
       for (const f of FAMS.filter((g) => current.has(g))) {
-        for (const m of models.filter((x) => x.family === f && ym(x.released) <= s.month && (current.get(f)?.id === x.id || ym(x.released) > s.month - 30))) {
+        for (const m of models.filter((x) => x.family === f && grow(x) > 0 && (current.get(f)?.id === x.id || ym(x.released) > t - 30))) {
           const cur = current.get(f)?.id === m.id;
+          ctx.globalAlpha = grow(m);
           const mx = sx(m.x), my = sy(m.y);
           font(`${cur ? 600 : 400} ${cur ? 14 : 12}px ${SANS}`);
           const w = ctx.measureText(m.name).width;
           const sub = monthName(ym(m.released), "short") + (m.verified ? "" : "*");
           const spots: Array<[number, number]> = [[mx + 13, my - 4], [mx - 13 - w, my - 4], [mx - w / 2, my - 18], [mx - w / 2, my + 30], [mx + 13, my + 14], [mx - 13 - w, my + 14]];
-          const [x, y] = spots.find(([a, b]) => fits(a, b, w, 13, 15)) ?? spots[0];
+          const found = spots.find(([a, b]) => fits(a, b, w, 13, 15));
+          const [x, y] = found ?? spots[0];
+          if (!found) boxes.push([x - 2, y - 15, x + w + 2, y + 17]); // drawn anyway, so phrases must keep clear
           ctx.lineWidth = 4; ctx.strokeStyle = C["--halo"]; ctx.strokeText(m.name, x, y);
           ctx.fillStyle = cur ? C["--ink"] : C["--ink-2"]; ctx.fillText(m.name, x, y);
           font(`11px ${SANS}`);
           ctx.lineWidth = 3; ctx.strokeText(sub, x, y + 13);
           ctx.fillStyle = C["--ink-3"]; ctx.fillText(sub, x, y + 13);
+          ctx.globalAlpha = 1;
         }
       }
       font(`600 23px ${SANS}`);
@@ -258,24 +294,31 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       // (or across the shore when people do it more), sized by effect.
       s.badges = [];
       if (s.layers.habits) {
-        const cur = [...current.values()].filter((m) => habits[0]?.models[m.id]);
-        for (const h of habits) {
-          if (!cur.length) break;
+        const place = (cur: MapModel[], h: Habit) => {
+          if (!cur.length) return null;
           const eff = cur.map((m) => ({ m, e: h.models[m.id].d * h.sign }));
           const pos = eff.filter((x) => x.e > 0.12);
           const neg = eff.filter((x) => x.e < -0.12);
           const side = pos.length ? pos : neg;
-          if (!side.length) continue;
+          if (!side.length) return null;
           const wsum = side.reduce((a, x) => a + x.e ** 2, 0);
           let hx = side.reduce((a, x) => a + x.e ** 2 * x.m.x, 0) / wsum;
           let hy = side.reduce((a, x) => a + x.e ** 2 * x.m.y, 0) / wsum;
           if (!pos.length) { hx = -hx * 0.45; hy = -hy * 0.45; }
-          const strength = Math.max(...side.map((x) => Math.abs(x.e)));
-          const r = 10 + Math.min(strength, 2) * 4;
-          s.badges.push({ h, x: sx(hx), y: sy(hy), r, ax: sx(hx), ay: sy(hy) } as (typeof s.badges)[number]);
+          return { hx, hy, strength: Math.max(...side.map((x) => Math.abs(x.e))) };
+        };
+        const curA = [...A.current.values()].filter((m) => habits[0]?.models[m.id]);
+        const curB = [...B.current.values()].filter((m) => habits[0]?.models[m.id]);
+        for (const h of habits) {
+          const a = place(curA, h), b = place(curB, h);
+          if (!a && !b) continue;
+          const p = a && b ? { hx: lerp(a.hx, b.hx, ease(f)), hy: lerp(a.hy, b.hy, ease(f)), strength: lerp(a.strength, b.strength, f), o: 1 } : a ? { ...a, o: 1 - f } : { ...b!, o: f };
+          if (p.o < 0.05) continue;
+          const r = (10 + Math.min(p.strength, 2) * 4) * (0.6 + 0.4 * p.o);
+          s.badges.push({ h, x: sx(p.hx), y: sy(p.hy), r, ax: sx(p.hx), ay: sy(p.hy), o: p.o } as (typeof s.badges)[number]);
         }
         // Push overlapping badges apart (and off model markers); a leader line keeps each tied to its true spot.
-        const markers = models.filter((m) => ym(m.released) <= s.month).map((m) => ({ x: sx(m.x), y: sy(m.y), r: 9 }));
+        const markers = models.filter((m) => grow(m) > 0.5).map((m) => ({ x: sx(m.x), y: sy(m.y), r: 9 }));
         for (let it = 0; it < 120; it++) {
           let moved = false;
           for (let i = 0; i < s.badges.length; i++) {
@@ -299,6 +342,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
           }
         }
         for (const b of s.badges) {
+          ctx.globalAlpha = b.o ?? 1;
           ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7);
           ctx.fillStyle = C["--sheet"]; ctx.fill();
           ctx.lineWidth = 1.5; ctx.strokeStyle = C["--ink"]; ctx.stroke();
@@ -307,12 +351,13 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
           ctx.fillStyle = C["--ink"]; ctx.fillText(b.h.glyph, b.x, b.y + b.r * 0.33);
           boxes.push([b.x - b.r - 2, b.y - b.r - 2, b.x + b.r + 2, b.y + b.r + 2]);
         }
+        ctx.globalAlpha = 1;
         ctx.textAlign = "left";
         font(`600 11.5px ${SANS}`);
         for (const b of s.badges) {
           const w = ctx.measureText(b.h.label).width;
           const spots: Array<[number, number]> = [[b.x - w / 2, b.y + b.r + 13], [b.x + b.r + 4, b.y + 4], [b.x - b.r - 4 - w, b.y + 4], [b.x - w / 2, b.y - b.r - 5]];
-          const spot = spots.find(([x, y]) => fits(x, y, w, 11, 3));
+          const spot = (b.o ?? 1) > 0.6 ? spots.find(([x, y]) => fits(x, y, w, 11, 3)) : undefined;
           if (!spot) continue;
           ctx.lineWidth = 3.5; ctx.strokeStyle = C["--halo"]; ctx.strokeText(b.h.label, spot[0], spot[1]);
           ctx.fillStyle = C["--ink"]; ctx.fillText(b.h.label, spot[0], spot[1]);
@@ -320,7 +365,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       }
 
       const budget = s.layers.words ? Math.round(26 * Math.min(s.t.k, 6) ** 1.3) : 0;
-      const cands = states.filter((e) => e.s.alive && e.px > left && e.px < s.W - right && e.py > top && e.py < s.H - bottom).sort((a, b) => (b.d.tell ? 3 : 0) + b.s.level - ((a.d.tell ? 3 : 0) + a.s.level));
+      const cands = states.filter((e) => e.s.a > 0.3 && e.px > left && e.px < s.W - right && e.py > top && e.py < s.H - bottom).sort((a, b) => (b.d.tell ? 3 : 0) + b.s.level - ((a.d.tell ? 3 : 0) + a.s.level));
       let placed = 0;
       for (const e of cands) {
         if (placed >= budget) break;
@@ -330,13 +375,27 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         const w = ctx.measureText(text).width;
         const x = e.px + 5, y = e.py + 4;
         if (!fits(x, y, w, size - 2, 3)) continue;
+        ctx.globalAlpha = e.s.a;
         ctx.lineWidth = 3; ctx.strokeStyle = C["--halo"]; ctx.strokeText(text, x, y);
         ctx.fillStyle = e.d.under ? C["--ink-2"] : C["--ink"]; ctx.fillText(text, x, y);
+        ctx.globalAlpha = 1;
         placed++;
       }
       s.qt = quadtree<{ d: Phrase; px: number; py: number }>().x((e) => e.px).y((e) => e.py).addAll(states.filter((e) => e.s.alive || e.s.fossil).map((e) => ({ d: e.d, px: e.px, py: e.py })));
     };
-    const schedule = () => { if (!s.raf) s.raf = requestAnimationFrame(() => { s.raf = 0; draw(); }); };
+    // The shown month chases the target: small steps (playback) follow at once, big jumps (a click on the timeline) glide.
+    const frame = (now: number) => {
+      s.raf = 0;
+      const dt = s.last ? Math.min(64, now - s.last) : 16;
+      s.last = now;
+      const diff = s.target - s.shown;
+      if (Math.abs(diff) <= 1.01 || matchMedia("(prefers-reduced-motion: reduce)").matches) s.shown = s.target;
+      else s.shown += diff * (1 - Math.exp(-dt / 140));
+      draw();
+      if (s.shown !== s.target) s.raf = requestAnimationFrame(frame);
+      else s.last = 0;
+    };
+    const schedule = () => { if (!s.raf) s.raf = requestAnimationFrame(frame); };
     (canvas as HTMLCanvasElement & { __draw?: () => void }).__draw = schedule;
 
     const resize = () => {
@@ -353,11 +412,13 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
     ro.observe(canvas);
     const mo = new MutationObserver(() => { readColors(); makeHatch(); schedule(); });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    const modelAt = (mx: number, my: number) => models.find((m) => ym(m.released) <= s.shown && Math.hypot(sx(m.x) - mx, sy(m.y) - my) <= 10);
     const onMove = (ev: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
       const mx = ev.clientX - r.left, my = ev.clientY - r.top;
       const badge = s.badges.find((b) => Math.hypot(b.x - mx, b.y - my) <= b.r + 2);
       if (badge) { canvas.style.cursor = badge.h.tell ? "pointer" : "default"; onHover({ habit: badge.h, x: mx, y: my }); return; }
+      if (modelAt(mx, my)) { canvas.style.cursor = "pointer"; onHover(null); return; }
       const hit = s.layers.words ? s.qt?.find(mx, my, 10) : undefined;
       canvas.style.cursor = hit ? (hit.d.tell ? "pointer" : "default") : "grab";
       onHover(hit ? { d: hit.d, x: mx, y: my } : null);
@@ -368,6 +429,8 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       const mx = ev.clientX - r.left, my = ev.clientY - r.top;
       const badge = s.badges.find((b) => Math.hypot(b.x - mx, b.y - my) <= b.r + 2);
       if (badge?.h.tell) { location.hash = `#/tells/${badge.h.tell}`; return; }
+      const mk = modelAt(mx, my);
+      if (mk) { location.hash = `#/models/${mk.id}`; return; }
       const hit = s.layers.words ? s.qt?.find(mx, my, 10) : undefined;
       if (hit?.d.tell) location.hash = `#/tells/${hit.d.tell}`;
     };
@@ -379,7 +442,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { (ref.current as HTMLCanvasElement & { __draw?: () => void })?.__draw?.(); }, [month, layers.words, layers.habits]);
+  useEffect(() => { (ref.current as HTMLCanvasElement & { __draw?: () => void })?.__draw?.(); }, [month, layers.words, layers.habits, focus]);
   useEffect(() => { if (resetSignal && st.current.z && ref.current) select(ref.current).call(st.current.z.transform, zoomIdentity); }, [resetSignal]);
 
   const zoomBy = (factor: number) => {

@@ -1,12 +1,13 @@
 # Tell schema
 
-`data/tells.yaml` holds one entry per tell: a pattern that models use at a very different rate from people.
+`data/tells.yaml` holds the core entries, one per tell: a pattern that models use at a very different rate from people. Each research area adds its own file in `data/tells.d/` (interfaces, code and agents, prose and chat), with new sources in `data/sources.d/`. The loader merges them, and `npm run validate` checks the lot.
 
 ```yaml
 - id: corrective-rather-than        # kebab-case, never renamed
   name: '"rather than treating", "not simply whether"'
   label: '"rather than treating"'   # optional short name for charts
-  domain: prose                     # prose | chat | code | ui
+  domain: prose                     # prose | chat | code | ui | agent
+  group: phrasing                   # shelf within the domain: typography, color, tests, openers...
   kind: structural                  # lexical | structural | visual | behavioral
   severity: 2                       # 0 advisory (never scored), 1 low, 2 medium, 3 high
   what: Defines a view by the wrong view it replaces.
@@ -27,8 +28,15 @@
   examples: {bad: "...", good: "..."}
   false_positives: When a real person holds the other view.
   confidence: high                  # high | medium | low
-  sources: [graphite-2026]          # keys in data/sources.yaml
+  sources: [graphite-2026]          # keys in data/sources.yaml or data/sources.d/
+  models: [gpt]                     # optional: families a source says show it
+  specimen:                         # what the tell looks like; required for ui, code and agent
+    html: '<h1 style="...">...</h1>'          # ui: a small mockup, inline styles, nothing loaded
+    # code: ["line", "line"], hit: [1]        # code: lines, with the offending ones marked
+    # chat: [{role: user, text: ...}, {role: assistant, text: ...}]   # agent and chat
 ```
+
+`npm run validate` fails on duplicate ids, unknown sources, regexes that don't compile or run slowly, and specimens that load or run anything.
 
 ## Notes on the fields
 

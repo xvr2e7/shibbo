@@ -195,6 +195,8 @@ const BRANDS: Record<string, string[]> = {
   claudecode: ["claudecode-color"], codex: ["codex-color"], cursor: ["cursor"], copilot: ["githubcopilot", "copilot-color"], geminicli: ["geminicli-color"],
   windsurf: ["windsurf"], cline: ["cline"], roocode: ["roocode"], amp: ["amp-color"], goose: ["goose"], junie: ["junie-color"], kiro: ["kiro-color"],
   opencode: ["opencode"], github: ["github"],
+  xiaomi: ["xiaomimimo"], tencent: ["hunyuan-color", "tencent-color"], baidu: ["wenxin-color", "baidu-color"], bytedance: ["doubao-color", "bytedance-color"],
+  ibm: ["ibm"], ai2: ["ai2-color", "ai2"], ai21: ["ai21"], liquid: ["liquid"], stepfun: ["stepfun-color"],
 };
 const icons: Record<string, string> = {};
 for (const [brand, names] of Object.entries(BRANDS)) {

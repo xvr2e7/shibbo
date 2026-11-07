@@ -21,9 +21,13 @@ jobs:
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npm test
+      - run: npm run validate
       - run: npm run import:graphite && npm run map && npm run web:build
-      # The project has to pass its own checks.
-      - run: npx tsx src/cli.ts check README.md SCHEMA.md web/src/content --threshold 80 --format github
+        env:
+          # Pages serves the app under /<repo>/, so the docs live at /<repo>/docs/.
+          DOCS_BASE: /${{ github.event.repository.name }}/docs/
+      # The project has to pass its own checks: README, schema and every docs page.
+      - run: npx tsx src/cli.ts check README.md SCHEMA.md docs --threshold 80 --format github
       - run: npm run plugin && git diff --exit-code -- plugins/shibbo/data || echo "::warning::plugin data is stale; run npm run plugin"
       - uses: actions/upload-pages-artifact@v3
         with: { path: web/dist }

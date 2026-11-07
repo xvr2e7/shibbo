@@ -1,7 +1,7 @@
 // Bundle the engine + data into plugins/shibbo so the Claude Code plugin runs without npm install.
 //   npm run plugin
 import { build } from "esbuild";
-import { cpSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, cpSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { root } from "../src/registry.js";
 import { rulesMarkdown } from "../src/rules.js";
@@ -27,6 +27,7 @@ await build({
 });
 
 for (const f of ["tells.yaml", "sources.yaml", "models.yaml"]) cpSync(join(R, "data", f), join(P, "data", f));
+for (const d of ["tells.d", "sources.d"]) if (existsSync(join(R, "data", d))) cpSync(join(R, "data", d), join(P, "data", d), { recursive: true });
 cpSync(join(R, "data/measured/graphite.json"), join(P, "data/measured/graphite.json"));
 cpSync(join(R, "data/raw/graphite/LICENSE"), join(P, "data/measured/GRAPHITE-LICENSE"));
 

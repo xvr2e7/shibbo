@@ -7,6 +7,8 @@ import { BrandIcon, brandOf } from "./BrandIcon";
 const START = ym("2022-11");
 const END = ym("2026-12");
 export const TIME = { START, END };
+/** The latest month with data: playback and the default view stop here. */
+export const NOW = ym(new Date().toISOString().slice(0, 7)) > END ? END : ym(new Date().toISOString().slice(0, 7));
 
 const LANES: Array<{ key: string; name: string }> = [
   { key: "openai", name: "OpenAI" },
@@ -17,13 +19,16 @@ const LANES: Array<{ key: string; name: string }> = [
   { key: "deepseek", name: "DeepSeek" },
   { key: "qwen", name: "Alibaba Qwen" },
   { key: "xai", name: "xAI" },
+  { key: "moonshot", name: "Moonshot" },
+  { key: "zhipu", name: "Zhipu" },
+  { key: "minimax", name: "MiniMax" },
   { key: "other", name: "Others" },
 ];
 const laneOf = (brand: string) => (LANES.some((l) => l.key === brand) ? brand : brand === "gemma" ? "google" : "other");
 
 type Mark = { at: number; date: string; name: string; lab: string; brand: string; lane: string; measured: boolean; weights?: string; m?: Milestone };
 
-export function Timeline({ month, setMonth, playing, onPlay }: { month: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void }) {
+export function Timeline({ month, t = month, setMonth, playing, onPlay }: { month: number; t?: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1000);
   const [hover, setHover] = useState<Mark | null>(null);
@@ -50,7 +55,7 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
     return out.sort((a, b) => a.at - b.at);
   }, []);
 
-  const gutter = 112, laneH = 18, top = 6;
+  const gutter = 112, laneH = 16, top = 6;
   const lanes = LANES.filter((l) => marks.some((m) => m.lane === l.key));
   const H = top + lanes.length * laneH + 22;
   const x = (m: number) => gutter + ((m - START) / (END - START)) * (W - gutter - 12);
@@ -65,7 +70,7 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
     return marks.map((m) => {
       const px = x(m.at);
       const prev = last.get(m.lane) ?? -99;
-      const p2 = px - prev < 10 ? prev + 10 : px;
+      const p2 = Math.min(W - 16, px - prev < 7 ? prev + 7 : px);
       last.set(m.lane, p2);
       return { ...m, px: p2 };
     });
@@ -124,7 +129,7 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
               <text x={x(ym(`${y}-01`)) + 3} y={H - 4}>{y}</text>
             </g>
           ))}
-          <line x1={x(month)} x2={x(month)} y1={0} y2={top + lanes.length * laneH + 2} className="playhead" />
+          <line x1={x(t)} x2={x(t)} y1={0} y2={top + lanes.length * laneH + 2} className="playhead" />
         </svg>
         {lanes.map((l, i) => (
           <span key={l.key} className="lane-label" style={{ top: top + i * laneH }}>
@@ -137,13 +142,13 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
             type="button"
             tabIndex={-1}
             className={`release${m.measured ? " measured" : ""}${m.at > month ? " later" : ""}`}
-            style={{ left: m.px - 9, top: top + lanes.findIndex((l) => l.key === m.lane) * laneH }}
+            style={{ left: m.px - 8, top: top + lanes.findIndex((l) => l.key === m.lane) * laneH }}
             onPointerEnter={() => setHover(m)}
             onPointerLeave={() => setHover(null)}
             onPointerDown={(e) => { e.stopPropagation(); setMonth(m.at); }}
             aria-label={`${m.name}, ${m.date}`}
           >
-            <BrandIcon brand={m.brand} size={14} label={m.name} />
+            <BrandIcon brand={m.brand} size={13} label={m.name} />
           </button>
         ))}
       </div>
@@ -151,7 +156,3 @@ export function Timeline({ month, setMonth, playing, onPlay }: { month: number; 
   );
 }
 
-/** Playback speed: one month per tick. */
-export function nextMonth(m: number): number {
-  return m + 1;
-}
