@@ -1,6 +1,6 @@
 # Measure a new model
 
-Tells turn over fast: between a family's two newest versions, more than half of each model's tells are new. When a model ships, measure it.
+Tells turn over fast: between a family's two newest versions, 39 to 54% of the newer model's tells are new. When a model ships, measure it.
 
 ## 1. Build the human baseline (once)
 
@@ -28,4 +28,4 @@ The report in `measure/reports/` has three tables: each registry tell's rate aga
 
 ## 4. Review
 
-New candidates go to a person before they enter the registry. The prompts match Graphite's genre (web articles) but not its topics, so ratios under about 4× are noise. The `measure` workflow in `.github/workflows` runs steps 1 to 3 and opens a pull request with the report.
+New candidates go to a person before they enter the registry. The prompts match Graphite's genre (web articles) but not its topics, and 30 articles is a small sample, so treat small ratios with caution. The `measure` workflow in `.github/workflows` runs steps 1 to 3 and opens a pull request with the report.

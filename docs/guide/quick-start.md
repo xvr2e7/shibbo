@@ -9,13 +9,13 @@ npx shibbo check README.md
 ```
 
 ```text
-README.md: 62/100 [light] (412 words)
-  3:41     high contrastive-negation     "isn't just a tool, it's"
+README.md: 51/100 [moderate] (167 words)
+  3:60     high contrastive-negation     "isn't just a tool, it's"
                 → State the real claim. Keep a contrast only when someone holds the other view.
-  9:12     med  genuinely                "genuinely"
-                → Delete it. If the claim needs it to be believed, add evidence instead.
-  14:1     low  measured                 "that distinction matters"
-                → "that distinction matters" (GPT-6 Astra used it 564 times in Graphite's articles; people, never)
+  13:17    low  measured                 "useful"
+                → "useful" (GPT-6 Astra uses it 17× as often as human writers)
+  21:126   med  x-matters                "that distinction matters"
+                → Show what goes wrong without it. Readers will see that it matters.
 ```
 
 Each line gives the position, the weight, the tell's id and the matched text, then the fix. Lines marked `measured` come from phrases one model writes many times as often as people do. [Read a report](/guide/reading-reports) explains the rest.
@@ -26,7 +26,7 @@ Each line gives the position, the weight, the tell's id and the matched text, th
 npx shibbo check post.md --model claude-opus-5-5
 ```
 
-The checker then gives that model's own habits more weight. Model ids from your harness work as they are; newer ids resolve to the nearest measured model in the same family.
+The checker then gives that model's own habits more weight. Model ids from your harness work as they are. Newer or smaller models that shibbo hasn't measured borrow the data of the nearest measured model in the same family.
 
 ## Give your agent the rules up front
 

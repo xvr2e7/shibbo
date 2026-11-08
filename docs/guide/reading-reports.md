@@ -1,11 +1,13 @@
 # Read a report
 
 ```text
-docs/intro.md: 71/100 [light] (530 words, 2 hits in shibbo-ignore blocks)
-  12:5     high contrastive-negation     "isn't a library, it's"
+docs/intro.md: 58/100 [moderate] (134 words, 1 hits in shibbo-ignore blocks)
+  13:6     high contrastive-negation     "isn't a library, it's"
                 → State the real claim. Keep a contrast only when someone holds the other view.
-  20:33    low  measured                 "the practical takeaway"
-                → "the practical takeaway" (Claude Opus 5 used it 293 times in Graphite's articles; people, never)
+  23:4     low  measured                 "Next steps"
+                → "next steps" (GPT-5 uses it 8.3× as often as human writers)
+  25:77    low  measured                 "useful"
+                → "useful" (GPT-6 Astra uses it 17× as often as human writers)
 ```
 
 ## The score

@@ -24,7 +24,7 @@ export function ModelsPage() {
     <div className="page">
       <h1>Models</h1>
       <p className="lede" style={{ marginTop: "var(--s3)" }}>
-        Who writes most like a human? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
+        Whose articles carry the fewest tells? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
       </p>
 
       {/* Newest releases (mostly unmeasured) are held back until more of them are measured; see Newest below. */}
@@ -105,7 +105,7 @@ function ArenaSection({ a }: { a: Arena }) {
     <section className="section" aria-labelledby="arena-h">
       <h2 id="arena-h">The tell arena</h2>
       <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-        On each of {a.topics.toLocaleString("en")} held-out topics, every pair of writers meets once: the article with fewer tells per 1,000 words wins. Humans play too. Ratings use the Bradley–Terry model behind arena-style Elo; bars show 95% intervals.
+        On each of {a.topics.toLocaleString("en")} held-out topics, every pair of writers meets once: the article with fewer tells per 1,000 words wins. Humans play too, and lead, as expected: a tell is something models write more often than people. Ratings use the Bradley–Terry model behind arena-style Elo; bars show 95% intervals.
       </p>
       <ol className="arena">
         {a.players.map((p, i) => (
@@ -125,7 +125,7 @@ function ArenaSection({ a }: { a: Arena }) {
         ))}
       </ol>
       <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>
-        pts/1k is the median tell weight per 1,000 words. The checker here uses a phrase list built from the other half of the topics only, so no article scores itself.
+        pts/1k is the median tell weight per 1,000 words. The checker here uses a phrase list built from the other half of the topics only. The curated rules it also runs were written after reading all of Graphite's data, so the human lead runs somewhat high.
       </p>
       <h3 style={{ margin: "var(--s6) 0 var(--s3)" }}>Head to head</h3>
       <p className="muted" style={{ fontSize: "var(--t-1)", marginBottom: "var(--s3)" }}>How often the row writer’s article had fewer tells than the column writer’s, on the same topic.</p>
@@ -291,7 +291,7 @@ export function Newest() {
     <section className="section" aria-labelledby="new-h" style={{ paddingTop: "var(--s6)" }}>
       <h2 id="new-h">Newest releases</h2>
       <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-        The latest from each lab in the past year. {measured ? `${measured} of these have measured tells.` : "None of these has measured tells yet."} The rest wait for matched articles; <Link to="/docs/guide/measure">measuring a model</Link> takes about 300.
+        The latest from each lab in the past year. {measured ? `${measured} of these have measured tells.` : "None of these has measured tells yet."} The rest wait for matched articles; <Link to="/docs/guide/measure">measuring a model</Link> takes about 30.
       </p>
       <ul className="newest">
         {rows.map((m) => {

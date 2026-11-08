@@ -48,7 +48,7 @@ const C = process.stdout.isTTY && !process.env.NO_COLOR
 
 function printText(r: Report, all: boolean) {
   const color = r.score >= 80 ? C.green : r.score >= 60 ? C.yellow : C.red;
-  console.log(`${C.bold(r.file)}: ${color(`${r.score}/100 [${r.band}]`)} ${C.dim(`(${r.words} words${r.suppressed ? `, ${r.suppressed} hits in shibbo-ignore blocks` : ""})`)}`);
+  console.log(`${C.bold(r.file)}: ${color(`${r.score}/100 [${r.band}]`)} ${C.dim(`(${r.words} words${r.suppressed ? `, ${r.suppressed} ${r.suppressed === 1 ? "hit" : "hits"} in shibbo-ignore blocks` : ""})`)}`);
   for (const f of r.findings) {
     if (!f.counted && !all) continue;
     const sev = f.severity >= 3 ? C.red("high") : f.severity >= 2 ? C.yellow("med ") : f.severity > 0 ? C.dim("low ") : C.dim("note");
