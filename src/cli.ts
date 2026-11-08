@@ -125,13 +125,13 @@ async function main() {
     if (t.false_positives) console.log(`False positives: ${t.false_positives}`);
     const m = g?.tells[t.id];
     if (m) {
-      console.log("\nMeasured ratio vs. people (Graphite 2026):");
+      console.log("\nMeasured ratio vs. human (Graphite 2026):");
       for (const [id, v] of Object.entries(m)) console.log(`  ${id.padEnd(18)} ${v.ratio === null ? "—" : `${v.ratio}×`}${v.term ? `  "${v.term}"` : ""}`);
     }
     const f = g?.tellFeatures[t.id];
     if (f) {
-      console.log(`\nFeature ${f.feature} (people: ${f.human.toFixed(3)}):`);
-      for (const [id, v] of Object.entries(f.models)) console.log(`  ${id.padEnd(18)} ${v.mean}  (${v.ratio}× people, d=${v.d})`);
+      console.log(`\nFeature ${f.feature} (human: ${f.human.toFixed(3)}):`);
+      for (const [id, v] of Object.entries(f.models)) console.log(`  ${id.padEnd(18)} ${v.mean}  (${v.ratio}× human, d=${v.d})`);
     }
     console.log(`\nSources: ${t.sources.map((s) => sources()[s]?.url ?? s).join(", ")}`);
     return;

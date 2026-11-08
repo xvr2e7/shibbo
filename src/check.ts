@@ -83,7 +83,7 @@ const STAT: Record<string, (prose: string, words: number) => Hit[]> = {
     const w = sents.map((s) => s.words);
     const mean = w.reduce((a, b) => a + b, 0) / w.length;
     const cv = Math.sqrt(w.reduce((a, b) => a + (b - mean) ** 2, 0) / w.length) / mean;
-    return cv < 0.35 ? [{ offset: sents[0].start, match: `sentence-length CV ${cv.toFixed(2)} over ${w.length} sentences (people: ~0.5)` }] : [];
+    return cv < 0.35 ? [{ offset: sents[0].start, match: `sentence-length CV ${cv.toFixed(2)} over ${w.length} sentences (human: ~0.5)` }] : [];
   },
 
   // Long text that spells out "it is", "do not" and never contracts.
@@ -275,8 +275,8 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
       findings.push({
         id: `lexicon:${h.lex.entry.term}`,
         name: h.lex.entry.floor
-          ? `"${h.lex.entry.term}" (${name} used it ${h.lex.entry.count} times in Graphite's articles; people, never)`
-          : `"${h.lex.entry.term}" (${name} uses it ${fmtRatio(h.lex.entry.ratio)} as often as people)`,
+          ? `"${h.lex.entry.term}" (${name} used it ${h.lex.entry.count} times in Graphite's articles; human writers, never)`
+          : `"${h.lex.entry.term}" (${name} uses it ${fmtRatio(h.lex.entry.ratio)} as often as human writers)`,
         severity: lexWeight(h.lex.entry.ratio) * (model && h.lex.model === model.id ? OWN_MODEL_BOOST : 1),
         origin: "lexicon",
         line, col, offset: h.offset,

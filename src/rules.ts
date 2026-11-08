@@ -46,7 +46,7 @@ export function rank(opts: RuleOptions = {}): RankedTell[] {
     // Score: severity first, then measured strength for this model; rising tells get a nudge, fading ones a cut.
     const trend = t.status === "rising" ? 1.3 : t.status === "fading" ? 0.6 : 1;
     const s = t.severity * trend * (r ? Math.log10(Math.max(r, 1.5)) + 1 : 1);
-    out.push({ tell: t, ratio: r, reason: r ? `${model ? model.name : "models"} ${Math.round(r)}× people` : "curated", score: s });
+    out.push({ tell: t, ratio: r, reason: r ? `${model ? model.name : "models"} ${Math.round(r)}× human` : "curated", score: s });
   }
   return out
     .sort((a, b) => b.score - a.score)
@@ -81,7 +81,7 @@ export function rulesMarkdown(opts: RuleOptions = {}): string {
     const top = g.models[model.id]?.top.filter((e) => e.kind === "ngram" && e.term.split(" ").length >= 2).slice(0, n) ?? [];
     if (top.length) {
       lines.push("");
-      lines.push(`Phrases ${model.name} uses far more than people (Graphite, 2026): ${top.map((e) => `"${e.term}"`).join(", ")}.`);
+      lines.push(`Phrases ${model.name} uses far more than human writers (Graphite, 2026): ${top.map((e) => `"${e.term}"`).join(", ")}.`);
     }
   }
   lines.push("");
