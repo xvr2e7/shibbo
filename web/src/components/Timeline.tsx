@@ -28,7 +28,7 @@ const laneOf = (brand: string) => (LANES.some((l) => l.key === brand) ? brand : 
 
 type Mark = { at: number; date: string; name: string; lab: string; brand: string; lane: string; measured: boolean; weights?: string; m?: Milestone };
 
-export function Timeline({ month, t = month, setMonth, playing, onPlay }: { month: number; t?: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void }) {
+export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset }: { month: number; t?: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void; onReset: () => void }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1000);
   const [hover, setHover] = useState<Mark | null>(null);
@@ -80,19 +80,27 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay }: { mont
   return (
     <div className="plate timeline">
       <div className="row">
-        <button className="btn primary" type="button" onClick={onPlay} aria-pressed={playing}>
-          {playing ? "Pause" : "Play from 2022"}
-        </button>
+        <div className="transport">
+          <button className="play" type="button" onClick={onPlay} aria-pressed={playing} aria-label={playing ? "Pause" : month >= NOW ? "Play from November 2022" : "Play"} title={playing ? "Pause (space)" : "Play (space)"}>
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path className="i-play" d="M6.5 4.2v11.6a.8.8 0 0 0 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8a.8.8 0 0 0-1.2.7Z" />
+              <g className="i-pause"><rect x="5" y="4" width="3.4" height="12" rx="1" /><rect x="11.6" y="4" width="3.4" height="12" rx="1" /></g>
+            </svg>
+          </button>
+          <button className="reset" type="button" onClick={onReset} data-show={t < NOW || undefined} tabIndex={t < NOW ? 0 : -1} aria-hidden={t < NOW ? undefined : true} aria-label="Back to today" title="Back to today">
+            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 10a6 6 0 1 0 1.8-4.3" /><path d="M4 3.5v3h3" />
+            </svg>
+          </button>
+        </div>
         <output className="date" aria-live="polite">{monthName(month)}</output>
-        <span className="hover-note">
-          {hover ? (
+        <span className="hover-note" data-show={hover ? true : undefined}>
+          {hover && (
             <>
               <BrandIcon brand={hover.brand} size={14} /> <b>{hover.name}</b>, {hover.lab}, {hover.date}
               {hover.weights ? `, ${hover.weights} weights` : ""}
               {hover.measured ? ", tells measured" : ""}
             </>
-          ) : (
-            "Each icon is a release. Hover for its date; drag along the lanes or use the arrow keys."
           )}
         </span>
       </div>

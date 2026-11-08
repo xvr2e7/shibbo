@@ -42,7 +42,7 @@ export function Strip({ tell, width = 300, labels = true }: { tell: Tell; width?
       })}
       {labels && (
         <>
-          <text x={pad} y={40}>people use more</text>
+          <text x={pad} y={40}>humans use more</text>
           <text x={mid} y={40} textAnchor="middle">same</text>
           <text x={width - pad} y={40} textAnchor="end">models use more</text>
         </>

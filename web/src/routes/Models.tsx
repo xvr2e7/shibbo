@@ -15,7 +15,7 @@ const dist = (id: string) => {
   const m = mapModels.find((x) => x.id === id);
   return m ? Math.hypot(m.x, m.y) : null;
 };
-const nameOf = (id: string) => (id === "people" ? "People" : modelById.get(id)?.name ?? id);
+const nameOf = (id: string) => (id === "people" ? "Human" : modelById.get(id)?.name ?? id);
 const brandOfId = (id: string) => (id === "people" ? "" : brandOf(modelById.get(id)?.family ?? ""));
 
 export function ModelsPage() {
@@ -24,7 +24,7 @@ export function ModelsPage() {
     <div className="page">
       <h1>Models</h1>
       <p className="lede" style={{ marginTop: "var(--s3)" }}>
-        Who writes most like people? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
+        Who writes most like a human? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
       </p>
 
       <Newest />
@@ -34,11 +34,11 @@ export function ModelsPage() {
       <section className="section" aria-labelledby="all-h">
         <h2 id="all-h">Every measured model</h2>
         <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-          2025–26 models come from Graphite’s matched articles; 2022–23 chat models were measured by shibbo on RAID against the human texts each was prompted from. Distance is each model’s place on the atlas, where 0 is people.
+          2025–26 models come from Graphite’s matched articles; 2022–23 chat models were measured by shibbo on RAID against the human texts each was prompted from. Distance is each model’s place on the atlas, where 0 is human.
         </p>
         <div className="table-scroll">
           <table className="ledger">
-            <thead><tr><th>Model</th><th>Released</th><th>Measured on</th><th>Distance from people</th><th>Phrases over 2×</th></tr></thead>
+            <thead><tr><th>Model</th><th>Released</th><th>Measured on</th><th>Distance from human</th><th>Phrases over 2×</th></tr></thead>
             <tbody>
               {[...ordered].sort((a, b) => b.released.localeCompare(a.released)).map((m) => {
                 const d = dist(m.id);
@@ -56,7 +56,7 @@ export function ModelsPage() {
           </table>
         </div>
         <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>
-          The atlas axes come from 2025–26 vocabulary, so 2022–23 models sit closer to people than their own tells would put them. Phrase counts depend on how much text was measured and aren’t comparable across sources.
+          The atlas axes come from 2025–26 vocabulary, so 2022–23 models sit closer to human than their own tells would put them. Phrase counts depend on how much text was measured and aren’t comparable across sources.
         </p>
       </section>
 
@@ -105,7 +105,7 @@ function ArenaSection({ a }: { a: Arena }) {
     <section className="section" aria-labelledby="arena-h">
       <h2 id="arena-h">The tell arena</h2>
       <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-        On each of {a.topics.toLocaleString("en")} held-out topics, every pair of writers meets once: the article with fewer tells per 1,000 words wins. People play too. Ratings use the Bradley–Terry model behind arena-style Elo; bars show 95% intervals.
+        On each of {a.topics.toLocaleString("en")} held-out topics, every pair of writers meets once: the article with fewer tells per 1,000 words wins. Humans play too. Ratings use the Bradley–Terry model behind arena-style Elo; bars show 95% intervals.
       </p>
       <ol className="arena">
         {a.players.map((p, i) => (
@@ -113,7 +113,7 @@ function ArenaSection({ a }: { a: Arena }) {
             <span className="rank">{i + 1}</span>
             <span className="who">
               {p.id === "people" ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOfId(p.id)} size={18} />}
-              {p.id === "people" ? <b>People</b> : <Link to={`/models/${p.id}`}>{nameOf(p.id)}</Link>}
+              {p.id === "people" ? <b>Human</b> : <Link to={`/models/${p.id}`}>{nameOf(p.id)}</Link>}
             </span>
             <span className="rating-bar" aria-label={`rating ${p.rating}, 95% interval ${p.low} to ${p.high}`}>
               <i className="ci" style={{ left: `${x(p.low)}%`, width: `${Math.max(0.6, x(p.high) - x(p.low))}%` }} />
@@ -143,7 +143,7 @@ function WinMatrix({ a }: { a: Arena }) {
     <div className="table-scroll">
       <table className="matrix">
         <thead>
-          <tr><th />{order.map((c) => <th key={c} scope="col" title={nameOf(c)}>{c === "people" ? <span className="people-mark" aria-label="People" /> : <BrandIcon brand={brandOfId(c)} size={14} label={nameOf(c)} />}</th>)}</tr>
+          <tr><th />{order.map((c) => <th key={c} scope="col" title={nameOf(c)}>{c === "people" ? <span className="people-mark" aria-label="Human" /> : <BrandIcon brand={brandOfId(c)} size={14} label={nameOf(c)} />}</th>)}</tr>
         </thead>
         <tbody>
           {order.map((r) => (
@@ -172,15 +172,15 @@ function Board({ b }: { b: Bench }) {
     <figure className="board">
       <figcaption>
         <b>{b.metric.name}</b>
-        <span className="muted">{higherWorse ? "Lower is closer to people." : ""}</span>
+        <span className="muted">{higherWorse ? "Lower is closer to human." : ""}</span>
         <small><Cite title={`${b.source.title.split(" (")[0]}, ${b.source.license.split(" (")[0]}`} url={b.source.page ?? b.source.url} /></small>
       </figcaption>
       <ol>
         {rows.map((r) => (
           <li key={r.name} className={/human/i.test(r.name) ? "people" : undefined}>
-            <span className="who">{/human/i.test(r.name) ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOf(r.lab)} size={14} />}<span title={r.name}>{/human/i.test(r.name) ? "People" : r.name.replace(/^[\w-]+\//, "")}</span></span>
+            <span className="who">{/human/i.test(r.name) ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOf(r.lab)} size={14} />}<span title={r.name}>{/human/i.test(r.name) ? "Human" : r.name.replace(/^[\w-]+\//, "")}</span></span>
             <span className="w">{r.weights === "open" ? "open" : r.weights === "closed" ? "closed" : ""}</span>
-            <span className="bar"><i style={{ width: `${(r.value / max) * 100}%` }} />{ref !== null && <b style={{ left: `${Math.min(100, (ref / max) * 100)}%` }} title="people" />}</span>
+            <span className="bar"><i style={{ width: `${(r.value / max) * 100}%` }} />{ref !== null && <b style={{ left: `${Math.min(100, (ref / max) * 100)}%` }} title="human" />}</span>
             <span className="num">{r.value.toFixed(1)}</span>
           </li>
         ))}
@@ -218,7 +218,7 @@ export function ModelPage() {
           {m.source === "raid"
             ? `Measured by shibbo on ${(m.docs ?? 0).toLocaleString("en")} RAID texts against the human texts they were prompted from.`
             : `${m.tells.toLocaleString("en")} measured tells${prev && m.shared !== null ? `, ${Math.round(m.shared * 100)}% of them shared with ${prev.name}` : ""}.`}
-          {dist(m.id) !== null && ` Distance from people on the atlas: ${Math.round(dist(m.id)!)} of 100.`}
+          {dist(m.id) !== null && ` Distance from human on the atlas: ${Math.round(dist(m.id)!)} of 100.`}
         </p>
         {dist(m.id) !== null && (
           <p style={{ marginTop: "var(--s4)" }}>
@@ -228,14 +228,14 @@ export function ModelPage() {
       </header>
       {player && (
         <p className="arena-callout">
-          Arena rating <b>{player.rating}</b> ({player.low} to {player.high}), rank {rank} of {arena!.players.length} including people. Median {player.median_per1k.toFixed(1)} tell points per 1,000 words.
+          Arena rating <b>{player.rating}</b> ({player.low} to {player.high}), rank {rank} of {arena!.players.length} including human. Median {player.median_per1k.toFixed(1)} tell points per 1,000 words.
         </p>
       )}
       {f["layer1__punct_emdash_per1k"] && (
         <dl className="facts">
-          <dt>Em dashes</dt><dd>{f["layer1__punct_emdash_per1k"].mean.toFixed(2)} per 1,000 words (people: {f["layer1__punct_emdash_per1k"].human.toFixed(2)})</dd>
-          <dt>“Delve”</dt><dd>{f["layer5__llm_delve_per1k"].mean.toFixed(3)} per 1,000 words (people: {f["layer5__llm_delve_per1k"].human.toFixed(3)})</dd>
-          <dt>Ending that mirrors the opening</dt><dd>{(f["layer5__selfref_last_mirrors_first"].mean * 100).toFixed(0)}% of articles (people: {(f["layer5__selfref_last_mirrors_first"].human * 100).toFixed(0)}%)</dd>
+          <dt>Em dashes</dt><dd>{f["layer1__punct_emdash_per1k"].mean.toFixed(2)} per 1,000 words (human: {f["layer1__punct_emdash_per1k"].human.toFixed(2)})</dd>
+          <dt>“Delve”</dt><dd>{f["layer5__llm_delve_per1k"].mean.toFixed(3)} per 1,000 words (human: {f["layer5__llm_delve_per1k"].human.toFixed(3)})</dd>
+          <dt>Ending that mirrors the opening</dt><dd>{(f["layer5__selfref_last_mirrors_first"].mean * 100).toFixed(0)}% of articles (human: {(f["layer5__selfref_last_mirrors_first"].human * 100).toFixed(0)}%)</dd>
         </dl>
       )}
       <div className="two">
@@ -248,7 +248,7 @@ export function ModelPage() {
           </ul>
         </section>
         <section>
-          <h2 style={{ fontSize: "var(--t2)", marginBottom: "var(--s4)" }}>Phrases people use and it avoids</h2>
+          <h2 style={{ fontSize: "var(--t2)", marginBottom: "var(--s4)" }}>Phrases humans use and it avoids</h2>
           <ul className="phrases" style={{ columns: 1 }}>
             {m.under.slice(0, 16).map((e) => (
               <li key={e.term}><span className="specimen">“{e.term}”</span><span className="n">{e.floor ? `0 vs ${e.count}` : fmtRatio(e.ratio)}</span></li>

@@ -59,13 +59,13 @@ export const label = (t: Tell) => {
 
 export function fmtRatio(r: number): string {
   const big = (x: number) => (x >= 100 ? Math.round(x).toLocaleString("en") : x >= 10 ? x.toFixed(0) : x.toFixed(1));
-  return r >= 1 ? `${big(r)}×` : `people ${big(1 / r)}×`;
+  return r >= 1 ? `${big(r)}×` : `human ${big(1 / r)}×`;
 }
 
 /** Plain-language reading of one measurement. */
 export function describe(m: Measure, model: Model): string {
-  if (m.floor && m.counts) return m.ratio >= 1 ? `${model.name} used it ${m.counts.model.toLocaleString("en")} times; people never did` : `people used it ${m.counts.human.toLocaleString("en")} times; ${model.name} never did`;
-  return m.ratio >= 1 ? `${model.name} uses it ${fmtRatio(m.ratio)} as often as people` : `people use it ${fmtRatio(m.ratio).replace("people ", "")} as often as ${model.name}`;
+  if (m.floor && m.counts) return m.ratio >= 1 ? `${model.name} used it ${m.counts.model.toLocaleString("en")} times; human writers never did` : `human writers used it ${m.counts.human.toLocaleString("en")} times; ${model.name} never did`;
+  return m.ratio >= 1 ? `${model.name} uses it ${fmtRatio(m.ratio)} as often as human writers` : `human writers use it ${fmtRatio(m.ratio).replace("human ", "")} as often as ${model.name}`;
 }
 
 export const familyColor = (f: string) => (FAMS.includes(f) ? `var(--${f})` : "var(--other)");

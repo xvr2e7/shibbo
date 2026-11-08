@@ -111,7 +111,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       }
     };
     const font = (spec: string) => (ctx.font = spec);
-    const SANS = "'Archivo Variable', Archivo, system-ui, sans-serif";
+    const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
     const SERIF = "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif";
 
     const draw = () => {
@@ -196,8 +196,8 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       for (const r of [5, 12, 20]) { ctx.beginPath(); ctx.arc(ox, oy, r, 0, 7); ctx.lineWidth = r === 5 ? 2 : 0.7; ctx.stroke(); }
       ctx.textAlign = "left";
       font(`600 15px ${SANS}`);
-      ctx.lineWidth = 4; ctx.strokeStyle = C["--halo"]; ctx.strokeText("People", ox + 26, oy + 5);
-      ctx.fillStyle = C["--ink"]; ctx.fillText("People", ox + 26, oy + 5);
+      ctx.lineWidth = 4; ctx.strokeStyle = C["--halo"]; ctx.strokeText("Human", ox + 26, oy + 5);
+      ctx.fillStyle = C["--ink"]; ctx.fillText("Human", ox + 26, oy + 5);
       font(`italic 12.5px ${SERIF}`);
       ctx.lineWidth = 3; ctx.strokeText("the human articles, same topics", ox + 26, oy + 21);
       ctx.fillStyle = C["--ink-2"]; ctx.fillText("the human articles, same topics", ox + 26, oy + 21);
@@ -455,7 +455,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
   };
   return (
     <>
-      <canvas ref={ref} role="img" aria-label={`Map of phrases that models write far more or far less often than people, as of ${monthName(month)}. Each family's releases form a route; people sit at the origin.`} />
+      <canvas ref={ref} role="img" aria-label={`Map of phrases that models write far more or far less often than humans, as of ${monthName(month)}. Each family's releases form a route; human writing sits at the origin.`} />
       <div className="zoom-controls" role="group" aria-label="Map zoom">
         <button className="btn icon" type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in" title="Zoom in (or scroll up over the map)">+</button>
         <button className="btn icon" type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out" title="Zoom out (or scroll down over the map)">−</button>

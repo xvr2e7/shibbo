@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
 import { flushSync } from "react-dom";
 import { data } from "../data";
@@ -24,11 +24,41 @@ function ThemeIcon({ dark }: { dark: boolean }) {
   );
 }
 
+const TABS = [
+  { to: "/", label: "Map", match: (p: string) => p === "/" },
+  { to: "/tells", label: "Tells", match: (p: string) => p.startsWith("/tells") },
+  { to: "/models", label: "Models", match: (p: string) => p.startsWith("/models") },
+];
+
+/** The three views, underlined by one bar that slides to the active tab. */
+function Tabs({ path }: { path: string }) {
+  const nav = useRef<HTMLElement>(null);
+  const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
+  const active = TABS.findIndex((t) => t.match(path));
+  useLayoutEffect(() => {
+    const place = () => {
+      const a = nav.current?.querySelectorAll("a")[active] as HTMLElement | undefined;
+      setBar(a ? { x: a.offsetLeft, w: a.offsetWidth } : null);
+    };
+    place();
+    document.fonts?.ready.then(place);
+    addEventListener("resize", place);
+    return () => removeEventListener("resize", place);
+  }, [active]);
+  return (
+    <nav ref={nav} aria-label="Main" className="tabs">
+      {TABS.map((t, i) => (
+        <Link key={t.to} to={t.to} aria-current={i === active ? "page" : undefined}>{t.label}</Link>
+      ))}
+      <span className="tab-bar" aria-hidden="true" style={bar ? { transform: `translateX(${bar.x}px)`, width: bar.w } : { opacity: 0 }} />
+    </nav>
+  );
+}
+
 export function Shell() {
   const [theme, setTheme] = useState<Theme>((document.documentElement.dataset.theme as Theme) ?? "light");
   const loc = useLocation();
   const inDocs = loc.pathname.startsWith("/docs");
-  const inAtlas = !inDocs;
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("theme", theme);
@@ -65,17 +95,8 @@ export function Shell() {
         <Link to="/" className="wordmark" aria-label="shibbo, home">
           shibbo
         </Link>
-        <nav aria-label="Main" className="main-nav">
-          <NavLink to="/" className={() => (inAtlas ? "active" : "")}>Atlas</NavLink>
-          <NavLink to="/docs">Docs</NavLink>
-        </nav>
-        {inAtlas && (
-          <nav aria-label="Atlas" className="subtabs">
-            <NavLink to="/" end>Map</NavLink>
-            <NavLink to="/tells">Tells</NavLink>
-            <NavLink to="/models">Models</NavLink>
-          </nav>
-        )}
+        <Tabs path={loc.pathname} />
+        <NavLink to="/docs" className="docs-link">Docs</NavLink>
         <button className="theme-switch" type="button" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
           <ThemeIcon dark={theme === "dark"} />
         </button>
