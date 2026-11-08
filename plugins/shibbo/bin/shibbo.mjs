@@ -7580,6 +7580,98 @@ var init_text = __esm({
   }
 });
 
+// src/triads.ts
+function commaSegs(text) {
+  const segs = [];
+  let depth = 0, q = false, last = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (c === '"') q = !q;
+    else if (c === "\u201C") q = true;
+    else if (c === "\u201D") q = false;
+    else if (c === "," && !depth && !q) {
+      segs.push({ t: text.slice(last, i), at: last });
+      last = i + 1;
+    }
+  }
+  segs.push({ t: text.slice(last), at: last });
+  return segs;
+}
+function findTriads(prose) {
+  const out2 = [];
+  for (const p of paragraphs(prose)) {
+    if (p.kind !== "para") continue;
+    for (const s of p.sentences) {
+      const segs = commaSegs(s.text);
+      for (let k = 0; k + 1 < segs.length; k++) {
+        const a = segs[k].t, b = segs[k + 1].t, c = segs[k + 2]?.t;
+        let mid, lastItem, end, kind;
+        if (c !== void 0 && CONJ.test(c) && !CONJ.test(b)) {
+          mid = b;
+          lastItem = c.replace(CONJ, "");
+          end = k + 2;
+          kind = "oxford";
+        } else {
+          const m = b.match(/^(.*?)\s+(?:and|or)\s+(.*)$/i);
+          if (m && !CONJ.test(b) && wc(m[1]) >= 1 && wc(m[1]) <= 8) {
+            mid = m[1];
+            lastItem = m[2];
+            end = k + 1;
+            kind = "inline";
+          } else if (c !== void 0 && k + 3 === segs.length && /[:;—]/.test(a) && !CONJ.test(b) && !CONJ.test(c)) {
+            mid = b;
+            lastItem = c;
+            end = k + 2;
+            kind = "bare";
+          } else continue;
+        }
+        const w1 = wc(mid), w2 = wc(lastItem);
+        const lead = afterBreak(a).replace(CONJ, "");
+        const toks = lead.trim().split(/\s+/);
+        const short = w1 <= 3 && w2 <= 3;
+        const first = short ? toks.slice(-Math.max(w1, w2)).join(" ") : lead.trim();
+        const tookTail = first.length < lead.trim().length;
+        const w0 = wc(first);
+        if (!w0 || !w1 || !w2 || w0 > 12 || w1 > 10 || w2 > 14) continue;
+        if (ASIDE.test(mid) || [first, mid, lastItem].some((x) => /\d/.test(x))) continue;
+        if (kind === "inline" && !tookTail && INTRO.test(a)) continue;
+        if (kind === "inline" && !short && (w0 === 1 || cls(first) !== cls(mid))) continue;
+        if (/^\s*(?:but|so|which|who|whom|whose|that|since|because|if|when|while|yet|though|although|where|unless)\b/i.test(mid)) continue;
+        if ([first, mid, lastItem].every((x) => /^\s*[A-Z]/.test(x))) continue;
+        if (kind === "inline" && /\b(?:and|or)\b/i.test(first)) continue;
+        if (!short && kind !== "oxford" && w0 > 4 && cls(first) !== cls(mid)) continue;
+        if (kind === "bare" && !(cls(first) === cls(mid) && cls(mid) === cls(lastItem))) continue;
+        if (!tookTail && k > 0 && !/[:;—]/.test(a) && wc(afterBreak(segs[k - 1].t)) <= 4 && (short || cls(segs[k - 1].t) === cls(mid))) continue;
+        const from = segs[k].at + s.text.slice(segs[k].at).indexOf(first);
+        const to = end + 1 < segs.length ? segs[end + 1].at - 1 : s.text.length;
+        out2.push({ offset: s.start + from, match: s.text.slice(from, to).trim() });
+        k = end - 1;
+      }
+    }
+  }
+  return out2;
+}
+var DET, PREP, INTRO, ASIDE, CONJ, wc, cls, afterBreak;
+var init_triads = __esm({
+  "src/triads.ts"() {
+    "use strict";
+    init_text();
+    DET = /^(?:a|an|the|its|their|your|our|my|his|her|each|every|some|any|no|this|that|these|those)$/i;
+    PREP = /^(?:in|on|at|to|for|with|by|from|of|into|onto|over|under|about|through|across|without|within|between|after|before)$/i;
+    INTRO = /^\s*(?:for|if|when|after|before|in|on|as|since|while|although|though|because|to|with|by|once|unless|until|at|from|so|but|yet|then|here|now|today|however|still|also|yes|no|well|indeed|instead|meanwhile|finally|first|second|third|next|later|thus|hence|overall|sadly|fortunately|unfortunately|again|otherwise|ok|okay|oh)\b/i;
+    ASIDE = /^\s*(?:say|perhaps|maybe|too|though|however|then|also|again|etc|for example|for instance|in short|of course|in fact|i think|you know)\s*$/i;
+    CONJ = /^\s*(?:and|or)\s+/i;
+    wc = (s) => (s.match(/[A-Za-z0-9’']+/g) ?? []).length;
+    cls = (s) => {
+      const w = (s.trim().match(/[A-Za-z’']+/) ?? [""])[0];
+      return DET.test(w) ? "det" : PREP.test(w) ? "prep" : /\w{3,}ing$/i.test(w) && !/^(?:bring|string|spring|during|nothing|something|anything|everything|morning|evening)$/i.test(w) ? "ing" : "other";
+    };
+    afterBreak = (s) => s.split(/[:;—]|\s-\s/).pop();
+  }
+});
+
 // src/check.ts
 function regexFor(t) {
   let re = compiled.get(t.id);
@@ -7737,6 +7829,7 @@ var init_check = __esm({
   "src/check.ts"() {
     "use strict";
     init_registry();
+    init_triads();
     init_text();
     HALF_LIFE = 33.96;
     jsRegex = (t) => {
@@ -7785,6 +7878,10 @@ var init_check = __esm({
           }
         }
         return hits;
+      },
+      // Lists of three phrases or clauses ("a stock phrase, a purple gradient, a comment that narrates the code").
+      triads(prose) {
+        return findTriads(prose);
       },
       // Three or more consecutive "**Label:** text" blocks.
       bold_label_blocks(prose) {
@@ -30452,20 +30549,20 @@ function refine(fn, _params = {}) {
 function superRefine(fn, params) {
   return _superRefine(fn, params);
 }
-function _instanceof(cls, params = {}) {
+function _instanceof(cls2, params = {}) {
   const inst = new ZodInstanceOf({
     type: "custom",
     check: "custom",
-    fn: (data) => data instanceof cls,
+    fn: (data) => data instanceof cls2,
     abort: true,
     ...util_exports.normalizeParams(params)
   });
-  inst._zod.bag.Class = cls;
+  inst._zod.bag.Class = cls2;
   inst._zod.check = (payload) => {
-    if (!(payload.value instanceof cls)) {
+    if (!(payload.value instanceof cls2)) {
       payload.issues.push({
         code: "invalid_type",
-        expected: cls.name,
+        expected: cls2.name,
         input: payload.value,
         inst,
         path: [...inst._zod.def.path ?? []]
@@ -46192,7 +46289,7 @@ var init_harness = __esm({
               }
             }
           },
-          { kind: "note", text: "Or install the plugin, which bundles the same hooks: /plugin marketplace add <owner>/shibbo, then /plugin install shibbo@shibbo." }
+          { kind: "note", text: "Or install the plugin, which bundles the same hooks: /plugin marketplace add xvr2e7/shibbo, then /plugin install shibbo@shibbo." }
         ]
       },
       {

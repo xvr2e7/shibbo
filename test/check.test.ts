@@ -79,3 +79,17 @@ test("vale export skips patterns RE2 can't run", () => {
   assert.equal(toRe2("(?<=a)b"), null);
   assert.equal(toRe2("\\bdelve\\b"), "\\bdelve\\b");
 });
+
+test("triads: phrase and clause lists of three hit; names, longer lists and lead-in clauses don't", async () => {
+  const { findTriads } = await import("../src/triads.js");
+  const n = (s: string) => findTriads(s).length;
+  assert.equal(n("People spot AI work: a stock phrase, a purple gradient, a comment that narrates the code."), 1);
+  assert.equal(n("It records each tell with its sources, measures which models over-use it, and checks your work."), 1);
+  assert.equal(n("Interface tells render as mockups, code tells mark the bad lines, and agent tells replay the exchange."), 1);
+  assert.equal(n("It checks your prose, code and interfaces."), 1);
+  assert.equal(n("Thankfully, technology has improved and those days are behind us."), 0);
+  assert.equal(n("We flew to Paris, Rome and Berlin."), 0);
+  assert.equal(n("Bring apples, pears, plums and figs."), 0);
+  assert.equal(n("I want jeans for summer, so I don't want jeans that are heavy or stiff."), 0);
+  assert.equal(n("A stock phrase in an essay, say, or a purple gradient on a page."), 0);
+});

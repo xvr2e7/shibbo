@@ -47,7 +47,7 @@ export const HARNESSES: Harness[] = [
           },
         },
       },
-      { kind: "note", text: "Or install the plugin, which bundles the same hooks: /plugin marketplace add <owner>/shibbo, then /plugin install shibbo@shibbo." },
+      { kind: "note", text: "Or install the plugin, which bundles the same hooks: /plugin marketplace add xvr2e7/shibbo, then /plugin install shibbo@shibbo." },
     ],
   },
   {

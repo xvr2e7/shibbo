@@ -12,7 +12,7 @@ The texts behind both measured sources stay local; only derived rates are publis
 
 ## The held-out test
 
-Topics split in half by a hash of the URL. The phrase list, score scale and model weighting came from the training half; results come from the other 5,044 topics. A model's article scored worse than a person's on the same topic 95 to 98 times in 100, with one human article in nine still under 80. The curated rules alone reached 0.67 to 0.89; they were written after reading Graphite's full tell lists, so those numbers run high. Naming the model ranks articles better (0.976 to 0.992) but flags about one human article in four, because the score scale wasn't refit for that mode.
+Topics split in half by a hash of the URL. The phrase list, score scale and model weighting came from the training half; results come from the other 5,044 topics. A model's article scored worse than a person's on the same topic 95 to 97 times in 100, with one human article in nine still under 80. The curated rules alone reached 0.85 to 0.93; they were written after reading Graphite's full tell lists, so those numbers run high. Naming the model ranks articles better (0.97 to 0.99) but flags about one human article in five, because the score scale wasn't refit for that mode.
 
 ## Limits
 

@@ -1,11 +1,11 @@
 # Claude Code
 
-Claude Code has every integration point shibbo uses: an instructions file, MCP, a hook after each edit, a hook when Claude finishes, and one at session start.
+Claude Code supports every way shibbo plugs in, from the instructions file to hooks that run during a session.
 
 ## Plugin (recommended)
 
 ```text
-/plugin marketplace add <owner>/shibbo
+/plugin marketplace add xvr2e7/shibbo
 /plugin install shibbo@shibbo
 ```
 

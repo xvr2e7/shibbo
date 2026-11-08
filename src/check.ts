@@ -1,4 +1,5 @@
 import { tells as loadTells, graphite, resolveModel, models, type Tell, type LexEntry } from "./registry.js";
+import { findTriads } from "./triads.js";
 import { kindOf, domainsFor, proseView, commentsFromCode, countWords, lineCol, paragraphs, tokens, type FileKind } from "./text.js";
 
 export interface Finding {
@@ -114,6 +115,11 @@ const STAT: Record<string, (prose: string, words: number) => Hit[]> = {
       }
     }
     return hits;
+  },
+
+  // Lists of three phrases or clauses ("a stock phrase, a purple gradient, a comment that narrates the code").
+  triads(prose) {
+    return findTriads(prose);
   },
 
   // Three or more consecutive "**Label:** text" blocks.
