@@ -33,7 +33,7 @@ const tellRows = tells().map(display).map((t) => {
       const n = g.tells[t.id]?.[m.id];
       const f = g.tellFeatures[t.id]?.models[m.id];
       const hasTerms = !!n && Object.values(g.tells[t.id]).some((x) => x.ratio !== null);
-      if (hasTerms && n!.ratio !== null) return [m.id, { ratio: n!.ratio, term: n!.term ?? null, counts: n!.counts ?? null, floor: !!n!.floor, via: "phrase" }];
+      if (hasTerms && n!.ratio !== null) return [m.id, { ratio: n!.ratio, term: n!.term ?? null, counts: n!.counts ?? null, floor: !!n!.floor, via: "phrase", counted: n!.via === "shibbo" || undefined }];
       if (!hasTerms && f && f.ratio !== null) return [m.id, { ratio: f.ratio, term: null, counts: null, floor: false, via: "feature" }];
       return [m.id, null];
     }),
@@ -77,13 +77,13 @@ for (const [src, set] of [["raid", raid], ["local", local]] as const) {
       for (const x of terms) if (best === null || (absent ? L[x] < L[best] : L[x] > L[best])) best = x;
       let entry: unknown = null;
       if (best !== null && Math.abs(L[best]) >= 1) entry = { ratio: +(2 ** L[best]).toFixed(3), term: best, counts: null, floor: false, via: "phrase" };
-      else if (t.id === "em-dash-density" && m.human_style.emdash_per1k > 0) entry = { ratio: +(m.style.emdash_per1k / m.human_style.emdash_per1k).toFixed(3), term: null, counts: null, floor: false, via: "feature" };
+      // No em-dash ratio for RAID: its human texts carry 0.17 em dashes per 1,000 words against 3.1 in Graphite's, a sign of normalized punctuation.
       (t.perModel as Record<string, unknown>)[m.id] = entry;
     }
     const top = Object.entries(L).filter(([k, v]) => v >= 3 && k.includes(" ") && !k.includes("_")).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([term, v]) => ({ term, kind: "ngram", ratio: +(2 ** v).toFixed(1), articles: 0 }));
     const under = Object.entries(L).filter(([, v]) => v <= -3).sort((a, b) => a[1] - b[1]).slice(0, 20).map(([term, v]) => ({ term, kind: "ngram", ratio: +(2 ** v).toFixed(4), articles: 0 }));
     modelRows.push({
-      id: m.id, family: m.family, name: m.name, released: m.released, verified: true, graphite: undefined, maker: m.lab, familyName: m.lab, source: src, docs: m.docs,
+      id: m.id, family: m.family, name: m.name, released: m.released, verified: m.verified ?? true, graphite: undefined, maker: m.lab, familyName: m.lab, source: src, docs: m.docs,
       tells: Object.values(L).filter((v) => v >= 1).length, shared: null, top, under, rules: "", features: {},
     } as unknown as (typeof modelRows)[number]);
   }

@@ -7,6 +7,27 @@ TOK = re.compile(r"[A-Za-z0-9]+(?:['’][A-Za-z]+)*")
 SEG = re.compile(r"[.!?\n]")
 
 
+CHROME = re.compile(
+    r"cookie|consent|privacy policy|subscribe|newsletter|\bsign up\b|\blog ?in\b|skip to (?:main )?content|all rights reserved|©"
+    r"|\bshare (?:this|on)\b|\bread more\b|\bclick here\b|related (?:posts|articles)|affiliate link|\bopt.out\b|terms of (?:use|service)"
+    r"|\bposted (?:by|on)\b|leave a (?:comment|reply)|https?://|www\.|IABV2|^\s*\|?\s*-{3,}"
+    r"|^\s*always active\s*$|\bfollow us\b|\blike us on\b|^\s*(?:label\s*)+$",
+    re.I,
+)
+NAV = re.compile(r"^\s*(?:home|menu|search|advertisement|share|tweet|pin it|print|email|facebook|twitter|instagram|pinterest|linkedin)\s*$", re.I)
+
+
+def clean(text, rep=frozenset()):
+    """Drop web-page clutter lines: repeated page lines (rep), page-chrome patterns and bare nav words."""
+    keep = []
+    for l in (text or "").split("\n"):
+        s = l.strip()
+        if s in rep or NAV.match(s) or CHROME.search(s):
+            continue
+        keep.append(l)
+    return "\n".join(keep)
+
+
 def segments(text):
     for seg in SEG.split(text or ""):
         toks = [t.lower().replace("’", "'") for t in TOK.findall(seg)]

@@ -1,6 +1,6 @@
 // Turn Graphite's AI Tells measurements (CC BY 4.0) into data/measured/graphite.json.
 // Usage: npm run import:graphite
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { join } from "node:path";
 import { root, tells, models, type Graphite, type LexEntry } from "../src/registry.js";
@@ -71,6 +71,21 @@ for (const r of rows) {
   });
 }
 
+// Phrases people use far more than a model, from shibbo's cleaned full count (scripts/dense_map.py): Graphite's raw
+// human pages carry cookie banners and nav text, which its own table lists as human phrases.
+const denseMap = existsSync(join(R, "data/measured/dense.json"))
+  ? (JSON.parse(readFileSync(join(R, "data/measured/dense.json"), "utf8")) as { models: Array<{ id: string }>; terms: Array<{ t: string; v: number[]; ok: number; n: number[]; d: number[] }> })
+  : null;
+function denseUnder(id: string): LexEntry[] | null {
+  if (!denseMap) return null;
+  const i = denseMap.models.findIndex((m) => m.id === id);
+  if (i < 0) return null;
+  return denseMap.terms
+    .filter((t) => (t.ok >> i) & 1 && t.v[i] <= -40 && t.d[0] >= 150)
+    .sort((a, b) => a.v[i] - b.v[i] || b.d[0] - a.d[0])
+    .slice(0, 30)
+    .map((t) => ({ term: t.t, kind: t.t.split(" ").includes("_") ? "frame" : "ngram", ratio: Math.round(2 ** (t.v[i] / 10) * 1e4) / 1e4, articles: t.d[0], ...(t.n[i + 1] === 0 ? { floor: true, count: t.n[0] } : {}) }));
+}
 const round = (x: number, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 const lex = (r: Row): LexEntry => ({ term: r.term, kind: r.kind, ratio: round(r.ratio, r.ratio < 1 ? 4 : 1), articles: r.modelSide ? r.modelArticles : r.humanArticles, ...(r.floor ? { floor: true, count: r.modelSide ? r.modelCount : r.humanCount } : {}) });
 
@@ -102,7 +117,7 @@ for (const m of ms) {
     .filter((r) => !r.modelSide && r.ratio <= 1 / 20 && r.humanArticles >= 100)
     .sort((a, b) => a.ratio - b.ratio)
     .slice(0, 30);
-  out.models[m.id] = { tells: over.length, shared_with_previous: null, top: top.map(lex), lexicon: lexicon.map(lex), under: under.map(lex) };
+  out.models[m.id] = { tells: over.length, shared_with_previous: null, top: top.map(lex), lexicon: lexicon.map(lex), under: (denseUnder(m.id) ?? under.map(lex)) };
 }
 
 // Version-to-version overlap within each family.
@@ -118,6 +133,11 @@ for (const fam of Object.keys(models().families)) {
 }
 
 // Per-tell, per-model measurements for every registry entry that names Graphite terms.
+// shibbo's full count of the same articles (scripts/dense_map.py) fills cells Graphite's table leaves out.
+const densePath = join(R, "data/measured/dense-registry.json");
+const dense = existsSync(densePath)
+  ? (JSON.parse(readFileSync(densePath, "utf8")) as { models: string[]; terms: Record<string, { v: number[]; q: number[]; n: number[]; d: number[] }> })
+  : null;
 const index = new Map<string, Row>();
 for (const r of parsed) index.set(`${r.model}|${r.term}`, r);
 for (const t of tells()) {
@@ -130,6 +150,23 @@ for (const t of tells()) {
     const found = hits.filter((h) => h.row);
     // Headline: the strongest over-use (or, for absence tells, the strongest under-use).
     const best = found.sort((a, b) => (absent ? a.row!.ratio - b.row!.ratio : b.row!.ratio - a.row!.ratio))[0];
+    if (!best && dense) {
+      // Graphite's table leaves this model out for every term; fall back to shibbo's own full count of the same articles.
+      const mi = dense.models.indexOf(m.id);
+      const cand = terms.map((term) => ({ term, d: dense.terms[term] })).filter((x) => x.d && x.d.n[0] + x.d.n[mi + 1] >= 5);
+      const pick = cand.sort((a, b) => (absent ? a.d!.v[mi] - b.d!.v[mi] : b.d!.v[mi] - a.d!.v[mi]))[0];
+      if (pick) {
+        const d = pick.d!;
+        const ratio = 2 ** d.v[mi];
+        out.tells[t.id][m.id] = {
+          ratio: round(ratio, ratio < 1 ? 4 : 2), rate: null, human: null, term: pick.term, articles: d.d[mi + 1],
+          counts: { model: d.n[mi + 1], human: d.n[0] }, floor: d.n[0] === 0 || d.n[mi + 1] === 0 || undefined,
+          significant: d.q[mi] < 0.01, via: "shibbo",
+          terms: terms.map((term) => ({ term, ratio: dense.terms[term] ? round(2 ** dense.terms[term].v[mi], 4) : null })),
+        } as (typeof out.tells)[string][string];
+        continue;
+      }
+    }
     out.tells[t.id][m.id] = {
       ratio: best ? round(best.row!.ratio, best.row!.ratio < 1 ? 4 : 2) : null,
       rate: best ? best.row!.modelRate : null,

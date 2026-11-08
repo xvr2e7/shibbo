@@ -1,4 +1,4 @@
-"""Measure 2022-23 chat models from RAID (Dugan et al., ACL 2024; MIT) against the human texts they were paired with.
+"""Measure 2022-23 instruct and chat models from RAID (Dugan et al., ACL 2024; MIT) against the human texts they were paired with.
 
     uv run --with pandas python -I scripts/import_raid.py <raid-dir> <graphite tells_vs_human.csv.gz> <tells.yaml> <out.json>
 
@@ -14,15 +14,17 @@ import pandas as pd
 
 raid_dir, graphite_csv, tells_yaml, out_path = sys.argv[1:5]
 
-# Chat/instruct models only (the assistants people used), with release dates from data/chronology*.yaml sources.
+# Instruct and chat models only, labelled with the checkpoints the RAID paper names (Table 10; queried Nov 2023).
+# Release months: OpenAI 0613 snapshots from the 2023-06-13 API post; text-davinci-002 and Cohere Command lack an
+# official dated page, so they are marked unverified.
 MODELS = {
-    "gpt3": {"id": "text-davinci-003", "name": "text-davinci-003", "lab": "OpenAI", "family": "gpt", "released": "2022-11"},
-    "chatgpt": {"id": "chatgpt-3.5", "name": "ChatGPT (GPT-3.5)", "lab": "OpenAI", "family": "gpt", "released": "2022-11"},
-    "gpt4": {"id": "gpt-4", "name": "GPT-4", "lab": "OpenAI", "family": "gpt", "released": "2023-03"},
+    "gpt3": {"id": "text-davinci-002", "name": "GPT-3 (text-davinci-002)", "lab": "OpenAI", "family": "gpt", "released": "2022-03", "verified": False},
+    "chatgpt": {"id": "gpt-3.5-turbo-0613", "name": "GPT-3.5 Turbo (June 2023)", "lab": "OpenAI", "family": "gpt", "released": "2023-06", "verified": True},
+    "gpt4": {"id": "gpt-4-0613", "name": "GPT-4 (June 2023)", "lab": "OpenAI", "family": "gpt", "released": "2023-06", "verified": True},
     "llama-chat": {"id": "llama-2-70b-chat", "name": "Llama 2 70B Chat", "lab": "Meta", "family": "meta", "released": "2023-07"},
     "mistral-chat": {"id": "mistral-7b-instruct", "name": "Mistral 7B Instruct", "lab": "Mistral AI", "family": "mistral", "released": "2023-09"},
     "mpt-chat": {"id": "mpt-30b-chat", "name": "MPT-30B Chat", "lab": "MosaicML", "family": "mosaic", "released": "2023-06"},
-    "cohere-chat": {"id": "cohere-command-chat", "name": "Cohere Command (chat)", "lab": "Cohere", "family": "cohere", "released": "2023-03"},
+    "cohere-chat": {"id": "cohere-command-chat", "name": "Cohere Command (chat)", "lab": "Cohere", "family": "cohere", "released": "2023-03", "verified": False},
 }
 GENRES = {"abstracts", "books", "news", "recipes", "reddit", "reviews", "wiki"}
 

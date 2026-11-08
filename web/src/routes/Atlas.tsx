@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Cite } from "../components/Cite";
 import { BrandIcon, brandOf } from "../components/BrandIcon";
 import { Link } from "react-router-dom";
-import { AtlasMap, models as mapModels, state, type Hover, type Layers } from "../components/AtlasMap";
+import { AtlasMap, models as mapModels, phraseCounts, state, type Hover, type Layers } from "../components/AtlasMap";
 import { Timeline, TIME, NOW } from "../components/Timeline";
 import { Strip } from "../components/Strip";
 import { data, tellById, ym, familyColor, label, type Habit } from "../data";
@@ -134,8 +134,8 @@ function Legend({ layers, setLayers }: { layers: Layers; setLayers: (l: Layers) 
       </ul>
       <div className="legend-more">
         <ul className="key" aria-label="Map key">
-          <li><span className="swatch land" />Phrases current models over-use</li>
-          <li><span className="swatch shore" />Phrases humans use and models avoid</li>
+          <li><span className="swatch land" />Phrases current models use 4× or more as often as people</li>
+          <li><span className="swatch shore" />Phrases people use 4× or more as often as current models</li>
           <li><span className="swatch habit" />Habits, such as em dashes or hedges</li>
           <li><span className="swatch fossil" />Dropped by a newer release</li>
         </ul>
@@ -156,7 +156,7 @@ function SourcesMark() {
         †<span className="sr">Sources</span>
       </button>
       <span id="sources-pop" className="pop" data-open={open || undefined} role="note">
-        Phrase rates for 2025–26 models come from <a href={data.graphite.url}>Graphite’s AI Tells</a> (CC BY 4.0); 2022–23 models were measured by shibbo on <a href="https://github.com/liamdugan/raid">RAID</a> (MIT). Older models sit on 2025–26 axes, so they look closer to human than they were.
+        Shibbo counted every phrase in <a href={data.graphite.url}>Graphite’s AI Tells</a> articles (CC BY 4.0) for 2025–26 models, and in <a href="https://github.com/liamdugan/raid">RAID</a> (MIT) for 2022–23 models, each against people writing on the same topics. The map draws only phrases one side uses at least 4× as often, in 40 or more articles; people and models share most other words. Position comes from a correspondence analysis, so a phrase sits nearer whoever uses it most. Positions come from 2025–26 usage, so a 2022–23 model’s phrases sit in that terrain, away from its marker; the marker shows how far the model’s own writing sits from its human texts.
         <span className="pop-lineage">
           The map borrows its form from dialect maps, such as Joshua Katz’s <a href="https://www.nytimes.com/interactive/2014/upshot/dialect-quiz-map.html">maps of American English</a> and the <a href="https://www.popvssoda.com/">“soda” vs. “pop”</a> survey: here the regions are models, and the words are their tells.
         </span>
@@ -182,7 +182,7 @@ function Closest({ month }: { month: number }) {
   const rows = humans.length;
   return (
     <aside className="plate closest" aria-labelledby="closest-h">
-      <h2 id="closest-h">Tells per 1,000 words</h2>
+      <h2 id="closest-h">Tell points per 1,000 words</h2>
       {ranked.length ? (
         <ol style={{ height: (ranked.length + rows) * ROW }}>
           {humans.map(([src, h], i) => (
@@ -208,7 +208,7 @@ function Closest({ month }: { month: number }) {
       ) : (
         <p className="empty">No measured model yet. The first arrives in late 2022.</p>
       )}
-      <p className="note">Average per text, scored by shibbo.</p>
+      <p className="note">Average per text, scored by shibbo’s checker. The 2022–23 rows use a phrase list built from 2025–26 models, so they run low.</p>
     </aside>
   );
 }
@@ -243,30 +243,56 @@ function HabitTip({ habit, x, y, month }: { habit: Habit; x: number; y: number; 
 
 function Tip({ hover, month }: { hover: Hover; month: number }) {
   const d = hover.d!;
-  const pos = { transform: `translate(${Math.min(hover.x + 16, window.innerWidth - 340)}px, ${hover.y + 16}px)` };
+  // Keep the whole table on screen: measure it, then clamp it inside the window.
+  const ref = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ h: 0, top: 0 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) setBox({ h: el.offsetHeight, top: (el.offsetParent as HTMLElement | null)?.getBoundingClientRect().top ?? 0 });
+  }, [d]);
+  const y = Math.max(8, Math.min(hover.y + 16, window.innerHeight - box.top - box.h - 8));
+  const pos = { transform: `translate(${Math.min(hover.x + 16, window.innerWidth - 400)}px, ${y}px)` };
   const t = d.tell ? tellById.get(d.tell) : null;
+  const fmt = (n: number) => n.toLocaleString("en");
+  const times = (r: number) => (r >= 100 ? fmt(Math.round(r)) : r >= 10 ? r.toFixed(0) : r.toFixed(1));
+  const g = mapModels.filter((m) => m.source === "graphite").length;
+  const hc = phraseCounts(d, 0);
   return (
-    <div className="tip" style={pos} role="status">
+    <div ref={ref} className="tip wide" style={pos} role="status">
       <span className="specimen">“{d.term.replace(/ _ /g, " … ")}”</span>
-      {d.under ? "Humans use this; current models avoid it." : t ? `Part of the tell “${label(t)}”.` : "Measured phrase."}
+      {d.under ? "People use this far more than current models do." : t ? `Part of the tell “${label(t)}”.` : "Measured phrase."}
       <table>
+        <thead>
+          <tr><th /><td className="bar" /><td>uses</td><td>articles</td><td>vs people</td></tr>
+        </thead>
         <tbody>
+          <tr className="people">
+            <th>People</th>
+            <td className="bar" />
+            <td>{fmt(hc.human)}</td>
+            <td>{fmt(hc.humanDocs!)}</td>
+            <td />
+          </tr>
           {mapModels.map((m, i) => {
             const v = d.v[i];
-            const r = 2 ** Math.abs(v);
-            const fl = (d.floor >> i) & 1;
-            const txt = v === 0 ? "within cutoff" : fl ? (v > 0 ? `${Math.round(r / 2)} uses, human 0` : `human ${Math.round(r / 2)}, model 0`) : v > 0 ? `${r >= 100 ? Math.round(r) : r.toFixed(1)}×` : `human ${r >= 100 ? Math.round(r) : r.toFixed(1)}×`;
+            const c = phraseCounts(d, i);
+            const own = (d.own >> i) & 1;
+            const rel = v === null ? "too few" : Math.abs(v) < 0.2 ? "≈" : v > 0 ? (c.human === 0 ? "people 0" : `${times(2 ** v)}×`) : c.model === 0 ? "never" : `÷${times(2 ** -v)}`;
             return (
-              <tr key={m.id} className={ym(m.released) > month ? "later" : undefined}>
+              <tr key={m.id} className={[ym(m.released) > month ? "later" : "", own ? "" : "weak", i === g ? "split" : ""].join(" ").trim() || undefined}>
                 <th>{m.name}</th>
-                <td className="bar"><i style={{ width: `${Math.min(100, (Math.abs(v) / 10) * 100)}%`, background: v > 0 ? familyColor(m.family) : undefined }} /></td>
-                <td>{txt}</td>
+                <td className="bar"><i style={{ width: `${v === null ? 0 : Math.min(100, (Math.abs(v) / 10) * 100)}%`, background: v !== null && v > 0 ? familyColor(m.family) : undefined }} /></td>
+                <td>{fmt(c.model)}</td>
+                <td>{c.modelDocs !== null ? fmt(c.modelDocs) : ""}</td>
+                <td>{rel}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <small>Source: Graphite, AI Tells (2026). {d.tell ? "Click for the full entry." : ""}</small>
+      <small>
+        Counted by shibbo against people writing on the same topics: Graphite’s articles for 2025–26 models, RAID for 2022–23 (people’s counts differ there). ÷ means people use it that many times more. Faded rows miss 4×, the significance test or 40 articles. {d.tell ? "Click for the full entry." : ""}
+      </small>
     </div>
   );
 }
@@ -274,8 +300,8 @@ function Tip({ hover, month }: { hover: Hover; month: number }) {
 function Specimens() {
   const kobak = data.eras[0];
   const rows: Array<{ id: string; word: string; fact: string; cite: { title: string; url: string } }> = [
-    { id: "delve", word: "delve", fact: `“Delves” ran ${kobak.words[0].ratio}× its expected rate in 2024 PubMed abstracts. By 2026, most models use “delve” near the human rate.`, cite: { title: "Kobak et al., Science Advances (2025)", url: "https://arxiv.org/abs/2406.07016" } },
-    { id: "em-dash-density", word: "the em dash", fact: "GPT-4.1 and GPT-5 used about 2.2× the human rate. GPT-6 Astra uses 0.12×.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
+    { id: "delve", word: "delve", fact: `“Delves” ran ${kobak.words[0].ratio}× its expected rate in 2024 PubMed abstracts. In Graphite’s web articles, GPT-4.1 and Gemini 2.5 Pro (2025) still used “delve” 5–6× as often as people; GPT-5 onward and Claude Opus 4.6 onward almost never write it.`, cite: { title: "Kobak et al., Science Advances (2025); shibbo’s count of Graphite’s articles", url: "https://arxiv.org/abs/2406.07016" } },
+    { id: "em-dash-density", word: "the em dash", fact: "GPT-4.1 used 2.3× the human rate and GPT-5 2.2×. GPT-6 Astra uses 0.12× and Claude Opus 5 about the human rate. Graphite asked for plain text, which may hold dashes down.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
     { id: "genuinely", word: "genuinely useful", fact: "Claude Opus 5 wrote it 411 times across Graphite’s articles. Human writers on the same topics never did.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
     { id: "corrective-rather-than", word: "rather than treating", fact: "GPT-6 Astra wrote it 1,473 times. Human writers never wrote it once.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
     { id: "contraction-avoidance", word: "it’s", fact: "Human writers wrote it 14,540 times, and Claude Opus 4.6 wrote it 7 times. This tell is an absence.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },

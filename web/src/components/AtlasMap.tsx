@@ -8,15 +8,30 @@ import { quadtree, type Quadtree } from "d3-quadtree";
 import mapData from "../data/map.json";
 import { ym, monthName, habits, type Habit } from "../data";
 
-type Raw = [string, number, number, 0 | 1, string, number, ...number[]];
-export type MapModel = { id: string; name: string; family: string; released: string; verified: boolean; source?: string; x: number; y: number };
-export type Phrase = { term: string; x: number; y: number; under: boolean; tell: string; floor: number; v: number[]; strength: number };
+type Raw = [string, number, number, 0 | 1, string, number, ...Array<number | null>];
+export type MapModel = { id: string; name: string; family: string; released: string; verified: boolean; source?: string; x: number; y: number; docs?: number };
+/** v: per-model log2 ratio (null: too few uses to say). own: bit i set when model i over- or under-uses it by 4x or more, significantly, across 40+ articles. counts: see map-data.ts. */
+export type Phrase = { term: string; x: number; y: number; under: boolean; tell: string; own: number; v: Array<number | null>; counts: number[]; reach: number; strength: number };
 
 export const models = (mapData as { models: MapModel[] }).models;
-export const phrases: Phrase[] = (mapData as unknown as { terms: Raw[] }).terms.map((r) => {
-  const v = (r.slice(6) as number[]).map((x) => x / 10);
-  return { term: r[0], x: r[1], y: r[2], under: r[3] === 1, tell: r[4], floor: r[5], v, strength: Math.max(...v.map(Math.abs)) };
+const rawCounts = (mapData as unknown as { counts: number[][] }).counts;
+export const phrases: Phrase[] = (mapData as unknown as { terms: Raw[] }).terms.map((r, i) => {
+  const v = (r.slice(6) as Array<number | null>).map((x) => (x === null ? null : x / 10));
+  const own = r[5];
+  const c = rawCounts[i];
+  const g = (mapData as { models: MapModel[] }).models.filter((m) => m.source === "graphite").length;
+  // Reach: articles on the side that uses it more (people, or the widest-used owning model). Labels favour common phrases.
+  const reach = r[3] === 1 ? c[1] : Math.max(0, ...Array.from({ length: g }, (_, k) => ((own >> k) & 1 ? c[3 + 2 * k] : 0)));
+  return { term: r[0], x: r[1], y: r[2], under: r[3] === 1, tell: r[4], own, v, counts: c, reach, strength: Math.max(...v.map((x, k) => ((own >> k) & 1 && x !== null ? Math.abs(x) : 0))) };
 });
+/** Uses and articles behind a phrase for one model (index into models), with the human side it was compared with. */
+export function phraseCounts(d: Phrase, i: number) {
+  const c = d.counts, g = models.filter((m) => m.source === "graphite").length;
+  if (i < g) return { model: c[2 + 2 * i], modelDocs: c[3 + 2 * i] as number | null, human: c[0], humanDocs: c[1] as number | null };
+  const k = i - g;
+  return { model: c[2 + 2 * g + 2 * k], modelDocs: null, human: c[3 + 2 * g + 2 * k], humanDocs: null };
+}
+export const mapWords = (mapData as unknown as { words: Record<string, number> }).words;
 export const explained = (mapData as { explained: number }).explained;
 export const firstMeasured = Math.min(...models.map((m) => ym(m.released)));
 const idx = new Map(models.map((m, i) => [m.id, i]));
@@ -46,14 +61,17 @@ export function phraseState(d: Phrase, current: Map<string, MapModel>, past: Set
   let level = 0;
   let owner: string | null = null;
   for (const m of current.values()) {
-    const v = d.v[idx.get(m.id)!];
+    const i = idx.get(m.id)!;
+    const v = d.v[i];
+    if (!((d.own >> i) & 1) || v === null) continue;
     const s = d.under ? -v : v;
     if (s >= 2 && s > level) { level = s; owner = m.family; }
   }
   if (level) return { alive: true, fossil: false, owner, level };
   for (const id of past) {
-    const v = d.v[idx.get(id)!];
-    if ((d.under ? -v : v) >= 2) return { alive: false, fossil: true, owner: null, level: 0 };
+    const i = idx.get(id)!;
+    const v = d.v[i];
+    if ((d.own >> i) & 1 && v !== null && (d.under ? -v : v) >= 2) return { alive: false, fossil: true, owner: null, level: 0 };
   }
   return { alive: false, fossil: false, owner: null, level: 0 };
 }
@@ -260,7 +278,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
           font(`${cur ? 600 : 400} ${cur ? 14 : 12}px ${SANS}`);
           const w = ctx.measureText(m.name).width;
           const sub = monthName(ym(m.released), "short") + (m.verified ? "" : "*");
-          const spots: Array<[number, number]> = [[mx + 13, my - 4], [mx - 13 - w, my - 4], [mx - w / 2, my - 18], [mx - w / 2, my + 30], [mx + 13, my + 14], [mx - 13 - w, my + 14]];
+          const spots: Array<[number, number]> = [[mx + 13, my - 4], [mx - 13 - w, my - 4], [mx - w / 2, my - 18], [mx - w / 2, my + 30], [mx + 13, my + 14], [mx - 13 - w, my + 14], [mx + 13, my - 24], [mx - 13 - w, my - 24], [mx + 13, my + 34], [mx - 13 - w, my + 34], [mx - w / 2, my - 38], [mx - w / 2, my + 50]];
           const found = spots.find(([a, b]) => fits(a, b, w, 13, 15));
           const [x, y] = found ?? spots[0];
           if (!found) boxes.push([x - 2, y - 15, x + w + 2, y + 17]); // drawn anyway, so phrases must keep clear
@@ -291,7 +309,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
       }
       ctx.restore();
       // Habits: one glyph badge per style habit, placed with the current models that over-use it
-      // (or across the shore when people do it more), sized by effect.
+      // (or by the people point when people do it more), sized by effect.
       s.badges = [];
       if (s.layers.habits) {
         const place = (cur: MapModel[], h: Habit) => {
@@ -304,7 +322,8 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
           const wsum = side.reduce((a, x) => a + x.e ** 2, 0);
           let hx = side.reduce((a, x) => a + x.e ** 2 * x.m.x, 0) / wsum;
           let hy = side.reduce((a, x) => a + x.e ** 2 * x.m.y, 0) / wsum;
-          if (!pos.length) { hx = -hx * 0.45; hy = -hy * 0.45; }
+          // A habit people do more sits by the people point, leaning toward the models that do it least.
+          if (!pos.length) { hx *= 0.12; hy *= 0.12; }
           return { hx, hy, strength: Math.max(...side.map((x) => Math.abs(x.e))) };
         };
         const curA = [...A.current.values()].filter((m) => habits[0]?.models[m.id]);
@@ -364,8 +383,10 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         }
       }
 
+      // Label order: registry tells first, then phrases that are both lopsided and common (used in many articles).
+      const rank = (e: (typeof states)[number]) => (e.d.tell ? 3 : 0) + Math.min(e.s.level, 6) + 1.5 * Math.log2(Math.max(e.d.reach, 150) / 150);
       const budget = s.layers.words ? Math.round(26 * Math.min(s.t.k, 6) ** 1.3) : 0;
-      const cands = states.filter((e) => e.s.a > 0.3 && e.px > left && e.px < s.W - right && e.py > top && e.py < s.H - bottom).sort((a, b) => (b.d.tell ? 3 : 0) + b.s.level - ((a.d.tell ? 3 : 0) + a.s.level));
+      const cands = states.filter((e) => e.s.a > 0.3 && e.px > left && e.px < s.W - right && e.py > top && e.py < s.H - bottom).sort((a, b) => rank(b) - rank(a));
       let placed = 0;
       for (const e of cands) {
         if (placed >= budget) break;

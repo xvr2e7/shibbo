@@ -268,14 +268,14 @@ export function TellPage() {
                   <tr key={m.id}>
                     <td><span className="swatch" style={{ background: familyColor(m.family), marginRight: 8 }} />{m.name}</td>
                     <td>{monthName(ym(m.released), "short")}{m.verified ? "" : "*"}</td>
-                    <td>{v ? describe(v, m) : <span className="muted">under Graphite’s cutoff</span>}</td>
+                    <td>{v ? describe(v, m) : <span className="muted">too few uses to measure</span>}{(v as { counted?: boolean } | null)?.counted ? <sup title="Counted by shibbo in the same articles; Graphite’s table leaves this cell out.">†</sup> : null}</td>
                     <td className="specimen">{v?.term ? `“${v.term.replace(/ _ /g, " … ")}”` : v?.via === "feature" ? "rate per 1,000 words" : ""}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table></div>
-          <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>* release month not confirmed by an official source.</p>
+          <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>* release month not confirmed by an official source. † counted by shibbo in Graphite’s articles, where Graphite’s own table leaves the cell out.</p>
         </section>
       )}
       {history.length > 0 && (

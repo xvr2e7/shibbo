@@ -92,6 +92,10 @@ export interface Measure {
   counts?: { model: number; human: number };
   /** One side never used it; ratio is a lower-bound estimate (2x the count). */
   floor?: boolean;
+  /** "shibbo": Graphite's table left this model out, so the value comes from shibbo's own count of the same articles. */
+  via?: "shibbo";
+  /** For shibbo counts: paired sign test over topics, q < 0.01. */
+  significant?: boolean;
 }
 
 export interface LexEntry {
