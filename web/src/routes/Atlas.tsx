@@ -23,8 +23,6 @@ export function AtlasPage() {
   const [playing, setPlaying] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
   const [layers, setLayers] = useState<Layers>({ words: true, habits: true });
-  // Easter egg: clicking the title opens a note on the dialect atlases this map descends from.
-  const [note, setNote] = useState<number | null>(null);
   const reset = 0;
   const [wide, setWide] = useState(window.innerWidth > 900);
   const raf = useRef(0);
@@ -80,12 +78,8 @@ export function AtlasPage() {
       <section className="atlas" aria-labelledby="atlas-h">
         <AtlasMap focus={new URLSearchParams(location.hash.split("?")[1] ?? "").get("focus")} month={reduced() ? month : t} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
         <div className="cartouche">
-          <h1 id="atlas-h">
-            <button type="button" className="title-egg" aria-expanded={note !== null} onClick={() => setNote((n) => (n === null ? 0 : (n + 1) % NOTES.length))}>What gives a model away</button>
-            <SourcesMark />
-          </h1>
+          <h1 id="atlas-h">What gives a model away<SourcesMark /></h1>
           <Legend layers={layers} setLayers={setLayers} />
-          {note !== null && <Lineage i={note} setI={setNote} onClose={() => setNote(null)} />}
         </div>
         <Closest month={month} />
         {hover?.d && <Tip hover={hover} month={month} />}
@@ -132,71 +126,21 @@ function Legend({ layers, setLayers }: { layers: Layers; setLayers: (l: Layers) 
         <button type="button" className="layer" aria-pressed={layers.habits} onClick={() => setLayers({ ...layers, habits: !layers.habits })}>
           <span className="swatch habit" aria-hidden="true" />Habits
         </button>
-        <span className="fam-dots" aria-hidden="true">
-          {FAMILY_KEY.map(([f]) => <i key={f} style={{ background: `var(--${f})` }} />)}
-        </span>
       </div>
+      <ul className="fams" aria-label="Model families">
+        {FAMILY_KEY.map(([f, b, n]) => (
+          <li key={f}><span className="swatch" style={{ background: `var(--${f})` }} />{b ? <BrandIcon brand={b} size={12} /> : <span className="no-icon" />}{n}</li>
+        ))}
+      </ul>
       <div className="legend-more">
         <ul className="key" aria-label="Map key">
           <li><span className="swatch land" />Phrases current models over-use</li>
           <li><span className="swatch shore" />Phrases humans use and models avoid</li>
           <li><span className="swatch habit" />Habits, such as em dashes or hedges</li>
           <li><span className="swatch fossil" />Dropped by a newer release</li>
-          <li className="fams">
-            {FAMILY_KEY.map(([f, b, n]) => (
-              <span key={f} className="fam"><span className="swatch" style={{ background: `var(--${f})` }} />{b && <BrandIcon brand={b} size={11} />}{n}</span>
-            ))}
-          </li>
         </ul>
       </div>
     </div>
-  );
-}
-
-/** Where the map comes from: dialect atlases and authorship studies. One note at a time; the reader steps through. */
-const NOTES: Array<{ text: React.ReactNode; cite: { title: string; url: string } }> = [
-  {
-    text: <>In 1876, Georg Wenker sent forty sentences to schoolteachers across Germany and asked them to write each one in the local dialect. Mapping the answers gave the first dialect atlas. This map runs the same test on machines: humans and models write on the same topics, and the phrases that split them become the land.</>,
-    cite: { title: "Georg Wenker, Sprachatlas des Deutschen Reichs", url: "https://en.wikipedia.org/wiki/Georg_Wenker" },
-  },
-  {
-    text: <>Dialect maps draw isoglosses, the lines where one word gives way to another. August Bielenstein coined the term in 1892. The hatched shore here marks one such line: past it lie the phrases humans keep and models drop.</>,
-    cite: { title: "Isogloss", url: "https://en.wikipedia.org/wiki/Isogloss" },
-  },
-  {
-    text: <>For the Atlas linguistique de la France, Edmond Edmont spent four years travelling to 639 places and writing down how each one spoke. The data behind this map comes from 9,984 topics instead, each written once by a human and once by each model.</>,
-    cite: { title: "Atlas linguistique de la France (1902–1910)", url: "https://en.wikipedia.org/wiki/Atlas_linguistique_de_la_France" },
-  },
-  {
-    text: <>In 1964, Frederick Mosteller and David Wallace settled who wrote twelve disputed Federalist Papers by counting small words. Hamilton wrote “upon” about three times per thousand words; Madison almost never did. Shibbo counts tells the same way.</>,
-    cite: { title: "Mosteller and Wallace, Inference and Disputed Authorship: The Federalist (1964)", url: "https://en.wikipedia.org/wiki/The_Federalist_Papers#Authorship" },
-  },
-];
-function Lineage({ i, setI, onClose }: { i: number; setI: (i: number) => void; onClose: () => void }) {
-  const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const away = (e: PointerEvent) => {
-      const el = e.target as Element;
-      if (!ref.current?.contains(el) && !el.closest(".title-egg")) onClose();
-    };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    addEventListener("pointerdown", away);
-    addEventListener("keydown", esc);
-    return () => { removeEventListener("pointerdown", away); removeEventListener("keydown", esc); };
-  }, [onClose]);
-  const n = NOTES[i];
-  return (
-    <figure ref={ref} className="lineage" role="note" aria-label="A note on dialect atlases">
-      <blockquote key={i}>
-        <p>{n.text}</p>
-      </blockquote>
-      <figcaption>
-        <a href={n.cite.url}>{n.cite.title}</a>
-        <button type="button" className="next-note" onClick={() => setI((i + 1) % NOTES.length)} aria-label={`Next note, ${((i + 1) % NOTES.length) + 1} of ${NOTES.length}`}>
-          {i + 1} of {NOTES.length}
-        </button>
-      </figcaption>
-    </figure>
   );
 }
 
@@ -212,37 +156,51 @@ function SourcesMark() {
         †<span className="sr">Sources</span>
       </button>
       <span id="sources-pop" className="pop" data-open={open || undefined} role="note">
-        Phrase rates for 2025–26 models come from <a href={data.graphite.url}>Graphite’s AI Tells</a> (CC BY 4.0); 2022–23 models were measured by shibbo on <a href="https://github.com/liamdugan/raid">RAID</a> (MIT). Older models sit on 2025–26 axes, so they look closer to human than they were.{" "}
+        Phrase rates for 2025–26 models come from <a href={data.graphite.url}>Graphite’s AI Tells</a> (CC BY 4.0); 2022–23 models were measured by shibbo on <a href="https://github.com/liamdugan/raid">RAID</a> (MIT). Older models sit on 2025–26 axes, so they look closer to human than they were.
+        <span className="pop-lineage">
+          The map borrows its form from dialect maps, such as Joshua Katz’s <a href="https://www.nytimes.com/interactive/2014/upshot/dialect-quiz-map.html">maps of American English</a> and the <a href="https://www.popvssoda.com/">“soda” vs. “pop”</a> survey: here the regions are models, and the words are their tells.
+        </span>
         <Link to="/docs/concepts/sources">Every source</Link>
       </span>
     </span>
   );
 }
 
-/** Current releases ranked by distance from human on the map. Rows slide as the timeline moves. */
-const dist = new Map(mapModels.map((m) => [m.id, Math.hypot(m.x, m.y)]));
-const maxDist = Math.max(...dist.values());
-const ROW = 26;
+/** Tell density for each current release, beside human writers on the same topics. Rows reorder as the timeline moves. */
+type Density = { model: number; human: number; source: string };
+const per1k = ((data as unknown as { per1k?: Record<string, Density> }).per1k ?? {}) as Record<string, Density>;
+const SCALE = Math.ceil(Math.max(10, ...Object.values(per1k).map((d) => d.model)) / 10) * 10; // fixed for the whole timeline
+const ROW = 28;
+const fmt1k = (v: number) => (v < 10 ? v.toFixed(1) : Math.round(v).toString());
 function Closest({ month }: { month: number }) {
   const ranked = useMemo(() => {
     const { current } = state(month);
-    return [...current.values()].sort((a, b) => dist.get(a.id)! - dist.get(b.id)!);
+    return [...current.values()].filter((m) => per1k[m.id]).sort((a, b) => per1k[a.id].model - per1k[b.id].model);
   }, [month]);
+  // Human baseline from the same source as the models shown (web articles for 2025–26, RAID texts for 2022–23).
+  const humans = [...new Map(ranked.map((m) => [per1k[m.id].source, per1k[m.id].human])).entries()];
+  const rows = humans.length;
   return (
     <aside className="plate closest" aria-labelledby="closest-h">
-      <h2 id="closest-h">Closest to human</h2>
+      <h2 id="closest-h">Tells per 1,000 words</h2>
       {ranked.length ? (
-        <ol style={{ height: (ranked.length + 1) * ROW }}>
-          <li className="people" style={{ transform: "translateY(0)" }}>
-            <span className="who"><span className="people-mark" aria-hidden="true" />Human</span>
-            <span className="track"><i style={{ left: 0, background: "var(--ink)" }} /></span>
-          </li>
+        <ol style={{ height: (ranked.length + rows) * ROW }}>
+          {humans.map(([src, h], i) => (
+            <li key={src} className="human" data-in style={{ transform: `translateY(${i * ROW}px)` }}>
+              <span className="who"><span className="people-mark" aria-hidden="true" /><span className="name">Human writers{rows > 1 ? (src === "raid" ? ", 2022–23 set" : ", 2025–26 set") : ""}</span></span>
+              <span className="bar"><i style={{ width: `${(h / SCALE) * 100}%`, background: "var(--ink)" }} /></span>
+              <span className="num">{fmt1k(h)}</span>
+            </li>
+          ))}
           {mapModels.map((m) => {
             const r = ranked.indexOf(m);
+            const d = per1k[m.id];
+            if (!d) return null;
             return (
-              <li key={m.id} data-in={r >= 0 || undefined} aria-hidden={r < 0 || undefined} style={{ transform: `translateY(${(r < 0 ? ranked.length : r + 1) * ROW}px)` }}>
-                <Link className="who" to={`/models/${m.id}`} tabIndex={r < 0 ? -1 : undefined}><BrandIcon brand={brandOf(m.family)} size={13} />{m.name}</Link>
-                <span className="track"><i style={{ left: `${(dist.get(m.id)! / maxDist) * 100}%`, background: familyColor(m.family) }} /></span>
+              <li key={m.id} data-in={r >= 0 || undefined} aria-hidden={r < 0 || undefined} style={{ transform: `translateY(${(r < 0 ? ranked.length + rows : r + rows) * ROW}px)` }}>
+                <Link className="who" to={`/models/${m.id}`} title={m.name} tabIndex={r < 0 ? -1 : undefined}><BrandIcon brand={brandOf(m.family)} size={13} /><span className="name">{m.name}</span></Link>
+                <span className="bar"><i style={{ width: `${(d.model / SCALE) * 100}%`, background: familyColor(m.family) }} /></span>
+                <span className="num">{fmt1k(d.model)}</span>
               </li>
             );
           })}
@@ -250,6 +208,7 @@ function Closest({ month }: { month: number }) {
       ) : (
         <p className="empty">No measured model yet. The first arrives in late 2022.</p>
       )}
+      <p className="note">Average per text, scored by shibbo.</p>
     </aside>
   );
 }

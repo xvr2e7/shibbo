@@ -89,6 +89,20 @@ for (const [src, set] of [["raid", raid], ["local", local]] as const) {
   }
 }
 
+// Tell density per model: average tell points per 1,000 words, next to the human texts from the same source.
+// 2025–26 models from the arena (Graphite's held-out topics); 2022–23 models from scripts/raid-per1k.ts.
+function per1kTable() {
+  const out: Record<string, { model: number; human: number; source: string }> = {};
+  const arenaPath = join(R, "data/measured/arena.json");
+  if (existsSync(arenaPath)) {
+    const a = JSON.parse(readFileSync(arenaPath, "utf8")) as { players: Array<{ id: string; mean_per1k: number }> };
+    const human = a.players.find((p) => p.id === "people")?.mean_per1k;
+    if (human !== undefined) for (const p of a.players) if (p.id !== "people") out[p.id] = { model: p.mean_per1k, human, source: "graphite" };
+  }
+  for (const m of raid?.models ?? []) if (m.per1k) out[m.id] = { model: m.per1k.model_mean, human: m.per1k.human_mean, source: "raid" };
+  return out;
+}
+
 // Habits: style features Graphite measured per model, as effect sizes against people (Cohen's d).
 // sign: +1 when models doing more of it is the tell; -1 when the tell is doing less than people.
 const HABITS: Array<{ key: string; label: string; glyph: string; what: string; unit: string; sign: 1 | -1; tell?: string }> = [
@@ -140,6 +154,7 @@ writeFileSync(join(OUT, "registry.json"), JSON.stringify({
   raid: raid ? { source: raid.source, design: raid.design } : null,
   habits,
   arena: existsSync(join(R, "data/measured/arena.json")) ? JSON.parse(readFileSync(join(R, "data/measured/arena.json"), "utf8")) : null,
+  per1k: per1kTable(),
   benchmarks: existsSync(join(R, "data/measured/benchmarks.yaml")) ? YAML.parse(readFileSync(join(R, "data/measured/benchmarks.yaml"), "utf8")) : null,
 }));
 // Merge reviewed additions when present (from the release research pass).

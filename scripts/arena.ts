@@ -146,6 +146,7 @@ const out = {
     battles: players.reduce((a, _, j) => a + (i === j ? 0 : w[i][j] + w[j][i]), 0),
     wins: +players.reduce((a, _, j) => a + (i === j ? 0 : w[i][j]), 0).toFixed(1),
     median_per1k: +median(per1k.map((r) => r[i])).toFixed(2),
+    mean_per1k: +(per1k.map((r) => r[i]).filter((x) => !Number.isNaN(x)).reduce((a, x) => a + x, 0) / per1k.filter((r) => !Number.isNaN(r[i])).length).toFixed(2),
     clean_share: +(per1k.filter((r) => !Number.isNaN(r[i]) && r[i] === 0).length / per1k.length).toFixed(3),
   })).sort((a, b) => b.rating - a.rating),
   winrate: { order: players, matrix: winrate },

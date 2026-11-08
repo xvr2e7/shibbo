@@ -27,7 +27,7 @@ export function ModelsPage() {
         Who writes most like a human? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
       </p>
 
-      <Newest />
+      {/* Newest releases (mostly unmeasured) are held back until more of them are measured; see Newest below. */}
 
       {arena && <ArenaSection a={arena} />}
 
@@ -273,7 +273,8 @@ export function ModelPage() {
 }
 
 /** The latest releases from each lab, measured or not, so the page keeps up with what people use now. */
-function Newest() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function Newest() {
   const measuredBy = new Map(ordered.map((m) => [m.name.toLowerCase(), m]));
   const cutoff = `${new Date().getFullYear() - 1}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const recent = chronology.milestones
