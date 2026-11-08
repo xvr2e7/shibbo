@@ -43,7 +43,7 @@ with gzip.open(articles, "rt") as fh:
 
 terms = load_terms(graphite_csv, tells_yaml)
 count = make_counter(terms)
-out = {"source": {"title": "Local runs by shibbo on Graphite topics (open-weight models via Ollama)", "url": "https://github.com/", "license": "derived rates"},
+out = {"source": {"title": "Local runs by shibbo on Graphite topics (open-weight models via Ollama)", "url": "https://github.com/xvr2e7/shibbo/tree/main/measure", "license": "derived rates"},
        "design": "Each model wrote an article with the same title and target length as one held-out human article from Graphite's topics, compared with exactly those human articles.",
        "models": []}
 for model, rows in sorted(runs.items()):
