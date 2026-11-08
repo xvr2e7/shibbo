@@ -39,15 +39,17 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
   }, []);
 
   const marks = useMemo<Mark[]>(() => {
-    const measuredNames = new Set(mapModels.map((m) => m.name.toLowerCase()));
+    // A milestone lists the measured model ids it stands for, so each model gets one mark.
+    const mapIds = new Set(mapModels.map((m) => m.id));
+    const claimed = new Set(chronology.milestones.flatMap((m) => m.measured ?? []));
     const out: Mark[] = chronology.milestones
       .filter((m) => m.date && ym(String(m.date).slice(0, 7)) >= START)
       .map((m) => {
         const brand = brandOf(m.lab ?? m.maker);
-        return { at: ym(String(m.date).slice(0, 7)), date: String(m.date), name: m.name, lab: m.lab ?? m.maker ?? "", brand, lane: laneOf(brand), measured: measuredNames.has(m.name.toLowerCase()), weights: m.weights, m };
+        return { at: ym(String(m.date).slice(0, 7)), date: String(m.date), name: m.name, lab: m.lab ?? m.maker ?? "", brand, lane: laneOf(brand), measured: (m.measured ?? []).some((id) => mapIds.has(id)), weights: m.weights, m };
       });
     for (const m of mapModels) {
-      if (out.some((x) => x.name.toLowerCase() === m.name.toLowerCase())) continue;
+      if (claimed.has(m.id)) continue;
       const brand = brandOf(m.family);
       const lab = brand === "openai" ? "OpenAI" : brand === "anthropic" ? "Anthropic" : "Google";
       out.push({ at: ym(m.released), date: m.released + (m.verified ? "" : " (month unconfirmed)"), name: m.name, lab, brand, lane: laneOf(brand), measured: true, weights: "closed" });
@@ -127,7 +129,7 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
       >
         <svg width={W} height={H} aria-hidden="true">
           <rect x={x(ym("2025-04"))} y={top - 2} width={x(END) - x(ym("2025-04"))} height={lanes.length * laneH + 2} className="measured-band" />
-          <text x={x(ym("2025-04")) + 34} y={H - 4} className="era-label">tells measured from April 2025</text>
+          <text x={x(ym("2025-04")) + 34} y={H - 4} className="era-label">Graphite, from Apr 2025</text>
           {lanes.map((l, i) => (
             <line key={l.key} x1={gutter} x2={W - 12} y1={top + i * laneH + laneH / 2} y2={top + i * laneH + laneH / 2} className="lane-line" />
           ))}

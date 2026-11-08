@@ -20,7 +20,7 @@ export interface Model {
   features: Record<string, { mean: number; d: number; human: number }>;
 }
 export interface Source { title: string; url: string | null; kind: string; author?: string; date?: string }
-export interface Milestone { id: string; name: string; maker?: string; lab?: string; date: string; kind: string; weights?: string; note?: string; source?: { title: string; url: string; kind?: string } }
+export interface Milestone { id: string; name: string; maker?: string; lab?: string; date: string; kind: string; weights?: string; measured?: string[]; note?: string; source?: { title: string; url: string; kind?: string } }
 export interface HistTell { id: string; era_start: string | number; era_end: string | number | null; systems?: string | string[]; tell: string; example?: string; evidence: string; source: { title: string; url: string; year?: number }; kind: string }
 
 export const data = registry as unknown as {
