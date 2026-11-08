@@ -24,6 +24,25 @@ function ThemeIcon({ dark }: { dark: boolean }) {
   );
 }
 
+/** A plain sliding switch: the knob slides across and the sun turns into a moon. */
+function ThemeToggle({ dark, onChange }: { dark: boolean; onChange: (dark: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={dark}
+      aria-label="Dark theme"
+      title={dark ? "Switch to light" : "Switch to dark"}
+      className={`theme-toggle${dark ? " is-dark" : ""}`}
+      onClick={() => onChange(!dark)}
+    >
+      <span className="knob" aria-hidden="true"><ThemeIcon dark={dark} /></span>
+    </button>
+  );
+}
+
+const REPO = "https://github.com/xvr2e7/shibbo";
+
 const TABS = [
   { to: "/", label: "Map", match: (p: string) => p === "/" },
   { to: "/tells", label: "Tells", match: (p: string) => p.startsWith("/tells") },
@@ -67,25 +86,13 @@ export function Shell() {
     if (!inDocs) window.scrollTo(0, 0);
   }, [loc.pathname, inDocs]);
 
-  // Switching themes reveals the new one as a circle growing from the switch (where View Transitions exist).
-  const toggle = (ev: React.MouseEvent<HTMLButtonElement>) => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } };
-    if (!doc.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setTheme(next);
-      return;
-    }
-    const r = ev.currentTarget.getBoundingClientRect();
-    const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  // The new theme fades in over the old one (where View Transitions exist); the switch carries the motion.
+  const setThemeSoftly = (next: Theme) => {
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    if (!doc.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) { setTheme(next); return; }
     doc.startViewTransition(() => {
       flushSync(() => setTheme(next));
       document.documentElement.dataset.theme = next;
-    }).ready.then(() => {
-      document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] },
-        { duration: 480, easing: "cubic-bezier(.2,.7,.2,1)", pseudoElement: "::view-transition-new(root)" },
-      );
     });
   };
 
@@ -97,9 +104,12 @@ export function Shell() {
         </Link>
         <Tabs path={loc.pathname} />
         <NavLink to="/docs" className="docs-link">Docs</NavLink>
-        <button className="theme-switch" type="button" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
-          <ThemeIcon dark={theme === "dark"} />
-        </button>
+        <a className="repo-link" href={REPO} aria-label="shibbo on GitHub" title="shibbo on GitHub">
+          <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+          </svg>
+        </a>
+        <ThemeToggle dark={theme === "dark"} onChange={(d) => setThemeSoftly(d ? "dark" : "light")} />
       </header>
       <main id="main" className={inDocs ? "docs-main" : undefined}>
         <Outlet />
@@ -108,10 +118,12 @@ export function Shell() {
         <footer className="foot">
           <div className="inner">
             <p>
-              Measurements from Graphite’s <a href={data.graphite.url}>“AI Tells”</a> (2026), {data.graphite.license}. Historical tells and release dates cite their own sources, all listed in{" "}
-              <Link to="/docs/concepts/sources">Sources</Link>. Code under MIT.
+              Shibbo gathers what others found before it: measured studies, community lists such as Wikipedia’s Signs of AI writing, open-source checkers and agent bug reports. Each tell credits its sources, all listed in{" "}
+              <Link to="/docs/concepts/sources">Sources</Link>. Measurements from Graphite’s <a href={data.graphite.url}>“AI Tells”</a> (2026), {data.graphite.license}.
             </p>
-            <p>Built {data.built}</p>
+            <p>
+              <a href={REPO}>Code on GitHub</a>, MIT. Built {data.built}.
+            </p>
           </div>
         </footer>
       )}

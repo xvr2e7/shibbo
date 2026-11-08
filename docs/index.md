@@ -9,9 +9,13 @@ It has three parts that share one registry of tells:
 |---|---|---|
 | Rules | A short list of the tells your model over-uses, with fixes, for its instructions file | `CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, and the rest |
 | Checker | Scores a draft from 0 to 100 and names each hit with its fix | The command line, an MCP tool, editor hooks, CI |
-| Registry | 50 tells, each with evidence and per-model measurements | `data/tells.yaml`, browsable in the [field guide](/../#/tells) |
+| Registry | Every tell, each with its sources, and per-model rates where measured | `data/tells.yaml`, browsable in the [field guide](/../#/tells) |
 
 The rules steer the model before it writes. The checker catches what slips through after. You can use either one alone.
+
+## Prior art
+
+Many people have catalogued AI tells, each for one kind of work: Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) for prose, checkers such as [avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing) and [slop-score](https://github.com/sam-paech/slop-score), design lists such as [Hallmark](https://github.com/Nutlope/hallmark) and [no-slop-ui](https://github.com/LeoStehlik/no-slop-ui), and studies such as Graphite's [AI Tells](https://graphite.io/research/ai-tells). Shibbo aims to be one source of truth across them. It gathers their findings into one registry, checks them against measured data where that exists, and dates and cites every entry. [Sources](/concepts/sources) lists all of them, from measured studies to agent bug reports.
 
 ## Who it's for
 

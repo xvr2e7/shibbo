@@ -11,9 +11,17 @@ export default defineConfig({
   // Links back into the web app (../#/tells) live outside the docs build on purpose.
   ignoreDeadLinks: [/^\/\.\.\//],
   appearance: true,
+  sitemap: { hostname: "https://xvr2e7.github.io/shibbo/docs/" },
+  head: [
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:site_name", content: "shibbo" }],
+    ["meta", { property: "og:image", content: "https://xvr2e7.github.io/shibbo/og.png" }],
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
+  ],
   themeConfig: {
     logo: undefined,
     siteTitle: "shibbo",
+    socialLinks: [{ icon: "github", link: "https://github.com/xvr2e7/shibbo" }],
     nav: [
       { text: "Atlas", link: "/../#/", target: "_self" },
       { text: "Tells", link: "/../#/tells", target: "_self" },

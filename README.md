@@ -15,8 +15,8 @@
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/atlas-dark.gif">
-  <img width="720" alt="The shibbo atlas playing from November 2022 to November 2026: each model family's phrases spread across the map as new releases arrive and fade as newer ones replace them, with human writing on the far shore." src=".github/assets/atlas-light.gif">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/atlas-dark.gif">
+  <img width="720" alt="The shibbo atlas playing from November 2022 to November 2026: each model family's phrases spread across the map as new releases arrive and fade as newer ones replace them, with human writing on the far shore." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/atlas-light.gif">
 </picture>
 </p>
 
@@ -27,6 +27,8 @@ These tells shift with each release. In 2024, "delve" gave away GPT-4; today mos
 <!-- /shibbo-ignore -->
 
 Shibbo tracks each tell over time and measures which models over-use it. Run it on your work to see which ones show up.
+
+Shibbo gathers the tells that earlier studies, lists and checkers found into one registry, and credits each source. See [Prior art](#prior-art).
 
 The name comes from *shibboleth*: a small sign, like a word said wrong, that gives away where someone comes from.
 
@@ -78,20 +80,37 @@ The web app maps how machine writing has shifted with each release, on a timelin
 <tr>
 <td width="50%">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/tells-dark.png">
-  <img alt="The field guide: tells on five shelves, each card showing the tell as a small mockup with its fix." src=".github/assets/tells-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/tells-dark.png">
+  <img alt="The field guide: tells on five shelves, each card showing the tell as a small mockup with its fix." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/tells-light.png">
 </picture>
 <p><b>Tells.</b> Every tell, sorted by kind of work. Each card shows the tell itself, so an interface tell appears as a small mockup.</p>
 </td>
 <td width="50%">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/arena-dark.png">
-  <img alt="The tell arena: human writing rated far ahead of every measured model." src=".github/assets/arena-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/arena-dark.png">
+  <img alt="The tell arena: human writing rated far ahead of every measured model." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/arena-light.png">
 </picture>
 <p><b>Arena.</b> Humans and models write on the same topics, and the article with fewer tells wins each round. Humans lead by a wide margin.</p>
 </td>
 </tr>
 </table>
+
+## Prior art
+
+Many people have catalogued AI tells before, each for one kind of work: prose, interfaces or code. Shibbo aims to be one source of truth across all of them. It brings their findings together, checks them against measured data where that exists, and keeps a citation and a date on every entry. The registry cites more than a hundred sources, including:
+
+<!-- shibbo-ignore -->
+| Kind | Examples |
+|---|---|
+| Measured studies | Graphite's [AI Tells](https://graphite.io/research/ai-tells), [Kobak et al.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12219543/) on "delves" in PubMed, [Why does ChatGPT "delve" so much?](https://aclanthology.org/2025.coling-main.426/), [Antislop](https://arxiv.org/abs/2510.15061) |
+| Community lists | Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), [AI writing tropes](https://gist.github.com/ossa-ma/f3baa9d25154c33095e22272c631f5a1) |
+| Checkers and skills | [avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing), [Slop Guard](https://eric-tramel.github.io/blog/2026-02-18-slop-guard), [slop-score](https://github.com/sam-paech/slop-score), [deslop](https://github.com/dabit3/deslop), [avoid-ai-design](https://github.com/funboy322/avoid-ai-design), [no-slop-ui](https://github.com/LeoStehlik/no-slop-ui), [Hallmark](https://github.com/Nutlope/hallmark) |
+| Agent reports | Bug reports from the Claude Code, Codex and Gemini CLI issue trackers, and published agent system prompts |
+<!-- /shibbo-ignore -->
+
+[Sources](docs/concepts/sources.md) lists every one.
+
+Other catalogs cover parts of this ground, among them [aismells](https://aismells.pages.dev/ai-writing-tells.html) for prose, [ai-design-tells](https://pypi.org/project/ai-design-tells/) for interfaces, and the [anti-slop skill](https://lobehub.com/skills/rand-cc-polymath-anti-slop) across text, code and design. As far as we know, none of them pairs prose, code, interface and agent tells with per-model measurements and a source on every entry. If you know one that does, or a source we missed, please [open an issue](https://github.com/xvr2e7/shibbo/issues).
 
 ## The data
 
