@@ -127,7 +127,7 @@ Models and people still share most of their words. On the same topics, 70 to 78%
 
 The PubMed figure compares 2024 abstracts with the rate earlier years predict, with no human baseline. The rest compare models with people writing web articles on the same topics. Graphite asked for plain text, and em dash rates shift with the prompt. Graphite's second dash count puts Claude Opus 5 at 3.5×.
 
-Shibbo measures each model against people writing on the same topics. The data comes from Graphite's [AI Tells](https://graphite.io/research/ai-tells) study for 2025–26 models, and from shibbo's own runs on [RAID](https://github.com/liamdugan/raid) for 2022–23 instruct and chat models. Measurements of open-weight models are under way in [`measure/`](measure/HANDOFF.md).
+Shibbo measures each model against people writing on the same topics. The data comes from Graphite's [AI Tells](https://graphite.io/research/ai-tells) study for 2025–26 models, and from shibbo's own runs on [RAID](https://github.com/liamdugan/raid) for 2022–23 instruct and chat models. Measurements of open-weight models are under way in [`measure/`](measure/).
 
 To test the checker, shibbo scores a person's article and a model's article on the same topic, across topics it never trained on, and counts how often the model's scores worse. The curated rules were written after reading all of Graphite's data, so the results run somewhat high. [The data docs](docs/concepts/data.md) have the latest results and their limits.
 
