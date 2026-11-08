@@ -11,7 +11,7 @@
   severity: 1
   what: Far more comments than the rest of the file or repo carries, most of them saying what the next line does.
   detect: {method: judge, judge: "Does this code carry clearly more comments than the surrounding human-written code in the same repo?"}
-  era: {first_seen: 2023, peak: 2025}
+  era: {first_seen: 2025, peak: 2025}
   models: [claude]
   status: steady
   fix: Match the file's comment density and keep only the comments that explain why.
@@ -38,7 +38,6 @@
   what: Comments written for the reviewer of this change, such as "// Updated to use the new API" or "# FIXED:", which go stale once merged.
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//|/?\*)\s*(?:(?:NEW|CHANGED|UPDATED|FIXED|MODIFIED|ADDED)\s*:|(?:updated|changed|modified|fixed|refactored) to (?:use|handle|support|fix|avoid)\b|now (?:uses|handles|supports|returns)\b|added (?:for|to support|to handle|per) (?:the |issue|user|your)\b)'}
   era: {first_seen: 2024, peak: 2026}
-  models: [claude]
   status: rising
   fix: Put the history in the commit message and keep comments about the code as it is.
   specimen:
@@ -64,7 +63,6 @@
   what: '"// removed X" markers, unused variables renamed with a leading underscore, and re-exports kept so nothing breaks.'
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:#|//)\s*(?:removed|deleted|no longer (?:used|needed)|kept for (?:backward|backwards) compat(?:ibility)?|legacy alias)\b'}
   era: {first_seen: 2024, peak: 2026}
-  models: [claude]
   status: steady
   fix: Delete dead code outright. Git keeps the history.
   specimen:
@@ -246,7 +244,7 @@
       - "    prices = [{\"symbol\": \"AAPL\", \"price\": 189.5}]"
     hit: [2, 3, 4]
   confidence: medium
-  sources: [goedecke-2025-fallbacks, claude-prompting-best-practices]
+  sources: [goedecke-2025-fallbacks]
 
 # ═════════════ code · output ═════════════
 
@@ -271,7 +269,7 @@
       - "  return rows;"
       - "}"
     hit: [1, 3]
-  confidence: medium
+  confidence: low
   sources: [dabit3-deslop]
 
 - id: non-ascii-glyphs
@@ -283,7 +281,6 @@
   what: Unicode arrows, bullets and box-drawing characters in comments, logs and CLI output of an ASCII codebase.
   detect: {method: regex, flags: "g", pattern: '[→←⇒✓✔✗✘•─│└├┌┐┘]', density: {count: 5, per: 300}}
   era: {first_seen: 2024, peak: 2026}
-  models: [gpt]
   status: rising
   fix: Use plain ASCII ("->", "-", "OK") unless the file already uses Unicode.
   specimen:
@@ -391,7 +388,7 @@
       - "    return 3.14159 * r * r"
     hit: [0, 1, 2]
   confidence: low
-  sources: [desloppify, deslop-js]
+  sources: [desloppify, deslop-js, cc-issue-6120]
 
 - id: copy-paste-growth
   name: Copied blocks in place of reuse
@@ -415,7 +412,7 @@
       - "    w.writerow(rows[0].keys()); w.writerows(r.values() for r in rows)"
     hit: [3, 4, 5]
   confidence: medium
-  sources: [gitclear-2025]
+  sources: [gitclear-2025, gitclear-report-2025]
 
 - id: verbosity-bloat
   name: Two or three times the code a person would write
@@ -451,7 +448,6 @@
   what: New files open with a copyright or license header in a repo whose files don't carry one.
   detect: {method: judge, judge: "Does a new file carry a license or copyright header that other files in the repo lack?"}
   era: {first_seen: 2024, peak: unknown}
-  models: [gpt]
   status: steady
   fix: Follow the repo. Add headers only where they already exist.
   specimen:
@@ -475,7 +471,7 @@
   group: deps
   kind: lexical
   severity: 2
-  what: Fresh code calls models from the model's training years, like gpt-3.5-turbo or claude-3 snapshots, long after they were retired.
+  what: 'Fresh code calls models from the model''s training years, like gpt-3.5-turbo, long after they were retired.'
   detect: {method: regex, flags: "g", pattern: '[''"](?:gpt-3\.5-turbo(?:-\d+)?|gpt-4(?:-0613|-0314|-1106-preview|-0125-preview)?|text-davinci-00[23]|claude-(?:2(?:\.[01])?|instant-1(?:\.2)?|3-(?:opus|sonnet|haiku)-\d{8}))[''"]'}
   era: {first_seen: 2024, peak: 2026}
   status: steady
@@ -489,7 +485,7 @@
       - ")"
     hit: [1]
   false_positives: Code pinned to an old model on purpose, and eval harnesses.
-  confidence: medium
+  confidence: low
   sources: [replit-forum-stale-models]
 
 - id: deprecated-apis
@@ -540,7 +536,7 @@
   group: deps
   kind: lexical
   severity: 2
-  what: API keys and passwords written into source, either real or as "your-api-key-here" placeholders.
+  what: API keys and passwords written straight into source.
   detect: {method: regex, flags: "gi", pattern: '\b(?:api[_-]?key|secret(?:[_-]?key)?|token|password)\s*[:=]\s*[''"](?:your[_-][\w-]+|YOUR_[A-Z_]+|sk-[x.]{3,}|x{4,}|changeme|<[^>\n]{1,40}>)[''"]'}
   era: {first_seen: 2023, peak: 2025}
   status: steady
@@ -578,7 +574,7 @@
       - "+    assert apply_discount(100, \"VIP\") is not None"
     hit: [1, 2]
   confidence: high
-  sources: [impossiblebench-2025, evilgenie-2025, beck-2025-augmented, buildthisnow-tdd, cc-issue-42585]
+  sources: [impossiblebench-2025, evilgenie-2025, beck-2025-augmented, buildthisnow-tdd]
 
 - id: skipped-tests
   name: Failing tests marked skip
@@ -689,7 +685,7 @@
       - "    mocker.patch(\"shop.get_price\", return_value=42)"
       - "    assert shop.get_price(\"sku-1\") == 42"
     hit: [1, 2]
-  confidence: medium
+  confidence: low
   sources: [bromley-2026-ai-tests]
 
 - id: mock-only-tests
@@ -698,7 +694,7 @@
   group: tests
   kind: structural
   severity: 2
-  what: Every dependency is mocked and the only assertions are that the mocks got called.
+  what: 'Tests mock every dependency and assert only that the mocks got called. Coding agents add mocks in 36% of their commits, against 26% for other authors.'
   detect: {method: judge, judge: "Are all assertions about mock calls, with none about returned values or state?"}
   era: {first_seen: 2024, peak: 2026}
   status: steady
@@ -713,7 +709,7 @@
       - "    mock_logger.info.assert_called()"
     hit: [2, 3, 4]
   confidence: medium
-  sources: [bromley-2026-ai-tests]
+  sources: [hora-robbes-2026]
 
 - id: weak-assertions
   name: Assertions that accept almost anything
@@ -760,7 +756,7 @@
       - "    else:"
       - "        assert result.unit == \"kg\""
     hit: [2, 3, 4]
-  confidence: medium
+  confidence: low
   sources: [bromley-2026-ai-tests]
 
 # ═════════════ code · docs ═════════════
@@ -796,7 +792,7 @@
   group: docs
   kind: visual
   severity: 1
-  what: A small project gets badges, emoji section headers, and stock Features, Installation, Contributing and License sections.
+  what: A small project gets badges, emoji section headers, and stock Features, Installation, Contributing and License sections. Nobody has measured how often models do this.
   detect: {method: judge, judge: "Does the README follow a stock template whose sections say nothing specific to this project?"}
   era: {first_seen: 2023, peak: 2025}
   status: steady
@@ -812,7 +808,7 @@
     hit: [0, 1, 2, 3]
   false_positives: Large projects that maintain these sections with real content.
   confidence: low
-  sources: [readme-ai, readme-polish]
+  sources: [readme-polish]
 
 - id: agent-config-files
   name: Agent instruction files in the repo
@@ -913,7 +909,7 @@
   group: git
   kind: structural
   severity: 1
-  what: Multi-paragraph, bulleted commit messages for small changes.
+  what: Multi-paragraph, bulleted commit messages. Multi-line commits are the main trait that tells Codex apart from other agents.
   detect: {method: judge, judge: "Is the commit message much longer than the change needs?"}
   era: {first_seen: 2025, peak: 2026}
   models: [gpt]
@@ -937,7 +933,7 @@
   group: git
   kind: structural
   severity: 1
-  what: Long, bullet-heavy PR descriptions that list every file touched.
+  what: Long, bullet-heavy PR descriptions, a trait that helps tell Copilot and Cursor apart from other agents.
   detect: {method: judge, judge: "Does the PR body list changes file by file instead of explaining the change?"}
   era: {first_seen: 2025, peak: 2026}
   status: steady
@@ -963,7 +959,7 @@
   severity: 3
   what: The agent reports success it never checked, and the log shows no test run or a failing one.
   detect: {method: regex, flags: "gi", pattern: '\ball (?:\d+ )?(?:tests|checks) (?:are )?(?:now )?(?:pass(?:ing)?|green)\b|\beverything (?:is )?(?:now )?working\b|\bfully (?:functional|working|tested)\b', judge: "Does the transcript show a run that backs this claim?"}
-  era: {first_seen: 2024, peak: 2026}
+  era: {first_seen: 2025, peak: 2026}
   models: [claude]
   status: steady
   fix: Quote the command and its output, or say it was not run.
@@ -980,7 +976,7 @@
   group: claims
   kind: lexical
   severity: 2
-  what: The agent labels its own work production-ready, enterprise-grade or bulletproof.
+  what: The agent calls its own work production-ready.
   detect: {method: regex, flags: "gi", pattern: '\b(?:production[- ]ready|production[- ]grade|enterprise[- ](?:grade|ready)|battle[- ]tested|bulletproof|rock[- ]solid)\b'}
   era: {first_seen: 2024, peak: 2026}
   models: [claude]
@@ -991,7 +987,7 @@
       - {role: user, text: "Is the socket layer done?"}
       - {role: assistant, text: "The SocketLib is now production-ready and fully deployed!"}
       - {role: user, text: "Every method is a TODO stub."}
-  confidence: medium
+  confidence: low
   sources: [cc-issue-88438]
 
 - id: partial-as-complete
@@ -1040,7 +1036,7 @@
   severity: 2
   what: The agent describes a file or function before reading it, and the description is wrong.
   detect: {method: judge, judge: "Did the agent read the file before describing it?"}
-  era: {first_seen: 2024, peak: 2025}
+  era: {first_seen: 2025, peak: 2025}
   status: fading
   fix: Read the file first, then answer.
   specimen:
@@ -1097,7 +1093,7 @@
   severity: 1
   what: An excited diagnosis line that often comes before a wrong fix.
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:(?:i|i''ve) (?:found|see|got|spotted) the (?:issue|problem|bug)|found (?:it|the (?:issue|problem|bug)))!'}
-  era: {first_seen: 2024, peak: 2025}
+  era: {first_seen: 2025, peak: 2025}
   models: [claude]
   status: steady
   fix: State the cause and the evidence, then fix it.
@@ -1106,7 +1102,7 @@
       - {role: user, text: "The login still fails."}
       - {role: assistant, text: "I found the issue! The token is being cached. Let me fix that."}
   confidence: low
-  sources: [devto-perfect]
+  sources: [devto-perfect, cc-issue-60177]
 
 # ═════════════ agent · scope ═════════════
 
@@ -1157,7 +1153,6 @@
   what: The agent reverts changes in the working tree that it didn't make, to get back to a state it understands.
   detect: {method: judge, judge: "Did the agent revert changes it did not make?"}
   era: {first_seen: 2025, peak: 2026}
-  models: [gpt]
   status: steady
   fix: Work around changes you didn't make, and ask if they block you.
   specimen:
@@ -1175,7 +1170,7 @@
   group: files
   kind: behavioral
   severity: 2
-  what: The agent writes a parallel file such as utils_v2.py or enhanced_parser.ts and leaves the old one in place.
+  what: The agent writes a new file, such as utils_v2.py, or rebuilds one from scratch, when it should edit the file it has.
   detect: {method: regex, flags: "gim", pattern: '\b(?:enhanced|improved|fixed|simplified|better|updated)_[\w-]+\.(?:py|js|jsx|ts|tsx|go|rs|rb|java|cs|php)\b|\b[\w-]+_(?:v\d+|new|fixed|final|updated|improved|enhanced|backup|copy)\.(?:py|js|jsx|ts|tsx|go|rs|rb|java|cs|php)\b'}
   era: {first_seen: 2024, peak: 2026}
   models: [claude]
@@ -1216,7 +1211,7 @@
   group: tone
   kind: lexical
   severity: 1
-  what: Each step opens with a one-word cheer, even when the step only half worked.
+  what: 'Each step opens with a one-word cheer such as "Perfect!".'
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:perfect|excellent|great|awesome|fantastic|done)!\s'}
   era: {first_seen: 2025, peak: 2025}
   models: [claude]
@@ -1237,8 +1232,7 @@
   severity: 1
   what: '"Let me check...", "Now let me...", "Now I''ll..." before each tool call.'
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:now )?(?:let me|i(?:''|’)ll now|now i(?:''|’)ll)\s+(?:check|look|read|run|examine|update|create|fix|verify|search|start|try)\b', density: {count: 3, per: 300}}
-  era: {first_seen: 2024, peak: 2025}
-  models: [claude]
+  era: {first_seen: 2025, peak: 2025}
   status: steady
   fix: Act, then report the result.
   specimen:
@@ -1256,7 +1250,7 @@
   severity: 1
   what: A closing "Summary of changes" block that repeats what the reply already said.
   detect: {method: regex, flags: "gim", pattern: '^\s*(?:#{1,3}\s*)?(?:\*\*)?(?:summary of (?:changes|fixes|work)|what (?:i|was) (?:changed|did|done)|changes made)(?:\*\*)?:?\s*$'}
-  era: {first_seen: 2024, peak: 2025}
+  era: {first_seen: 2025, peak: 2025}
   models: [claude, gpt]
   status: steady
   fix: End when the information ends.
@@ -1291,10 +1285,10 @@
   group: tone
   kind: lexical
   severity: 1
-  what: A ritual apology before each retry, with no change in approach.
+  what: 'A stock apology such as "I apologize for the confusion" before the next try.'
   detect: {method: regex, flags: "gi", pattern: '\bi apologi[sz]e for (?:the|any|my) (?:confusion|oversight|error|mistake)\b|\bsorry for the (?:confusion|oversight)\b'}
-  era: {first_seen: 2023, peak: 2024}
-  status: fading
+  era: {first_seen: 2025, peak: unknown}
+  status: steady
   fix: Say what was wrong and what you'll do now.
   specimen:
     chat:
@@ -1331,7 +1325,7 @@
   what: The agent reverses a right answer as soon as the user doubts it, often with "You're right to push back."
   detect: {method: regex, flags: "gi", pattern: '\byou(?:''|’)?re right to (?:push back|question|be skeptical)\b', judge: "Did the agent change its answer without new evidence?"}
   era: {first_seen: 2023, peak: 2025}
-  models: [claude, gpt, gemini]
+  models: [claude, gpt]
   status: steady
   fix: Change your answer only for new evidence, and say what it was.
   specimen:
@@ -1361,7 +1355,7 @@
       - {role: user, text: "CLAUDE.md says never say 'You're absolutely right'. Why is the build red?"}
       - {role: assistant, text: "You're absolutely right! The build is red because of a lint error."}
   confidence: high
-  sources: [cc-issue-6120, cc-issue-3382, register-2025-absolutely-right]
+  sources: [cc-issue-6120, cc-issue-3382]
 
 - id: fix-loops
   name: The same failed fix, again
@@ -1369,7 +1363,7 @@
   group: process
   kind: behavioral
   severity: 2
-  what: The agent cycles through near-identical edits to one error without new information.
+  what: 'The agent repeats the same actions on one error without new information. SWE-smith found such loops in over 25% of SWE-agent-LM-32B runs, against under 4% for Claude 3.7 Sonnet.'
   detect: {method: judge, judge: "Did the agent try the same kind of fix three or more times?"}
   era: {first_seen: 2024, peak: 2025}
   status: steady
@@ -1379,7 +1373,7 @@
       - {role: assistant, text: "Updated the import path. Running tests... still failing. Updating the import path again."}
       - {role: user, text: "That's the fourth time."}
   confidence: medium
-  sources: [beck-2025-augmented]
+  sources: [beck-2025-augmented, swe-smith-2025]
 
 - id: padded-plans
   name: Long todo lists for a small task
@@ -1387,10 +1381,9 @@
   group: process
   kind: structural
   severity: 1
-  what: A one-step change gets a plan of six or more steps, some of them filler like "review the code."
+  what: 'A one-step change gets a long plan, some of it filler like "review the code."'
   detect: {method: judge, judge: "Does the plan have steps that are filler or obvious?"}
   era: {first_seen: 2025, peak: 2026}
-  models: [gpt]
   status: steady
   fix: Skip the plan for simple work.
   specimen:
@@ -1428,7 +1421,6 @@
   what: The agent commits, amends or makes branches on its own.
   detect: {method: judge, judge: "Did the agent commit or branch without being asked?"}
   era: {first_seen: 2025, peak: 2026}
-  models: [gpt]
   status: steady
   fix: Leave changes in the working tree until told to commit.
   specimen:
@@ -1464,7 +1456,7 @@
   group: safety
   kind: lexical
   severity: 2
-  what: When a pre-commit hook fails, the agent skips it instead of fixing what it flagged.
+  what: The agent commits with --no-verify and skips the hooks, even against a project rule.
   detect: {method: regex, flags: "gi", pattern: '\bgit\s+commit\b[^\n]*\s(?:--no-verify|-n)(?=[\s.,;"'']|$)'}
   era: {first_seen: 2025, peak: 2026}
   models: [claude]
@@ -1474,7 +1466,7 @@
     chat:
       - {role: assistant, text: "The lint hook is failing on unrelated files, so I committed with git commit -m \"wip\" --no-verify."}
   confidence: medium
-  sources: [pydevtools-no-verify, cc-system-prompts]
+  sources: [cc-issue-100989, cc-system-prompts]
 
 - id: ignores-stop-order
   name: Acting through a freeze or a "wait"
