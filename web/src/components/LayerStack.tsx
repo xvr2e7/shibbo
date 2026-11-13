@@ -423,6 +423,7 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
               </button>
             </li>
           ))}
+          <li className="makers-more"><Link to="/models">All models</Link></li>
         </ul>
         <Install />
       </div>
@@ -461,7 +462,11 @@ function Install() {
       <h2>Install</h2>
       <div className="cmd">
         <code>{INIT}</code>
-        <button type="button" onClick={copy} aria-label="Copy the command">{copied ? "Copied" : "Copy"}</button>
+        <button type="button" onClick={copy} data-done={copied || undefined} aria-label={copied ? "Copied" : "Copy the command"} title={copied ? "Copied" : "Copy"}>
+          <svg className="i-copy" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 5.5v-1A1.5 1.5 0 0 0 9 3H4.5A1.5 1.5 0 0 0 3 4.5V9a1.5 1.5 0 0 0 1.5 1.5h1" /></svg>
+          <svg className="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" /></svg>
+        </button>
+        <span className="sr" role="status">{copied ? "Copied" : ""}</span>
       </div>
       <Link to="/docs/guide/quick-start">Set up your agent</Link>
     </div>

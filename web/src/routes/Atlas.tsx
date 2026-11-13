@@ -150,9 +150,9 @@ export function AtlasPage() {
 
   const insets = wide ? { left: 380, right: 360, top: 16, bottom: 330 } : { left: 4, right: 4, top: 4, bottom: 4 };
 
-  const title = <h1 id="atlas-h">What gives a model away</h1>;
+  const title = <h1 id="atlas-h">What gives a model away?</h1>;
   const tabs = <LayerSwitch layer={layer} setLayer={setLayer} onStack={toStack} />;
-  const flatHeader = <><h1 id="atlas-h">What gives a model away</h1>{tabs}</>;
+  const flatHeader = <><h1 id="atlas-h">What gives a model away?</h1>{tabs}</>;
   const timeline = <Timeline month={month} t={t} quiet={PACE[layer].quiet} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />;
   let atlas: ReactNode;
   if (view === "stack") {
