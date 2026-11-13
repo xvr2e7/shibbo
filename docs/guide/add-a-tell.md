@@ -1,6 +1,6 @@
 # Add or change a tell
 
-Tells live in `data/tells.yaml`, one entry each. The [registry schema](/reference/registry) lists every field.
+Tells live in `data/tells.yaml` and the files in `data/tells.d/`, one entry each, in any of four layers: prose, interface, code or conduct. The [registry schema](/reference/registry) lists every field.
 
 ## Before you add one
 
@@ -8,10 +8,10 @@ A tell needs evidence that models use the pattern at a different rate from peopl
 
 ## Steps
 
-1. Add the entry with an `id`, a pattern under `detect`, a `fix`, and an example pair.
+1. Add the entry with an `id`, a pattern under `detect`, a `fix`, and an example pair. An interface, code or conduct tell also takes a `specimen` that shows it; `npm run validate` warns without one. If no pattern can find the tell, use `method: judge` and write the question a reader should ask.
 2. Link it to measured terms with `measure.graphite` if Graphite's tables contain them, then run `npm run import:graphite`.
-3. Check it against human writing. `npm run eval -- <articles.jsonl.gz>` prints how often each rule fires on human and on model articles in the train half. A rule that fires on people nearly as often as on models needs a narrower pattern, or `severity: 0` so it reports without scoring.
-4. Run `npm test`.
+3. For a prose tell, check it against human writing. `npm run eval -- <articles.jsonl.gz>` prints how often each rule fires on human and on model articles in the train half. A rule that fires on people nearly as often as on models needs a narrower pattern, or `severity: 0` so it reports without scoring.
+4. Run `npm test` and `npm run validate`.
 
 ## Changing a rule
 

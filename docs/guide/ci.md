@@ -3,8 +3,8 @@
 ## GitHub Actions
 
 ```yaml
-# .github/workflows/prose.yml
-name: prose
+# .github/workflows/shibbo.yml
+name: shibbo
 on: [pull_request]
 jobs:
   shibbo:
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npx shibbo check README.md docs --threshold 80 --format github
+      - run: npx shibbo check README.md docs src/pages --threshold 80 --format github
 ```
 
 `--format github` prints annotations, so hits appear on the changed lines of the pull request. `--threshold 80` fails the job when any file scores under 80.
@@ -29,7 +29,7 @@ repos:
         name: shibbo
         entry: npx shibbo check --threshold 80 --quiet
         language: system
-        files: \.(md|mdx|html)$
+        files: \.(md|mdx|html|css)$
 ```
 
 ## Vale
@@ -44,4 +44,4 @@ Then add `BasedOnStyles = Shibbo` to `.vale.ini`. Vale gets the pattern rules on
 
 ## What to check
 
-Check the prose people read: README, docs, changelogs, landing pages. Code files only get the code rules (emoji in logs, blanket `except`), which are low-confidence; leave them out of a failing gate.
+Gate what people read: README, docs, changelogs, and the pages and stylesheets of your site. Source files get the code rules alone (emoji in logs, a blanket `except`). No human baseline backs a code score, so report those files and leave them out of a failing gate.

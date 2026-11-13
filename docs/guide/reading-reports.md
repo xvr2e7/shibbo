@@ -1,5 +1,7 @@
 # Read a report
 
+The example below is a Markdown file. A page, stylesheet or source file gets the same report with interface or code tells in it.
+
 ```text
 docs/intro.md: 58/100 [moderate] (134 words, 1 hits in shibbo-ignore blocks)
   13:6     high contrastive-negation     "isn't a library, it's"
@@ -33,7 +35,7 @@ Each line shows the line and column, the weight (`high`, `med`, `low`), the tell
 
 ## Notes and judge questions
 
-`--all` also prints hits that stayed under their density limit (one “crucial” in a long page counts for nothing; four do) and a few questions for a human or an agent to answer by reading, such as “are three-item lists used where one or two items would carry the point?”. Patterns can't settle those.
+`--all` also prints hits that stayed under their density limit (one “crucial” in a long page counts for nothing; four do) and the questions a person or an agent must answer by reading. Patterns can't settle those. For prose, the list always holds the three questions from [Say it clearly](/concepts/clarity): is the one who acts the subject, would a person use these words, and does the first sentence give the point? A file can score 100 and still fail them.
 
 ## Fixing well
 

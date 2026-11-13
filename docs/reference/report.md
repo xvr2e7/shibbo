@@ -36,4 +36,4 @@
 | `findings[].origin` | `registry` for curated rules, `lexicon` for measured phrases |
 | `findings[].counted` | `false` when a density rule stayed under its rate |
 | `findings[].model`, `ratio` | For measured phrases: the model that over-uses it, and by how much |
-| `judge` | Questions for a reader, from tells patterns can't settle |
+| `judge` | Questions to answer by reading, from tells no pattern can settle. For prose, the three from [Say it clearly](/concepts/clarity) are always among them |

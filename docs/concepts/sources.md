@@ -6,6 +6,7 @@
 
 - Graphite, [“AI Tells”](https://graphite.io/research/ai-tells) (2026), CC BY 4.0. Per-model rates for 2025–26 models, the atlas, and the checker’s phrase list.
 - [RAID](https://github.com/liamdugan/raid) (Dugan et al., ACL 2024), MIT. Measured by shibbo for 2022–23 chat models against matched human texts.
+- shibbo's own runs through each maker's API (Claude Fable 5.2, Claude Haiku 5.5, Claude Sonnet 5.5, DeepSeek-V4.1-Flash, Gemini 4 Argon, GPT-6.1 Sol, GPT-6.1 Terra, MiMo-V2.6 Pro, MiniMax-M3.1 Flash, Nemotron 3.5 Super), on held-out Graphite topics against their human articles. [measure/](https://github.com/xvr2e7/shibbo/tree/main/measure).
 - Model and lab icons: [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT). The marks belong to their owners.
 
 ## Registry sources
@@ -22,6 +23,7 @@
 - [funboy322/avoid-ai-design](https://github.com/funboy322/avoid-ai-design) (curated)
 - [AI Design Slop: 16 patterns (a recap of Krebs's 1,590 Show HN pages)](https://www.developersdigest.tech/blog/ai-design-slop-and-how-to-spot-it) (essay)
 - [LeoStehlik/no-slop-ui](https://github.com/LeoStehlik/no-slop-ui) (curated)
+- [Zonder Labs, Slop: unclear text in AI articles and Claude Code output, marked against Williams's principles](https://zonderlabs.com/slop) (essay)
 - [Anthropic, Prompting best practices (overengineering, hard-coding tests, temporary files, hallucinations)](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) (primary)
 - [Piebald-AI/claude-code-system-prompts (extracted Claude Code prompts: comments, emoji, docs files, PR template, concise style)](https://github.com/Piebald-AI/claude-code-system-prompts) (primary)
 - [Claude Code settings reference: attribution (Co-Authored-By trailer, PR footer)](https://code.claude.com/docs/en/settings-reference) (primary)
@@ -135,7 +137,7 @@
 - [JCarterJohnson/vibecoded-design-tells: comment_tell_counts.csv (3,033 Reddit comments from 125 threads)](https://raw.githubusercontent.com/JCarterJohnson/vibecoded-design-tells/main/unslop-ai-ui/comment_tell_counts.csv) (measured)
 <!-- /shibbo-ignore -->
 
-## Timeline sources (271)
+## Timeline sources (273)
 
 <!-- shibbo-ignore -->
 - [01-ai/Yi (GitHub README, news section)](https://github.com/01-ai/Yi)
@@ -170,6 +172,7 @@
 - [Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
 - [Claude Opus 4.1](https://www.anthropic.com/news/claude-opus-4-1)
 - [Claude Platform release notes](https://platform.claude.com/docs/en/release-notes/overview)
+- [Claude Platform release notes, November 9, 2026](https://platform.claude.com/docs/en/release-notes/api)
 - [Cleverbot.com - a clever bot - speak to an AI with some Actual Intelligence?](https://web.archive.org/web/20081013201956/http://www.cleverbot.com/)
 - [Codestral](https://mistral.ai/news/codestral)
 - [Command R: Retrieval-Augmented Generation at Production Scale](https://cohere.com/blog/command-r)
@@ -342,6 +345,7 @@
 - [MoonshotAI/Kimi-K2 (GitHub)](https://github.com/MoonshotAI/Kimi-K2)
 - [MPT-30B: Raising the bar for open-source foundation models](https://www.databricks.com/blog/mpt-30b)
 - [Muse Spark Is Now an Open-Weights Model](https://pytorch.org/blog/muse-spark-open/)
+- [Muse Wonder: A Frontier Model For Personal & Professional AI Agents](https://research.meta.ai/blog/muse-wonder)
 - [Nemotron 3 Nano - A new Standard for Efficient, Open, and Intelligent Agentic Models](https://huggingface.co/blog/nvidia/nemotron-3-nano-efficient-open-intelligent-models)
 - [New models and developer products announced at DevDay](https://openai.com/index/new-models-and-developer-products-announced-at-devday/)
 - [NVIDIA Nemotron 3 Super](https://research.nvidia.com/labs/nemotron/Nemotron-3-Super/)

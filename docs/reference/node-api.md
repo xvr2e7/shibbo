@@ -5,20 +5,20 @@ npm install shibbo
 ```
 
 ```ts
-import { check, rulesMarkdown, tells, resolveModel } from "shibbo";
+import { check, rulesMarkdown, interfaceMarkdown, tells, resolveModel } from "shibbo";
 
-const report = check(markdownText, "post.md", { model: "claude-opus-5-5" });
+const report = check(pageSource, "landing.html", { model: "gemini-4-argon" });
 console.log(report.score, report.band);
 for (const f of report.findings.filter((f) => f.counted)) {
   console.log(`${f.line}:${f.col} ${f.id} "${f.match}" → ${f.fix ?? f.name}`);
 }
 
-const block = rulesMarkdown({ model: "gpt-6", limit: 10 });
+const block = rulesMarkdown({ model: "gpt-6.1-sol", limit: 10 });
 ```
 
 ## check(text, file?, options?)
 
-`file` sets the file kind from its extension (`"-"` means plain text). Options:
+`file` sets the file kind from its extension (`"-"` means plain text), which decides the tells that run: prose, interface or code. Options:
 
 | Option | Type | Does |
 |---|---|---|
@@ -33,7 +33,8 @@ Returns a [report](/reference/report).
 
 ## Other exports
 
-- `rulesMarkdown({ model, domains, limit, phrases })` returns the rule block as Markdown.
+- `rulesMarkdown({ model, domains, limit, phrases, agentLimit, clarity })` returns the rule block as Markdown. It opens with the [Say it clearly](/concepts/clarity) section unless `clarity` is `false`, and lists `agentLimit` agent habits (default 6).
+- `interfaceMarkdown({ limit })` returns the rules for interface work: what to settle before building, then the commonest interface tells.
 - `rank(options)` returns the ranked tells behind that block.
 - `tells()`, `models()`, `sources()`, `graphite()` return the registry and measurements.
 - `resolveModel(id)` maps any model id to a measured model, or `null`.

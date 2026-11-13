@@ -1,6 +1,6 @@
 # Harnesses
 
-`shibbo init <harness>` writes the rules, the MCP server entry and any hooks the harness supports into your project. Run it from the repo root; it merges into existing files and never overwrites one it can't parse.
+`shibbo init <harness>` writes the rules, the MCP server entry and any hooks the harness supports into your project. The rules open with a [Say it clearly](/concepts/clarity) section, then list the writing tells and agent habits to avoid. Run it from the repo root. It merges into existing files, keeps the hooks you already have, and never overwrites a file it can't parse.
 
 ```bash
 npx shibbo init cursor --model claude-opus-5-5   # rules tuned for the model you use in Cursor

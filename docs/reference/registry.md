@@ -1,13 +1,13 @@
 # Registry schema
 
-`data/tells.yaml` holds the core entries, one per tell: a pattern that models use at a very different rate from people. Each research area adds its own file in `data/tells.d/` (interfaces, code and agents, prose and chat), with new sources in `data/sources.d/`. The loader merges them, and `npm run validate` checks the lot.
+`data/tells.yaml` holds the first entries, one per tell: a habit that models show at a very different rate from people. Each research area adds its own file in `data/tells.d/` (interfaces, code and agents, prose and chat, and `clarity.yaml`), with new sources in `data/sources.d/`. The loader merges them, and `npm run validate` checks the lot.
 
 ```yaml
 - id: corrective-rather-than        # kebab-case, never renamed
   name: '"rather than treating", "not simply whether"'
   label: '"rather than treating"'   # optional short name for charts
   domain: prose                     # prose | chat | code | ui | agent
-  group: phrasing                   # shelf within the domain: typography, color, tests, openers...
+  group: phrasing                   # shelf within the domain: typography, color, tests, clarity...
   kind: structural                  # lexical | structural | visual | behavioral
   severity: 2                       # 0 advisory (never scored), 1 low, 2 medium, 3 high
   what: Defines a view by the wrong view it replaces.
@@ -49,6 +49,8 @@ Use `substitutes` to record where a pattern goes once people ban it. Purple grad
 Set `status` from data where data exists. A tell moves to `fading` once it drops in every family that used it, and to `retired` once current models stop producing it above the human rate.
 
 Use `confidence` to separate measured tells from ones people complain about but nobody has counted. Folk tells belong in the file too, marked `low` until measured.
+
+Use `method: judge` for a fault no pattern can find. The checker then lists the entry's question in its report and never scores it. The five `clarity` entries work this way.
 
 Set `severity: 0` for advice that the test showed to be unreliable. The flat sentence-length check is one: on Graphite's articles it fired on people about as often as on models, so it reports but never scores.
 

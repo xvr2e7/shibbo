@@ -8,15 +8,17 @@ npx shibbo init copilot
 
 ## What it writes
 
-- **Rules:** `AGENTS.md`. Copilot also reads `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` with an `applyTo` glob.
-- **MCP for VS Code:** `.vscode/mcp.json`. Note the `servers` key and `type`:
+The rules go into `AGENTS.md`. Copilot also reads `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` with an `applyTo` glob.
+
+The MCP server for VS Code goes into `.vscode/mcp.json`. Note the `servers` key and `type`:
 
 ```json
 { "servers": { "shibbo": { "type": "stdio", "command": "npx", "args": ["shibbo", "mcp"] } } }
 ```
 
-- **MCP for the CLI:** `.mcp.json` with the usual `mcpServers` key. The CLI doesn't read `.vscode/mcp.json`.
-- **Hook (experimental):** `.github/hooks/shibbo.json`, the one location the cloud agent reads:
+The CLI doesn't read that file, so its server entry goes into `.mcp.json` with the usual `mcpServers` key.
+
+An experimental hook goes into `.github/hooks/shibbo.json`, the one location the cloud agent reads:
 
 ```json
 { "version": 1, "hooks": { "postToolUse": [{ "type": "command", "bash": "npx shibbo hook post-edit --for copilot", "timeoutSec": 30 }] } }
