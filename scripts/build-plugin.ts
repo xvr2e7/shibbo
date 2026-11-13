@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import { existsSync, cpSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { root } from "../src/registry.js";
-import { rulesMarkdown } from "../src/rules.js";
+import { rulesMarkdown, interfaceMarkdown } from "../src/rules.js";
 
 const R = root();
 const P = join(R, "plugins", "shibbo");
@@ -29,6 +29,8 @@ await build({
 for (const f of ["tells.yaml", "sources.yaml", "models.yaml"]) cpSync(join(R, "data", f), join(P, "data", f));
 for (const d of ["tells.d", "sources.d"]) if (existsSync(join(R, "data", d))) cpSync(join(R, "data", d), join(P, "data", d), { recursive: true });
 cpSync(join(R, "data/measured/graphite.json"), join(P, "data/measured/graphite.json"));
+// shibbo's own API runs: the checker and rules tune to those models too (src/registry.ts merges them).
+if (existsSync(join(R, "data/measured/api.json"))) cpSync(join(R, "data/measured/api.json"), join(P, "data/measured/api.json"));
 cpSync(join(R, "data/raw/graphite/LICENSE"), join(P, "data/measured/GRAPHITE-LICENSE"));
 
 writeFileSync(join(P, ".claude-plugin", "plugin.json"), JSON.stringify({
@@ -53,7 +55,7 @@ writeFileSync(join(P, ".mcp.json"), JSON.stringify({
 
 const skill = `---
 name: shibbo
-description: Check and rewrite prose, docs, PR text, READMEs or UI copy for patterns that read as machine-made. Use when writing anything a person will read, when the user asks to remove "AI slop" or make text sound less generated, or when a shibbo hook reports hits.
+description: Write prose and build interfaces that don't read as machine-made. Use when writing anything a person will read (docs, PR text, READMEs, UI copy), when building or restyling a page, screen or component, when the user asks to remove "AI slop", or when a shibbo hook reports hits.
 ---
 
 # shibbo
@@ -74,6 +76,7 @@ Hits come in two kinds:
 Leave quotes, code, names and deliberate style alone. A clean score is a floor. Specific nouns, real numbers and a point of view matter more than avoiding a list.
 
 ${rulesMarkdown({ limit: 14, phrases: 0 }).replace("Check with `npx shibbo check <file>`.", "")}
+${interfaceMarkdown({ limit: 16 })}
 `;
 mkdirSync(join(P, "skills", "shibbo"), { recursive: true });
 writeFileSync(join(P, "skills", "shibbo", "SKILL.md"), skill);
