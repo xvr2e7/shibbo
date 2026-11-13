@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img width="820" alt="The shibbo web app: a stack of three sheets for prose, interface and code. A maker's models light up on every sheet; the prose sheet opens into a map of phrases, and the timeline replays releases from 2022 to 2026. The interface map shows the pages models built, and the code map shows their replies." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/demo.gif">
+  <img width="760" alt="The shibbo web app: a stack of three sheets for prose, interface and code. A maker's models light up on every sheet; the prose sheet opens into a map of phrases, and the timeline replays releases from 2022 to 2026. The interface map shows the pages models built, and the code map shows their replies." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/demo.gif">
 </p>
 
 People have learned to spot AI work: a stock phrase in an essay, say, or a purple gradient on a landing page. Once they spot one, they trust the rest less.
