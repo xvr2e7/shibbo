@@ -1,6 +1,6 @@
-import { tells as loadTells, graphite, resolveModel, models, type Tell, type LexEntry } from "./registry.js";
+import { tells as loadTells, graphite, matchModel, models, type Tell, type LexEntry } from "./registry.js";
 import { findTriads } from "./triads.js";
-import { kindOf, domainsFor, proseView, commentsFromCode, countWords, lineCol, paragraphs, tokens, type FileKind } from "./text.js";
+import { kindOf, domainsFor, proseView, countWords, lineCol, paragraphs, tokens, type FileKind } from "./text.js";
 
 export interface Finding {
   id: string;
@@ -18,6 +18,8 @@ export interface Finding {
   ratio?: number;
   /** False when the hit is reported for context but did not reach its density threshold. */
   counted: boolean;
+  /** True for interface and code rules, which read the whole file and are scored against all its words. */
+  raw?: boolean;
 }
 
 export interface Report {
@@ -226,11 +228,14 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
   const kind = opts.kind ?? kindOf(file);
   const domains = new Set(opts.domains ?? domainsFor(kind));
   const prose = proseView(text, kind);
-  const comments = kind === "code" || kind === "markup-code" ? commentsFromCode(text) : "";
-  const words = countWords(prose || comments);
+  // Prose rules are scored against the prose; interface and code rules read the whole file, so they are scored against all of it.
+  const proseWords = countWords(prose);
+  const fileWords = countWords(text);
+  const words = prose ? proseWords : fileWords;
   const disabled = new Set(opts.disable ?? []);
   const only = opts.only ? new Set(opts.only) : null;
-  const model = resolveModel(opts.model ?? null);
+  const matched = matchModel(opts.model ?? null);
+  const model = matched?.model ?? null;
 
   const findings: Finding[] = [];
   const judge: Report["judge"] = [];
@@ -239,14 +244,16 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
     if (disabled.has(t.id) || (only && !only.has(t.id))) continue;
     // chat-domain rules also apply to prose files; ui rules see the raw file; code rules see the raw file.
     if (!domains.has(t.domain)) continue;
-    const target = t.domain === "ui" || t.domain === "code" ? text : prose;
+    const raw = t.domain === "ui" || t.domain === "code";
+    const target = raw ? text : prose;
     if (!target.trim()) continue;
+    const base = raw ? fileWords : proseWords;
 
     let hits: Hit[] = [];
     if (t.detect.method === "regex" && t.detect.pattern) {
       hits = [...target.matchAll(regexFor(t))].map((m) => ({ offset: m.index!, match: m[0] }));
     } else if (t.detect.method === "stat" && t.detect.fn) {
-      hits = STAT[t.detect.fn]?.(target, words) ?? [];
+      hits = STAT[t.detect.fn]?.(target, base) ?? [];
     } else if (t.detect.method === "judge" && t.detect.judge) {
       judge.push({ id: t.id, question: t.detect.judge });
       continue;
@@ -257,12 +264,12 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
     // Density: only count hits once they exceed count-per-N-words (scaled, never below count).
     let counted = true;
     if (t.detect.density) {
-      const need = t.detect.density.count * Math.max(1, words / t.detect.density.per);
+      const need = t.detect.density.count * Math.max(1, base / t.detect.density.per);
       counted = hits.length >= need;
     }
     for (const h of hits) {
       const { line, col } = lineCol(text, h.offset);
-      findings.push({ id: t.id, name: t.name, severity: t.severity, origin: "registry", line, col, offset: h.offset, match: h.match.trim().slice(0, 160), fix: t.fix, counted });
+      findings.push({ id: t.id, name: t.name, severity: t.severity, origin: "registry", line, col, offset: h.offset, match: h.match.trim().slice(0, 160), fix: t.fix, counted, raw });
     }
   }
 
@@ -271,13 +278,15 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
     for (const h of lexiconHits(prose, model?.id ?? null, opts.lexiconData)) {
       if (covered.some(([a, b]) => h.offset < b && h.offset + h.match.length > a)) continue;
       const { line, col } = lineCol(text, h.offset);
-      const name = models().models.find((m) => m.id === h.lex.model)?.name ?? h.lex.model;
+      const lm = models().models.find((m) => m.id === h.lex.model);
+      const name = lm?.name ?? h.lex.model;
+      const where = lm?.source === "shibbo-api" ? `in shibbo's run of ${lm.articles ?? "a few hundred"} articles` : "in Graphite's articles";
       findings.push({
         id: `lexicon:${h.lex.entry.term}`,
         name: h.lex.entry.floor
-          ? `"${h.lex.entry.term}" (${name} used it ${h.lex.entry.count} times in Graphite's articles; human writers, never)`
+          ? `"${h.lex.entry.term}" (${name} used it ${h.lex.entry.count} times ${where}; human writers, never)`
           : `"${h.lex.entry.term}" (${name} uses it ${fmtRatio(h.lex.entry.ratio)} as often as human writers)`,
-        severity: lexWeight(h.lex.entry.ratio) * (model && h.lex.model === model.id ? OWN_MODEL_BOOST : 1),
+        severity: lexWeight(h.lex.entry.ratio) * (matched?.exact && h.lex.model === matched.model.id ? OWN_MODEL_BOOST : 1),
         origin: "lexicon",
         line, col, offset: h.offset,
         match: h.match,
@@ -300,8 +309,10 @@ export function check(text: string, file = "-", opts: Options = {}): Report {
   findings.push(...kept);
 
   findings.sort((a, b) => a.offset - b.offset);
-  const penalty = findings.filter((f) => f.counted).reduce((a, f) => a + f.severity, 0);
-  const per1k = (penalty / Math.max(words, 150)) * 1000;
+  const counted = findings.filter((f) => f.counted);
+  const sum = (fs: Finding[]) => fs.reduce((a, f) => a + f.severity, 0);
+  const penalty = sum(counted);
+  const per1k = (sum(counted.filter((f) => !f.raw)) / Math.max(proseWords, 150) + sum(counted.filter((f) => f.raw)) / Math.max(fileWords, 150)) * 1000;
   const score = Math.round(100 * Math.pow(0.5, per1k / HALF_LIFE));
   return { file, kind, words, score, band: band(score), penalty, findings, judge, suppressed };
 }

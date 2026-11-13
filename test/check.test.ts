@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { check } from "../src/check.js";
 import { rank, rulesMarkdown } from "../src/rules.js";
-import { resolveModel, tells } from "../src/registry.js";
+import { resolveModel, matchModel, graphite, tells } from "../src/registry.js";
 import { proseFromHtml, proseFromMarkdown } from "../src/text.js";
 import { toRe2 } from "../src/export.js";
 
@@ -61,10 +61,32 @@ test("sloppy text scores far below plain text", () => {
 });
 
 test("model ids resolve, including unmeasured newer ids", () => {
-  assert.equal(resolveModel("claude-opus-5-5")?.id, "claude-opus-5");
+  assert.equal(resolveModel("claude-opus-5-5")?.id, "claude-opus-5.5");
+  assert.equal(resolveModel("claude-fable-5-1")?.id, "claude-opus-5.5");
   assert.equal(resolveModel("gpt-6")?.id, "gpt-6-astra");
   assert.equal(resolveModel("gemini-9-ultra")?.family, "gemini");
   assert.equal(resolveModel("llama-4"), null);
+});
+
+test("an unmeasured model borrows its family's rules but gets no own-model weight", () => {
+  assert.equal(matchModel("claude-opus-5-5")?.exact, true);
+  assert.equal(matchModel("claude-fable-5-1")?.exact, false);
+  const g = graphite()!;
+  const term = g.models["claude-opus-5.5"].lexicon[0].term;
+  const text = `We met on Monday. ${term}. Then we left.`;
+  const sev = (model: string) => check(text, "-", { model }).findings.find((f) => f.origin === "lexicon" && f.model === "claude-opus-5.5")?.severity ?? 0;
+  assert.ok(sev("claude-opus-5-5") > 0, term);
+  assert.equal(sev("claude-opus-5-5"), sev("claude-fable-5-1") * 8);
+});
+
+test("interface and code hits are scored against the whole file", () => {
+  const rule = ".card { border-left: 4px solid #6366f1; }\n";
+  const filler = Array.from({ length: 400 }, (_, i) => `.item-${i} { margin: 0; padding: 0; color: inherit; }`).join("\n");
+  const small = check(rule, "a.css"), large = check(rule + filler, "a.css");
+  assert.ok(small.findings.length > 0, "the stripe rule should hit");
+  assert.equal(large.findings.length, small.findings.length);
+  assert.ok(large.score > small.score, `${large.score} > ${small.score}`);
+  assert.ok(large.words > 1000);
 });
 
 test("rules are ranked per model", () => {

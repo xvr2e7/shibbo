@@ -64,7 +64,16 @@ export interface Model {
   name: string;
   released: string;
   verified: boolean;
+  /** Graphite's corpus name, for models Graphite measured. */
   graphite?: string;
+  /** "shibbo-api": measured by shibbo's own run through the maker's API (data/measured/api.json). Graphite otherwise. */
+  source?: "graphite" | "shibbo-api";
+  /** Model id as the maker's API names it. */
+  api?: string;
+  /** The run directory under measure/runs/. */
+  run?: string;
+  /** Articles measured, for shibbo's own runs. */
+  articles?: number;
 }
 
 export interface Models {
@@ -161,24 +170,63 @@ export const sources = () =>
     Object.assign({}, YAML.parse(readFileSync(join(root(), "data/sources.yaml"), "utf8")), ...extras("sources.d").map((f) => YAML.parse(readFileSync(join(root(), f), "utf8")) ?? {})),
   );
 export const models = () => load<Models>("data/models.yaml", (s) => YAML.parse(s));
+/** One model measured by shibbo's own API run (scripts/import_local.py -> data/measured/api.json). */
+export interface ApiRun {
+  id: string; name: string; family: string; lab: string; released: string; verified: boolean;
+  run: string; api: string; date: string; docs: number; human_docs: number; words: number; human_words: number;
+  style: Record<string, number>; human_style: Record<string, number>; tells_count: number;
+  top: Array<LexEntry & { human_count: number; human_articles: number }>; under: Array<LexEntry & { human_count: number; human_articles: number; model_count?: number }>;
+  lexicon: LexEntry[]; tells: Record<string, Measure & { terms: Array<{ term: string; ratio: number | null }> }>; log2ratio: Record<string, number>;
+}
+export function apiRuns(): { source: { title: string; url: string; license: string }; design: string; method: Record<string, unknown>; models: ApiRun[] } | null {
+  const p = join(root(), "data", "measured", "api.json");
+  if (!existsSync(p)) return null;
+  return load("data/measured/api.json", (s) => JSON.parse(s));
+}
+
+/**
+ * Graphite's measurements, plus the models shibbo measured through their APIs, so the checker and the rules can tune
+ * to them. Their phrase lists stay out of `top` (rules cite those as Graphite's); `lexicon` and `tells` carry them.
+ */
 export function graphite(): Graphite | null {
   const p = join(root(), "data", "measured", "graphite.json");
   if (!existsSync(p)) return null;
-  return load<Graphite>("data/measured/graphite.json", (s) => JSON.parse(s));
+  return load<Graphite>("graphite:merged", () => {
+    const g = JSON.parse(readFileSync(p, "utf8")) as Graphite;
+    const known = new Set(models().models.filter((m) => m.source === "shibbo-api").map((m) => m.id));
+    for (const m of apiRuns()?.models ?? []) {
+      if (!known.has(m.id) || g.models[m.id]) continue;
+      g.models[m.id] = { tells: m.tells_count, shared_with_previous: null, top: [], lexicon: m.lexicon, under: m.under };
+      for (const [tid, v] of Object.entries(m.tells)) (g.tells[tid] ??= {})[m.id] = v;
+    }
+    return g;
+  });
 }
 
 /** Resolve any model id a harness might report ("claude-opus-5-5", "gpt-6") to a measured model, or null. */
-export function resolveModel(id: string | undefined | null): Model | null {
+/** The measured model an id names. `exact` is false when only the family matched and the newest measured sibling stands in. */
+export function matchModel(id: string | undefined | null): { model: Model; exact: boolean } | null {
   if (!id) return null;
   const m = models();
   const norm = id.toLowerCase().replace(/\[.*\]$/, "").trim();
-  const direct = m.models.find((x) => x.id === norm || x.graphite === norm);
-  if (direct) return direct;
+  const direct = m.models.find((x) => x.id === norm || x.graphite === norm || x.api === norm);
+  if (direct) return { model: direct, exact: true };
   const alias = m.aliases[norm];
-  if (alias) return m.models.find((x) => x.id === alias) ?? null;
+  if (alias) {
+    const hit = m.models.find((x) => x.id === alias);
+    // An alias is exact when it spells the same model another way (dashes for dots, a provider prefix, a date);
+    // "gpt-6" for GPT-6 Astra or an unmeasured release mapped to a sibling is a stand-in.
+    const flat = (x: string) => x.replace(/^.*\//, "").replace(/\./g, "-");
+    return hit ? { model: hit, exact: flat(norm) === flat(hit.id) || flat(norm).startsWith(flat(hit.id) + "-") } : null;
+  }
   // Fall back to the newest measured model in the same family.
   const family = Object.keys(m.families).find((f) => norm.includes(f));
   if (!family) return null;
   const fam = m.models.filter((x) => x.family === family).sort((a, b) => a.released.localeCompare(b.released));
-  return fam.at(-1) ?? null;
+  const last = fam.at(-1);
+  return last ? { model: last, exact: false } : null;
+}
+
+export function resolveModel(id: string | undefined | null): Model | null {
+  return matchModel(id)?.model ?? null;
 }
