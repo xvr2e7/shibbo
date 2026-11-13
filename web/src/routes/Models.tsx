@@ -1,11 +1,27 @@
 import { Link, useParams } from "react-router-dom";
-import { data, ordered, modelById, familyColor, monthName, ym, fmtRatio, chronology } from "../data";
+import type { ReactNode } from "react";
+import { data, ordered, modelById, familyColor, monthName, ym, fmtRatio, chronology, isOwnRun, expected, type Model, type Milestone } from "../data";
 import { models as mapModels } from "../components/AtlasMap";
 import { BrandIcon, brandOf } from "../components/BrandIcon";
 import { Cite } from "../components/Cite";
+import uiMap from "../data/ui-map.json";
+import "../styles/models.css";
 
-type ArenaPlayer = { id: string; rating: number; low: number; high: number; battles: number; wins: number; median_per1k: number; clean_share: number };
-type Arena = { topics: number; method: string; players: ArenaPlayer[]; winrate: { order: string[]; matrix: Array<Array<number | null>> } };
+/** battles and wins count only the battles the rating used: those against people and Graphite's models. */
+type ArenaPlayer = {
+  id: string; source?: string; topics?: number; rating: number; low: number; high: number; battles: number; wins: number; median_per1k: number; clean_share: number; human_median_per1k?: number; win_vs_people?: number | null;
+  /** A Graphite model written again under shibbo's prompt: `model` is the Graphite model, `name` the row label. */
+  bridge?: boolean; model?: string; name?: string;
+  /** Rank under each scoring, and the best and worst of the three. */
+  ranks?: { total: number; registry: number; lexicon: number }; rank_range?: [number, number];
+};
+type Offset = { model: string; name: string; bridge_rating: number; graphite_rating: number; offset: number; low: number; high: number; shared_topics: number; win_rate: number; win_low: number; win_high: number };
+type Arena = {
+  topics: number; method: string; players: ArenaPlayer[]; winrate: { order: string[]; matrix: Array<Array<number | null>> };
+  leave_own_out?: boolean;
+  scoring?: { spearman_registry_lexicon: number; spearman_models: number; people_first_in_all: boolean; triad_share_of_rule_points?: number };
+  prompt_offset?: { mean: number; models: Offset[] } | null;
+};
 type Bench = { source: { title: string; url: string; license: string; page?: string }; metric: { name: string; description: string; direction: string }; models: Array<{ name: string; lab: string; weights: string; value: number; note?: string }> };
 
 const arena = (data as unknown as { arena: Arena | null }).arena;
@@ -15,57 +31,95 @@ const dist = (id: string) => {
   const m = mapModels.find((x) => x.id === id);
   return m ? Math.hypot(m.x, m.y) : null;
 };
-const nameOf = (id: string) => (id === "people" ? "Human" : modelById.get(id)?.name ?? id);
-const brandOfId = (id: string) => (id === "people" ? "" : brandOf(modelById.get(id)?.family ?? ""));
+/** Arena writers by id. A bridge row has its own id and points at the model that wrote it. */
+const arenaPlayer = new Map((arena?.players ?? []).map((p) => [p.id, p]));
+const modelOf = (id: string) => modelById.get(arenaPlayer.get(id)?.model ?? id);
+const nameOf = (id: string) => (id === "people" ? "Human" : arenaPlayer.get(id)?.name?.replace(/'/g, "’") ?? modelOf(id)?.name ?? id);
+const brandOfId = (id: string) => (id === "people" ? "" : brandOf(modelOf(id)?.family ?? ""));
+/** "+26" or "−12": a rating gap with its sign. */
+const signed = (v: number) => `${v < 0 ? "−" : "+"}${Math.abs(v)}`;
+/** "3" or "3–9". */
+const rangeText = (r?: [number, number]) => (!r ? "" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const n = (v: number) => v.toLocaleString("en");
+/** Graphite's topics: the two halves of the eval split. Null when the registry has no eval block. */
+const GRAPHITE_TOPICS = data.eval ? data.eval.topics.train + data.eval.topics.test : null;
+const RAID_URL = "https://github.com/liamdugan/raid";
+const dayName = (d?: string) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "");
+/** "289" or "286 to 292". */
+const span = (xs: number[]) => { const lo = Math.min(...xs), hi = Math.max(...xs); return lo === hi ? n(lo) : `${n(lo)} to ${n(hi)}`; };
+const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
+/** Where a model's measurements come from, in a word or two. */
+function measuredOn(m: Model) {
+  if (m.source === "raid") return <a href={RAID_URL}>RAID</a>;
+  if (isOwnRun(m)) return <>shibbo{m.date ? `, ${monthName(ym(m.date), "short")}` : ""}</>;
+  return <a href={data.graphite.url}>Graphite</a>;
+}
+const articlesOf = (m: Model) => (m.source === "raid" || isOwnRun(m) ? m.docs ?? null : GRAPHITE_TOPICS);
+
+/** The one place a section explains how it was made. Closed by default. */
+function Method({ children }: { children: ReactNode }) {
+  return (
+    <details className="method">
+      <summary>Method</summary>
+      <div className="method-body">{children}</div>
+    </details>
+  );
+}
 
 export function ModelsPage() {
   const history = [...chronology.milestones].filter((m) => String(m.date) >= "2022-11").sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const graphite = ordered.filter((m) => m.source !== "raid" && m.source !== "local" && !isOwnRun(m));
+  const own = ordered.filter(isOwnRun);
+  const raid = ordered.filter((m) => m.source === "raid");
   return (
-    <div className="page">
+    <div className="page models-page">
       <h1>Models</h1>
-      <p className="lede" style={{ marginTop: "var(--s3)" }}>
-        Whose articles carry the fewest tells? An arena of matched articles, every model shibbo has measured, and outside boards that cover more open and closed models.
-      </p>
-
-      {/* Newest releases (mostly unmeasured) are held back until more of them are measured; see Newest below. */}
 
       {arena && <ArenaSection a={arena} />}
 
+      <Newest />
+
       <section className="section" aria-labelledby="all-h">
         <h2 id="all-h">Every measured model</h2>
-        <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-          2025–26 models come from Graphite’s matched articles; 2022–23 chat models were measured by shibbo on RAID against the human texts each was prompted from. Distance is each model’s place on the atlas, where 0 is human.
-        </p>
         <div className="table-scroll">
           <table className="ledger">
-            <thead><tr><th>Model</th><th>Released</th><th>Measured on</th><th>Distance from human</th><th>Phrases over 2×</th></tr></thead>
+            <thead><tr><th scope="col">Model</th><th scope="col">Released</th><th scope="col">Measured on</th><th scope="col">Articles</th><th scope="col">Distance from human</th><th scope="col">Phrases over 2×</th></tr></thead>
             <tbody>
               {[...ordered].sort((a, b) => b.released.localeCompare(a.released)).map((m) => {
                 const d = dist(m.id);
+                const docs = articlesOf(m);
                 return (
                   <tr key={m.id}>
                     <td className="name"><Link to={`/models/${m.id}`} className="model-link"><BrandIcon brand={brandOf(m.family)} size={16} />{m.name}</Link></td>
                     <td>{monthName(ym(m.released), "short")}</td>
-                    <td>{m.source === "raid" ? <Cite title="RAID, 7 genres" url="https://github.com/liamdugan/raid" /> : <Cite title="Graphite, web articles" url={data.graphite.url} />}</td>
+                    <td>{measuredOn(m)}</td>
+                    <td className="num" style={{ fontVariantNumeric: "tabular-nums" }}>{docs === null ? "–" : n(docs)}</td>
                     <td>{d === null ? "–" : <Bar v={d} color={familyColor(m.family)} />}</td>
-                    <td>{m.tells.toLocaleString("en")}</td>
+                    <td>{n(m.tells)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>
-          The atlas axes come from 2025–26 vocabulary, so 2022–23 models sit closer to human than their own tells would put them. Phrase counts depend on how much text was measured and aren’t comparable across sources.
-        </p>
+        <Method>
+          <p>
+            {graphite.length > 0 && <>Graphite’s matched articles cover {graphite.length} models{GRAPHITE_TOPICS ? `, ${n(GRAPHITE_TOPICS)} topics each` : ""}. </>}
+            {own.length > 0 && <>Shibbo ran {own.length} newer releases itself through each maker’s API, on {span(own.map((m) => m.docs ?? 0))} of the held-out topics, against the human article on each. </>}
+            {raid.length > 0 && <>Shibbo measured the {raid.length} 2022–23 chat models on RAID, against the human texts each was prompted from. </>}
+            Distance is each model’s place on the atlas; 0 is human.
+          </p>
+          <p>
+            The atlas axes come from 2025–26 vocabulary, so 2022–23 models sit closer to human than their own tells would put them. Phrase counts depend on how much text was measured, so they don’t compare across sources: a run of a few hundred articles finds fewer phrases than Graphite’s, and its distance carries more noise.
+          </p>
+        </Method>
       </section>
 
       {benchmarks.length > 0 && (
         <section className="section" aria-labelledby="other-h">
           <h2 id="other-h">Other boards</h2>
-          <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-            Published measurements that cover more models, open and closed. Each uses its own prompts and scale, so read each board on its own.
-          </p>
+          <p className="hint">Published elsewhere. Each board uses its own prompts and scale.</p>
           <div className="boards">
             {benchmarks.map((b) => <Board key={b.source.title} b={b} />)}
           </div>
@@ -75,10 +129,10 @@ export function ModelsPage() {
       <section className="section" aria-labelledby="hist-h">
         <h2 id="hist-h">Release history since ChatGPT</h2>
         <details>
-          <summary>{history.length} releases, newest first, each with its source</summary>
+          <summary>{history.length} releases, newest first</summary>
           <div className="table-scroll">
             <table className="ledger">
-              <thead><tr><th>Date</th><th>System</th><th>Lab</th><th>Weights</th><th>Note</th></tr></thead>
+              <thead><tr><th scope="col">Date</th><th scope="col">System</th><th scope="col">Lab</th><th scope="col">Weights</th><th scope="col">Note</th></tr></thead>
               <tbody>
                 {history.map((m) => (
                   <tr key={m.id}>
@@ -99,38 +153,90 @@ export function ModelsPage() {
 }
 
 function ArenaSection({ a }: { a: Arena }) {
-  const lo = 780, hi = 1660;
+  const lo = Math.floor(Math.min(780, ...a.players.map((p) => p.low)) / 20) * 20 - 20, hi = Math.ceil(Math.max(1660, ...a.players.map((p) => p.high)) / 20) * 20 + 20;
+  const own = a.players.filter((p) => p.source === "shibbo-api" && !p.bridge);
+  const offs = a.prompt_offset?.models ?? [];
+  const sc = a.scoring;
   const x = (v: number) => ((v - lo) / (hi - lo)) * 100;
   return (
-    <section className="section" aria-labelledby="arena-h">
-      <h2 id="arena-h">The tell arena</h2>
-      <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-        On each of {a.topics.toLocaleString("en")} held-out topics, every pair of writers meets once: the article with fewer tells per 1,000 words wins. Humans play too, and lead, as expected: a tell is something models write more often than people. Ratings use the Bradley–Terry model behind arena-style Elo; bars show 95% intervals.
-      </p>
-      <ol className="arena">
-        {a.players.map((p, i) => (
-          <li key={p.id} className={p.id === "people" ? "people" : undefined}>
-            <span className="rank">{i + 1}</span>
-            <span className="who">
-              {p.id === "people" ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOfId(p.id)} size={18} />}
-              {p.id === "people" ? <b>Human</b> : <Link to={`/models/${p.id}`}>{nameOf(p.id)}</Link>}
-            </span>
-            <span className="rating-bar" aria-label={`rating ${p.rating}, 95% interval ${p.low} to ${p.high}`}>
-              <i className="ci" style={{ left: `${x(p.low)}%`, width: `${Math.max(0.6, x(p.high) - x(p.low))}%` }} />
-              <i className="pt" style={{ left: `${x(p.rating)}%`, background: p.id === "people" ? "var(--ink)" : familyColor(modelById.get(p.id)?.family ?? "") }} />
-            </span>
-            <span className="num">{p.rating}</span>
-            <span className="num muted">{p.median_per1k.toFixed(1)} pts/1k</span>
-          </li>
-        ))}
-      </ol>
-      <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>
-        pts/1k is the median tell weight per 1,000 words. The checker here uses a phrase list built from the other half of the topics only. The curated rules it also runs were written after reading all of Graphite's data, so the human lead runs somewhat high.
-      </p>
-      <h3 style={{ margin: "var(--s6) 0 var(--s3)" }}>Head to head</h3>
-      <p className="muted" style={{ fontSize: "var(--t-1)", marginBottom: "var(--s3)" }}>How often the row writer’s article had fewer tells than the column writer’s, on the same topic.</p>
-      <WinMatrix a={a} />
-    </section>
+    <>
+      <section className="section first" aria-labelledby="arena-h">
+        <h2 id="arena-h">The tell arena</h2>
+        <p className="hint">Fewer tells per 1,000 words wins each matched pair. Bars show 95% intervals.</p>
+        <div className="arena-head" aria-hidden="true"><span /><span>Writer</span><span>Rating, 95% interval</span><span className="num">Rating</span><span className="num">±</span><span className="num">Rank range</span><span className="num">Median pts/1k</span></div>
+        <ol className="arena" aria-label="Writers ranked by arena rating">
+          {a.players.map((p, i) => (
+            <li key={p.id} className={p.id === "people" ? "people" : p.bridge ? "own bridge" : p.source === "shibbo-api" ? "own" : undefined}>
+              <span className="rank">{i + 1}</span>
+              <span className="who">
+                {p.id === "people" ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOfId(p.id)} size={18} />}
+                {p.id === "people" ? <b>Human</b> : <Link to={`/models/${p.model ?? p.id}`}>{nameOf(p.id)}</Link>}
+                {p.bridge
+                  ? <span className="src-tag bridge" title={`The same model as Graphite’s row, written again under shibbo’s prompt: ${p.topics} topics, ${n(p.battles)} battles`}>bridge</span>
+                  : p.source === "shibbo-api"
+                  ? <span className="src-tag" title={`shibbo’s run through the API: ${p.topics} topics, ${n(p.battles)} battles`}>shibbo run</span>
+                  : p.source === "graphite"
+                  ? <span className="src-tag solid" title={`Graphite’s articles: ${n(p.topics ?? a.topics)} topics`}>Graphite</span>
+                  : null}
+              </span>
+              <span className="rating-bar" role="img" aria-label={`rating ${p.rating}, 95% interval ${p.low} to ${p.high}`}>
+                <i className="ci" style={{ left: `${x(p.low)}%`, width: `${Math.max(0.6, x(p.high) - x(p.low))}%` }} />
+                <i className="pt" style={{ left: `${x(p.rating)}%`, background: p.id === "people" ? "var(--ink)" : familyColor(modelOf(p.id)?.family ?? "") }} />
+              </span>
+              <span className="num">{p.rating}</span>
+              <span className="num muted" title={`${p.low} to ${p.high}`}>±{Math.round((p.high - p.low) / 2)}</span>
+              <span className="num muted" title={p.ranks ? `rank ${p.ranks.total} on all points, ${p.ranks.registry} on rules alone, ${p.ranks.lexicon} on the phrase list alone` : undefined}>{rangeText(p.rank_range)}</span>
+              <span className="num muted" title="median tell points per 1,000 words">{p.median_per1k.toFixed(1)}</span>
+            </li>
+          ))}
+        </ol>
+        <Method>
+          <p>
+            On each of {n(a.topics)} held-out topics, every pair of writers meets once. The article with fewer tell points per 1,000 words wins; ties split. Ratings use the Bradley–Terry model behind arena-style Elo. Median pts/1k is the median tell weight per 1,000 words.
+          </p>
+          {own.length > 0 && (
+            <p>
+              Rows marked <span className="src-tag">shibbo run</span> wrote on only {span(own.map((p) => p.topics ?? 0))} of these topics, so their ratings carry wider intervals. Each is rated from its battles with people and Graphite’s models, against their fixed ratings, so a new run never moves the rest of the board.
+            </p>
+          )}
+          {a.leave_own_out && (
+            <p>
+              Leave-own-out: the checker’s phrase list comes from the other half of the topics, from Graphite’s models. Each Graphite model is scored with its own phrases left out, so no writer is scored on phrases learned from its own model’s text. The list holds none of a shibbo-run model’s own phrases either.
+            </p>
+          )}
+          {offs.length > 0 ? (
+            <p>
+              A <span className="src-tag bridge">bridge</span> row is a Graphite model that shibbo ran again under its own prompt, scored the same way as its Graphite row.{" "}
+              {offs.map((o) => (
+                <span key={o.model}>
+                  {o.name} rates {o.bridge_rating} under shibbo’s prompt and {o.graphite_rating} under Graphite’s, a gap of {signed(o.offset)} ({signed(o.low)} to {signed(o.high)}); the bridge article had fewer tell points on {pct(o.win_rate)} of {n(o.shared_topics)} shared topics ({pct(o.win_low)} to {pct(o.win_high)}).{" "}
+                </span>
+              ))}
+              {offs.length === 1 ? "One model is a thin base for a gap that may differ by model." : `The mean gap is ${signed(a.prompt_offset!.mean)}.`}
+            </p>
+          ) : (
+            <p>
+              A bridge run, a Graphite model written again under shibbo’s prompt, would measure the gap between the two sources. None is in the data yet.
+            </p>
+          )}
+          {sc && (
+            <p>
+              Rank range gives each writer’s best and worst rank under three scorings: all points, the curated rules alone, and the phrase list alone. The two halves order the {sc.spearman_models} models differently (Spearman {sc.spearman_registry_lexicon.toFixed(2).replace("-", "−")}), so a wide range means the rank turns on the scoring.
+              {sc.triad_share_of_rule_points !== undefined && <> One rule, lists of three, carries {pct(sc.triad_share_of_rule_points)} of the models’ rule points.</>}
+            </p>
+          )}
+          <p>
+            {sc?.people_first_in_all && <>People rank first under every scoring, because the checker is built from what separates models from people. That row shows the checker works; people entered no contest. </>}
+            The curated rules were written after reading all of Graphite’s data, so the human lead runs somewhat high.
+          </p>
+        </Method>
+      </section>
+      <section className="section" aria-labelledby="h2h-h">
+        <h2 id="h2h-h">Head to head</h2>
+        <p className="hint">Percent of shared topics where the row’s article had fewer tells than the column’s.</p>
+        <WinMatrix a={a} />
+      </section>
+    </>
   );
 }
 
@@ -141,7 +247,7 @@ function WinMatrix({ a }: { a: Arena }) {
   const tint = (v: number) => `color-mix(in oklab, ${v >= 0.5 ? "var(--under-4)" : "var(--over-3)"} ${Math.round(Math.abs(v - 0.5) * 200)}%, var(--neutral))`;
   return (
     <div className="table-scroll">
-      <table className="matrix">
+      <table className="matrix" aria-labelledby="h2h-h">
         <thead>
           <tr><th />{order.map((c) => <th key={c} scope="col" title={nameOf(c)}>{c === "people" ? <span className="people-mark" aria-label="Human" /> : <BrandIcon brand={brandOfId(c)} size={14} label={nameOf(c)} />}</th>)}</tr>
         </thead>
@@ -168,11 +274,13 @@ function Board({ b }: { b: Bench }) {
   const human = b.models.find((m) => /human/i.test(m.name) || /human/i.test(m.lab));
   const humanMean = /human mean is ([\d.]+)/.exec(b.metric.direction)?.[1];
   const ref = human ? human.value : humanMean ? +humanMean : null;
+  /** "higher = more slop (…)" -> "Higher = more slop". */
+  const dir = b.metric.direction.split(" (")[0].replace(/^./, (c) => c.toUpperCase());
   return (
-    <figure className="board">
+    <figure className="board" aria-label={b.metric.name}>
       <figcaption>
         <b>{b.metric.name}</b>
-        <span className="muted">{higherWorse ? "Lower is closer to human." : ""}</span>
+        <span className="muted">{dir}{ref !== null ? "; the tick marks human" : ""}</span>
         <small><Cite title={`${b.source.title.split(" (")[0]}, ${b.source.license.split(" (")[0]}`} url={b.source.page ?? b.source.url} /></small>
       </figcaption>
       <ol>
@@ -208,42 +316,75 @@ export function ModelPage() {
   const f = m.features ?? {};
   const player = arena?.players.find((p) => p.id === m.id);
   const rank = arena ? arena.players.findIndex((p) => p.id === m.id) + 1 : 0;
+  const own = isOwnRun(m);
+  const st = m.style, hs = m.human_style;
+  const d = dist(m.id);
+  const ui = uiApi.find((u) => names(norm(u.name), norm(m.name)));
   return (
-    <div className="page">
+    <div className="page model-page">
       <header className="entry-head">
         <Link className="crumb" to="/models">Models</Link>
         <h1 className="model-title"><BrandIcon brand={brandOf(m.family)} size={40} />{m.name}</h1>
-        <p className="lede">
-          {m.maker}, {monthName(ym(m.released))}.{" "}
-          {m.source === "raid"
-            ? `Measured by shibbo on ${(m.docs ?? 0).toLocaleString("en")} RAID texts against the human texts they were prompted from.`
-            : `${m.tells.toLocaleString("en")} measured tells${prev && m.shared !== null ? `, ${Math.round(m.shared * 100)}% of them shared with ${prev.name}` : ""}.`}
-          {dist(m.id) !== null && ` Distance from human on the atlas: ${Math.round(dist(m.id)!)} of 100.`}
-        </p>
-        {dist(m.id) !== null && (
+        <p className="lede">{m.maker}, {monthName(ym(m.released))}</p>
+        {d !== null && (
           <p style={{ marginTop: "var(--s4)" }}>
             <Link className="btn primary" to={`/?t=${m.released.slice(0, 7)}&focus=${m.id}`}>Show on the map</Link>
           </p>
         )}
       </header>
-      {player && (
+      <dl className="facts">
+        <dt>Prose</dt>
+        <dd>
+          {m.source === "raid"
+            ? <><a href={RAID_URL}>RAID</a>: {n(m.docs ?? 0)} texts, against the human texts they were prompted from</>
+            : own
+            ? <>shibbo’s run through the API, {dayName(m.date)}: {n(m.docs ?? 0)} articles, each against the human article on the same held-out topic</>
+            : <><a href={data.graphite.url}>Graphite</a>{GRAPHITE_TOPICS ? `: ${n(GRAPHITE_TOPICS)} topics` : ""}; {n(m.tells)} measured tells{prev && m.shared !== null ? `, ${Math.round(m.shared * 100)}% shared with ${prev.name}` : ""}</>}
+        </dd>
+        {ui && <><dt>Interface</dt><dd><Link to="/?layer=interface">{ui.pages} pages</Link> from shibbo’s run, one per brief, no system prompt</dd></>}
+        {d !== null && <><dt>Distance from human</dt><dd>{Math.round(d)} of 100 on the atlas</dd></>}
+        {player && (
+          <>
+            <dt>Arena</dt>
+            <dd>
+              Rating <b>{player.rating}</b> ({player.low} to {player.high}), rank {rank} of {arena!.players.length} with human
+              {player.rank_range && player.rank_range[0] !== player.rank_range[1] ? `; ${player.rank_range[0]} to ${player.rank_range[1]} across the three scorings` : ""}
+              {own ? `, from ${n(player.battles)} battles on ${player.topics} topics` : ""}
+            </dd>
+            <dt>Tell points</dt>
+            <dd>
+              Median {player.median_per1k.toFixed(1)} per 1,000 words
+              {own && player.human_median_per1k !== undefined ? ` (human, same topics: ${player.human_median_per1k.toFixed(1)})` : ""}
+              {own && player.win_vs_people != null ? `; fewer tells than the human article on ${Math.round(player.win_vs_people * 100)}% of topics` : ""}
+            </dd>
+          </>
+        )}
+        {own && st && hs && (
+          <>
+            <dt>Em dashes</dt><dd>{st.emdash_per1k.toFixed(2)} per 1,000 words (human, same topics: {hs.emdash_per1k.toFixed(2)})</dd>
+            <dt>“Delve”</dt><dd>{st.delve_per1k.toFixed(3)} per 1,000 words (human: {hs.delve_per1k.toFixed(3)})</dd>
+            <dt>Contractions</dt><dd>{st.contractions_per1k.toFixed(1)} per 1,000 words (human: {hs.contractions_per1k.toFixed(1)})</dd>
+          </>
+        )}
+        {f["layer1__punct_emdash_per1k"] && (
+          <>
+            <dt>Em dashes</dt><dd>{f["layer1__punct_emdash_per1k"].mean.toFixed(2)} per 1,000 words (human: {f["layer1__punct_emdash_per1k"].human.toFixed(2)})</dd>
+            <dt>“Delve”</dt><dd>{f["layer5__llm_delve_per1k"].mean.toFixed(3)} per 1,000 words (human: {f["layer5__llm_delve_per1k"].human.toFixed(3)})</dd>
+            <dt>Ending that mirrors the opening</dt><dd>{(f["layer5__selfref_last_mirrors_first"].mean * 100).toFixed(0)}% of articles (human: {(f["layer5__selfref_last_mirrors_first"].human * 100).toFixed(0)}%)</dd>
+          </>
+        )}
+      </dl>
+      {own && (
         <p className="arena-callout">
-          Arena rating <b>{player.rating}</b> ({player.low} to {player.high}), rank {rank} of {arena!.players.length} including human. Median {player.median_per1k.toFixed(1)} tell points per 1,000 words.
+          A small sample: {n(m.docs ?? 0)} articles{GRAPHITE_TOPICS ? `, against ${n(GRAPHITE_TOPICS)} per model in Graphite’s data` : ""}. Rare phrases and small gaps don’t show at this size, and figures will shift as more articles come in.
         </p>
-      )}
-      {f["layer1__punct_emdash_per1k"] && (
-        <dl className="facts">
-          <dt>Em dashes</dt><dd>{f["layer1__punct_emdash_per1k"].mean.toFixed(2)} per 1,000 words (human: {f["layer1__punct_emdash_per1k"].human.toFixed(2)})</dd>
-          <dt>“Delve”</dt><dd>{f["layer5__llm_delve_per1k"].mean.toFixed(3)} per 1,000 words (human: {f["layer5__llm_delve_per1k"].human.toFixed(3)})</dd>
-          <dt>Ending that mirrors the opening</dt><dd>{(f["layer5__selfref_last_mirrors_first"].mean * 100).toFixed(0)}% of articles (human: {(f["layer5__selfref_last_mirrors_first"].human * 100).toFixed(0)}%)</dd>
-        </dl>
       )}
       <div className="two">
         <section>
           <h2 style={{ fontSize: "var(--t2)", marginBottom: "var(--s4)" }}>Phrases it over-uses</h2>
           <ul className="phrases" style={{ columns: 1 }}>
-            {m.top.filter((e) => e.kind === "ngram").slice(0, 16).map((e) => (
-              <li key={e.term}><span className="specimen">“{e.term}”</span><span className="n">{e.floor ? `${e.count} vs 0` : fmtRatio(e.ratio)}</span></li>
+            {m.top.filter((e) => e.kind === "ngram" && (!own || e.term.includes(" ") || e.ratio >= 10)).slice(0, 16).map((e) => (
+              <li key={e.term}><span className="specimen">“{e.term}”</span><span className="n">{own ? `${e.count} vs ${e.human_count}` : e.floor ? `${e.count} vs 0` : fmtRatio(e.ratio)}</span></li>
             ))}
           </ul>
         </section>
@@ -251,7 +392,7 @@ export function ModelPage() {
           <h2 style={{ fontSize: "var(--t2)", marginBottom: "var(--s4)" }}>Phrases humans use and it avoids</h2>
           <ul className="phrases" style={{ columns: 1 }}>
             {m.under.slice(0, 16).map((e) => (
-              <li key={e.term}><span className="specimen">“{e.term}”</span><span className="n">{e.floor ? `0 vs ${e.count}` : fmtRatio(e.ratio)}</span></li>
+              <li key={e.term}><span className="specimen">“{e.term}”</span><span className="n">{own ? `${e.model_count ?? e.count} vs ${e.human_count}` : e.floor ? `0 vs ${e.count}` : fmtRatio(e.ratio)}</span></li>
             ))}
           </ul>
         </section>
@@ -259,58 +400,100 @@ export function ModelPage() {
       {m.rules && (
         <section className="section">
           <h2 style={{ fontSize: "var(--t2)" }}>Rules for prompts</h2>
-          <p className="lede" style={{ margin: "var(--s3) 0 var(--s4)" }}>What <code>shibbo rules --model {m.id}</code> prints, ranked by this model’s measured rates.</p>
+          <p className="hint"><code>shibbo rules --model {m.id}</code></p>
           <pre><code>{m.rules}</code></pre>
         </section>
       )}
       <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s5)" }}>
         {m.source === "raid"
-          ? <>Measured by shibbo on <Cite title="RAID (Dugan et al., ACL 2024), MIT" url="https://github.com/liamdugan/raid" />. Ratios compare this model’s generations with the human texts they were prompted from.</>
-          : <>“411 vs 0” counts raw uses in Graphite’s articles when one side never used the phrase. Data from <Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} />.</>}
+          ? <>Measured by shibbo on <Cite title="RAID (Dugan et al., ACL 2024), MIT" url={RAID_URL} />. Ratios compare this model’s generations with the human texts they were prompted from.</>
+          : own
+          ? <>Paired counts such as “44 vs 0” are raw uses in this model’s {m.docs} articles, then in the human articles on the same topics, from <Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} />. Each phrase passed a paired sign test over those topics (q &lt; 0.01). Each model got a title for the topic (GPT-4.1’s, from Graphite’s data, dropped before counting) and the human article’s length (<a href="https://github.com/xvr2e7/shibbo/tree/main/measure">measure/</a>).</>
+          : <>Paired counts such as “411 vs 0” are raw uses in Graphite’s articles when one side never used the phrase. Data from <Cite title="Graphite, AI Tells (2026)" url={data.graphite.url} />.</>}
       </p>
     </div>
   );
 }
 
-/** The latest releases from each lab, measured or not, so the page keeps up with what people use now. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/** Lower-case, hyphens as spaces, parentheticals dropped: "DeepSeek-V4-Pro (GA)" -> "deepseek v4 pro". */
+const norm = (x: string) => x.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
+/** a names b, or b names a, at word boundaries ("gemma 4" names "gemma 4 31b"; "claude opus 5" doesn't name "claude opus 5.5"). */
+const names = (a: string, b: string) => {
+  const has = (h: string, n: string) => { const k = h.indexOf(n); return k >= 0 && (k === 0 || h[k - 1] === " ") && (k + n.length === h.length || h[k + n.length] === " "); };
+  return has(a, b) || has(b, a);
+};
+/** The measured models a chronology release covers ("Claude Fable 5.2 and Claude Mythos 5.2" covers Claude Fable 5.2). */
+function measuredFor(r: Milestone): Model[] {
+  const parts = r.name.split(/ and |, /).map(norm);
+  return ordered.filter((m) => m.source !== "raid" && m.source !== "local" && parts.some((p) => names(p, norm(m.name))));
+}
+
+/** Interface pages shibbo has for a release: bare API runs on the interface map. */
+const uiApi = (uiMap.models as { id: string; route: string; name: string; pages: number }[]).filter((m) => m.route === "api");
+function uiFor(r: Milestone) {
+  const parts = r.name.split(/ and |, /).map(norm);
+  return uiApi.find((m) => parts.some((p) => names(p, norm(m.name))));
+}
+
+/** The latest releases from each lab, once shibbo has measured them, by Graphite's articles, its own runs, or interface pages. */
 export function Newest() {
-  const measuredBy = new Map(ordered.map((m) => [m.name.toLowerCase(), m]));
   const cutoff = `${new Date().getFullYear() - 1}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const recent = chronology.milestones
     .filter((m) => String(m.date) >= cutoff && m.lab)
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  const perLab = new Map<string, typeof recent>();
-  for (const m of recent) {
-    const k = m.lab!;
-    if ((perLab.get(k)?.length ?? 0) < 4) perLab.set(k, [...(perLab.get(k) ?? []), m]);
-  }
-  const rows = [...perLab.values()].flat().sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 32);
-  const measured = rows.filter((m) => measuredBy.has(m.name.toLowerCase())).length;
+  // Only releases shibbo has measured, by prose or by interface pages; the rest stay off until a run lands.
+  const rows = recent.filter((m) => measuredFor(m).length || uiFor(m)).slice(0, 28);
+  const ownCount = rows.filter((m) => measuredFor(m).some(isOwnRun)).length;
+  const uiCount = rows.filter((m) => uiFor(m)).length;
+  const briefs = Object.keys((uiMap as { briefs?: Record<string, unknown> }).briefs ?? {}).length;
   return (
-    <section className="section" aria-labelledby="new-h" style={{ paddingTop: "var(--s6)" }}>
+    <section className="section" aria-labelledby="new-h">
       <h2 id="new-h">Newest releases</h2>
-      <p className="lede" style={{ margin: "var(--s3) 0 var(--s5)" }}>
-        The latest from each lab in the past year. {measured ? `${measured} of these have measured tells.` : "None of these has measured tells yet."} The rest wait for matched articles; <Link to="/docs/guide/measure">measuring a model</Link> takes about 30.
-      </p>
       <ul className="newest">
-        {rows.map((m) => {
-          const mm = measuredBy.get(m.name.toLowerCase());
+        {rows.map((r) => {
+          const m0 = measuredFor(r)[0];
+          const ui = uiFor(r);
+          const prose = !m0 ? "" : isOwnRun(m0) ? `shibbo’s run: ${n(m0.docs ?? 0)} articles, ${dayName(m0.date)}` : `Graphite${GRAPHITE_TOPICS ? `: ${n(GRAPHITE_TOPICS)} topics` : ""}`;
           return (
-            <li key={m.id}>
-              <span className="ic"><BrandIcon brand={brandOf(m.lab ?? "")} size={22} /></span>
+            <li key={r.id} className={m0 ? "linked" : undefined}>
+              <span className="ic"><BrandIcon brand={brandOf(r.lab ?? "")} size={22} /></span>
               <span className="body">
-                <span className="nm">{mm ? <Link to={`/models/${mm.id}`}>{m.name}</Link> : m.name}</span>
+                <span className="nm">{m0 ? <Link to={`/models/${m0.id}`}>{r.name}</Link> : r.name}</span>
                 <span className="meta">
-                  {m.source?.url ? <a href={m.source.url} title={m.source.title}>{monthName(ym(String(m.date).slice(0, 7)), "short")}</a> : monthName(ym(String(m.date).slice(0, 7)), "short")}
-                  {m.weights === "open" ? ", open weights" : ""}
+                  {r.source?.url ? <a href={r.source.url} title={r.source.title}>{dayName(String(r.date))}</a> : dayName(String(r.date))}
+                  {r.weights === "open" ? ", open weights" : ""}
                 </span>
-                <span className={`tag${mm ? " on" : ""}`}>{mm ? "measured" : "not measured yet"}</span>
+                <span className="layers">
+                  {prose && <span className="layer" title={prose}>Prose</span>}
+                  {ui && <Link className="layer" to="/?layer=interface" title={`shibbo’s run: ${ui.pages} pages`}>Interface</Link>}
+                </span>
               </span>
             </li>
           );
         })}
       </ul>
+      <Method>
+        <p>
+          Releases from the past year that shibbo has measured, newest first. {uiCount} have interface pages{briefs ? `, one per brief from the same ${briefs} bare API requests` : ""}; {ownCount} have articles shibbo wrote through the maker’s API. Hover a tag for its source and size. A release joins once a run lands; see <Link to="/docs/guide/measure">measuring a model</Link>.
+        </p>
+        {expected.length > 0 && <p>Reported models are ones the press says are coming and the maker has yet to confirm. They stay off the timeline until a maker’s own page gives a date.</p>}
+      </Method>
+      {expected.length > 0 && (
+        <>
+          <h3 className="sub">Reported, unconfirmed</h3>
+          <ul className="newest">
+            {expected.map((e) => (
+              <li key={e.id}>
+                <span className="ic"><BrandIcon brand={brandOf(e.maker)} size={22} /></span>
+                <span className="body">
+                  <span className="nm">{e.name}</span>
+                  <span className="meta"><a href={e.source.url} title={e.claim}>{host(e.source.url) || "report"}</a>, {dayName(String(e.source.date))}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

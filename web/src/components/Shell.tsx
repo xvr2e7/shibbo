@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
 import { flushSync } from "react-dom";
-import { data } from "../data";
 
 type Theme = "light" | "dark";
 
@@ -78,9 +77,14 @@ export function Shell() {
   const [theme, setTheme] = useState<Theme>((document.documentElement.dataset.theme as Theme) ?? "light");
   const loc = useLocation();
   const inDocs = loc.pathname.startsWith("/docs");
+  const onMap = loc.pathname === "/";
+  // The map fills the window, so the page under it must not scroll; the map keeps its own zoom and pan.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-fixed", onMap || inDocs);
+  }, [onMap, inDocs]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("theme", theme);
+    try { localStorage.setItem("theme", theme); } catch { /* storage blocked */ }
   }, [theme]);
   useEffect(() => {
     if (!inDocs) window.scrollTo(0, 0);
@@ -115,16 +119,10 @@ export function Shell() {
         <Outlet />
       </main>
       {!inDocs && (
-        <footer className="foot">
-          <div className="inner">
-            <p>
-              Shibbo gathers what others found before it: measured studies, community lists such as Wikipedia’s Signs of AI writing, open-source checkers and agent bug reports. Each tell credits its sources, all listed in{" "}
-              <Link to="/docs/concepts/sources">Sources</Link>. Measurements from Graphite’s <a href={data.graphite.url}>“AI Tells”</a> (2026), {data.graphite.license}.
-            </p>
-            <p>
-              <a href={REPO}>Code on GitHub</a>, MIT. Built {data.built}.
-            </p>
-          </div>
+        <footer className={onMap ? "foot foot-map" : "foot"}>
+          <p>
+            © 2026 Ziyan Xie. <a href={`${REPO}/blob/main/LICENSE`}>MIT license</a>.
+          </p>
         </footer>
       )}
     </>

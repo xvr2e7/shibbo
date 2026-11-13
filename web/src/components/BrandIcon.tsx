@@ -20,11 +20,11 @@ export function brandOf(lab = ""): string {
   if (l.includes("minimax")) return "minimax";
   if (l.includes("cohere")) return "cohere";
   if (l.includes("01.ai") || l === "yi") return "yi";
-  if (l.includes("nvidia")) return "nvidia";
+  if (l.includes("nvidia") || l.includes("nemotron")) return "nvidia";
   if (l.includes("amazon") || l.includes("aws")) return "amazon";
   if (l.includes("apple")) return "apple";
   if (l.includes("technology innovation") || l.includes("tii")) return "tii";
-  if (l.includes("xiaomi")) return "xiaomi";
+  if (l.includes("xiaomi") || l.includes("mimo")) return "xiaomi";
   if (l.includes("tencent") || l.includes("hunyuan")) return "tencent";
   if (l.includes("baidu") || l.includes("ernie")) return "baidu";
   if (l.includes("bytedance") || l.includes("doubao")) return "bytedance";

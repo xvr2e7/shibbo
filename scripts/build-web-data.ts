@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
 import YAML from "yaml";
-import { tells, models, graphite, sources, root } from "../src/registry.js";
+import { tells, models, graphite, sources, root, apiRuns } from "../src/registry.js";
 import { rulesMarkdown, strength } from "../src/rules.js";
 
 const R = root();
@@ -12,6 +12,9 @@ mkdirSync(OUT, { recursive: true });
 const g = graphite();
 if (!g) throw new Error("run npm run import:graphite first");
 const ms = models();
+// shibbo's own API runs (scripts/import_local.py -> data/measured/api.json): a few hundred articles each.
+const api = apiRuns();
+const apiIds = new Set((api?.models ?? []).map((m) => m.id));
 
 /** Typographic quotes and apostrophes for display text (patterns are left alone). */
 const sq = (x?: string) =>
@@ -29,7 +32,7 @@ const display = <T extends { name: string; what: string; label?: string; fix?: s
 
 const tellRows = tells().map(display).map((t) => {
   const perModel = Object.fromEntries(
-    ms.models.map((m) => {
+    ms.models.filter((m) => m.graphite).map((m) => {
       const n = g.tells[t.id]?.[m.id];
       const f = g.tellFeatures[t.id]?.models[m.id];
       const hasTerms = !!n && Object.values(g.tells[t.id]).some((x) => x.ratio !== null);
@@ -38,6 +41,13 @@ const tellRows = tells().map(display).map((t) => {
       return [m.id, null];
     }),
   );
+  // shibbo's API runs: the strongest linked phrase on its own topics, only when the paired sign test backs it.
+  for (const m of api?.models ?? []) {
+    const n = m.tells[t.id];
+    perModel[m.id] = n && n.significant && (n.counts?.model ?? 0) + (n.counts?.human ?? 0) >= 10 && Math.abs(Math.log2(n.ratio ?? 1)) >= 1
+      ? { ratio: n.ratio, term: n.term ?? null, counts: n.counts ?? null, floor: !!n.floor, via: "phrase", own: m.docs }
+      : null;
+  }
   return {
     ...t,
     perModel,
@@ -46,8 +56,9 @@ const tellRows = tells().map(display).map((t) => {
   };
 });
 
-const modelRows = ms.models.map((m) => ({
+const modelRows = ms.models.filter((m) => m.graphite).map((m) => ({
   ...m,
+  source: "graphite",
   maker: ms.families[m.family].maker,
   familyName: ms.families[m.family].name,
   tells: g.models[m.id].tells,
@@ -89,6 +100,18 @@ for (const [src, set] of [["raid", raid], ["local", local]] as const) {
   }
 }
 
+for (const m of api?.models ?? []) {
+  const reg = ms.models.find((x) => x.id === m.id);
+  modelRows.push({
+    id: m.id, family: m.family, name: m.name, released: m.released, verified: reg?.verified ?? false, graphite: undefined,
+    maker: ms.families[m.family]?.maker ?? m.lab, familyName: ms.families[m.family]?.name ?? m.family, source: "shibbo-api", docs: m.docs, date: m.date, run: m.run, api: m.api,
+    tells: m.tells_count, shared: null,
+    top: m.top.slice(0, 40), under: m.under.slice(0, 20),
+    rules: reg ? rulesMarkdown({ model: m.id, limit: 10, phrases: 10 }) : "",
+    features: {}, style: m.style, human_style: m.human_style,
+  } as unknown as (typeof modelRows)[number]);
+}
+
 // Tell density per model: average tell points per 1,000 words, next to the human texts from the same source.
 // 2025–26 models from the arena (Graphite's held-out topics); 2022–23 models from scripts/raid-per1k.ts.
 function per1kTable() {
@@ -97,7 +120,10 @@ function per1kTable() {
   if (existsSync(arenaPath)) {
     const a = JSON.parse(readFileSync(arenaPath, "utf8")) as { players: Array<{ id: string; mean_per1k: number }> };
     const human = a.players.find((p) => p.id === "people")?.mean_per1k;
-    if (human !== undefined) for (const p of a.players) if (p.id !== "people") out[p.id] = { model: p.mean_per1k, human, source: "graphite" };
+    const players = a.players as Array<{ id: string; mean_per1k: number; source?: string; human_mean_per1k?: number; bridge?: boolean }>;
+    // shibbo's API runs compare with people on the same few hundred topics. A bridge run is a second copy of a
+    // Graphite model (same model, shibbo's prompt), so it stays out of the per-model table.
+    if (human !== undefined) for (const p of players) if (p.id !== "people" && !p.bridge) out[p.id] = p.source === "shibbo-api" ? { model: p.mean_per1k, human: p.human_mean_per1k ?? human, source: "shibbo-api" } : { model: p.mean_per1k, human, source: "graphite" };
   }
   for (const m of raid?.models ?? []) if (m.per1k) out[m.id] = { model: m.per1k.model_mean, human: m.per1k.human_mean, source: "raid" };
   return out;
@@ -152,6 +178,8 @@ writeFileSync(join(OUT, "registry.json"), JSON.stringify({
   graphite: { attribution: g.attribution, license: g.license, url: g.url, threshold: g.threshold },
   eval: evalData,
   raid: raid ? { source: raid.source, design: raid.design } : null,
+  api: api ? { source: api.source, design: api.design, method: api.method } : null,
+  expected: existsSync(join(R, "data/tracking/expected.yaml")) ? (YAML.parse(readFileSync(join(R, "data/tracking/expected.yaml"), "utf8")).expected ?? []).filter((e: { status: string; expires?: string }) => e.status !== "expired" && e.status !== "released" && (!e.expires || String(e.expires) >= new Date().toISOString().slice(0, 10))) : [],
   habits,
   arena: existsSync(join(R, "data/measured/arena.json")) ? JSON.parse(readFileSync(join(R, "data/measured/arena.json"), "utf8")) : null,
   per1k: per1kTable(),
@@ -182,6 +210,7 @@ writeFileSync(join(OUT, "chronology.json"), JSON.stringify(chronology));
     "",
     `- Graphite, [“AI Tells”](${g.url}) (2026), ${g.license}. Per-model rates for 2025–26 models, the atlas, and the checker’s phrase list.`,
     raid ? `- [RAID](${raid.source.url}) (Dugan et al., ACL 2024), ${raid.source.license}. Measured by shibbo for 2022–23 chat models against matched human texts.` : "",
+    api?.models.length ? `- shibbo's own runs through each maker's API (${api.models.map((m) => m.name).join(", ")}), on held-out Graphite topics against their human articles. [measure/](${api.source.url}).` : "",
     "- Model and lab icons: [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT). The marks belong to their owners.",
     "",
     "## Registry sources",

@@ -1,13 +1,45 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Cite } from "../components/Cite";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { BrandIcon, brandOf } from "../components/BrandIcon";
-import { Link } from "react-router-dom";
-import { AtlasMap, models as mapModels, phraseCounts, state, type Hover, type Layers } from "../components/AtlasMap";
+import { famBrand, famColor, famName } from "../components/families";
+import { Link, useSearchParams } from "react-router-dom";
+import { AtlasMap, FAMS as MAP_FAMS, models as mapModels, phraseCounts, state, type Hover, type Layers } from "../components/AtlasMap";
 import { Timeline, TIME, NOW } from "../components/Timeline";
-import { Strip } from "../components/Strip";
 import { data, tellById, ym, familyColor, label, type Habit } from "../data";
+import { LayerStack, LayerSections } from "../components/LayerStack";
+import { LayerAtlas, Measuring } from "../components/LayerAtlas";
+import { STACK, LAYER_NAME, codeLayer, conductLayer } from "../components/layerData";
+import { isLayer, type LayerId } from "../components/layers";
+import "../styles/atlas-switch.css";
+
+const loadInterface = () => import("../components/InterfaceAtlas");
+const InterfaceAtlas = lazy(loadInterface);
+type View = "stack" | LayerId;
+
+/** The flat-view tabs: back to the stack, or straight to any one layer's map. Unmeasured layers open their "measuring now" state. */
+function LayerSwitch({ layer, setLayer, onStack }: { layer: LayerId; setLayer: (l: LayerId) => void; onStack: () => void }) {
+  const missing = STACK.filter((l) => (l === "code" && !codeLayer) || (l === "conduct" && !conductLayer));
+  return (
+    <div className="layer-switch" role="group" aria-label="Atlas layer">
+      <button type="button" className="to-stack" onClick={onStack}>All layers</button>
+      {STACK.map((l) => (
+        <button key={l} type="button" aria-pressed={layer === l} onClick={() => setLayer(l)}>{LAYER_NAME[l]}</button>
+      ))}
+      {missing.length > 0 && <span className="later">{missing.map((l) => LAYER_NAME[l]).join(" and ")} {missing.length > 1 ? "are" : "is"} being measured now.</span>}
+    </div>
+  );
+}
+
+/** The layer a visitor last opened, so the way back folds that sheet into the stack. Not part of the URL. */
+let lastFlat: LayerId | null = null;
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** Change the view with a cross-fade from the old screen to the new, where the browser can. */
+function fade(change: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+  if (!doc.startViewTransition || reduced()) change();
+  else doc.startViewTransition(() => flushSync(change));
+}
 
 function initialMonth() {
   const m = /t=(\d{4})-(\d{2})/.exec(location.hash);
@@ -17,6 +49,23 @@ function initialMonth() {
 const SPEED = 2.4;
 
 export function AtlasPage() {
+  const [params, setParams] = useSearchParams();
+  // No layer in the URL: the stack. ?layer=…: that layer flat. Old prose links (?t=, ?focus=) still open the prose map.
+  const asked = params.get("layer");
+  const view: View = isLayer(asked) && STACK.includes(asked) ? asked : params.get("view") !== "stack" && (params.has("focus") || params.has("t")) ? "prose" : "stack";
+  const layer: LayerId = view === "stack" ? "prose" : view;
+  const setLayer = (l: LayerId) => fade(() => setParams((p) => { const n = new URLSearchParams(p); n.delete("view"); n.set("layer", l); if (l !== "prose") { n.delete("focus"); n.delete("t"); } return n; }, { replace: true }));
+  const openLayer = (l: LayerId) => fade(() => setParams(new URLSearchParams({ layer: l })));
+  const toStack = () => { lastFlat = layer; fade(() => setParams(new URLSearchParams({ view: "stack" }))); };
+  // Fetch the interface map early, so opening it never shows an empty frame.
+  useEffect(() => { void loadInterface(); }, []);
+  const [narrow, setNarrow] = useState(window.innerWidth < 760);
+  useEffect(() => {
+    const on = () => setNarrow(window.innerWidth < 760);
+    addEventListener("resize", on);
+    return () => removeEventListener("resize", on);
+  }, []);
+  useEffect(() => { lastFlat = view === "stack" ? null : view; }, [view]);
   // t is continuous (fractional months) so playback glides; month is the whole month the notes and labels use.
   const [t, setT] = useState(initialMonth);
   const month = Math.floor(t);
@@ -55,7 +104,7 @@ export function AtlasPage() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || e.repeat) return;
+      if (e.code !== "Space" || e.repeat || !document.querySelector(".timeline")) return;
       const el = e.target as HTMLElement;
       if (el.closest("input, textarea, select, button, a, [contenteditable]")) return;
       e.preventDefault();
@@ -73,47 +122,41 @@ export function AtlasPage() {
 
   const insets = wide ? { left: 380, right: 360, top: 16, bottom: 330 } : { left: 4, right: 4, top: 4, bottom: 4 };
 
-  return (
-    <>
-      <section className="atlas" aria-labelledby="atlas-h">
-        <AtlasMap focus={new URLSearchParams(location.hash.split("?")[1] ?? "").get("focus")} month={reduced() ? month : t} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
+  const title = <h1 id="atlas-h">What gives a model away</h1>;
+  const tabs = <LayerSwitch layer={layer} setLayer={setLayer} onStack={toStack} />;
+  const flatHeader = <><h1 id="atlas-h">What gives a model away</h1>{tabs}</>;
+  const timeline = <Timeline month={month} t={t} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />;
+  let atlas: ReactNode;
+  if (view === "stack") {
+    atlas = narrow ? <LayerSections onOpen={openLayer} header={title} /> : <LayerStack key="stack" onOpen={openLayer} from={lastFlat} header={title} />;
+  } else if (view === "interface") {
+    atlas = (
+      <Suspense fallback={<section className="atlas" aria-busy="true" />}>
+        <InterfaceAtlas header={flatHeader} month={month} footer={timeline} />
+      </Suspense>
+    );
+  } else if (view === "code" || view === "conduct") {
+    const L = view === "code" ? codeLayer : conductLayer;
+    atlas = L ? <LayerAtlas key={view} layer={L} header={flatHeader} month={month} footer={timeline} /> : <Measuring layer={view} header={flatHeader} />;
+  } else {
+    atlas = (
+      <section className="atlas atlas-prose" aria-labelledby="atlas-h">
+        <AtlasMap focus={params.get("focus")} month={reduced() ? month : t} onHover={setHover} insets={insets} resetSignal={reset} layers={layers} />
         <div className="cartouche">
-          <h1 id="atlas-h">What gives a model away<SourcesMark /></h1>
+          {title}
+          {tabs}
           <Legend layers={layers} setLayers={setLayers} />
         </div>
         <Closest month={month} />
         {hover?.d && <Tip hover={hover} month={month} />}
         {hover?.habit && <HabitTip habit={hover.habit} x={hover.x} y={hover.y} month={month} />}
 
-        <Timeline month={month} t={t} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />
+        {timeline}
       </section>
-
-      <div className="page">
-        <section className="section" style={{ paddingTop: 0 }} aria-labelledby="spec-h">
-          <h2 id="spec-h">Five specimens</h2>
-          <p className="lede">Each row places one tell for every measured model, on either side of the human rate.</p>
-          <Specimens />
-        </section>
-
-        <section className="section" aria-labelledby="use-h">
-          <h2 id="use-h">Check your own writing</h2>
-          <div className="install">
-            <p className="lede">The same records drive a checker. It scores a draft, names each tell with its fix, and ranks the rules by what your model over-uses.</p>
-            <div>
-              <pre><code>{`npx shibbo check README.md --model claude-opus-5
-npx shibbo rules --model gpt-6`}</code></pre>
-              <p style={{ marginTop: "var(--s4)" }}>
-                <Link className="btn primary" to="/docs/guide/quick-start">Read the docs</Link>
-              </p>
-            </div>
-          </div>
-        </section>
-      </div>
-    </>
-  );
+    );
+  }
+  return <div key={view}>{atlas}</div>;
 }
-
-const FAMILY_KEY: Array<[string, string, string]> = [["gpt", "openai", "OpenAI"], ["claude", "anthropic", "Claude"], ["gemini", "google", "Gemini"], ["meta", "meta", "Llama"], ["mistral", "mistral", "Mistral"], ["mosaic", "", "MPT"], ["cohere", "cohere", "Cohere"]];
 
 /** Layer switches double as the legend; the full key unfolds on hover or focus. */
 function Legend({ layers, setLayers }: { layers: Layers; setLayers: (l: Layers) => void }) {
@@ -128,8 +171,8 @@ function Legend({ layers, setLayers }: { layers: Layers; setLayers: (l: Layers) 
         </button>
       </div>
       <ul className="fams" aria-label="Model families">
-        {FAMILY_KEY.map(([f, b, n]) => (
-          <li key={f}><span className="swatch" style={{ background: `var(--${f})` }} />{b ? <BrandIcon brand={b} size={12} /> : <span className="no-icon" />}{n}</li>
+        {MAP_FAMS.map((f) => (
+          <li key={f}><span className="swatch" style={{ background: famColor(f) }} />{famBrand(f) ? <BrandIcon brand={famBrand(f)} size={12} /> : <span className="no-icon" />}{f === "meta" ? "Llama" : famName(f)}</li>
         ))}
       </ul>
       <div className="legend-more">
@@ -141,28 +184,6 @@ function Legend({ layers, setLayers }: { layers: Layers; setLayers: (l: Layers) 
         </ul>
       </div>
     </div>
-  );
-}
-
-/** A dagger after the title: the sources, on hover, focus or tap. */
-function SourcesMark() {
-  const [open, setOpen] = useState(false);
-  const timer = useRef(0);
-  const show = () => { clearTimeout(timer.current); setOpen(true); };
-  const hide = () => { clearTimeout(timer.current); timer.current = window.setTimeout(() => setOpen(false), 120); };
-  return (
-    <span className="sources" onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide}>
-      <button type="button" className="dagger" aria-expanded={open} aria-controls="sources-pop" onClick={() => setOpen(!open)} onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
-        †<span className="sr">Sources</span>
-      </button>
-      <span id="sources-pop" className="pop" data-open={open || undefined} role="note">
-        Shibbo counted every phrase in <a href={data.graphite.url}>Graphite’s AI Tells</a> articles (CC BY 4.0) for 2025–26 models, and in <a href="https://github.com/liamdugan/raid">RAID</a> (MIT) for 2022–23 models, each against people writing on the same topics. The map draws only phrases one side uses at least 4× as often, in 40 or more articles; people and models share most other words. Position comes from a correspondence analysis, so a phrase sits nearer whoever uses it most. Positions come from 2025–26 usage, so a 2022–23 model’s phrases sit in that terrain, away from its marker; the marker shows how far the model’s own writing sits from its human texts.
-        <span className="pop-lineage">
-          The map borrows its form from dialect maps, such as Joshua Katz’s <a href="https://www.nytimes.com/interactive/2014/upshot/dialect-quiz-map.html">maps of American English</a> and the <a href="https://www.popvssoda.com/">“soda” vs. “pop”</a> survey: here the regions are models, and the words are their tells.
-        </span>
-        <Link to="/docs/concepts/sources">Every source</Link>
-      </span>
-    </span>
   );
 }
 
@@ -187,7 +208,7 @@ function Closest({ month }: { month: number }) {
         <ol style={{ height: (ranked.length + rows) * ROW }}>
           {humans.map(([src, h], i) => (
             <li key={src} className="human" data-in style={{ transform: `translateY(${i * ROW}px)` }}>
-              <span className="who"><span className="people-mark" aria-hidden="true" /><span className="name">Human writers{rows > 1 ? (src === "raid" ? ", 2022–23 set" : ", 2025–26 set") : ""}</span></span>
+              <span className="who"><span className="people-mark" aria-hidden="true" /><span className="name" title={src === "raid" ? "People, the 2022–23 RAID texts" : src === "graphite" ? "People, Graphite's topics" : "People, the topics shibbo ran"}>{rows > 1 ? (src === "raid" ? "People, RAID" : src === "graphite" ? "People, Graphite" : "People, shibbo") : "Human writers"}</span></span>
               <span className="bar"><i style={{ width: `${(h / SCALE) * 100}%`, background: "var(--ink)" }} /></span>
               <span className="num">{fmt1k(h)}</span>
             </li>
@@ -294,33 +315,5 @@ function Tip({ hover, month }: { hover: Hover; month: number }) {
         Counted by shibbo against people writing on the same topics: Graphite’s articles for 2025–26 models, RAID for 2022–23 (people’s counts differ there). ÷ means people use it that many times more. Faded rows miss 4×, the significance test or 40 articles. {d.tell ? "Click for the full entry." : ""}
       </small>
     </div>
-  );
-}
-
-function Specimens() {
-  const kobak = data.eras[0];
-  const rows: Array<{ id: string; word: string; fact: string; cite: { title: string; url: string } }> = [
-    { id: "delve", word: "delve", fact: `“Delves” ran ${kobak.words[0].ratio}× its expected rate in 2024 PubMed abstracts. In Graphite’s web articles, GPT-4.1 and Gemini 2.5 Pro (2025) still used “delve” 5–6× as often as people; GPT-5 onward and Claude Opus 4.6 onward almost never write it.`, cite: { title: "Kobak et al., Science Advances (2025); shibbo’s count of Graphite’s articles", url: "https://arxiv.org/abs/2406.07016" } },
-    { id: "em-dash-density", word: "the em dash", fact: "GPT-4.1 used 2.3× the human rate and GPT-5 2.2×. GPT-6 Astra uses 0.12× and Claude Opus 5 about the human rate. Graphite asked for plain text, which may hold dashes down.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
-    { id: "genuinely", word: "genuinely useful", fact: "Claude Opus 5 wrote it 411 times across Graphite’s articles. Human writers on the same topics never did.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
-    { id: "corrective-rather-than", word: "rather than treating", fact: "GPT-6 Astra wrote it 1,473 times. Human writers never wrote it once.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
-    { id: "contraction-avoidance", word: "it’s", fact: "Human writers wrote it 14,540 times, and Claude Opus 4.6 wrote it 7 times. This tell is an absence.", cite: { title: "Graphite, AI Tells (2026)", url: data.graphite.url } },
-  ];
-  return (
-    <ul className="specimens">
-      {rows.map((r) => {
-        const t = tellById.get(r.id)!;
-        return (
-          <li key={r.id}>
-            <span className="word specimen"><Link to={`/tells/${r.id}`}>{r.word}</Link></span>
-            <Strip tell={t} />
-            <p className="fact">
-              {r.fact}
-              <cite><Cite title={r.cite.title} url={r.cite.url} /></cite>
-            </p>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

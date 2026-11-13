@@ -1,136 +1,151 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Cite } from "../components/Cite";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Strip } from "../components/Strip";
 import { Specimen, hasSpecimen } from "../components/Specimen";
-import { BrandIcon, brandOf } from "../components/BrandIcon";
+import { TellGrid } from "../components/TellGrid";
+import { groupAnchor } from "../components/tellAnchors";
+import { LAYERS, groupName, groupOf, isLayer, layerById, layerOf, layerOfDomain, tellsOfLayer, type LayerId } from "../components/layers";
 import { data, ordered, tellById, label, describe, familyColor, monthName, ym, chronology, type Tell } from "../data";
+import "../styles/tells.css";
 
-// Things you see come first: the atlas sends visitors here for interface, type and code tells.
-const DOMAINS = [
-  { key: "ui", name: "Interfaces and type" },
-  { key: "code", name: "Code" },
-  { key: "agent", name: "Agents" },
-  { key: "prose", name: "Prose" },
-  { key: "chat", name: "Chat replies" },
-  { key: "all", name: "Everything" },
-] as const;
-type DomainKey = (typeof DOMAINS)[number]["key"];
-const GROUP_NAME: Record<string, string> = {
-  typography: "Type", color: "Color", layout: "Layout", components: "Components", motion: "Motion", iconography: "Icons", copy: "Interface copy", imagery: "Imagery", dataviz: "Charts",
-  comments: "Comments", errors: "Error handling", structure: "Structure", naming: "Naming", tests: "Tests", docs: "Docs and READMEs", git: "Commits and PRs", deps: "Dependencies", output: "Logs and output",
-  claims: "Claims", scope: "Scope", files: "Files", tone: "Tone", process: "Process", safety: "Safety",
-  vocabulary: "Vocabulary", phrasing: "Phrasing", punctuation: "Punctuation", formatting: "Formatting", fiction: "Fiction", openers: "Openers", closers: "Closers", disclaimers: "Disclaimers",
-  lexical: "Words", other: "Other",
-};
-const groupOf = (t: Tell) => t.group ?? (t.domain === "prose" || t.domain === "chat" ? (t.kind === "lexical" ? "lexical" : "structure") : "other");
-const groupName = (g: string) => GROUP_NAME[g] ?? g[0].toUpperCase() + g.slice(1);
-const SORTS = [
-  { key: "strength", name: "Strongest first" },
-  { key: "newest", name: "Newest first" },
-  { key: "az", name: "A to Z" },
-] as const;
-const firstSeen = (t: Tell) => Number(String(t.era?.first_seen ?? "0").slice(0, 4)) || 0;
-const newestStrength = (t: Tell) => {
-  const newest = ["gpt", "claude", "gemini"].map((f) => ordered.filter((m) => m.family === f).at(-1)!);
-  return Math.max(0, ...newest.map((m) => Math.log2(t.perModel[m.id]?.ratio ?? 1) * (t.measure?.graphite_absent ? -1 : 1)));
-};
-const domainName = (d: string) => DOMAINS.find((x) => x.key === d)?.name ?? d;
+const DOMAIN_NAME: Record<string, string> = { ui: "Interfaces and type", code: "Code", agent: "Agents", prose: "Prose", chat: "Chat replies" };
+const domainName = (d: string) => DOMAIN_NAME[d] ?? d;
+
+type View = LayerId | "all";
+const DEFAULT: LayerId = "interface";
+const NARROW = 760;
+function useNarrow() {
+  const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW);
+  useEffect(() => {
+    const mq = matchMedia(`(max-width: ${NARROW - 1}px)`);
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
+
+/** The layer named in the URL. Old links name a domain (?d=ui, ?domain=ui); map those to their layer. */
+function layerFromParams(p: URLSearchParams): View | null {
+  const l = p.get("layer");
+  if (l === "all" || isLayer(l)) return l;
+  const d = p.get("domain") ?? p.get("d");
+  if (d === "all") return "all";
+  return d ? layerOfDomain(d) : null;
+}
+
+const matches = (t: Tell, q: string) => `${t.name} ${label(t)} ${t.what} ${t.id} ${t.examples?.bad ?? ""}`.toLowerCase().includes(q);
 
 export function TellsPage() {
   const [params, setParams] = useSearchParams();
+  const narrow = useNarrow();
   const q = params.get("q") ?? "";
-  const domain = (params.get("d") ?? "ui") as DomainKey;
-  const group = params.get("g") ?? "";
-  const view = params.get("view") === "index" ? "index" : "gallery";
-  const [sort, setSort] = useState<(typeof SORTS)[number]["key"]>("strength");
-  const [rising, setRising] = useState(false);
-  const set = (k: string, v: string) => {
+  const named = layerFromParams(params);
+  // A bare ?q= (an old search link) looks across every layer.
+  const view: View = named ?? (q ? "all" : DEFAULT);
+  const index = params.get("view") === "index";
+  const rising = params.get("rising") === "1";
+
+  const set = (changes: Record<string, string>) => {
     const n = new URLSearchParams(params);
-    if (v) n.set(k, v); else n.delete(k);
-    if (k === "d") n.delete("g");
+    n.delete("d"); n.delete("domain"); n.delete("g"); n.delete("thread"); n.delete("root");
+    if (!n.has("layer")) n.set("layer", view);
+    for (const [k, v] of Object.entries(changes)) if (v) n.set(k, v); else n.delete(k);
     setParams(n, { replace: true });
   };
-  const inDomain = useMemo(() => data.tells.filter((t) => domain === "all" || t.domain === domain), [domain]);
-  const groups = useMemo(() => {
-    const c = new Map<string, number>();
-    for (const t of inDomain) c.set(groupOf(t), (c.get(groupOf(t)) ?? 0) + 1);
-    return [...c.entries()].sort((a, b) => b[1] - a[1]);
-  }, [inDomain]);
-  const rows = useMemo(() => {
-    // A search looks across every shelf.
-    const list = (q ? data.tells : inDomain)
-      .filter((t) => q || !group || groupOf(t) === group)
-      .filter((t) => !rising || t.status === "rising")
-      .filter((t) => !q || `${t.name} ${t.what} ${t.id} ${t.examples?.bad ?? ""}`.toLowerCase().includes(q.toLowerCase()));
-    if (sort === "strength") list.sort((a, b) => newestStrength(b) * b.severity - newestStrength(a) * a.severity || b.severity - a.severity || label(a).localeCompare(label(b)));
-    if (sort === "newest") list.sort((a, b) => firstSeen(b) - firstSeen(a));
-    if (sort === "az" || view === "index") list.sort((a, b) => label(a).localeCompare(label(b)));
-    return list;
-  }, [q, inDomain, group, sort, rising, view]);
-  const sections = useMemo(() => {
-    if (q || group || domain === "all" || view === "index") return [{ key: "", rows }];
-    return groups.map(([g]) => ({ key: g, rows: rows.filter((t) => groupOf(t) === g) })).filter((s) => s.rows.length);
-  }, [rows, groups, q, group, domain, view]);
-  const count = (k: string) => (k === "all" ? data.tells.length : data.tells.filter((t) => t.domain === k).length);
+
+  // Rewrite old ?d= / ?domain= links to ?layer= so the address matches what shows.
+  useEffect(() => {
+    if (!params.has("d") && !params.has("domain")) return;
+    const n = new URLSearchParams(params);
+    n.delete("d"); n.delete("domain");
+    n.set("layer", view);
+    setParams(n, { replace: true });
+  }, [params, view, setParams]);
+
+  // Old links could name a group (?g=layout); bring that group into view once.
+  const oldGroup = params.get("g");
+  useEffect(() => {
+    if (!oldGroup || view === "all") return;
+    const t = window.setTimeout(() => document.getElementById(groupAnchor(view, oldGroup))?.scrollIntoView({ block: "start" }), 80);
+    return () => clearTimeout(t);
+  }, [oldGroup, view]);
+
+  const needle = q.trim().toLowerCase();
+  const shown = useMemo(() => {
+    const keep = (t: Tell) => (!rising || t.status === "rising") && (!needle || matches(t, needle));
+    return Object.fromEntries(LAYERS.map((l) => [l.id, tellsOfLayer[l.id].filter(keep)])) as Record<LayerId, Tell[]>;
+  }, [needle, rising]);
+  const filtering = !!needle || rising;
+  const count = (v: View) => (v === "all" ? LAYERS.reduce((n, l) => n + shown[l.id].length, 0) : shown[v].length);
+  const layersHere = view === "all" ? LAYERS : [layerById.get(view)!];
+  const total = count(view);
+  const elsewhere = LAYERS.filter((l) => view !== "all" && l.id !== view && shown[l.id].length > 0);
+
   return (
-    <div className="page">
+    <div className="page tells-page">
       <h1>A field guide to tells</h1>
-      <p className="lede" style={{ marginTop: "var(--s3)" }}>
-        {data.tells.length} patterns readers now spot as machine-made, from interface habits to stock phrases. Each card shows the tell itself; open one for its evidence, fix and detection rule.
-      </p>
-      <div className="shelves" role="group" aria-label="Kind of output">
-        {DOMAINS.map((d) => (
-          <button key={d.key} type="button" className="shelf" aria-pressed={!q && domain === d.key} onClick={() => { set("q", ""); set("d", d.key); }}>
-            {d.name} <span className="n">{count(d.key)}</span>
+
+      <div className="shelves" role="group" aria-label="Layer">
+        {[...LAYERS.map((l) => ({ id: l.id as View, name: l.name })), { id: "all" as View, name: "All" }].map((l) => (
+          <button key={l.id} type="button" className="shelf" aria-pressed={view === l.id} onClick={() => set({ layer: l.id })}>
+            {l.name} <span className="n">{count(l.id)}</span>
           </button>
         ))}
       </div>
-      <div className="toolbar" role="search">
-        {!q && groups.length > 1 && domain !== "all" && (
-          <div className="chips" role="group" aria-label="Group">
-            <button type="button" className="chip" aria-pressed={!group} onClick={() => set("g", "")}>All</button>
-            {groups.map(([g, n]) => (
-              <button key={g} type="button" className="chip" aria-pressed={group === g} onClick={() => set("g", group === g ? "" : g)}>
-                {groupName(g)} <span className="n">{n}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <span className="toolbar-end">
-          <button className="chip" type="button" aria-pressed={rising} onClick={() => setRising(!rising)}>Rising only</button>
-          <span className="seg" role="group" aria-label="View">
-            <button type="button" aria-pressed={view === "gallery"} onClick={() => set("view", "")}>Cards</button>
-            <button type="button" aria-pressed={view === "index"} onClick={() => set("view", "index")}>Index</button>
-          </span>
-          {view === "gallery" && (
-            <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="Sort">
-              {SORTS.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
-            </select>
-          )}
-          <input type="search" placeholder="Search every tell" value={q} onChange={(e) => set("q", e.target.value)} aria-label="Search tells" />
+
+      <div className="tells-tools" role="search">
+        <input type="search" placeholder="Search tells" value={q} onChange={(e) => set({ q: e.target.value })} aria-label="Search tells" />
+        <label className="check">
+          <input type="checkbox" checked={rising} onChange={(e) => set({ rising: e.target.checked ? "1" : "" })} /> Rising only
+        </label>
+        <span className="view-switch" role="group" aria-label="Show as">
+          <button type="button" aria-pressed={!index} onClick={() => set({ view: "" })}>By year</button>
+          <button type="button" aria-pressed={index} onClick={() => set({ view: "index" })}>A to Z</button>
         </span>
       </div>
-      {!rows.length && <p className="lede">Nothing matches. Clear the search or pick another shelf.</p>}
-      {view === "index" && rows.length > 0 && <TellIndex rows={rows} showDomain={!!q || domain === "all"} />}
-      {view === "gallery" &&
-        sections.map((s) => (
-          <section key={s.key || "all"} className="guide-section" aria-label={s.key ? groupName(s.key) : undefined}>
-            {s.key && <h2 className="guide-h">{groupName(s.key)} <span className="n">{s.rows.length}</span></h2>}
-            <div className="guide">
-              {s.rows.map((t) => <SpecimenCard key={t.id} t={t} showDomain={!!q || domain === "all"} />)}
-            </div>
-          </section>
-        ))}
+
+      <p className="sr" role="status">{filtering ? `${total} tells match.` : ""}</p>
+
+      {total === 0 && (
+        <div className="tells-empty">
+          <p>
+            No {view === "all" ? "" : `${layerById.get(view)!.name.toLowerCase()} `}tells match{needle ? ` “${q.trim()}”` : ""}{rising ? " among rising tells" : ""}.
+            {elsewhere.length > 0 ? " Try another layer:" : " Clear the search to see them all."}
+          </p>
+          {elsewhere.length > 0 && (
+            <ul>
+              {elsewhere.map((l) => (
+                <li key={l.id}><button type="button" onClick={() => set({ layer: l.id })}>{l.name} <span className="n">{shown[l.id].length}</span></button></li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {index && total > 0 && <TellIndex rows={layersHere.flatMap((l) => shown[l.id])} showLayer={view === "all"} />}
+      {!index &&
+        layersHere.map((l) =>
+          shown[l.id].length === 0 ? null : view === "all" ? (
+            <section key={l.id} className="tells-layer" aria-labelledby={`layer-${l.id}`}>
+              <h2 id={`layer-${l.id}`}>{l.name}</h2>
+              <TellGrid layer={l.id} tells={shown[l.id]} compact={narrow} />
+            </section>
+          ) : (
+            <TellGrid key={l.id} layer={l.id} tells={shown[l.id]} compact={narrow} />
+          ),
+        )}
     </div>
   );
 }
 
 /** A dense A to Z list, for reading the whole dictionary at once. */
-function TellIndex({ rows, showDomain }: { rows: Tell[]; showDomain: boolean }) {
+function TellIndex({ rows, showLayer }: { rows: Tell[]; showLayer: boolean }) {
   const letters = new Map<string, Tell[]>();
-  for (const t of rows) {
-    const k = label(t).replace(/^[^A-Za-z0-9]+/, "")[0]?.toUpperCase() ?? "#";
+  const bare = (t: Tell) => label(t).replace(/^[^A-Za-z0-9]+/, "");
+  for (const t of [...rows].sort((a, b) => bare(a).localeCompare(bare(b)))) {
+    const k = bare(t)[0]?.toUpperCase() ?? "#";
     const key = /[A-Z]/.test(k) ? k : "#";
     letters.set(key, [...(letters.get(key) ?? []), t]);
   }
@@ -143,7 +158,7 @@ function TellIndex({ rows, showDomain }: { rows: Tell[]; showDomain: boolean }) 
             {list.map((t) => (
               <li key={t.id}>
                 <Link to={`/tells/${t.id}`}>{label(t)}</Link>
-                {showDomain && <span className="muted"> {domainName(t.domain).toLowerCase()}</span>}
+                {showLayer && <span className="muted"> {layerById.get(layerOf(t))!.name.toLowerCase()}</span>}
                 <span className={`status-dot ${t.status}`} title={t.status} />
               </li>
             ))}
@@ -151,69 +166,6 @@ function TellIndex({ rows, showDomain }: { rows: Tell[]; showDomain: boolean }) 
         </section>
       ))}
     </div>
-  );
-}
-
-/** Wrap the part of an example that the tell's own pattern matches. */
-function Highlighted({ text, t }: { text: string; t: Tell }) {
-  if (!t.detect.pattern) return <>{text}</>;
-  let re: RegExp;
-  try { re = new RegExp(t.detect.pattern, (t.detect.flags ?? "i").replace("g", "") + "g"); } catch { return <>{text}</>; }
-  const parts: ReactNode[] = [];
-  let last = 0;
-  for (const m of text.matchAll(re)) {
-    if (!m[0]) continue;
-    parts.push(text.slice(last, m.index));
-    parts.push(<mark key={m.index}>{m[0]}</mark>);
-    last = m.index! + m[0].length;
-  }
-  parts.push(text.slice(last));
-  return <>{parts}</>;
-}
-
-function topPhrases(t: Tell) {
-  return ordered
-    .map((m) => ({ m, v: t.perModel[m.id] }))
-    .filter((e) => e.v && e.v.term)
-    .sort((a, b) => (b.v!.ratio ?? 0) - (a.v!.ratio ?? 0))
-    .filter((e, i, arr) => arr.findIndex((o) => o.v!.term === e.v!.term) === i)
-    .slice(0, 3);
-}
-
-export function SpecimenCard({ t, showDomain = false }: { t: Tell; showDomain?: boolean }) {
-  const measured = Object.values(t.perModel).some(Boolean);
-  const ui = hasSpecimen(t);
-  const phrases = topPhrases(t);
-  return (
-    <Link to={`/tells/${t.id}`} className={`specimen-card kind-${t.domain}`}>
-      <span className="card-head">
-        <span className={`status ${t.status}`}>{t.status}</span>
-        <span className="muted">{showDomain ? `${domainName(t.domain)}, ` : ""}{groupName(groupOf(t)).toLowerCase()}</span>
-      </span>
-      {ui ? (
-        <Specimen t={t} />
-      ) : (
-        <span className="big specimen">{label(t)}</span>
-      )}
-      <span className="card-name">{ui ? label(t) : t.what}</span>
-      {t.examples?.bad && !ui && (
-        <span className="example">
-          <Highlighted text={t.examples.bad} t={t} />
-        </span>
-      )}
-      {!t.examples?.bad && phrases.length > 0 && (
-        <span className="phrase-list">
-          {phrases.map((e) => (
-            <span key={e.m.id}>
-              <BrandIcon brand={brandOf(e.m.family)} size={12} /> <i className="specimen">“{e.v!.term!.replace(/ _ /g, " … ")}”</i>{" "}
-              <span className="muted">{e.m.name}</span>
-            </span>
-          ))}
-        </span>
-      )}
-      {measured && <Strip tell={t} labels={false} />}
-      {t.fix && <span className="fix">{t.fix}</span>}
-    </Link>
   );
 }
 
@@ -234,7 +186,7 @@ export function TellPage() {
   return (
     <div className="page">
       <header className="entry-head">
-        <Link className="crumb" to={`/tells?d=${t.domain}`}>Tells, {domainName(t.domain).toLowerCase()}</Link>
+        <Link className="crumb" to={`/tells?layer=${layerOf(t)}`}>Tells, {domainName(t.domain).toLowerCase()}</Link>
         <h1>{t.name}</h1>
         <p className="lede">{t.what}</p>
       </header>
@@ -268,14 +220,14 @@ export function TellPage() {
                   <tr key={m.id}>
                     <td><span className="swatch" style={{ background: familyColor(m.family), marginRight: 8 }} />{m.name}</td>
                     <td>{monthName(ym(m.released), "short")}{m.verified ? "" : "*"}</td>
-                    <td>{v ? describe(v, m) : <span className="muted">too few uses to measure</span>}{(v as { counted?: boolean } | null)?.counted ? <sup title="Counted by shibbo in the same articles; Graphite’s table leaves this cell out.">†</sup> : null}</td>
+                    <td>{v ? describe(v, m) : <span className="muted">{m.source === "shibbo-api" ? `no clear gap in its ${m.docs} articles` : "too few uses to measure"}</span>}{(v as { counted?: boolean } | null)?.counted ? <sup title="Counted by shibbo in the same articles; Graphite’s table leaves this cell out.">†</sup> : null}{v?.own ? <sup title={`shibbo’s own run: ${v.own} articles against the human articles on the same topics.`}>‡</sup> : null}</td>
                     <td className="specimen">{v?.term ? `“${v.term.replace(/ _ /g, " … ")}”` : v?.via === "feature" ? "rate per 1,000 words" : ""}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table></div>
-          <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>* release month not confirmed by an official source. † counted by shibbo in Graphite’s articles, where Graphite’s own table leaves the cell out.</p>
+          <p className="muted" style={{ fontSize: "var(--t-1)", marginTop: "var(--s3)" }}>* release month not confirmed by an official source. † counted by shibbo in Graphite’s articles, where Graphite’s own table leaves the cell out.{ordered.some((m) => m.source === "shibbo-api" && t.perModel[m.id]) ? " ‡ shibbo’s own run through the model’s API, a few hundred articles against people on the same topics; shown only when a paired sign test backs it." : ""}</p>
         </section>
       )}
       {history.length > 0 && (

@@ -39,7 +39,9 @@ export function DocsPage() {
         const m = /\/docs\/(.*?)(?:\.html)?$/.exec(String(e.data.path));
         const page = m ? m[1].replace(/(^|\/)index$/, "$1") : "";
         shown.current = toSrc(`/docs/${page}`, "").split("#")[0];
-        const next = `/docs${page ? `/${page.replace(/\/$/, "")}` : ""}`;
+        // Keep a folder page's trailing slash (harnesses/ → harnesses/index.html); dropping it asks for harnesses.html,
+        // which doesn't exist, and the dev server answers with the app itself, nested in the frame.
+        const next = `/docs${page ? `/${page}` : ""}`;
         if (next !== loc.pathname) nav(next, { replace: true });
         document.title = e.data.title ? `${String(e.data.title).replace(/ \| shibbo docs$/, "")}, shibbo docs` : "shibbo docs";
       }
@@ -55,5 +57,20 @@ export function DocsPage() {
 
   useEffect(() => () => void (document.title = "shibbo"), []);
 
-  return <iframe ref={frame} className="docs-frame" title="shibbo documentation" />;
+  // If the frame ever lands on something other than a docs page (a missing file served as the app), go to the docs home.
+  const onLoad = () => {
+    try {
+      const d = frame.current?.contentDocument;
+      if (d && d.getElementById("root") && !d.querySelector(".VPContent, .VPDoc")) {
+        // First try the page as a folder (docs/harnesses.html → docs/harnesses/index.html), then give up to the docs home.
+        const missed = shown.current ?? "";
+        const retry = missed.endsWith(".html") && !missed.endsWith("/index.html") ? missed.replace(/\.html$/, "/index.html") : "docs/index.html";
+        shown.current = retry;
+        frame.current!.contentWindow!.location.replace(retry);
+        if (retry === "docs/index.html") nav("/docs", { replace: true });
+      }
+    } catch { /* cross-origin: nothing to check */ }
+  };
+
+  return <iframe ref={frame} className="docs-frame" title="shibbo documentation" onLoad={onLoad} />;
 }

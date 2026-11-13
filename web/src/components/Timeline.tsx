@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { chronology, ym, monthName, type Milestone } from "../data";
 import { models as mapModels } from "./AtlasMap";
 import { BrandIcon, brandOf } from "./BrandIcon";
+import { famName } from "./families";
 
 // The record starts at ChatGPT's launch. Releases sit in one lane per lab, marked with the lab's icon.
 const START = ym("2022-11");
-const END = ym("2026-12");
-export const TIME = { START, END };
 /** The latest month with data: playback and the default view stop here. */
-export const NOW = ym(new Date().toISOString().slice(0, 7)) > END ? END : ym(new Date().toISOString().slice(0, 7));
+export const NOW = Math.max(ym(new Date().toISOString().slice(0, 7)), ...mapModels.map((m) => ym(m.released)));
+// The axis runs to the end of the current year, so a new year needs no edit here.
+const END = Math.floor(NOW / 12) * 12 + 11;
+const YEARS = Array.from({ length: Math.floor(END / 12) - 2022 }, (_, i) => 2023 + i);
+export const TIME = { START, END };
 
 const LANES: Array<{ key: string; name: string }> = [
   { key: "openai", name: "OpenAI" },
@@ -42,17 +45,21 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
     // A milestone lists the measured model ids it stands for, so each model gets one mark.
     const mapIds = new Set(mapModels.map((m) => m.id));
     const claimed = new Set(chronology.milestones.flatMap((m) => m.measured ?? []));
+    // A measured model whose release is already a milestone marks that milestone; it gets no second mark.
+    const norm = (n: string) => n.toLowerCase().replace(/[^a-z0-9.]+/g, " ").trim();
+    const named = (n: string) => mapModels.find((m) => ` ${norm(n)} `.includes(` ${norm(m.name)} `));
     const out: Mark[] = chronology.milestones
       .filter((m) => m.date && ym(String(m.date).slice(0, 7)) >= START)
       .map((m) => {
         const brand = brandOf(m.lab ?? m.maker);
-        return { at: ym(String(m.date).slice(0, 7)), date: String(m.date), name: m.name, lab: m.lab ?? m.maker ?? "", brand, lane: laneOf(brand), measured: (m.measured ?? []).some((id) => mapIds.has(id)), weights: m.weights, m };
+        return { at: ym(String(m.date).slice(0, 7)), date: String(m.date), name: m.name, lab: m.lab ?? m.maker ?? "", brand, lane: laneOf(brand), measured: (m.measured ?? []).some((id) => mapIds.has(id)) || !!named(m.name), weights: m.weights, m };
       });
+    for (const m of chronology.milestones) { const hit = named(m.name); if (hit) claimed.add(hit.id); }
     for (const m of mapModels) {
       if (claimed.has(m.id)) continue;
       const brand = brandOf(m.family);
-      const lab = brand === "openai" ? "OpenAI" : brand === "anthropic" ? "Anthropic" : "Google";
-      out.push({ at: ym(m.released), date: m.released + (m.verified ? "" : " (month unconfirmed)"), name: m.name, lab, brand, lane: laneOf(brand), measured: true, weights: "closed" });
+      const lab = LANES.find((l) => l.key === brand && l.key !== "other")?.name ?? famName(m.family);
+      out.push({ at: ym(m.released), date: m.released + (m.verified ? "" : " (month unconfirmed)"), name: m.name, lab, brand, lane: laneOf(brand), measured: true });
     }
     return out.sort((a, b) => a.at - b.at);
   }, []);
@@ -117,7 +124,7 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
         aria-valuenow={month}
         aria-valuetext={monthName(month)}
         style={{ height: H }}
-        onPointerDown={(e) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); scrub(e.clientX); }}
+        onPointerDown={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).focus({ preventScroll: true }); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); scrub(e.clientX); }}
         onPointerMove={(e) => { if (e.buttons) scrub(e.clientX); }}
         onKeyDown={(e) => {
           const step = e.shiftKey ? 12 : 1;
@@ -128,12 +135,10 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
         }}
       >
         <svg width={W} height={H} aria-hidden="true">
-          <rect x={x(ym("2025-04"))} y={top - 2} width={x(END) - x(ym("2025-04"))} height={lanes.length * laneH + 2} className="measured-band" />
-          <text x={x(ym("2025-04")) + 34} y={H - 4} className="era-label">Graphite, from Apr 2025</text>
           {lanes.map((l, i) => (
             <line key={l.key} x1={gutter} x2={W - 12} y1={top + i * laneH + laneH / 2} y2={top + i * laneH + laneH / 2} className="lane-line" />
           ))}
-          {[2023, 2024, 2025, 2026].map((y) => (
+          {YEARS.map((y) => (
             <g key={y}>
               <line x1={x(ym(`${y}-01`))} x2={x(ym(`${y}-01`))} y1={top - 2} y2={top + lanes.length * laneH} className="year-line" />
               <text x={x(ym(`${y}-01`)) + 3} y={H - 4}>{y}</text>

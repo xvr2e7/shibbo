@@ -35,9 +35,9 @@ export const mapWords = (mapData as unknown as { words: Record<string, number> }
 export const explained = (mapData as { explained: number }).explained;
 export const firstMeasured = Math.min(...models.map((m) => ym(m.released)));
 const idx = new Map(models.map((m, i) => [m.id, i]));
-export const FAM_NAME: Record<string, string> = { gpt: "OpenAI", claude: "Claude", gemini: "Gemini", meta: "Llama", mistral: "Mistral", mosaic: "MPT", cohere: "Cohere", qwen: "Qwen" };
-/** Families in a fixed order: the three measured in 2025-26 first, then the 2023 open and API models. */
-export const FAMS = ["gpt", "claude", "gemini", "meta", "mistral", "mosaic", "cohere", "qwen"].filter((f) => models.some((m) => m.family === f));
+export const FAM_NAME: Record<string, string> = { gpt: "OpenAI", claude: "Claude", gemini: "Gemini", meta: "Llama", mistral: "Mistral", mosaic: "MPT", cohere: "Cohere", qwen: "Qwen", deepseek: "DeepSeek", minimax: "MiniMax", mimo: "MiMo", nemotron: "Nemotron" };
+/** Families in a fixed order: the 2025-26 makers first, then the 2023 open and API models. */
+export const FAMS = ["gpt", "claude", "gemini", "deepseek", "minimax", "mimo", "nemotron", "meta", "mistral", "mosaic", "cohere", "qwen"].filter((f) => models.some((m) => m.family === f));
 /** A release counts as current for 18 months, or until the family's next measured release. */
 const CURRENT_MONTHS = 18;
 
@@ -93,7 +93,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
     const s = st.current;
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
-      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--meta", "--mistral", "--mosaic", "--cohere", "--qwen", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
+      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--meta", "--mistral", "--mosaic", "--cohere", "--qwen", "--deepseek", "--minimax", "--mimo", "--nemotron", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
     };
     const sx = (x: number) => s.t.applyX(s.base.x + x * s.base.k);
     const sy = (y: number) => s.t.applyY(s.base.y + y * s.base.k);
@@ -279,7 +279,21 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
           const w = ctx.measureText(m.name).width;
           const sub = monthName(ym(m.released), "short") + (m.verified ? "" : "*");
           const spots: Array<[number, number]> = [[mx + 13, my - 4], [mx - 13 - w, my - 4], [mx - w / 2, my - 18], [mx - w / 2, my + 30], [mx + 13, my + 14], [mx - 13 - w, my + 14], [mx + 13, my - 24], [mx - 13 - w, my - 24], [mx + 13, my + 34], [mx - 13 - w, my + 34], [mx - w / 2, my - 38], [mx - w / 2, my + 50]];
-          const found = spots.find(([a, b]) => fits(a, b, w, 13, 15));
+          let found = spots.find(([a, b]) => fits(a, b, w, 13, 15));
+          // Crowded: move the name out on a leader line; past that, an older release drops its name (hover still names it).
+          if (!found) for (const d of [56, 80, 108]) {
+            for (let a = 0; a < 12 && !found; a++) {
+              const ang = (a / 12) * Math.PI * 2, lx = mx + Math.cos(ang) * d, ly = my + Math.sin(ang) * d * 0.75;
+              const cand: [number, number] = [Math.cos(ang) < 0 ? lx - w : lx, ly];
+              if (fits(cand[0], cand[1], w, 13, 15)) found = cand;
+            }
+            if (found) {
+              const ex = Math.min(Math.max(mx, found[0]), found[0] + w), ey = found[1] + (found[1] < my ? 15 : -13);
+              ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey); ctx.strokeStyle = C["--ink-3"]; ctx.lineWidth = 1; ctx.stroke();
+              break;
+            }
+          }
+          if (!found && !cur) { ctx.globalAlpha = 1; continue; }
           const [x, y] = found ?? spots[0];
           if (!found) boxes.push([x - 2, y - 15, x + w + 2, y + 17]); // drawn anyway, so phrases must keep clear
           ctx.lineWidth = 4; ctx.strokeStyle = C["--halo"]; ctx.strokeText(m.name, x, y);
@@ -481,7 +495,6 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
         <button className="btn icon" type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in" title="Zoom in (or scroll up over the map)">+</button>
         <button className="btn icon" type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out" title="Zoom out (or scroll down over the map)">−</button>
         <button className="btn icon" type="button" onClick={fitView} aria-label="Fit the whole map" title="Fit the whole map">⤢</button>
-        <span className="zoom-hint">Scroll or pinch to zoom, drag to move. Labels fill in as you zoom.</span>
       </div>
     </>
   );

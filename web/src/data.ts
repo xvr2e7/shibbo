@@ -2,7 +2,8 @@ import registry from "./data/registry.json";
 import chronologyRaw from "./data/chronology.json";
 
 export type Fam = string;
-export interface Measure { ratio: number; term: string | null; counts: { model: number; human: number } | null; floor: boolean; via: "phrase" | "feature" }
+/** own: articles in shibbo's own API run, when the reading comes from one (on its own topics, not Graphite's). */
+export interface Measure { ratio: number; term: string | null; counts: { model: number; human: number } | null; floor: boolean; via: "phrase" | "feature"; own?: number }
 export interface Tell {
   id: string; name: string; label?: string; domain: string; kind: string; severity: number; what: string; status: string;
   fix?: string; examples?: { bad?: string; good?: string }; false_positives?: string; confidence: string; sources: string[];
@@ -13,9 +14,12 @@ export interface Tell {
   group?: string; models?: string[]; advisory?: string;
   specimen?: { html?: string; code?: string[]; hit?: number[]; lang?: string; chat?: Array<{ role: string; text: string }> };
 }
-export interface Lex { term: string; kind: string; ratio: number; articles: number; floor?: boolean; count?: number }
+/** human_count / human_articles: the human side, for shibbo's own runs. */
+export interface Lex { term: string; kind: string; ratio: number; articles: number; floor?: boolean; count?: number; human_count?: number; human_articles?: number; model_count?: number }
 export interface Model {
-  id: string; family: Fam; name: string; released: string; verified: boolean; maker: string; familyName: string; source?: string; docs?: number;
+  /** source: "graphite", "raid", "local" or "shibbo-api" (shibbo's own run through the maker's API; date: when it ran). */
+  id: string; family: Fam; name: string; released: string; verified: boolean; maker: string; familyName: string; source?: string; docs?: number; date?: string;
+  style?: Record<string, number>; human_style?: Record<string, number>;
   tells: number; shared: number | null; top: Lex[]; under: Lex[]; rules: string;
   features: Record<string, { mean: number; d: number; human: number }>;
 }
@@ -36,9 +40,13 @@ export interface Habit { key: string; label: string; glyph: string; what: string
 export const habits = ((registry as unknown as { habits?: Habit[] }).habits ?? []) as Habit[];
 export const chronology = chronologyRaw as { milestones: Milestone[]; tells: HistTell[] };
 
-export const FAMS: Fam[] = ["gpt", "claude", "gemini", "meta", "mistral", "mosaic", "cohere", "qwen"];
+export const FAMS: Fam[] = ["gpt", "claude", "gemini", "gemma", "meta", "mistral", "deepseek", "glm", "grok", "minimax", "mimo", "nemotron", "mosaic", "cohere", "qwen"];
 export const ordered = FAMS.flatMap((f) => data.models.filter((m) => m.family === f).sort((a, b) => a.released.localeCompare(b.released)));
 export const graphiteOrdered = ordered.filter((m) => m.source !== "raid");
+/** Measured by shibbo's own API run, on a few hundred topics rather than Graphite's ~10,000. */
+export const isOwnRun = (m?: { source?: string }) => m?.source === "shibbo-api";
+export interface Expected { id: string; name: string; maker: string; status: string; claim: string; source: { title: string; url: string; date: string; kind: string }; first_seen?: string; expires?: string }
+export const expected = ((registry as unknown as { expected?: Expected[] }).expected ?? []) as Expected[];
 export const tellById = new Map(data.tells.map((t) => [t.id, t]));
 export const modelById = new Map(data.models.map((m) => [m.id, m]));
 
