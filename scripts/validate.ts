@@ -4,11 +4,12 @@
 //   npx tsx scripts/validate.ts
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { tells, sources, root } from "../src/registry.js";
+import { tells, sources, root, models, apiRuns } from "../src/registry.js";
 
 const R = root();
 const errors: string[] = [];
 const warns: string[] = [];
+let missed = 0;
 const all = tells();
 const src = sources();
 const DOMAINS = new Set(["prose", "chat", "code", "ui", "agent"]);
@@ -56,6 +57,7 @@ for (const t of all) {
         else if (ms > 40) warns.push(`${at}: regex took ${ms.toFixed(0)} ms`);
         if (re.test("")) errors.push(`${at}: regex matches the empty string`);
         for (const m of (corpus + "\n" + (t.examples?.bad ?? "")).matchAll(re)) if (m[0] === "") { errors.push(`${at}: regex makes zero-width matches`); break; }
+        if (t.examples?.bad && t.examples.bad.search(re) < 0) { missed++; warns.push(`${at}: pattern misses its own examples.bad`); }
       } catch (e) {
         errors.push(`${at}: bad regex: ${(e as Error).message}`);
       }
@@ -70,6 +72,19 @@ for (const t of all) {
   if (["prose", "chat"].includes(t.domain) && !t.examples?.bad && t.detect.method !== "stat") warns.push(`${at}: prose tell without an example`);
 }
 
+// shibbo's own API runs: each model entry names its run and the article count data/measured/api.json measured.
+const runs = new Map((apiRuns()?.models ?? []).map((m) => [m.id, m]));
+const ms = models();
+for (const m of ms.models) {
+  if (!ms.families[m.family]) errors.push(`model ${m.id}: unknown family ${m.family}`);
+  if (m.source !== "shibbo-api") continue;
+  const r = runs.get(m.id);
+  if (!r) warns.push(`model ${m.id}: no measurements in data/measured/api.json (run npm run import:runs)`);
+  else if (m.articles !== r.docs) errors.push(`model ${m.id}: articles ${m.articles} in models.yaml, ${r.docs} in api.json`);
+}
+for (const id of runs.keys()) if (!ms.models.some((m) => m.id === id)) warns.push(`api run ${id}: measured, but not in data/models.yaml yet (the checker and rules skip it)`);
+for (const [a, id] of Object.entries(ms.aliases)) if (!ms.models.some((m) => m.id === id)) errors.push(`alias ${a}: unknown model ${id}`);
+
 for (const [id, s] of Object.entries(src)) if (s.url && !/^https?:\/\//.test(s.url)) errors.push(`source ${id}: url must be http(s)`);
 const used = new Set(all.flatMap((t) => t.sources ?? []));
 const unused = Object.keys(src).filter((s) => !used.has(s));
@@ -78,5 +93,6 @@ const by = (k: (t: (typeof all)[number]) => string) => Object.entries(all.reduce
 console.log(`${all.length} tells, ${Object.keys(src).length} sources (${unused.length} unused)`);
 console.log("by domain:", by((t) => t.domain).map(([k, n]) => `${k} ${n}`).join(", "));
 for (const w of warns) console.log("warn ", w);
+if (missed) console.log(`${missed} regex ${missed === 1 ? "tell misses" : "tells miss"} their own bad example`);
 for (const e of errors) console.log("ERROR", e);
 if (errors.length) process.exit(1);
