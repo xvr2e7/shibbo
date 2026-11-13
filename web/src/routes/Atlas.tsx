@@ -8,7 +8,7 @@ import { Timeline, TIME, NOW } from "../components/Timeline";
 import { data, tellById, ym, familyColor, label, type Habit } from "../data";
 import { LayerStack, LayerSections } from "../components/LayerStack";
 import { LayerAtlas, Measuring } from "../components/LayerAtlas";
-import { STACK, LAYER_NAME, codeLayer, conductLayer } from "../components/layerData";
+import { STACK, LAYER_NAME, codeLayer, conductLayer, uiLayer } from "../components/layerData";
 import { isLayer, type LayerId } from "../components/layers";
 import "../styles/atlas-switch.css";
 
@@ -47,6 +47,31 @@ function initialMonth() {
 }
 /** Playback speed in months per second: about 20 seconds from ChatGPT to today. */
 const SPEED = 2.4;
+/** Through a stretch with no measured release the map can't change, so playback crosses it this many times faster. */
+const QUIET_SPEED = 8;
+
+/** The months in which a layer gained a measured model, and the long stretches with none. */
+function pace(released: Array<string | null | undefined>): { start: number; quiet: Array<[number, number]> } {
+  const months = [...new Set(released.filter(Boolean).map((r) => ym(String(r).slice(0, 7))))].sort((a, b) => a - b);
+  const quiet: Array<[number, number]> = [];
+  const first = months.find((m) => m >= TIME.START) ?? TIME.START;
+  if (first - TIME.START >= 5 && !months.some((m) => m < TIME.START)) quiet.push([TIME.START, first - 1]);
+  let prev = Math.max(TIME.START, months.filter((m) => m <= first).at(-1) ?? TIME.START);
+  for (const m of months) {
+    if (m <= prev) continue;
+    if (m - prev >= 9) quiet.push([prev + 1, m - 1]);
+    prev = m;
+  }
+  // A layer whose first measured model is recent starts its replay just before it.
+  const start = quiet[0]?.[0] === TIME.START ? first - 2 : TIME.START;
+  return { start, quiet };
+}
+const PACE: Record<LayerId, ReturnType<typeof pace>> = {
+  prose: pace(mapModels.map((m) => m.released)),
+  interface: pace(uiLayer.models.map((m) => m.released)),
+  code: pace(codeLayer?.models.map((m) => m.released) ?? []),
+  conduct: pace([]),
+};
 
 export function AtlasPage() {
   const [params, setParams] = useSearchParams();
@@ -75,6 +100,8 @@ export function AtlasPage() {
   const reset = 0;
   const [wide, setWide] = useState(window.innerWidth > 900);
   const raf = useRef(0);
+  const paced = useRef(PACE[layer]);
+  paced.current = PACE[layer];
 
   useEffect(() => {
     const on = () => setWide(window.innerWidth > 900);
@@ -91,7 +118,8 @@ export function AtlasPage() {
       last = now;
       let done = false;
       setT((x) => {
-        const n = x + dt * speed;
+        const quiet = paced.current.quiet.some(([a, b]) => x >= a && x < b);
+        const n = x + dt * speed * (quiet ? QUIET_SPEED : 1);
         if (n >= NOW) { done = true; return NOW; }
         return n;
       });
@@ -108,14 +136,14 @@ export function AtlasPage() {
       const el = e.target as HTMLElement;
       if (el.closest("input, textarea, select, button, a, [contenteditable]")) return;
       e.preventDefault();
-      setPlaying((p) => { if (!p) setT((x) => (x >= NOW ? TIME.START : x)); return !p; });
+      setPlaying((p) => { if (!p) setT((x) => (x >= NOW ? paced.current.start : x)); return !p; });
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, []);
 
   const play = () => {
-    if (!playing && t >= NOW) setT(TIME.START);
+    if (!playing && t >= NOW) setT(paced.current.start);
     setPlaying(!playing);
   };
   const scrub = (m: number) => { setPlaying(false); setT(m); };
@@ -125,7 +153,7 @@ export function AtlasPage() {
   const title = <h1 id="atlas-h">What gives a model away</h1>;
   const tabs = <LayerSwitch layer={layer} setLayer={setLayer} onStack={toStack} />;
   const flatHeader = <><h1 id="atlas-h">What gives a model away</h1>{tabs}</>;
-  const timeline = <Timeline month={month} t={t} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />;
+  const timeline = <Timeline month={month} t={t} quiet={PACE[layer].quiet} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />;
   let atlas: ReactNode;
   if (view === "stack") {
     atlas = narrow ? <LayerSections onOpen={openLayer} header={title} /> : <LayerStack key="stack" onOpen={openLayer} from={lastFlat} header={title} />;

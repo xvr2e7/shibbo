@@ -31,7 +31,7 @@ const laneOf = (brand: string) => (LANES.some((l) => l.key === brand) ? brand : 
 
 type Mark = { at: number; date: string; name: string; lab: string; brand: string; lane: string; measured: boolean; weights?: string; m?: Milestone };
 
-export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset }: { month: number; t?: number; setMonth: (m: number) => void; playing: boolean; onPlay: () => void; onReset: () => void }) {
+export function Timeline({ month, t = month, quiet = [], setMonth, playing, onPlay, onReset }: { month: number; t?: number; quiet?: Array<[number, number]>; setMonth: (m: number) => void; playing: boolean; onPlay: () => void; onReset: () => void }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1000);
   const [hover, setHover] = useState<Mark | null>(null);
@@ -90,7 +90,7 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
     <div className="plate timeline">
       <div className="row">
         <div className="transport">
-          <button className="play" type="button" onClick={onPlay} aria-pressed={playing} aria-label={playing ? "Pause" : month >= NOW ? "Play from November 2022" : "Play"} title={playing ? "Pause (space)" : "Play (space)"}>
+          <button className="play" type="button" onClick={onPlay} aria-pressed={playing} aria-label={playing ? "Pause" : month >= NOW ? "Replay the releases" : "Play"} title={playing ? "Pause (space)" : "Play (space)"}>
             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
               <path className="i-play" d="M6.5 4.2v11.6a.8.8 0 0 0 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8a.8.8 0 0 0-1.2.7Z" />
               <g className="i-pause"><rect x="5" y="4" width="3.4" height="12" rx="1" /><rect x="11.6" y="4" width="3.4" height="12" rx="1" /></g>
@@ -103,6 +103,7 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
           </button>
         </div>
         <output className="date" aria-live="polite">{monthName(month)}</output>
+        {quiet.length > 0 && !hover && <span className="quiet-note"><i aria-hidden="true" />No model measured on this layer</span>}
         <span className="hover-note" data-show={hover ? true : undefined}>
           {hover && (
             <>
@@ -137,6 +138,11 @@ export function Timeline({ month, t = month, setMonth, playing, onPlay, onReset 
         <svg width={W} height={H} aria-hidden="true">
           {lanes.map((l, i) => (
             <line key={l.key} x1={gutter} x2={W - 12} y1={top + i * laneH + laneH / 2} y2={top + i * laneH + laneH / 2} className="lane-line" />
+          ))}
+          {quiet.map(([a, b]) => (
+            <g key={a}>
+              <rect x={x(a)} width={x(b + 1) - x(a)} y={top - 2} height={lanes.length * laneH + 2} className="quiet-span" />
+            </g>
           ))}
           {YEARS.map((y) => (
             <g key={y}>
