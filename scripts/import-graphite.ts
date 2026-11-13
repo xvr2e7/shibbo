@@ -21,7 +21,7 @@ function csv(text: string): Record<string, string>[] {
 const THRESHOLD = { ratio: 2, articles: 20 };
 
 const rows = csv(raw("tells_vs_human.csv.gz"));
-const ms = models().models;
+const ms = models().models.filter((m) => m.graphite); // Graphite-measured models only; shibbo's API runs come from data/measured/api.json
 const bySlug = new Map(ms.map((m) => [m.graphite!, m]));
 
 interface Row {

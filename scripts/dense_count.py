@@ -24,7 +24,7 @@ from tellcount import segments, clean  # noqa: E402
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CORPORA = ["human", "gpt41", "gpt5", "gpt-5-6-sol", "gpt-6-astra", "claude-opus-4-20250514", "claude-opus-4-6", "claude-opus-5", "gemini-2-5-pro", "gemini-3-1-pro-preview"]
+CORPORA = ["human", "gpt41", "gpt5", "gpt-5-6-sol", "gpt-6-astra", "claude-opus-4-20250514", "claude-opus-4-6", "claude-opus-5", "claude-opus-5-5", "gemini-2-5-pro", "gemini-3-1-pro-preview"]
 MIN_DF = 10  # keep an n-gram if it appears in this many articles of at least one corpus
 
 def repeated_human_lines():

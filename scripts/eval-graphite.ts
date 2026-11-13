@@ -1,4 +1,4 @@
-// Held-out evaluation on Graphite's matched articles (same topic, human vs. 9 models).
+// Held-out evaluation on Graphite's matched articles (same topic, human vs. every measured model).
 //
 //   npm run eval -- <path/to/ai_tells_articles.jsonl.gz> [--limit N]
 //
@@ -19,7 +19,7 @@ const args = process.argv.slice(2);
 const file = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--limit") ?? join(root(), ".cache/ai_tells_articles.jsonl.gz");
 const limit = args.includes("--limit") ? +args[args.indexOf("--limit") + 1] : Infinity;
 
-const ms = models().models;
+const ms = models().models.filter((m) => m.graphite); // Graphite-measured models only; shibbo's API runs come from data/measured/api.json
 const corpora = ["human", ...ms.map((m) => m.graphite!)];
 const idOf = (slug: string) => (slug === "human" ? "human" : ms.find((m) => m.graphite === slug)!.id);
 
@@ -224,7 +224,7 @@ void registryOnly;
 
 const result = {
   generated: new Date().toISOString().slice(0, 10),
-  data: "Graphite AI Tells articles (9,984 topics; human vs. 9 models). Split 50/50 by URL hash.",
+  data: `Graphite AI Tells articles (${docs.length.toLocaleString("en")} topics; human vs. ${ms.length} models). Split 50/50 by URL hash.`,
   topics: { train: train.length, test: test.length },
   half_life: +halfLife.toFixed(2),
   own_model_boost: bestBoost,

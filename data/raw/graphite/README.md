@@ -3,7 +3,7 @@
 Companion data for Graphite's *AI Tells* (2026):
 https://graphite.io/five-percent/research/ai-tells
 
-Every file covers the same 9,984 topics. For each topic there is one human
+Every file covers the same 9,974 topics. For each topic there is one human
 article and one article per model.
 
 Corpora, as slug and name:
@@ -17,6 +17,7 @@ Corpora, as slug and name:
   claude-opus-4-20250514  Claude Opus 4
   claude-opus-4-6         Claude Opus 4.6
   claude-opus-5           Claude Opus 5
+  claude-opus-5-5         Claude Opus 5.5
   gemini-2-5-pro          Gemini 2.5 Pro
   gemini-3-1-pro-preview  Gemini 3.1 Pro
 ```

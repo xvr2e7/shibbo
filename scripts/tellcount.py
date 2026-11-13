@@ -28,6 +28,24 @@ def clean(text, rep=frozenset()):
     return "\n".join(keep)
 
 
+def _words(s):
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).split()
+
+
+def strip_title(text, title):
+    """Drop the echoed title line from a shibbo run: the prompt gives each model the title (GPT-4.1's, from
+    Graphite's data), so that line carries another model's words. A first line that matches the title, or a
+    heading that shares 80% of its words, goes."""
+    lines = (text or "").split("\n")
+    for i, l in enumerate(lines):
+        if not l.strip():
+            continue
+        a, b = _words(l), _words(title)
+        same = a == b or (l.lstrip().startswith("#") and b and len(set(a) & set(b)) >= 0.8 * max(len(set(a)), len(set(b))))
+        return "\n".join(lines[i + 1:]) if same else text
+    return text
+
+
 def segments(text):
     for seg in SEG.split(text or ""):
         toks = [t.lower().replace("’", "'") for t in TOK.findall(seg)]

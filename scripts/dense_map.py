@@ -14,10 +14,11 @@ not an echo of the human page's own topic (a model phrase that turns up mainly w
 readable (no stray single letters; a gapped frame needs enough fixed words and must beat its best single word by 1.5x),
 and not just a fragment of a longer phrase on the map. Thresholds follow the term audit in the commit history.
 
-Layout: CA of the phrase x corpus count table (people are one of ten corpora; phrases in 40+ articles of some corpus).
+Layout: CA of the phrase x corpus count table (people are one of the corpora, eleven as of Opus 5.5; phrases in 40+ articles of some corpus).
 Corpora sit at their CA vertices, each phrase at the average of the vertices weighted by who uses it, so a phrase
 people and models share lands between them. People are moved to the origin. RAID's 2022-23 models are placed as
-supplementary corpora, each relative to its own matched human texts. Only derived numbers are written.
+supplementary corpora, each relative to its own matched human texts, and so are shibbo's own local and API runs on
+Graphite's held-out topics (100+ articles each). Only derived numbers are written.
 """
 import glob, json, math, os, re, sys
 
@@ -27,7 +28,7 @@ import yaml
 from scipy.stats import binom
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # explicit: shared counting module
-from tellcount import make_counter, clean  # noqa: E402
+from tellcount import make_counter, clean, strip_title  # noqa: E402
 
 D = sys.argv[1]
 RAID_DIR = sys.argv[2] if len(sys.argv) > 2 else None
@@ -43,14 +44,15 @@ X = {c: sp.load_npz(f"{D}/X_{c}.npz").tocsr().astype(np.float64) for c in C}
 mt = {c: np.load(f"{D}/meta_{c}.npz") for c in C}
 lens = {c: mt[c]["lens"].astype(np.float64) for c in C}
 P = {c: mt[c]["pos"][np.minimum(K, 7) - 1].astype(np.float64) for c in C}
-N = np.vstack([np.asarray(X[c].sum(0)).ravel() for c in C])  # 10 x T
+N = np.vstack([np.asarray(X[c].sum(0)).ravel() for c in C])  # corpora x T
 DF = np.vstack([X[c].getnnz(axis=0) for c in C])
 words = {c: int(lens[c].sum()) for c in C}
 print(f"terms {T} (n-grams {V0}), words: " + ", ".join(f"{c} {w:,}" for c, w in words.items()), file=sys.stderr)
 
 ms = yaml.safe_load(open(f"{ROOT}/data/models.yaml"))["models"]
-slug2id = {m["graphite"]: m["id"] for m in ms}
+slug2id = {m["graphite"]: m["id"] for m in ms if m.get("graphite")}
 M = C[1:]
+NM, NC = len(M), len(C)
 
 
 def bh(p):
@@ -76,7 +78,7 @@ if os.path.exists(STATS):
     z = np.load(STATS); L2, Q, TOP, ECHO, SH = z["L2"], z["Q"], z["TOP"], z["ECHO"], z["SH"]
     print("stats: cached", file=sys.stderr)
 else:
-    L2 = np.zeros((9, T)); Q = np.ones((9, T)); TOP = np.zeros((9, T)); ECHO = np.zeros((9, T)); SH = np.zeros((9, T))
+    L2 = np.zeros((NM, T)); Q = np.ones((NM, T)); TOP = np.zeros((NM, T)); ECHO = np.zeros((NM, T)); SH = np.zeros((NM, T))
     Bh = (X["human"] > 0).astype(np.float64)
     for i, m in enumerate(M):
         a, b = N[i + 1], N[h]
@@ -163,7 +165,7 @@ ev, vec = np.linalg.eigh(S.T @ S)
 o = np.argsort(ev)[::-1]; ev, vec = ev[o], vec[:, o]
 G = vec / np.sqrt(c)[:, None]  # column standard coordinates
 explained = float(ev[:2].sum() / ev.sum() * 100)
-inertia_share = {C[k]: float(((S[:, k] ** 2).sum()) / ev.sum()) for k in range(10)}
+inertia_share = {C[k]: float(((S[:, k] ** 2).sum()) / ev.sum()) for k in range(NC)}
 print(f"CA on {len(base)} phrases: axes 1-2 explain {explained:.1f}%; people carry {inertia_share['human'] * 100:.1f}% of inertia", file=sys.stderr)
 prof = lambda f: f / np.maximum(f.sum(-1, keepdims=True), 1e-12)
 RP = prof(F) @ G[:, :2]  # base phrases, principal coordinates
@@ -238,34 +240,59 @@ if RAID_DIR:
         rm = raid_meta.get(rid, {})
         place_extra({"id": rid, "name": rm.get("name", rid), "family": rm.get("family", "other"), "released": rm.get("released", ""), "verified": rm.get("verified", True), "source": "raid", "docs": r["docs"]}, mc, mpos, hc, hpos)
 
-# ── Local open-weight runs (measure/generate-local.ts) on Graphite's own topics, against those topics' human articles ──
+# ── shibbo's own runs on Graphite's held-out topics, against those topics' human articles: local open-weight models
+# (measure/generate-local.ts, runs local-*) and hosted models through their APIs (measure/generate-api.ts, runs api-*).
+# Each is a supplementary corpus placed relative to its own human twins; a run needs MIN_LOCAL articles.
 MIN_LOCAL = 100
-runs = sorted(glob.glob(f"{ROOT}/measure/runs/local-*/matched.jsonl"))
+runs = sorted(glob.glob(f"{ROOT}/measure/runs/local-*/matched.jsonl")) + sorted(glob.glob(f"{ROOT}/measure/runs/api-*/matched.jsonl"))
 if runs:
     import gzip
     lm = {m["ollama"]: m for m in (yaml.safe_load(open(f"{ROOT}/measure/local-models.yaml")) or [])}
+    am = {f"api-{m['id']}": {"id": m["id"], "name": m["name"], "family": m["family"], "released": str(m["released"]), "verified": False} for m in (yaml.safe_load(open(f"{ROOT}/measure/api-models.yaml")) or [])}
+    for m in ms:
+        if m.get("source") == "shibbo-api":
+            am[m.get("run", f"api-{m['id']}")] = {"id": m["id"], "name": m["name"], "family": m["family"], "released": str(m["released"]), "verified": m.get("verified", False)}
     rows = {}
     for f in runs:
+        run = f.split("/")[-2]
+        # A bridge run (a model Graphite also measured, under shibbo's prompt) feeds only the arena: on the atlas it
+        # would clash with Graphite's point of the same id.
+        if run.startswith("api-") and am.get(run, {}).get("id", run[4:]) in slug2id.values():
+            print(f"run {run}: bridge run of a Graphite model, left off the atlas", file=sys.stderr)
+            continue
         rr = [json.loads(l) for l in open(f) if l.strip()]
-        rr = [x for x in rr if x.get("stop_reason") in ("end_turn", "max_tokens") and x.get("text")]
+        rr = [x for x in rr if x.get("stop_reason") in ("end_turn", "max_tokens", "stop", "length") and x.get("text")]
         if len(rr) >= MIN_LOCAL:
-            rows[rr[0]["model"]] = rr
+            rows[run] = rr
         else:
-            print(f"local {f.split('/')[-2]}: {len(rr)} articles, needs {MIN_LOCAL}", file=sys.stderr)
+            print(f"run {run}: {len(rr)} articles, needs {MIN_LOCAL}", file=sys.stderr)
     if rows:
+        from collections import Counter
         need = {x["topic"] for rr in rows.values() for x in rr}
-        human = {}
-        with gzip.open(f"{ROOT}/.cache/ai_tells_articles.jsonl.gz", "rt") as fh:
+        human, seen = {}, Counter()
+        src = f"{ROOT}/.cache/graphite-55/ai_tells_articles_opus55.jsonl.gz"
+        src = src if os.path.exists(src) else f"{ROOT}/.cache/ai_tells_articles.jsonl.gz"
+        with gzip.open(src, "rt") as fh:
             for line in fh:
                 d = json.loads(line)
+                t = d.get("human") or ""
+                for l in {x.strip() for x in t.split("\n")}:
+                    if len(l) >= 15:
+                        seen[l] += 1
                 if d["url"] in need:
-                    human[d["url"]] = d.get("human") or ""
+                    human[d["url"]] = t
+        rep = frozenset(l for l, n in seen.items() if n >= 3)  # lines on 3+ human pages, as in dense_count.py
         count = make_counter({terms[j] for j in base} | {terms[j] for j in sel})
-        for tag, rr in rows.items():
+        for run, rr in rows.items():
             rr = [x for x in rr if human.get(x["topic"])]
-            (mc, mpos, _), (hc, hpos, _) = count([clean(x["text"]) for x in rr]), count([clean(human[x["topic"]]) for x in rr])
-            m = lm.get(tag, {})
-            place_extra({"id": m.get("id", tag.replace(":", "-")), "name": m.get("name", tag), "family": m.get("family", "other"), "released": str(m.get("released", "")), "verified": True, "source": "local", "docs": len(rr)}, mc, mpos, hc, hpos)
+            (mc, mpos, _), (hc, hpos, _) = count([clean(strip_title(x["text"], x.get("title", ""))) for x in rr]), count([clean(human[x["topic"]], rep) for x in rr])
+            if run.startswith("api-"):
+                m = am.get(run, {"id": run[4:], "name": rr[0]["model"], "family": "other", "released": "", "verified": False})
+                place_extra({**m, "source": "api", "docs": len(rr)}, mc, mpos, hc, hpos)
+            else:
+                tag = rr[0]["model"]
+                m = lm.get(tag, {})
+                place_extra({"id": m.get("id", tag.replace(":", "-")), "name": m.get("name", tag), "family": m.get("family", "other"), "released": str(m.get("released", "")), "verified": True, "source": "local", "docs": len(rr)}, mc, mpos, hc, hpos)
 
 out = {
     "attribution": 'Counted by shibbo from the paired articles of Graphite, "AI Tells" (2026), CC BY 4.0',
@@ -278,10 +305,10 @@ out = {
     "terms": [
         {
             "t": terms[j], "x": round(float(txy[n, 0]), 2), "y": round(float(txy[n, 1]), 2), "under": int(under[n]),
-            "v": [int(round(float(np.clip(L2[i, j], -10, 10)) * 10)) for i in range(9)],
-            "sig": int(sum(1 << i for i in range(9) if Q[i, j] < CFG["q"])),
-            "ok": int(sum(1 << i for i in range(9) if ok[i, j])),
-            "n": [int(N[k, j]) for k in range(10)], "d": [int(DF[k, j]) for k in range(10)],
+            "v": [int(round(float(np.clip(L2[i, j], -10, 10)) * 10)) for i in range(NM)],
+            "sig": int(sum(1 << i for i in range(NM) if Q[i, j] < CFG["q"])),
+            "ok": int(sum(1 << i for i in range(NM) if ok[i, j])),
+            "n": [int(N[k, j]) for k in range(NC)], "d": [int(DF[k, j]) for k in range(NC)],
             "raid": [None if r["log2"][n] is None else int(round(max(-10, min(10, r["log2"][n])) * 10)) for r in raid_out],
             "rn": [[r["n"][n], r["human_n"][n]] for r in raid_out],
         }
@@ -304,6 +331,6 @@ for x in reg:
     j = tix.get(x)
     if j is None:
         continue
-    linked[x] = {"v": [round(float(L2[i, j]), 2) for i in range(9)], "q": [float(f"{Q[i, j]:.2g}") for i in range(9)], "n": [int(N[k, j]) for k in range(10)], "d": [int(DF[k, j]) for k in range(10)], "top5": [round(float(TOP[i, j]), 3) for i in range(9)]}
+    linked[x] = {"v": [round(float(L2[i, j]), 2) for i in range(NM)], "q": [float(f"{Q[i, j]:.2g}") for i in range(NM)], "n": [int(N[k, j]) for k in range(NC)], "d": [int(DF[k, j]) for k in range(NC)], "top5": [round(float(TOP[i, j]), 3) for i in range(NM)]}
 json.dump({"corpora": C, "models": [slug2id[m] for m in M], "terms": linked, "missing": sorted(set(reg) - set(linked))}, open(f"{ROOT}/data/measured/dense-registry.json", "w"), separators=(",", ":"))
 print(f"registry terms: {len(linked)} measured, {len(set(reg) - set(linked))} not in the counts", file=sys.stderr)

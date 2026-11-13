@@ -14,11 +14,11 @@ type DenseTerm = { t: string; x: number; y: number; under: 0 | 1; v: number[]; s
 const dense = JSON.parse(readFileSync(densePath, "utf8")) as {
   attribution: string; explained: number; method: Record<string, unknown>; words: Record<string, number>; inertia: Record<string, number>;
   models: Array<{ id: string; graphite: string; x: number; y: number }>;
-  raid: Array<{ id: string; name: string; family: string; released: string; verified: boolean; source: "raid" | "local"; docs: number; x: number; y: number }>;
+  raid: Array<{ id: string; name: string; family: string; released: string; verified: boolean; source: "raid" | "local" | "api"; docs: number; x: number; y: number }>;
   terms: DenseTerm[];
 };
 
-// An earlier or local model owns a phrase when it is 4x or more one way and the side that uses it more wrote it 20+ times.
+// An earlier model or one of shibbo's own runs (local or API) owns a phrase when it is 4x or more one way and the side that uses it more wrote it 20+ times.
 const raidOk = (t: DenseTerm, k: number) => {
   const v = t.raid[k];
   if (v === null || Math.abs(v) < 20) return false;
@@ -27,7 +27,8 @@ const raidOk = (t: DenseTerm, k: number) => {
 };
 
 interface N extends SimulationNodeDatum { i: number; tx: number; ty: number; r: number }
-const strength = (t: DenseTerm) => Math.max(...t.v.map((x, i) => ((t.ok >> i) & 1 ? Math.abs(x) / 10 : 0)), ...t.raid.map((x, k) => (raidOk(t, k) ? Math.abs(x!) / 10 : 0)));
+// Phrase size, and so the layout, leaves out shibbo's API runs: a new run then adds markers without moving the terrain.
+const strength = (t: DenseTerm) => Math.max(...t.v.map((x, i) => ((t.ok >> i) & 1 ? Math.abs(x) / 10 : 0)), ...t.raid.map((x, k) => (dense.raid[k].source !== "api" && raidOk(t, k) ? Math.abs(x!) / 10 : 0)));
 const nodes: N[] = dense.terms.map((t, i) => {
   const h = [...t.t].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   return { i, tx: t.x, ty: t.y, r: 0.55 + Math.min(strength(t), 10) * 0.06, x: t.x + ((h % 100) / 100 - 0.5) * 2, y: t.y + (((h >> 7) % 100) / 100 - 0.5) * 2 };
@@ -43,24 +44,26 @@ const tellOf = new Map<string, string>();
 for (const t of tells()) for (const term of t.measure?.graphite ?? []) tellOf.set(term, t.id);
 
 const byId = new Map(ms.map((m) => [m.id, m]));
+const graphiteIds = new Set(ms.filter((m) => m.graphite).map((m) => m.id));
 const out = {
   attribution: dense.attribution,
   explained: dense.explained,
   method: dense.method,
   words: dense.words,
   models: [
-    ...dense.models.map((p) => {
+    ...dense.models.filter((p) => graphiteIds.has(p.id)).map((p) => {
       const m = byId.get(p.id)!;
       return { id: m.id, name: m.name, family: m.family, released: m.released, verified: m.verified, source: "graphite", x: p.x, y: p.y };
     }),
-    // Earlier models (RAID) and local open-weight runs, each placed relative to its own matched human texts.
+    // Earlier models (RAID) and shibbo's own runs (source "local" or "api": a few hundred articles each, against
+    // Graphite's ~10,000), each placed relative to its own matched human texts.
     ...dense.raid.map((p) => ({ id: p.id, name: p.name, family: p.family, released: p.released, verified: p.verified, source: p.source, x: p.x, y: p.y, docs: p.docs })),
   ],
   // [term, x, y, under?1:0, tellId|"", ownMask (bit i: model i owns it — 4x+, significant, 40+ articles, spread over topics),
   //  ...per-model log2 ratio x10 (null: too few uses to say)]
   terms: dense.terms.map((t, i) => {
     let own = t.ok;
-    dense.raid.forEach((_, k) => { if (raidOk(t, k)) own |= 1 << (9 + k); });
+    dense.raid.forEach((_, k) => { if (raidOk(t, k)) own |= 1 << (dense.models.length + k); });
     return [t.t, +nodes[i].x!.toFixed(2), +nodes[i].y!.toFixed(2), t.under, tellOf.get(t.t) ?? "", own, ...t.v, ...t.raid];
   }),
   // Per phrase: [people uses, people articles, then uses and articles for each Graphite model, then RAID model uses and its human texts' uses].
