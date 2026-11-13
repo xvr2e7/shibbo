@@ -249,7 +249,7 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
       const L = layout();
       return st.map((s, i) => {
         // Prose on top: the first sheet sits highest on screen.
-        const iso: Pose = { cx: L.cx, cy: L.ys[i] - s.lift * 10 - s.spread * L.h * 0.35 - (1 - easeOut(s.enter)) * 70, k: L.k, ...ISO };
+        const iso: Pose = { cx: L.cx, cy: L.ys[i] - s.lift * 5 - s.spread * L.h * 0.1 - (1 - easeOut(s.enter)) * 70, k: L.k, ...ISO };
         if (s.flat <= 0) return iso;
         const f = flatPose(i), e = easeInOut(s.flat);
         return { cx: lerp(iso.cx, f.cx, e), cy: lerp(iso.cy, f.cy, e), k: lerp(iso.k, f.k, e), th: lerp(iso.th, f.th, e), sq: lerp(iso.sq, f.sq, e) };
