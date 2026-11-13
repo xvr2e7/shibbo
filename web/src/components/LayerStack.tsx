@@ -446,7 +446,7 @@ function About({ ordered, onOpen, onPeek, peek }: { ordered: Sheet[]; onOpen: (i
   );
   return (
     <p className="about">
-      Shibbo tracks the habits that mark a model’s work as machine-made, in four layers: <span className="nb">{link(0)},</span> <span className="nb">{link(1)},</span> {link(2)} and <span className="nb"><Link to="/tells?layer=conduct">conduct</Link>.</span> It maps {keys.size} models from {fams.size} makers and lists <Link to="/tells">{data.tells.length} tells</Link> with their sources.
+      Shibbo tracks the habits that mark a model’s work as machine-made, in three layers: <span className="nb">{link(0)},</span> {link(1)} and <span className="nb">{link(2)}.</span> It maps {keys.size} models from {fams.size} makers and lists <Link to="/tells">{data.tells.length} tells</Link> with their sources.
     </p>
   );
 }

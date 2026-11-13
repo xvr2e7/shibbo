@@ -1,4 +1,4 @@
-// The four layers the Tells page sorts by (prose, code, interface, conduct), the year axis and the root habits
+// The three layers the Tells page sorts by (prose, code, interface), the year axis and the root habits
 // that run through more than one layer. Root habits come from data/roots.json (scripts/build-roots-data.ts).
 import { data, tellById, type Tell } from "../data";
 import rootsRaw from "../data/roots.json";
@@ -10,7 +10,6 @@ export const LAYERS: Layer[] = [
   { id: "prose", name: "Prose", domains: ["prose", "chat"], blurb: "Words a person reads: articles, replies, messages." },
   { id: "code", name: "Code", domains: ["code"], blurb: "Source, comments, tests and commits." },
   { id: "interface", name: "Interface", domains: ["ui"], blurb: "Pages and screens: color, type, layout, motion." },
-  { id: "conduct", name: "Conduct", domains: ["agent"], blurb: "What an agent does while it works, and how it reports." },
 ];
 export const layerById = new Map(LAYERS.map((l) => [l.id, l]));
 export const isLayer = (s: string | null | undefined): s is LayerId => !!s && layerById.has(s as LayerId);
