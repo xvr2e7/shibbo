@@ -1,0 +1,41 @@
+name: track
+# Daily: read public model lists and changelogs, and open (or update) one pull request listing new models and
+# any sighting of an expected one. Costs nothing: no model calls, no keys. It never merges and never edits the
+# release timeline; a person reads each date on the maker's page first.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: { group: track, cancel-in-progress: false }
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx tsx scripts/track-releases.ts
+      - id: body
+        run: |
+          {
+            echo 'text<<SHIBBO_EOF'
+            cat data/tracking/summary.md
+            echo 'SHIBBO_EOF'
+          } >> "$GITHUB_OUTPUT"
+      # One standing branch, so a quiet week updates one pull request in place of opening seven.
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          branch: track/releases
+          title: "Track: new and expected models"
+          commit-message: "Track new and expected models"
+          body: ${{ steps.body.outputs.text }}
+          add-paths: |
+            data/tracking/**
+          labels: tracking
