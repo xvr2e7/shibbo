@@ -60,6 +60,10 @@ function printText(r: Report, all: boolean) {
   if (r.judge.length && all) for (const j of r.judge) console.log(`  ${C.dim("judge")}    ${j.id}: ${j.question}`);
 }
 
+// GitHub workflow commands: https://docs.github.com/actions/reference/workflow-commands-for-github-actions
+const ghData = (s: string) => s.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+const ghProp = (s: string) => ghData(s).replace(/:/g, "%3A").replace(/,/g, "%2C");
+
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const c of process.stdin) chunks.push(c as Buffer);
@@ -80,6 +84,8 @@ async function main() {
         disable: { type: "string" }, quiet: { type: "boolean", short: "q", default: false },
       },
     });
+    const threshold = Number(values.threshold);
+    if (!values.threshold!.trim() || !Number.isFinite(threshold)) { console.error(`--threshold needs a number, got "${values.threshold}"`); process.exitCode = 2; return; }
     const targets = positionals.length ? positionals : ["-"];
     const reports: Report[] = [];
     const opts = { model: values.model ?? process.env.SHIBBO_MODEL ?? null, lexicon: !values["no-lexicon"], disable: values.disable?.split(","), kind: values.kind as FileKind | undefined };
@@ -87,10 +93,9 @@ async function main() {
       if (t === "-") { reports.push(check(await readStdin(), "-", { ...opts, kind: opts.kind ?? "text" })); continue; }
       for (const f of walk(t)) reports.push(check(readFileSync(f, "utf8"), relative(process.cwd(), f) || f, opts));
     }
-    const threshold = +values.threshold!;
     if (values.format === "json") console.log(JSON.stringify(reports.length === 1 ? reports[0] : reports, null, 2));
     else if (values.format === "github") {
-      for (const r of reports) for (const f of r.findings) if (f.counted && f.severity > 0) console.log(`::${f.severity >= 2 ? "warning" : "notice"} file=${r.file},line=${f.line},col=${f.col},title=shibbo ${f.id}::${f.match} → ${f.fix ?? f.name}`);
+      for (const r of reports) for (const f of r.findings) if (f.counted && f.severity > 0) console.log(`::${f.severity >= 2 ? "warning" : "notice"} file=${ghProp(r.file)},line=${f.line},col=${f.col},title=${ghProp(`shibbo ${f.id}`)}::${ghData(`${f.match} → ${f.fix ?? f.name}`)}`);
       for (const r of reports) console.log(`${r.file}: ${r.score}/100 [${r.band}]`);
     } else {
       for (const r of reports) if (!values.quiet || r.score < threshold) printText(r, values.all!);
@@ -171,5 +176,8 @@ async function main() {
   console.error(`unknown command: ${cmd}\n\n${HELP}`);
   process.exitCode = 2;
 }
+
+// `shibbo check x | head` closes the pipe early; leave without a stack trace.
+process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE") process.exit(process.exitCode ?? 0); else throw e; });
 
 main().catch((e) => { console.error(e instanceof Error ? e.message : e); process.exitCode = 2; });

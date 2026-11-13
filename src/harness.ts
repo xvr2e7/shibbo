@@ -236,17 +236,41 @@ export const HARNESSES: Harness[] = [
 
 const AGENT_LINE = "\n\nAfter writing prose a person will read (docs, READMEs, PR text, UI copy), call the shibbo `check_text` tool or run `npx shibbo check <file>`, and fix what it reports.";
 
+const OURS = /shibbo(\.mjs| hook)/;
+const plain = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/** Drop shibbo's own commands from a hook entry; null when nothing of the user's is left. */
+function strip(e: unknown): unknown {
+  if (plain(e) && Array.isArray(e.hooks)) {
+    const hooks = e.hooks.filter((h) => !OURS.test(JSON.stringify(h)));
+    return hooks.length === e.hooks.length ? e : hooks.length ? { ...e, hooks } : null;
+  }
+  return OURS.test(JSON.stringify(e)) ? null : e;
+}
+
+/** Objects merge key by key. Lists of hook entries keep the user's entries and gain ours, once. Other lists (args) are ours. */
+function merge(prev: unknown, value: unknown): unknown {
+  if (Array.isArray(prev) && Array.isArray(value) && value.every(plain)) {
+    const ours = new Set(value.map((v) => JSON.stringify(v)));
+    return [...prev.map(strip).filter((e) => e !== null && !ours.has(JSON.stringify(e))), ...value];
+  }
+  if (plain(prev) && plain(value)) {
+    const out = { ...prev };
+    for (const [k, v] of Object.entries(value)) out[k] = k in prev ? merge(prev[k], v) : v;
+    return out;
+  }
+  return value;
+}
+
 function setPath(obj: Record<string, unknown>, path: string[], value: unknown): Record<string, unknown> {
-  if (!path.length) return { ...obj, ...(value as Record<string, unknown>) };
+  if (!path.length) return merge(obj, value) as Record<string, unknown>;
   let cur: Record<string, unknown> = obj;
   for (const k of path.slice(0, -1)) {
     if (typeof cur[k] !== "object" || cur[k] === null) cur[k] = {};
     cur = cur[k] as Record<string, unknown>;
   }
   const last = path.at(-1)!;
-  const prev = cur[last];
-  if (prev && typeof prev === "object" && !Array.isArray(prev) && value && typeof value === "object" && !Array.isArray(value)) cur[last] = { ...prev, ...value };
-  else cur[last] = value;
+  cur[last] = merge(cur[last], value);
   return obj;
 }
 
@@ -272,6 +296,7 @@ export function init(id: string, opts: { dir: string; model: string | null; dryR
     if (step.write !== undefined) {
       const exists = existsSync(p);
       if (exists && readFileSync(p, "utf8").includes("shibbo")) { out.push({ file: step.file, action: "already set up", experimental: step.experimental }); continue; }
+      if (exists && !step.file!.endsWith(".toml")) { out.push({ file: step.file, action: "skipped: the file exists and is yours; add the shibbo line by hand", experimental: step.experimental }); continue; }
       if (!opts.dryRun) {
         mkdirSync(dirname(p), { recursive: true });
         writeFileSync(p, (exists && step.file!.endsWith(".toml") ? readFileSync(p, "utf8") : "") + step.write);

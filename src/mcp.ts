@@ -1,11 +1,12 @@
 // MCP server: lets any agent check its own drafts and pull rules for its model.
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { check, type Report } from "./check.js";
 import { rulesMarkdown } from "./rules.js";
-import { tells, graphite } from "./registry.js";
+import { tells, graphite, root } from "./registry.js";
 import type { FileKind } from "./text.js";
 
 function summary(r: Report): string {
@@ -17,8 +18,18 @@ function summary(r: Report): string {
   return lines.join("\n");
 }
 
-export async function serve() {
-  const server = new McpServer({ name: "shibbo", version: "0.1.0" });
+/** package.json in the npm package; the plugin bundle ships only .claude-plugin/plugin.json. */
+function version(): string {
+  for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
+    try { const v = JSON.parse(readFileSync(join(root(), f), "utf8")).version; if (typeof v === "string") return v; } catch { /* try the next */ }
+  }
+  return "0.0.0";
+}
+
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+
+export function build(): McpServer {
+  const server = new McpServer({ name: "shibbo", version: version() });
   const kinds = ["markdown", "text", "html", "css", "markup-code", "code"] as const;
 
   server.registerTool(
@@ -27,6 +38,7 @@ export async function serve() {
       title: "Check text for AI tells",
       description: "Score a draft (0-100, higher is cleaner) and list patterns that read as machine-made, with fixes. Call before presenting prose, docs, PR text or UI copy.",
       inputSchema: { text: z.string(), model: z.string().optional().describe("Model that wrote it, e.g. claude-opus-5-5"), kind: z.enum(kinds).optional() },
+      annotations: READ_ONLY,
     },
     async ({ text, model, kind }) => ({ content: [{ type: "text", text: summary(check(text, "-", { model, kind: (kind as FileKind) ?? "markdown" })) }] }),
   );
@@ -35,8 +47,9 @@ export async function serve() {
     "check_file",
     {
       title: "Check a file for AI tells",
-      description: "Like check_text, for a file on disk. Markdown, HTML, CSS and JSX/TSX are understood.",
+      description: "Like check_text, for a file on disk. Reads any path you pass, so pass only files you may read. Markdown, HTML, CSS and JSX/TSX are understood.",
       inputSchema: { path: z.string(), model: z.string().optional() },
+      annotations: READ_ONLY,
     },
     async ({ path, model }) => ({ content: [{ type: "text", text: summary(check(readFileSync(path, "utf8"), path, { model })) }] }),
   );
@@ -47,6 +60,7 @@ export async function serve() {
       title: "Writing rules for a model",
       description: "A short list of the tells this model over-uses most, with fixes, ranked by measured rates.",
       inputSchema: { model: z.string().optional(), domains: z.array(z.string()).optional() },
+      annotations: READ_ONLY,
     },
     async ({ model, domains }) => ({ content: [{ type: "text", text: rulesMarkdown({ model, domains }) }] }),
   );
@@ -57,6 +71,7 @@ export async function serve() {
       title: "Look up one tell",
       description: "Full registry entry for a tell id, with per-model measurements.",
       inputSchema: { id: z.string() },
+      annotations: READ_ONLY,
     },
     async ({ id }) => {
       const t = tells().find((x) => x.id === id);
@@ -66,5 +81,9 @@ export async function serve() {
     },
   );
 
-  await server.connect(new StdioServerTransport());
+  return server;
+}
+
+export async function serve() {
+  await build().connect(new StdioServerTransport());
 }
