@@ -126,11 +126,11 @@ A second, smaller set reuses the page builds from the interface eval (`eval/ui/`
 
 **Tokens.** `npm run conduct:features` reads each transcript and records narration rate, status lines, apologies, the shape and length of the final reply, claims that the code works and whether a run came before them, questions to the user, files made and changed, scratch files left behind, turns, tool calls and the share of shell calls. It also runs shibbo's checker over the assistant text and adds each agent and chat tell it finds. The thresholds sit at the top of `measure/conduct-features.mjs`. Success stays out of the tokens.
 
-**Layout.** `npm run conduct:map` runs the same correspondence analysis and ownership rule as the interface map, and writes `data/measured/conduct-map.json`.
+**Layout.** `npm run conduct:map` runs the same correspondence analysis and ownership rule as the interface map, and writes `data/measured/conduct-map.json`, which stays local.
 
 ### What the conduct runs show
 
-The conduct map is off the site. Every run came from one maker's models in one agent, which is no basis for a map of models. The runs and `data/measured/conduct-map.json` stay in the repo, and the findings below hold for Claude models in Claude Code only.
+The conduct map is off the site. Every run came from one maker's models in one agent, which is no basis for a map of models. The runs and their map stay off the repo, since they hold excerpts of real sessions. The findings below hold for Claude models in Claude Code only.
 
 Claude's agent manner changed more across releases than its success did. In the four earliest releases (Sonnet 4.5 to Opus 4.6), 8% of runs went without "Let me…" narration; in the four latest (Opus 5.5 to Fable 5.2), 98% did, and 75% worked with no text at all until the final reply. The latest releases run the code more often (33% of runs against 73%), and their final replies grew from 40 words or fewer in two runs of three to 41–120 words in most. Haiku 4.5 owns the "Perfect!" status line (7 of 12 runs, against 2% for the rest). No model asked a question instead of acting, left a scratch file, or committed unasked. 142 of 144 runs passed their check; the two failures were test suites from Haiku 4.5 and Sonnet 5.5 that failed their own assertions.
 

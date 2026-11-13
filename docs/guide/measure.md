@@ -67,7 +67,7 @@ The model answers the 24 requests in `measure/code-briefs.yaml` through its API 
 ```bash
 npm run conduct:gen -- --model <id>
 npm run conduct:features
-npm run conduct:map                              # -> data/measured/conduct-map.json
+npm run conduct:map                              # -> data/measured/conduct-map.json (keep it local)
 ```
 
 `measure/run-conduct.ts` hands the model the 12 tasks in `measure/conduct-tasks.yaml`, each in a fresh git repo under `/tmp`, through the Claude Code binary. So it measures Claude models only. It uses your Claude subscription in place of API credit and caps each run at $2 of reported usage. `--selftest` builds every repo and runs its hidden check untouched; all but one should fail.
