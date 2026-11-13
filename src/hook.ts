@@ -7,12 +7,14 @@
 // --for <harness> adapts input and output to other harnesses: codex, cursor, gemini, copilot, devin, cline, kiro, junie.
 //
 // Settings (env): SHIBBO_STOP=off|warn|block (default block), SHIBBO_STOP_SCORE (default 50),
-// SHIBBO_EDIT=off|on (default on), SHIBBO_DISABLE=id,id, SHIBBO_MODEL to force a model.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+// SHIBBO_EDIT=off|on (default on), SHIBBO_DISABLE=id,id, SHIBBO_MODEL to force a model,
+// SHIBBO_JUDGE=anthropic:<model>|openai:<model>|openrouter:<model> to have a small model read the final reply (off when unset).
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { check, type Finding } from "./check.js";
-import { rulesMarkdown } from "./rules.js";
+import { rulesMarkdown, interfaceMarkdown } from "./rules.js";
+import { judgeReply, judgeMessage, shouldHold, type Verdict } from "./judge.js";
 import { kindOf } from "./text.js";
 import { execFileSync } from "node:child_process";
 import type { HookFlavor } from "./harness.js";
@@ -40,6 +42,14 @@ function modelFor(input: HookInput): string | null {
   }
   return null;
 }
+
+/** With SHIBBO_LOG set to a file, each check adds one JSON line there: a record to measure the harness by. */
+function log(entry: Record<string, unknown>) {
+  const p = process.env.SHIBBO_LOG;
+  if (!p) return;
+  try { mkdirSync(dirname(p), { recursive: true }); appendFileSync(p, JSON.stringify({ at: new Date().toISOString(), ...entry }) + "\n"); } catch { /* a log must never break a hook */ }
+}
+const ids = (fs: Finding[]) => fs.map((f) => (f.origin === "lexicon" ? `phrase:${f.match.toLowerCase()}` : f.id));
 
 const out = (event: string, context: string) =>
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: context } }));
@@ -122,7 +132,7 @@ export async function runHook(kind: string | undefined, raw: string, flavor: Hoo
       mkdirSync(stateDir(), { recursive: true });
       writeFileSync(stateFile(input.session_id), JSON.stringify({ model: input.model }));
     }
-    out("SessionStart", `shibbo is checking your writing for tells that read as machine-made.\n\n${rulesMarkdown({ model: modelFor(input), limit: 10, phrases: 8 })}`);
+    out("SessionStart", `shibbo is checking your writing and interfaces for tells that read as machine-made.\n\n${rulesMarkdown({ model: modelFor(input), limit: 10, phrases: 8 })}\n\n${interfaceMarkdown({ limit: 12 })}`);
     return;
   }
 
@@ -140,7 +150,8 @@ export async function runHook(kind: string | undefined, raw: string, flavor: Hoo
         const ranges = added.flatMap((piece) => { const i = text.indexOf(piece); return i < 0 ? [] : [[i, i + piece.length] as const]; });
         hits = hits.filter((f) => ranges.some(([a, b]) => f.offset >= a && f.offset < b));
       }
-      if (hits.length) notes.push(`shibbo found ${hits.length} writing tell${hits.length > 1 ? "s" : ""} in ${path} (file score ${report.score}/100). Rewrite these unless they are quotes or deliberate:\n${list(hits)}`);
+      log({ event: "edit", model: modelFor(input), file: path, words: report.words, score: report.score, hits: ids(hits) });
+      if (hits.length) notes.push(`shibbo found ${hits.length} ${/^(html|css|markup-code)$/.test(fk) ? "" : "writing "}tell${hits.length > 1 ? "s" : ""} in ${path} (file score ${report.score}/100). Rewrite these unless they are quotes or deliberate:\n${list(hits)}`);
     }
     if (notes.length) feedback(flavor, "PostToolUse", notes.join("\n\n"));
     else if (flavor === "cline") process.stdout.write('{"cancel":false}');
@@ -155,8 +166,18 @@ export async function runHook(kind: string | undefined, raw: string, flavor: Hoo
     if (report.words < 60) return;
     const hits = real(report.findings);
     const floor = +(process.env.SHIBBO_STOP_SCORE ?? 50);
-    if (report.score >= floor || hits.length < 3) return;
-    const reason = `shibbo: your reply scores ${report.score}/100 for writing tells. Rewrite it in plain language before finishing:\n${list(hits, 10)}`;
+    const held = report.score < floor && hits.length >= 3;
+    // The wording passed. With a judge set, a small model now reads a reply of 80+ words for clarity.
+    let verdict: Verdict | null | undefined, judgeError: string | undefined;
+    if (!held && report.words >= 80 && (process.env.SHIBBO_JUDGE ?? "").trim()) verdict = await judgeReply(msg, { onError: (why) => { judgeError = why; } });
+    const unclear = !!verdict && shouldHold(verdict);
+    log({ event: "reply", model: modelFor(input), words: report.words, score: report.score, hits: ids(hits), held: (held || unclear) && mode === "block",
+      judge: verdict === undefined ? undefined : verdict && { failed: verdict.failed }, judge_error: judgeError,
+      text: process.env.SHIBBO_LOG_TEXT === "1" ? msg : undefined });
+    if (!held && !unclear) return;
+    const reason = held
+      ? `shibbo: your reply scores ${report.score}/100 for writing tells. Rewrite it in plain language before finishing:\n${list(hits, 10)}`
+      : judgeMessage(verdict!);
     if (mode === "block") feedback(flavor, "Stop", reason);
     else out("Stop", reason);
     return;
