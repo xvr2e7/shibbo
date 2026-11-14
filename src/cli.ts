@@ -19,6 +19,7 @@ Usage
   shibbo mcp                 start the MCP server (stdio)
   shibbo init <harness> [--model ID] [--dry-run]   write rules, MCP config and hooks for a harness
   shibbo hook <post-edit|stop|session-start> [--for HARNESS]   hook entry point (reads stdin)
+  shibbo --version
 
 check options
   --model ID       the model that wrote the text (e.g. claude-opus-5-5, gpt-6). Weights its own measured phrases.
@@ -73,6 +74,7 @@ async function readStdin(): Promise<string> {
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") { console.log(HELP); return; }
+  if (cmd === "-v" || cmd === "--version" || cmd === "version") { console.log((await import("./mcp.js")).version()); return; }
 
   if (cmd === "check") {
     const { values, positionals } = parseArgs({

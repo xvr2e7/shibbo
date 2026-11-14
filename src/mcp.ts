@@ -19,7 +19,7 @@ function summary(r: Report): string {
 }
 
 /** package.json in the npm package; the plugin bundle ships only .claude-plugin/plugin.json. */
-function version(): string {
+export function version(): string {
   for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
     try { const v = JSON.parse(readFileSync(join(root(), f), "utf8")).version; if (typeof v === "string") return v; } catch { /* try the next */ }
   }

@@ -15,6 +15,7 @@ npx shibbo <command> [options]
 | `models` | Measured models and release months |
 | `mcp` | Start the MCP server on stdio |
 | `hook <event>` | Hook entry point for harnesses (reads JSON on stdin) |
+| `--version` | Print the installed version |
 
 ## check
 
