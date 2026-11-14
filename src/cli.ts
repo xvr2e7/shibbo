@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 import { check, type Report } from "./check.js";
 import { rulesMarkdown, modelList } from "./rules.js";
-import { tells, sources, resolveModel, graphite } from "./registry.js";
+import { tells, sources, resolveModel, graphite, version } from "./registry.js";
 import { kindOf, type FileKind } from "./text.js";
 
 const HELP = `shibbo: find the tells that mark writing and UI as machine-made
@@ -19,6 +19,7 @@ Usage
   shibbo mcp                 start the MCP server (stdio)
   shibbo init <harness> [--model ID] [--dry-run]   write rules, MCP config and hooks for a harness
   shibbo hook <post-edit|stop|session-start> [--for HARNESS]   hook entry point (reads stdin)
+  shibbo doctor [--dir PATH] [--offline] [--json]   report on this install and what the project has set up
   shibbo --version
 
 check options
@@ -74,7 +75,7 @@ async function readStdin(): Promise<string> {
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") { console.log(HELP); return; }
-  if (cmd === "-v" || cmd === "--version" || cmd === "version") { console.log((await import("./mcp.js")).version()); return; }
+  if (cmd === "-v" || cmd === "--version" || cmd === "version") { console.log(version()); return; }
 
   if (cmd === "check") {
     const { values, positionals } = parseArgs({
@@ -170,6 +171,16 @@ async function main() {
       console.log(r.file ? `${r.action.padEnd(22)} ${r.file}${r.experimental ? "   (experimental: check it fires after your next edit)" : ""}` : r.action);
     }
     if (h) console.log(`\n${h.name} is set up. Edit a Markdown file with the agent to see shibbo's feedback.`);
+    return;
+  }
+
+  if (cmd === "doctor") {
+    const { doctor, printDoctor } = await import("./doctor.js");
+    const { values } = parseArgs({ args: rest, options: { dir: { type: "string", default: "." }, offline: { type: "boolean", default: false }, json: { type: "boolean", default: false } } });
+    const report = await doctor({ dir: values.dir!, offline: values.offline! });
+    if (values.json) console.log(JSON.stringify(report, null, 2));
+    else console.log(printDoctor(report, C));
+    if (report.lines.some((l) => l.state === "fail")) process.exitCode = 1;
     return;
   }
 

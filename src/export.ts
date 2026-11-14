@@ -2,22 +2,28 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { rulesMarkdown } from "./rules.js";
-import { tells } from "./registry.js";
+import { tells, version } from "./registry.js";
 
-const START = "<!-- shibbo:start -->";
+// The start marker carries the version that wrote the block, so `shibbo doctor` can tell when it is out of date.
 const END = "<!-- shibbo:end -->";
+const BLOCK = new RegExp(`<!-- shibbo:start(?: v([\\w.+-]+))? -->[\\s\\S]*?${END}`);
+
+/** The version that wrote a file's shibbo block: null for a block from before the stamp, undefined when there is no block. */
+export function blockVersion(text: string): string | null | undefined {
+  const m = BLOCK.exec(text);
+  return m ? m[1] ?? null : undefined;
+}
 
 /** Insert or replace the shibbo block in a markdown file, leaving the rest alone. */
 export function upsertBlock(path: string, body: string): "created" | "updated" | "unchanged" {
-  const block = `${START}\n${body.trim()}\n${END}`;
+  const block = `<!-- shibbo:start v${version()} -->\n${body.trim()}\n${END}`;
   if (!existsSync(path)) {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, block + "\n");
     return "created";
   }
   const cur = readFileSync(path, "utf8");
-  const re = new RegExp(`${START}[\\s\\S]*?${END}`);
-  const next = re.test(cur) ? cur.replace(re, block) : `${cur.trimEnd()}\n\n${block}\n`;
+  const next = BLOCK.test(cur) ? cur.replace(BLOCK, () => block) : `${cur.trimEnd()}\n\n${block}\n`;
   if (next === cur) return "unchanged";
   writeFileSync(path, next);
   return "updated";

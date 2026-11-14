@@ -1,12 +1,11 @@
 // MCP server: lets any agent check its own drafts and pull rules for its model.
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { check, type Report } from "./check.js";
 import { rulesMarkdown } from "./rules.js";
-import { tells, graphite, root } from "./registry.js";
+import { tells, graphite, version } from "./registry.js";
 import type { FileKind } from "./text.js";
 
 function summary(r: Report): string {
@@ -18,13 +17,7 @@ function summary(r: Report): string {
   return lines.join("\n");
 }
 
-/** package.json in the npm package; the plugin bundle ships only .claude-plugin/plugin.json. */
-export function version(): string {
-  for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
-    try { const v = JSON.parse(readFileSync(join(root(), f), "utf8")).version; if (typeof v === "string") return v; } catch { /* try the next */ }
-  }
-  return "0.0.0";
-}
+export { version };
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 

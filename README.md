@@ -60,6 +60,8 @@ draft.md: 20/100 [heavy] (29 words)
 
 Each hit comes with a fix. `--model` weights the score toward the phrases that model over-uses, and `--threshold 80` fails a CI run when a file scores lower.
 
+`npx shibbo doctor` reports the version you run, whether npm has a newer one, and which rules, MCP and hook files the project has. Each install path updates in its own way: see [Update and diagnose](docs/guide/updating.md).
+
 ## What it checks
 
 | Files | Tells |

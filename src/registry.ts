@@ -149,6 +149,14 @@ export function root(): string {
   throw new Error("shibbo: cannot find data/tells.yaml");
 }
 
+/** package.json in the npm package; the plugin bundle ships only .claude-plugin/plugin.json. */
+export function version(): string {
+  for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
+    try { const v = JSON.parse(readFileSync(join(root(), f), "utf8")).version; if (typeof v === "string") return v; } catch { /* try the next */ }
+  }
+  return "0.0.0";
+}
+
 const cache = new Map<string, unknown>();
 function load<T>(rel: string, parse: (s: string) => T): T {
   if (!cache.has(rel)) cache.set(rel, parse(rel.includes(":") ? "" : readFileSync(join(root(), rel), "utf8")));

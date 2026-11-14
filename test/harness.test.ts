@@ -103,3 +103,38 @@ test("init leaves a hook script it did not write", () => {
   assert.ok(init("cline", { dir: p, model: null, dryRun: false }).some((x) => x.action.startsWith("skipped")));
   assert.equal(readFileSync(join(p, ".clinerules/hooks/PostToolUse"), "utf8"), "#!/bin/sh\necho mine\n");
 });
+
+test("doctor reads what init wrote, and flags an old rules block, missing hooks and a newer release", async () => {
+  const { doctor, compareVersions } = await import("../src/doctor.js");
+  const { blockVersion } = await import("../src/export.js");
+  const { version } = await import("../src/registry.js");
+  const p = mkdtempSync(join(tmpdir(), "shibbo-doctor-"));
+  const run = (latest: string | null = null) => doctor({ dir: p, latest, home: p, env: {} });
+  const project = async () => (await run()).lines.filter((l) => l.section === "Project");
+
+  assert.equal((await project())[0].state, "note"); // nothing set up yet
+  init("claude", { dir: p, model: null, dryRun: false });
+  assert.equal(blockVersion(readFileSync(join(p, "CLAUDE.md"), "utf8")), version());
+  assert.deepEqual((await project()).map((l) => l.state), ["ok", "ok", "ok"]); // rules, MCP, hooks; Copilot shares .mcp.json and stays out
+
+  // A block from before the stamp, and hooks removed by hand.
+  writeFileSync(join(p, "CLAUDE.md"), readFileSync(join(p, "CLAUDE.md"), "utf8").replace(/<!-- shibbo:start v[^ ]+ -->/, "<!-- shibbo:start -->"));
+  writeFileSync(join(p, ".claude", "settings.json"), "{}");
+  const warns = (await project()).filter((l) => l.state === "warn");
+  assert.equal(warns.length, 2);
+  assert.ok(warns.every((l) => l.fix === "npx shibbo init claude"));
+  init("claude", { dir: p, model: null, dryRun: false }); // the fix replaces the old block in place
+  assert.equal(readFileSync(join(p, "CLAUDE.md"), "utf8").match(/shibbo:start/g)!.length, 1);
+  assert.ok((await project()).every((l) => l.state === "ok"));
+
+  const behind = (await run("99.0.0")).lines.find((l) => l.text.includes("99.0.0"))!;
+  assert.equal(behind.state, "warn");
+  assert.ok(!(await run()).lines.some((l) => l.state === "fail"));
+  assert.equal(compareVersions("0.9.9", "0.10.0"), -1);
+  assert.equal(compareVersions("1.2.3", "1.2.3-beta.1"), 0);
+
+  // The plugin on record plus project hooks means every edit is checked twice.
+  mkdirSync(join(p, ".claude", "plugins"), { recursive: true });
+  writeFileSync(join(p, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ plugins: { "shibbo@shibbo": [{ version: "0.1.0" }] } }));
+  assert.ok((await run()).lines.some((l) => l.section === "Claude Code plugin" && /twice/.test(l.text)));
+});

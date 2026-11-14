@@ -15,6 +15,7 @@ npx shibbo <command> [options]
 | `models` | Measured models and release months |
 | `mcp` | Start the MCP server on stdio |
 | `hook <event>` | Hook entry point for harnesses (reads JSON on stdin) |
+| `doctor` | Report on this install and on what the project has set up |
 | `--version` | Print the installed version |
 
 ## check
@@ -68,7 +69,7 @@ shibbo init <harness> [--model <id>] [--dir <path>] [--dry-run]
 shibbo export <claude | agents | cursor | vale> [--model <id>] [--out <dir>]
 ```
 
-`claude`, `agents` and `cursor` write a marked block that later runs replace. `vale` writes one Vale rule per pattern tell into `styles/Shibbo/`.
+`claude` and `agents` write a marked block that later runs replace, and its first line records the version that wrote it. `cursor` writes a whole file. `vale` writes one Vale rule per pattern tell into `styles/Shibbo/`.
 
 ## hook
 
@@ -77,3 +78,26 @@ shibbo hook <session-start | post-edit | stop> [--for <harness>]
 ```
 
 Reads the harness's hook JSON on stdin and prints its feedback format. `--for` accepts `claude` (default), `codex`, `cursor`, `gemini`, `copilot`, `devin`, `cline`, `kiro`, `junie`. You rarely call this yourself: `init` writes the commands.
+
+## doctor
+
+```bash
+shibbo doctor [--dir <path>] [--offline] [--json]
+```
+
+| Option | Default | Does |
+|---|---|---|
+| `--dir <path>` | `.` | The project to inspect |
+| `--offline` | off | Skip the lookup of the newest version on npm |
+| `--json` | off | Print the report as JSON |
+
+`doctor` prints the version that runs and where it runs from, then four groups of checks:
+
+| Group | Checks |
+|---|---|
+| Install | Whether npm has a newer version; Node 20 or later; the data loads; the checker finds the tells in a sample sentence |
+| Project | Each file `init` writes: rules, MCP server and hooks. Warns when a harness has some of its files and lacks others, and when a rule block was written by an older version |
+| Claude Code plugin | The installed plugin version, with a warning when the plugin and `.claude/settings.json` both run the hooks |
+| Settings | `SHIBBO_EDIT` or `SHIBBO_STOP` set to `off`, other `SHIBBO_` variables in effect, and the last line of the `SHIBBO_LOG` file |
+
+Exit status is 1 when a check fails: Node is too old, the data doesn't load or the checker finds nothing. Warnings exit 0. The npm lookup sends the package name and nothing else. See [Update and diagnose](/guide/updating).

@@ -59,6 +59,7 @@ export default defineConfig({
           { text: "Read a report", link: "/guide/reading-reports" },
           { text: "Check in CI", link: "/guide/ci" },
           { text: "Quote a tell on purpose", link: "/guide/quoting" },
+          { text: "Update and diagnose", link: "/guide/updating" },
           { text: "Measure a new model", link: "/guide/measure" },
           { text: "Add or change a tell", link: "/guide/add-a-tell" },
         ],

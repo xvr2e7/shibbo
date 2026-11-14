@@ -102,3 +102,4 @@ The block ends its tell list with habits such as claiming that tests pass withou
 - [How it fits your harness](/guide/how-it-fits) shows where each piece runs.
 - [Check in CI](/guide/ci) fails a pull request when a file scores too low.
 - [Settings](/reference/settings) covers the hook switches and the log.
+- [Update and diagnose](/guide/updating) explains new releases and the `npx shibbo doctor` report.

@@ -11,7 +11,7 @@ export type HookFlavor = "claude" | "codex" | "cursor" | "gemini" | "copilot" | 
 const MCP = { command: "npx", args: ["shibbo", "mcp"] };
 const hook = (event: string, flavor: HookFlavor) => `npx shibbo hook ${event}${flavor === "claude" ? "" : ` --for ${flavor}`}`;
 
-interface Step {
+export interface Step {
   kind: "rules" | "mcp" | "hooks" | "note";
   file?: string;
   /** Merge into a JSON file at this path of keys. */

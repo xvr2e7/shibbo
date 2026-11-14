@@ -17,13 +17,15 @@ The plugin bundles the engine and data, so nothing else needs installing. It add
 | After each Write or Edit | Checks a doc, page, stylesheet or component and reports hits in the text that edit wrote. Claude gets each hit with its fix and repairs it in the same turn. Plain source files are skipped |
 | When Claude finishes | Checks the final reply. If a reply of 60 words or more scores under 50 with three or more hits, shibbo asks Claude to rewrite it once, and never twice in a row |
 
+Claude Code doesn't update the plugin by itself. To turn that on, run `/plugin`, open the Marketplaces tab, select `shibbo` and choose "Enable auto-update". To update once, run `claude plugin update shibbo@shibbo`. [Update and diagnose](/guide/updating) covers the rest.
+
 ## Without the plugin
 
 ```bash
 npx shibbo init claude
 ```
 
-This writes a rule block into `CLAUDE.md` and the server into `.mcp.json`. The three hooks go into `.claude/settings.json`, next to any hooks already there:
+This writes a rule block into `CLAUDE.md` and the server into `.mcp.json`. Use the plugin or `init`, and never both: with both, each edit is checked twice, and `npx shibbo doctor` warns about it. The three hooks go into `.claude/settings.json`, next to any hooks already there:
 
 ```json
 {
