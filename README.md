@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>Track what gives AI work away, and steer your agent toward clear work.</b><br>
-  A registry of AI tells in four layers (prose, interface, code and conduct), measured model by model, with a harness that steers your agent away from them.
+  A registry of AI tells in four layers (prose, interface, code and behavior), measured model by model, with a harness that steers your agent away from them.
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img width="760" alt="The shibbo web app: a stack of three sheets for prose, interface and code. A maker's models light up on every sheet; the prose sheet opens into a map of phrases, and the timeline replays releases from 2022 to 2026. The interface map shows the pages models built, and the code map shows their replies." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/demo.gif">
+  <img width="760" alt="The shibbo web app: a stack of four sheets for prose, interface, code and behavior. A maker's models light up on every sheet; the prose sheet opens into a map of phrases, and the timeline replays releases from 2022 to 2026. The interface map shows the pages models built, and the code map shows their replies." src="https://raw.githubusercontent.com/xvr2e7/shibbo/main/.github/assets/demo.gif">
 </p>
 
 People have learned to spot AI work: a stock phrase in an essay, say, or a purple gradient on a landing page. Once they spot one, they trust the rest less.
@@ -23,7 +23,7 @@ People have learned to spot AI work: a stock phrase in an essay, say, or a purpl
 These tells shift with each release. In 2024, "delve" gave away GPT-4; today most models use it no more than people do, and some never do. Newer models have their own habits, such as Claude Opus 5's "genuinely useful", GPT-6 Astra's "rather than treating" and Claude Opus 5.5's "this matters because", which people writing on the same topics never used. Pages drift too: Claude dropped the purple gradient, and its 2026 releases reach for a cream page and one italic serif word in the headline. A list of tells from last year misses them.
 <!-- /shibbo-ignore -->
 
-Shibbo tracks each tell over time and measures which models show it, in four layers: prose, interface, code and conduct (how an agent works and how it reports). Set it up in your agent and the tells get caught while it works, or run it on your files to see which ones show up.
+Shibbo tracks each tell over time and measures which models show it, in four layers: prose, interface, code and behavior (how an agent works and how it reports). Set it up in your agent and the tells get caught while it works, or run it on your files to see which ones show up.
 
 A stock phrase gives text away, but a draft with no tells can still bury its point. So the rules shibbo hands an agent open with clear writing: name who does what, use the plain word, put the point first.
 
@@ -74,9 +74,9 @@ Agent tells, such as "All tests pass" without running them, happen during the wo
 
 ## The atlas
 
-The web app (`npm run web:dev`) maps how model output has shifted with each release, on a timeline that cites every date back to 1966. It sorts tells into four layers, the surfaces where people meet a model's work: prose, code, interfaces and agent conduct.
+The web app (`npm run web:dev`) maps how model output has shifted with each release, on a timeline that cites every date back to 1966. It sorts tells into four layers, the surfaces where people meet a model's work: prose, code, interfaces and agent behavior.
 
-The prose atlas places thousands of phrases by which models over-use them, against people writing on the same topics. For the interface atlas, every model builds the same 24 one-line briefs, from landing pages to dashboards; shibbo renders each page, records its design choices in type, colour, shape, layout and motion, and maps those choices against the models, with a trail through each maker's releases: 707 pages from 30 models by thirteen makers so far. The code layer maps 26 models' replies to the same 24 coding requests. Conduct has tells in the registry and no map yet: its only runs cover one maker's models. A stacked view shows the three mapped layers at once and traces one model through them. The Tells page lists every tell by layer and by the year it was first seen, with interface tells shown as small mockups.
+The prose atlas places thousands of phrases by which models over-use them, against people writing on the same topics. For the interface atlas, every model builds the same 24 one-line briefs, from landing pages to dashboards; shibbo renders each page, records its design choices in type, colour, shape, layout and motion, and maps those choices against the models, with a trail through each maker's releases: 707 pages from 30 models by thirteen makers so far. Click a page on the map to open it live, at desktop or phone width. The code layer maps 26 models' replies to the same 24 coding requests. For the behavior layer, 23 models each read the same 12 finished work logs and write the final message to the user; the map places those 822 reports by how they are built and by whether they tell the user what the log shows. A stacked view shows the four layers at once and traces one model through them. The Tells page lists every tell by layer and by the year it was first seen, with interface tells shown as small mockups.
 
 <p align="center">
 <picture>
@@ -138,7 +138,7 @@ Models and people still share most of their words. On the same topics, 70 to 80%
 
 The PubMed figure compares 2024 abstracts with the rate earlier years predict, with no human baseline. The rest compare models with people writing web articles on the same topics. Graphite asked for plain text, and em dash rates shift with the prompt. Graphite's second dash count puts Claude Opus 5 at 3.5×.
 
-Shibbo measures each model against people writing on the same topics. The data comes from Graphite's [AI Tells](https://graphite.io/research/ai-tells) study and its Opus 5.5 update for ten 2025–26 models, and from shibbo's own runs on [RAID](https://github.com/liamdugan/raid) for 2022–23 instruct and chat models. For newer releases, shibbo runs the models itself through each maker's API, on about 290 of the same held-out topics: so far ten: Claude Fable 5.2, Haiku 5.5 and Sonnet 5.5, Gemini 4 Argon, GPT-6.1 Sol and Terra, DeepSeek-V4.1-Flash, MiMo-V2.6 Pro, MiniMax-M3.1 Flash and Nemotron 3.5 Super. <!-- shibbo-ignore -->The Claude and GPT runs write "practical" 69 to 231 times where people wrote it 4 times; Gemini 4 Argon writes "furthermore" 162 times to their 5.<!-- /shibbo-ignore --> These runs and the interface pages live in [`measure/`](measure/).
+Shibbo measures each model against people writing on the same topics. The data comes from Graphite's [AI Tells](https://graphite.io/research/ai-tells) study and its Opus 5.5 update for ten 2025–26 models, and from shibbo's own runs on [RAID](https://github.com/liamdugan/raid) for 2022–23 instruct and chat models. For newer releases, shibbo runs the models itself through maker APIs and OpenRouter, on about 290 of the same held-out topics: so far eleven: Claude Fable 5.2, Haiku 5.5 and Sonnet 5.5, Gemini 4 Argon and Hydrogen, GPT-6.1 Sol and Terra, DeepSeek-V4.1-Flash, MiMo-V2.6 Pro, MiniMax-M3.1 Flash and Nemotron 3.5 Super. The same runs fill 2024 with seven models that are still served: GPT-4o and GPT-4o mini, Gemma 2 27B, Llama 3.1 70B and 3.3 70B, Qwen 2.5 72B and DeepSeek-V3. <!-- shibbo-ignore -->The Claude and GPT runs write "practical" 69 to 231 times where people wrote it 4 times; Gemini 4 Argon writes "furthermore" 162 times to their 5.<!-- /shibbo-ignore --> These runs and the interface pages live in [`measure/`](measure/).
 
 A daily job watches public model lists and changelogs for new releases. Reported but unconfirmed models sit in their own file, each with a source, a date and an expiry, outside the timeline. It opens a pull request; a person checks each date on the maker's page before it goes in.
 
@@ -146,7 +146,7 @@ To test the checker, shibbo scores a person's article and a model's article on t
 
 ## Contributing
 
-Each tell is a YAML entry in `data/tells.yaml` or `data/tells.d/`, with a fix and at least one source. The guides cover [adding a tell](docs/guide/add-a-tell.md) and [measuring a new model](docs/guide/measure.md).
+Each tell is a YAML entry in `data/tells.yaml` or `data/tells.d/`, with a fix and at least one source. The guides cover [adding a tell](docs/guide/add-a-tell.md) and [measuring a new model](docs/guide/measure.md). The maintainer pays for the model runs from personal API accounts, so a run with your own key is a real help; see [who pays for the runs](docs/guide/support.md).
 
 ```bash
 npm install

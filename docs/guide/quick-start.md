@@ -87,9 +87,9 @@ npx shibbo check notes.md --model gemini-4-argon
 
 The checker then gives that model's own phrases more weight. Model ids from your harness work as they are. A model shibbo hasn't measured borrows the rule order of the newest measured model in its family, with no extra weight.
 
-## Conduct
+## Behavior
 
-No file records how an agent worked, so the checker has no conduct score. Conduct tells reach the agent through the rules:
+No file records how an agent worked, so the checker has no behavior score. Behavior tells reach the agent through the rules:
 
 ```bash
 npx shibbo rules --model gpt-6.1-sol

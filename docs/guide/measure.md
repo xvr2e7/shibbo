@@ -11,7 +11,8 @@ Each layer has its own run, and you can do any one alone.
 | Prose | `measure/generate-api.ts` | `import:runs`, `dense_map.py`, `map`, `arena.ts` |
 | Interface | `measure/generate-ui.ts` | `ui:features`, `ui:map` |
 | Code | `code:gen` | `code:features`, `code:map` |
-| Conduct | `conduct:gen` | `conduct:features`, `conduct:map` |
+| Behavior, reports | `measure/generate-reports.ts` | `measure/judge-reports.ts`, `measure/report-features.mjs`, `scripts/report_map.py` |
+| Behavior, agent runs | `conduct:gen` | `conduct:features`, `conduct:map` |
 
 ## Prose
 
@@ -62,7 +63,19 @@ npm run code:map                                 # -> data/measured/code-map.jso
 
 The model answers the 24 requests in `measure/code-briefs.yaml` through its API with no system prompt. `--batch` halves the price for Anthropic and OpenAI. Replies land in `measure/code-runs-api/`.
 
-## Conduct
+## Behavior
+
+Reports, for the site's behavior map:
+
+```bash
+npx tsx measure/generate-reports.ts --model <provider/id> --reps 3 --budget 1
+npx tsx measure/judge-reports.ts                 # needs OPENAI_API_KEY; writes judge.json beside each report
+npx tsx measure/report-features.mjs              # -> measure/report-features.json
+uv run --with numpy --with pyyaml python -I scripts/report_map.py   # -> data/measured/report-map.json
+node measure/rate-reports.mjs                    # a blind page for checking the judge by hand
+```
+
+Agent runs, Claude models only:
 
 ```bash
 npm run conduct:gen -- --model <id>
@@ -78,7 +91,7 @@ npm run conduct:map                              # -> data/measured/conduct-map.
 npm run web:dev
 ```
 
-This runs `web:data` and `web:layers` first, which gather the registry, the prose map and the code and conduct maps into `web/src/data/`.
+This runs `web:data` and `web:layers` first, which gather the registry, the prose map, the code map and the report map into `web/src/data/`.
 
 ## Read the results first
 

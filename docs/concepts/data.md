@@ -4,7 +4,8 @@
 
 | Era | Source | Design | Models |
 |---|---|---|---|
-| 2026 | shibbo's own runs through each maker's API or OpenRouter | 286 to 292 articles per model on held-out Graphite topics, each compared with the human article on the same topic (see below) | Claude Fable 5.2, Haiku 5.5 and Sonnet 5.5, GPT-6.1 Sol and Terra, Gemini 4 Argon, DeepSeek-V4.1-Flash, MiMo-V2.6 Pro, MiniMax-M3.1 Flash, Nemotron 3.5 Super |
+| 2026 | shibbo's own runs through each maker's API or OpenRouter | 286 to 292 articles per model on held-out Graphite topics, each compared with the human article on the same topic (see below) | Claude Fable 5.2, Haiku 5.5 and Sonnet 5.5, GPT-6.1 Sol and Terra, Gemini 4 Argon and Hydrogen, DeepSeek-V4.1-Flash, MiMo-V2.6 Pro, MiniMax-M3.1 Flash, Nemotron 3.5 Super |
+| 2024 | shibbo's own runs of models still served in November 2026, through OpenAI's API or OpenRouter | 288 to 292 articles per model, measured the same way as the 2026 runs | GPT-4o (the August snapshot) and GPT-4o mini, Gemma 2 27B, Llama 3.1 70B and 3.3 70B, Qwen 2.5 72B, DeepSeek-V3 |
 | 2025 to 2026 | Graphite, AI Tells (CC BY 4.0) | 9,974 human web articles published before ChatGPT's launch (30 Nov 2022); each model wrote one article per topic from the same summary. Graphite's Opus 5.5 update dropped 10 of the first release's 9,984 topics | GPT-4.1, GPT-5, GPT-5.6 Sol, GPT-6 Astra, Claude Opus 4, 4.6, 5 and 5.5, Gemini 2.5 Pro and 3.1 Pro |
 | 2022 to 2023 | RAID (Dugan et al., ACL 2024; MIT), measured by shibbo | 11,600 generations per model across 7 genres, each compared with the human text it was prompted from. RAID queried the OpenAI and Cohere models in November 2023 | Instruct and chat models: GPT-3 (text-davinci-002 per the RAID paper; RAID's README says text-davinci-003), ChatGPT (gpt-3.5-turbo-0613), GPT-4 (gpt-4-0613), Llama 2 70B Chat, Mistral 7B Instruct, MPT-30B Chat, Cohere Command (unversioned) |
 | 2023 to 2024 | Cited studies | Excess-word counts in published papers and reviews | Whole corpora, without model labels |
@@ -13,7 +14,7 @@ The texts behind both measured sources stay local; only derived rates are publis
 
 ## Shibbo's own runs
 
-Graphite's data stops at Claude Opus 5.5 and GPT-6 Astra, so shibbo measures newer releases itself. `measure/generate-api.ts` asks each model for a web article on 293 topics from the held-out half (the half the test and the arena use), through the maker's API for Claude and GPT and through OpenRouter for the rest. `measure/topics.jsonl` pins the topic list, so every run gets the same titles. Each prompt gives a title for the topic and the length of the human article; the title is GPT-4.1's, from Graphite's data, so shibbo drops the echoed title line before counting. `scripts/import_local.py` then compares each model with the human articles on exactly its topics and writes `data/measured/api.json`.
+Graphite's data stops at Claude Opus 5.5 and GPT-6 Astra, so shibbo measures newer releases itself. `measure/generate-api.ts` asks each model for a web article on 293 topics from the held-out half (the half the test and the arena use), through the maker's API for Claude and GPT and through OpenRouter for the rest. The same script fills 2024, a year neither RAID nor Graphite covers: it runs seven models from that year that are still served. OpenAI serves dated snapshots of GPT-4o and GPT-4o mini, and the other five are open weights on OpenRouter hosts. A hosted model can change behind its name, so shibbo left out Mistral Large 2: its replies came back with reasoning tokens, which the 2024 model never produced. `measure/topics.jsonl` pins the topic list, so every run gets the same titles. Each prompt gives a title for the topic and the length of the human article; the title is GPT-4.1's, from Graphite's data, so shibbo drops the echoed title line before counting. `scripts/import_local.py` then compares each model with the human articles on exactly its topics and writes `data/measured/api.json`.
 
 A run of about 290 articles is small next to Graphite's 9,974, so the thresholds scale down and the caveats grow:
 
@@ -116,9 +117,30 @@ The code layer measures what a model writes when someone asks for a small progra
 - The rules read source text with no parser, so a reply can meet a rule in letter and miss it in spirit.
 - Replies in different languages share some tokens (comments, length, nesting). Every model got the same mix of languages, so the mix affects a model's place only through its own habits.
 
-## Conduct
+## Behavior
 
-The conduct layer measures what a model does while it works as an agent: whether it narrates each step ("Let me…"), cheers itself on ("Perfect!"), says the tests pass without running them, ends on a recap or a table, asks or acts, and how many turns and tool calls a small job takes.
+Behavior is what an agent does while it works and how it reports. The site's behavior map covers the second part, measured the same way for every maker. The first part has runs for Claude models only; they come after.
+
+### Reports: the behavior map
+
+**Runs.** `measure/generate-reports.ts` hands each model one of 12 finished work logs (`measure/report-logs.yaml`) in a single request, with no tools and no system prompt, and asks for the final message to the user. The logs cover web, API, database, CI and data jobs. Some end clean; others hold a failed step, work left undone, or a question only the user can answer. Each model writes each report three times: 822 reports from 23 models so far.
+
+**Tokens.** `measure/report-features.mjs` counts form: length against the median for that log, headings, bullets, bold, tables, the opening and closing move, and step-by-step narration. A judge model (`measure/judge-reports.ts`, GPT-6.1 Terra) reads the log, a list of what it shows (`measure/report-facts.yaml`) and the report. It says which sentence first gives the true outcome, whether the report states each failure, each undone item and the ask, and which of its claims the log contradicts. A verdict counts only when every quote it gives appears in the report.
+
+**Layout.** `scripts/report_map.py` runs the same correspondence analysis and ownership rule as the code map and writes `data/measured/report-map.json`.
+
+### Report limits
+
+- One model judges every maker's reports, and its maker is one of them. Nobody has checked a sample of its verdicts by hand yet, so read a report before you quote its verdict.
+- The model reports on work it did not do. Habits that come from doing the work, or from a harness's instructions, stay out.
+- Shibbo wrote the 12 logs. A token in 4 of a model's 36 reports may be chance, so owned tokens are leads.
+- Failure, undone and ask tokens exist only for logs with such items, so their shares rest on fewer reports.
+- Fable 5.1 declined one log, a restore onto a staging database, and Qwen 3.8 ran out of tokens on another; each has 33 reports.
+- No human baseline: the map shows how models differ from each other.
+
+### Agent runs
+
+These runs measure what a model does while it works as an agent: whether it narrates each step ("Let me…"), cheers itself on ("Perfect!"), says the tests pass without running them, ends on a recap or a table, asks or acts, and how many turns and tool calls a small job takes.
 
 **Runs.** `npm run conduct:gen -- --model <id>` hands each model the same 12 small coding tasks (`measure/conduct-tasks.yaml`): fix a failing test, add a CLI flag, rename a function across files, write tests, fix a crash from its error message, update a README, and so on. Each task is a tiny repo in python3 stdlib or plain node, built fresh under `/tmp` as a clean git repo. Claude Code runs it headless with project settings only, edits accepted, a short tool list, and a $2 cap. When the agent stops, shibbo records which files it made, changed or deleted, then runs a hidden check the agent never saw. Exit 0 counts as success.
 
@@ -128,17 +150,17 @@ A second, smaller set reuses the page builds from the interface eval (`eval/ui/`
 
 **Layout.** `npm run conduct:map` runs the same correspondence analysis and ownership rule as the interface map, and writes `data/measured/conduct-map.json`, which stays local.
 
-### What the conduct runs show
+### What the agent runs show
 
-The conduct map is off the site. Every run came from one maker's models in one agent, which is no basis for a map of models. The runs and their map stay off the repo, since they hold excerpts of real sessions. The findings below hold for Claude models in Claude Code only.
+The map of these runs is off the site. Every run came from one maker's models in one agent, which is no basis for a map of models. The runs and their map stay off the repo, since they hold excerpts of real sessions. The findings below hold for Claude models in Claude Code only.
 
 Claude's agent manner changed more across releases than its success did. In the four earliest releases (Sonnet 4.5 to Opus 4.6), 8% of runs went without "Let me…" narration; in the four latest (Opus 5.5 to Fable 5.2), 98% did, and 75% worked with no text at all until the final reply. The latest releases run the code more often (33% of runs against 73%), and their final replies grew from 40 words or fewer in two runs of three to 41–120 words in most. Haiku 4.5 owns the "Perfect!" status line (7 of 12 runs, against 2% for the rest). No model asked a question instead of acting, left a scratch file, or committed unasked. 142 of 144 runs passed their check; the two failures were test suites from Haiku 4.5 and Sonnet 5.5 that failed their own assertions.
 
-### Conduct limits
+### Agent run limits
 
 - The map's two axes hold 63% of the spread between models (41.3% and 21.3%).
-- Conduct covers Claude models only for now. No other agent CLI is installed here, so GPT, Gemini and the open models have no transcripts.
-- One harness, Claude Code, shapes every run through its system prompt, tools and permission rules. Another harness may draw different conduct from the same model.
+- The agent runs cover Claude models only for now. No other agent CLI is installed here, so GPT, Gemini and the open models have no transcripts.
+- One harness, Claude Code, shapes every run through its system prompt, tools and permission rules. Another harness may draw different behavior from the same model.
 - The shell allows only python3, node, npm, pytest, ls, git status and git diff, and pytest isn't installed there (the write-tests check brings its own). A model that reaches for `python` or `cat` hits a permission wall, and the map records that.
 - Each model ran each task once. A token in 4 of a model's 12 runs may be chance, so owned tokens are leads.
 - The tasks are small, so success rates sit near the ceiling and say little about skill.
@@ -147,7 +169,7 @@ Claude's agent manner changed more across releases than its success did. In the 
 
 ## The arena
 
-People and every measured model meet on the held-out topics: on each topic, the article with fewer tell points per 1,000 words wins. A Bradley–Terry fit turns the wins into ratings, with 95% intervals from 200 topic resamples. People and Graphite's models play all 5,041 topics and are fit together; each of shibbo's runs plays only its own 286 to 292 topics and is fit against their fixed ratings, so a new run never moves the board. A writer's battles and wins count only the battles its rating used. People lead at 1565. Of the models, Claude Fable 5.2 rates highest at 1115 (1088 to 1149), then Claude Opus 5.5 at 1050 (1044 to 1055) and Gemini 4 Argon at 1001 (973 to 1031). Of the open models, Nemotron 3.5 Super rates highest at 889 and MiMo-V2.6 Pro lowest at 747; GPT-6.1 Sol rates lowest of all at 709 (674 to 737).
+People and every measured model meet on the held-out topics: on each topic, the article with fewer tell points per 1,000 words wins. A Bradley–Terry fit turns the wins into ratings, with 95% intervals from 200 topic resamples. People and Graphite's models play all 5,041 topics and are fit together; each of shibbo's runs plays only its own 286 to 292 topics and is fit against their fixed ratings, so a new run never moves the board. A writer's battles and wins count only the battles its rating used. People lead at 1565. Of the models, Claude Fable 5.2 rates highest at 1115 (1088 to 1149), then Claude Opus 5.5 at 1050 (1044 to 1055) and Gemini 4 Argon at 1001 (973 to 1031). Of the open models, Llama 3.1 70B rates highest at 997 (971 to 1029) and MiMo-V2.6 Pro lowest at 747; GPT-6.1 Sol rates lowest of all at 709 (674 to 737). The seven 2024 models run from DeepSeek-V3 at 786 to Llama 3.1 70B at 997, and Gemini 4 Hydrogen rates 853 (824 to 881).
 
 ### Leave-own-out
 
@@ -166,7 +188,7 @@ The prompt's effect differs by model. Claude Opus 5.5 shows none; GPT-6 Astra sc
 
 ### Three scorings
 
-The checker has two halves, the curated rules and the measured phrase list. Rated on each half alone, the 20 models fall in unrelated orders (Spearman 0.04). The board therefore gives each writer's best and worst rank under all points, rules alone and phrases alone. Claude Opus 4 ranks 2nd on rules and 20th on phrases; GPT-5 ranks 17th and 3rd. Claude Fable 5.2 holds 2nd or 3rd and Claude Opus 5.5 holds 3rd to 5th. The rule for lists of three carries 41% of the models' rule points, from 13% to 68% by model.
+The checker has two halves, the curated rules and the measured phrase list. Rated on each half alone, the 28 models fall in nearly unrelated orders (Spearman 0.13). The board therefore gives each writer's best and worst rank under all points, rules alone and phrases alone. Claude Opus 4 ranks 2nd on rules and 27th on phrases; GPT-5 ranks 19th and 5th. Claude Fable 5.2 holds 2nd or 3rd and Claude Opus 5.5 holds 3rd to 7th. The rule for lists of three carries 34% of the models' rule points, from 13% to 68% by model.
 
 ### The human row
 
@@ -180,7 +202,7 @@ The atlas axes come from 2025–26 vocabulary. RAID models sit on them relative 
 
 Shibbo's counts split text at sentence ends and line breaks, while Graphite's don't, so a few listed figures differ slightly. Tell pages keep Graphite's figure where Graphite lists one and fill the rest from shibbo's count, marked †.
 
-Code habits are measured from one-shot API replies, and conduct from Claude Code transcripts of Claude models only (see above); neither has a human baseline. Interface pages have no human baseline (see above).
+Code habits are measured from one-shot API replies, and behavior from reports on fixed work logs, plus Claude Code transcripts of Claude models only (see above); none has a human baseline. Interface pages have no human baseline (see above).
 
 No layer measures how clear the work is. The checker lists the [Say it clearly](/concepts/clarity) questions for a reader and can't score them.
 

@@ -1,13 +1,13 @@
 # What shibbo does
 
-A tell is a habit that marks work as machine-made. Shibbo keeps a registry of 367 tells, each with a date and its sources. They fall into four layers:
+A tell is a habit that marks work as machine-made. Shibbo keeps a registry of 374 tells, each with a date and its sources. They fall into four layers:
 
 | Layer | Where it shows | Example | Tells |
 |---|---|---|---|
 | Prose | Docs, articles, chat replies | A stock phrase, or a view defined by the wrong view it replaces | 179 |
-| Interface | Pages, stylesheets, components | Inter set everywhere; a made-up “10,000+ teams” | 114 |
+| Interface | Pages, stylesheets, components | Inter set everywhere; a made-up “10,000+ teams” | 121 |
 | Code | Source files, tests, commits | A comment that narrates the edit; a blanket `except` | 44 |
-| Conduct | How an agent works and reports | “All tests pass” with no test run | 30 |
+| Behavior | How an agent works and reports | “All tests pass” with no test run | 30 |
 
 Shibbo does two jobs with the registry.
 
@@ -50,7 +50,7 @@ The checker can't score how clear a text is either. It lists questions for a rea
 
 - Prose has a human baseline: people's web articles on the same topics. Shibbo's own runs on newer models use about 290 topics each, against Graphite's 9,974.
 - Interface and code have no human baseline. Their maps show how models differ from each other.
-- Conduct has tells in the registry and no map. Its only runs cover Claude models in Claude Code, so the site leaves them out.
+- Behavior maps one part of an agent's work, the final report: 23 models write up the same 12 finished work logs. A judge model decides whether each report tells the user what the log shows, and nobody has checked its verdicts by hand yet. What an agent does during the work has no map.
 
 ## Next
 

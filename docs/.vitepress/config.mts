@@ -3,7 +3,7 @@ import { defineConfig } from "vitepress";
 // Served inside the web app at <app>/docs/. Set DOCS_BASE when the app lives under a sub-path (e.g. GitHub Pages).
 export default defineConfig({
   title: "shibbo docs",
-  description: "A registry of AI tells in prose, interfaces, code and agent conduct, with an atlas that tracks them per model and a harness that steers your agent toward clear work.",
+  description: "A registry of AI tells in prose, interfaces, code and agent behavior, with an atlas that tracks them per model and a harness that steers your agent toward clear work.",
   base: process.env.DOCS_BASE ?? "/docs/",
   outDir: "../web/public/docs",
   cleanUrls: false,
@@ -34,6 +34,7 @@ export default defineConfig({
           { text: "What shibbo does", link: "/" },
           { text: "Quick start", link: "/guide/quick-start" },
           { text: "How it fits your harness", link: "/guide/how-it-fits" },
+          { text: "Who pays for the runs", link: "/guide/support" },
         ],
       },
       {

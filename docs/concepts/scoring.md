@@ -26,7 +26,7 @@ per1k = prose penalty / max(prose words, 150) × 1000
 
 A stylesheet or source file has no prose, so only the second line applies. A page has both. The scale was set on web articles, and no human-built pages or human-written code have been scored, so a band means less there: read the hits.
 
-Conduct has no score, since no file records how an agent worked. The [Say it clearly](/concepts/clarity) questions have none either; the report lists them and leaves the answers to a reader.
+Behavior has no score, since no file records how an agent worked. The [Say it clearly](/concepts/clarity) questions have none either; the report lists them and leaves the answers to a reader.
 
 ## Why these weights
 
