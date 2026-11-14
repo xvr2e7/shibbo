@@ -208,7 +208,7 @@ def measure_api(api_out):
             if ("_" in parts or len(parts) > 3) and parts[0] != "_":
                 long_terms[parts[0]].append((parts, term))
 
-    out = {"source": {"title": "shibbo's own runs through each maker's API on Graphite topics", "url": "https://github.com/xvr2e7/shibbo/tree/main/measure", "license": "derived rates"},
+    out = {"source": {"title": "shibbo's own runs through maker APIs and OpenRouter on Graphite topics", "url": "https://github.com/xvr2e7/shibbo/tree/main/measure", "license": "derived rates"},
            "design": "Each model wrote an article with the same title and target length as one held-out human article from Graphite's topics (measure/generate-api.ts), compared with exactly those human articles. A few hundred articles per model, against Graphite's 9,974.",
            "method": {**API_CFG, "test": "paired sign test over topics (rate per token), Benjamini-Hochberg", "min_articles": MIN_API},
            "models": []}
