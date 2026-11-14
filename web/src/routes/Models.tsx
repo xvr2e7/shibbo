@@ -84,7 +84,7 @@ export function ModelsPage() {
         <h2 id="all-h">Every measured model</h2>
         <div className="table-scroll">
           <table className="ledger">
-            <thead><tr><th scope="col">Model</th><th scope="col">Released</th><th scope="col">Measured on</th><th scope="col">Articles</th><th scope="col">Distance from human</th><th scope="col">Phrases over 2×</th></tr></thead>
+            <thead><tr><th scope="col">Model</th><th scope="col">Released</th><th scope="col">Articles</th><th scope="col">Distance from human</th><th scope="col">Phrases over 2×</th></tr></thead>
             <tbody>
               {[...ordered].sort((a, b) => b.released.localeCompare(a.released)).map((m) => {
                 const d = dist(m.id);
@@ -93,7 +93,6 @@ export function ModelsPage() {
                   <tr key={m.id}>
                     <td className="name"><Link to={`/models/${m.id}`} className="model-link"><BrandIcon brand={brandOf(m.family)} size={16} />{m.name}</Link></td>
                     <td>{monthName(ym(m.released), "short")}</td>
-                    <td>{measuredOn(m)}</td>
                     <td className="num" style={{ fontVariantNumeric: "tabular-nums" }}>{docs === null ? "–" : n(docs)}</td>
                     <td>{d === null ? "–" : <Bar v={d} color={familyColor(m.family)} />}</td>
                     <td>{n(m.tells)}</td>
@@ -103,17 +102,7 @@ export function ModelsPage() {
             </tbody>
           </table>
         </div>
-        <Method>
-          <p>
-            {graphite.length > 0 && <>Graphite’s matched articles cover {graphite.length} models{GRAPHITE_TOPICS ? `, ${n(GRAPHITE_TOPICS)} topics each` : ""}. </>}
-            {own.length > 0 && <>Shibbo ran {own.length} newer releases itself through each maker’s API, on {span(own.map((m) => m.docs ?? 0))} of the held-out topics, against the human article on each. </>}
-            {raid.length > 0 && <>Shibbo measured the {raid.length} 2022–23 chat models on RAID, against the human texts each was prompted from. </>}
-            Distance is each model’s place on the atlas; 0 is human.
-          </p>
-          <p>
-            The atlas axes come from 2025–26 vocabulary, so 2022–23 models sit closer to human than their own tells would put them. Phrase counts depend on how much text was measured, so they don’t compare across sources: a run of a few hundred articles finds fewer phrases than Graphite’s, and its distance carries more noise.
-          </p>
-        </Method>
+        <p className="hint after">Distance is each model’s place on the prose map; 0 is human. Counts from a few hundred articles and counts from thousands don’t compare directly. <Link to="/docs/concepts/data">How shibbo measures this</Link></p>
       </section>
 
       {benchmarks.length > 0 && (
@@ -154,30 +143,22 @@ export function ModelsPage() {
 
 function ArenaSection({ a }: { a: Arena }) {
   const lo = Math.floor(Math.min(780, ...a.players.map((p) => p.low)) / 20) * 20 - 20, hi = Math.ceil(Math.max(1660, ...a.players.map((p) => p.high)) / 20) * 20 + 20;
-  const own = a.players.filter((p) => p.source === "shibbo-api" && !p.bridge);
-  const offs = a.prompt_offset?.models ?? [];
-  const sc = a.scoring;
+  // One row per model. A model shibbo ran a second time under its own prompt is a method check; the docs cover it.
+  const players = a.players.filter((p) => !p.bridge);
   const x = (v: number) => ((v - lo) / (hi - lo)) * 100;
   return (
     <>
       <section className="section first" aria-labelledby="arena-h">
         <h2 id="arena-h">The tell arena</h2>
         <p className="hint">Fewer tells per 1,000 words wins each matched pair. Bars show 95% intervals.</p>
-        <div className="arena-head" aria-hidden="true"><span /><span>Writer</span><span>Rating, 95% interval</span><span className="num">Rating</span><span className="num">±</span><span className="num">Rank range</span><span className="num">Median pts/1k</span></div>
+        <div className="arena-head" aria-hidden="true"><span /><span>Writer</span><span>Rating, 95% interval</span><span className="num">Rating</span><span className="num">±</span><span className="num">Tell points per 1,000 words</span></div>
         <ol className="arena" aria-label="Writers ranked by arena rating">
-          {a.players.map((p, i) => (
-            <li key={p.id} className={p.id === "people" ? "people" : p.bridge ? "own bridge" : p.source === "shibbo-api" ? "own" : undefined}>
+          {players.map((p, i) => (
+            <li key={p.id} className={p.id === "people" ? "people" : undefined}>
               <span className="rank">{i + 1}</span>
               <span className="who">
                 {p.id === "people" ? <span className="people-mark" aria-hidden="true" /> : <BrandIcon brand={brandOfId(p.id)} size={18} />}
                 {p.id === "people" ? <b>Human</b> : <Link to={`/models/${p.model ?? p.id}`}>{nameOf(p.id)}</Link>}
-                {p.bridge
-                  ? <span className="src-tag bridge" title={`The same model as Graphite’s row, written again under shibbo’s prompt: ${p.topics} topics, ${n(p.battles)} battles`}>bridge</span>
-                  : p.source === "shibbo-api"
-                  ? <span className="src-tag" title={`shibbo’s run through the API: ${p.topics} topics, ${n(p.battles)} battles`}>shibbo run</span>
-                  : p.source === "graphite"
-                  ? <span className="src-tag solid" title={`Graphite’s articles: ${n(p.topics ?? a.topics)} topics`}>Graphite</span>
-                  : null}
               </span>
               <span className="rating-bar" role="img" aria-label={`rating ${p.rating}, 95% interval ${p.low} to ${p.high}`}>
                 <i className="ci" style={{ left: `${x(p.low)}%`, width: `${Math.max(0.6, x(p.high) - x(p.low))}%` }} />
@@ -185,51 +166,11 @@ function ArenaSection({ a }: { a: Arena }) {
               </span>
               <span className="num">{p.rating}</span>
               <span className="num muted" title={`${p.low} to ${p.high}`}>±{Math.round((p.high - p.low) / 2)}</span>
-              <span className="num muted" title={p.ranks ? `rank ${p.ranks.total} on all points, ${p.ranks.registry} on rules alone, ${p.ranks.lexicon} on the phrase list alone` : undefined}>{rangeText(p.rank_range)}</span>
               <span className="num muted" title="median tell points per 1,000 words">{p.median_per1k.toFixed(1)}</span>
             </li>
           ))}
         </ol>
-        <Method>
-          <p>
-            On each of {n(a.topics)} held-out topics, every pair of writers meets once. The article with fewer tell points per 1,000 words wins; ties split. Ratings use the Bradley–Terry model behind arena-style Elo. Median pts/1k is the median tell weight per 1,000 words.
-          </p>
-          {own.length > 0 && (
-            <p>
-              Rows marked <span className="src-tag">shibbo run</span> wrote on only {span(own.map((p) => p.topics ?? 0))} of these topics, so their ratings carry wider intervals. Each is rated from its battles with people and Graphite’s models, against their fixed ratings, so a new run never moves the rest of the board.
-            </p>
-          )}
-          {a.leave_own_out && (
-            <p>
-              Leave-own-out: the checker’s phrase list comes from the other half of the topics, from Graphite’s models. Each Graphite model is scored with its own phrases left out, so no writer is scored on phrases learned from its own model’s text. The list holds none of a shibbo-run model’s own phrases either.
-            </p>
-          )}
-          {offs.length > 0 ? (
-            <p>
-              A <span className="src-tag bridge">bridge</span> row is a Graphite model that shibbo ran again under its own prompt, scored the same way as its Graphite row.{" "}
-              {offs.map((o) => (
-                <span key={o.model}>
-                  {o.name} rates {o.bridge_rating} under shibbo’s prompt and {o.graphite_rating} under Graphite’s, a gap of {signed(o.offset)} ({signed(o.low)} to {signed(o.high)}); the bridge article had fewer tell points on {pct(o.win_rate)} of {n(o.shared_topics)} shared topics ({pct(o.win_low)} to {pct(o.win_high)}).{" "}
-                </span>
-              ))}
-              {offs.length === 1 ? "One model is a thin base for a gap that may differ by model." : `The mean gap is ${signed(a.prompt_offset!.mean)}.`}
-            </p>
-          ) : (
-            <p>
-              A bridge run, a Graphite model written again under shibbo’s prompt, would measure the gap between the two sources. None is in the data yet.
-            </p>
-          )}
-          {sc && (
-            <p>
-              Rank range gives each writer’s best and worst rank under three scorings: all points, the curated rules alone, and the phrase list alone. The two halves order the {sc.spearman_models} models differently (Spearman {sc.spearman_registry_lexicon.toFixed(2).replace("-", "−")}), so a wide range means the rank turns on the scoring.
-              {sc.triad_share_of_rule_points !== undefined && <> One rule, lists of three, carries {pct(sc.triad_share_of_rule_points)} of the models’ rule points.</>}
-            </p>
-          )}
-          <p>
-            {sc?.people_first_in_all && <>People rank first under every scoring, because the checker is built from what separates models from people. That row shows the checker works; people entered no contest. </>}
-            The curated rules were written after reading all of Graphite’s data, so the human lead runs somewhat high.
-          </p>
-        </Method>
+        <p className="hint after">People and models wrote on the same {n(a.topics)} topics. Every pair meets once per topic, and the ratings come from those wins. <Link to="/docs/concepts/data">How shibbo measures this</Link></p>
       </section>
       <section className="section" aria-labelledby="h2h-h">
         <h2 id="h2h-h">Head to head</h2>
@@ -241,7 +182,7 @@ function ArenaSection({ a }: { a: Arena }) {
 }
 
 function WinMatrix({ a }: { a: Arena }) {
-  const order = a.players.map((p) => p.id);
+  const order = a.players.filter((p) => !p.bridge).map((p) => p.id);
   const idx = new Map(a.winrate.order.map((id, i) => [id, i]));
   const cell = (r: string, c: string) => a.winrate.matrix[idx.get(r)!][idx.get(c)!];
   const tint = (v: number) => `color-mix(in oklab, ${v >= 0.5 ? "var(--under-4)" : "var(--over-3)"} ${Math.round(Math.abs(v - 0.5) * 200)}%, var(--neutral))`;
@@ -474,7 +415,7 @@ export function Newest() {
       </ul>
       <Method>
         <p>
-          Releases from the past year that shibbo has measured, newest first. {uiCount} have interface pages{briefs ? `, one per brief from the same ${briefs} bare API requests` : ""}; {ownCount} have articles shibbo wrote through the maker’s API. Hover a tag for its source and size. A release joins once a run lands; see <Link to="/docs/guide/measure">measuring a model</Link>.
+          Releases from the past year that shibbo has measured, newest first. A release joins once its run lands; see <Link to="/docs/guide/measure">measuring a model</Link>.
         </p>
         {expected.length > 0 && <p>Reported models are ones the press says are coming and the maker has yet to confirm. They stay off the timeline until a maker’s own page gives a date.</p>}
       </Method>
