@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lakeside Family Clinic — Today's Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef2f6;
+    --panel:#ffffff;
+    --ink:#10212e;
+    --ink-2:#45606f;
+    --ink-3:#7c93a1;
+    --line:#dde5ec;
+    --teal:#0e8f93;
+    --teal-soft:#e2f4f4;
+    --blue:#2f6fd0;
+    --blue-soft:#e6eefb;
+    --amber:#b57500;
+    --amber-soft:#fdf1dc;
+    --red:#c0392f;
+    --red-soft:#fbe9e7;
+    --green:#1f8a4c;
+    --green-soft:#e4f4ea;
+    --violet:#6d4bbd;
+    --violet-soft:#eeeaf9;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,33,46,.06), 0 8px 24px -12px rgba(16,33,46,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, #e3eef3 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    font-size:14px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1500px;margin:0 auto;padding:22px 26px 54px}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding:14px 18px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:240px}
+  .logo{
+    width:40px;height:40px;border-radius:12px;flex:none;
+    background:linear-gradient(145deg,#12a0a4,#0b6f78);
+    display:grid;place-items:center;color:#fff;font-weight:700;
+    box-shadow:inset 0 -2px 6px rgba(0,0,0,.18);
+  }
+  .logo svg{width:22px;height:22px}
+  .brand h1{font-size:16px;margin:0;letter-spacing:-.2px}
+  .brand span{font-size:11.5px;color:var(--ink-3);letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+  .topbar .sep{flex:1}
+  .clock{
+    display:flex;align-items:center;gap:10px;padding:7px 14px;border-radius:999px;
+    background:var(--teal-soft);border:1px solid #c9e7e8;color:#0a6e72;font-weight:600;
+  }
+  .clock b{font-family:'JetBrains Mono',monospace;font-size:15px}
+  .dateline{font-size:13px;color:var(--ink-2);font-weight:500}
+  .pulse{width:8px;height:8px;border-radius:50%;background:#18a999;box-shadow:0 0 0 0 rgba(24,169,153,.6);animation:p 2.2s infinite}
+  @keyframes p{70%{box-shadow:0 0 0 9px rgba(24,169,153,0)}100%{box-shadow:0 0 0 0 rgba(24,169,153,0)}}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:var(--ink-2);font:inherit;font-weight:600;
+    padding:8px 14px;border-radius:9px;cursor:pointer;font-size:13px;transition:.15s;
+  }
+  .btn:hover{border-color:#b9c9d4;color:var(--ink);background:#f7fafc}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .btn.primary:hover{background:#0b7d81}
+
+  /* ---------- stat cards ---------- */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--teal))}
+  .stat .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);font-weight:700}
+  .stat .val{font-size:30px;font-weight:700;letter-spacing:-1px;margin:6px 0 2px;line-height:1}
+  .stat .val small{font-size:14px;color:var(--ink-3);font-weight:600;letter-spacing:0}
+  .stat .sub{font-size:12px;color:var(--ink-2)}
+  .trend{font-weight:700;font-size:11.5px;padding:2px 7px;border-radius:6px;display:inline-block}
+  .up{background:var(--red-soft);color:var(--red)}
+  .down{background:var(--green-soft);color:var(--green)}
+  .flat{background:#eef2f6;color:var(--ink-2)}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,.95fr);gap:18px;align-items:start}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;
+  }
+  .card-h{
+    display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(#fff,#fbfdfe);
+  }
+  .card-h h2{margin:0;font-size:14.5px;letter-spacing:-.2px}
+  .card-h .count{
+    font-size:11.5px;font-weight:700;background:#eef2f6;color:var(--ink-2);
+    padding:3px 8px;border-radius:999px;
+  }
+  .card-h .sep{flex:1}
+  .card-h .hint{font-size:12px;color:var(--ink-3)}
+
+  /* filter chips */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:#f3f7fa}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  /* ---------- schedule ---------- */
+  .sched{max-height:560px;overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  thead th{
+    position:sticky;top:0;z-index:3;background:#f6f9fb;text-align:left;
+    font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-3);
+    padding:9px 14px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap;
+  }
+  tbody td{padding:11px 14px;border-bottom:1px solid #eef3f7;vertical-align:middle}
+  tbody tr{transition:background .12s}
+  tbody tr:hover{background:#f7fbfc}
+  tbody tr.past td{color:var(--ink-3)}
+  .time{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;white-space:nowrap}
+  .dur{display:block;font-size:11px;color:var(--ink-3);font-family:'Inter',sans-serif;font-weight:500}
+  .pt{display:flex;align-items:center;gap:10px}
+  .av{
+    width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+    font-size:11.5px;font-weight:700;color:#fff;letter-spacing:.3px;
+  }
+  .pt b{font-weight:600;font-size:13.5px;display:block;line-height:1.25}
+  .pt i{font-style:normal;font-size:11.5px;color:var(--ink-3)}
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    padding:4px 9px;border-radius:999px;white-space:nowrap;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .s-done{background:var(--green-soft);color:var(--green)}
+  .s-in{background:var(--blue-soft);color:var(--blue)}
+  .s-wait{background:var(--amber-soft);color:var(--amber)}
+  .s-sched{background:#eef2f6;color:var(--ink-2)}
+  .s-no{background:var(--red-soft);color:var(--red)}
+  .roomtag{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--ink-2)}
+  .type{font-size:12.5px;color:var(--ink-2)}
+  tr.nowrow{background:linear-gradient(90deg,#fff8e8,transparent)}
+  .nowline td{padding:0;border:0}
+  .nowline .bar{
+    height:0;border-top:2px dashed #e0a526;position:relative;
+  }
+  .nowline .bar span{
+    position:absolute;left:14px;top:-9px;background:#e0a526;color:#fff;font-size:10px;
+    font-weight:700;letter-spacing:.6px;padding:1px 7px;border-radius:999px;
+  }
+  .mini{
+    border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 8px;font:inherit;
+    font-size:11.5px;font-weight:600;color:var(--ink-2);cursor:pointer
+  }
+  .mini:hover{background:#f2f7fa;border-color:#b9c9d4}
+
+  /* ---------- rooms ---------- */
+  .rooms{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+  .room{
+    border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fcfdfe;position:relative;
+  }
+  .room.occ{background:linear-gradient(180deg,#fff,#f4fbfb);border-color:#c7e6e7}
+  .room.clean{background:#fdfaf3;border-color:#f0e0bf}
+  .room.free{background:#fff}
+  .room .rn{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .room .rn b{font-size:13px;letter-spacing:-.1px}
+  .room .who{font-size:12px;color:var(--ink-2);margin-top:7px;line-height:1.4}
+  .room .who em{font-style:normal;color:var(--ink-3)}
+  .room .meter{height:4px;border-radius:3px;background:#e9eff4;margin-top:9px;overflow:hidden}
+  .room .meter i{display:block;height:100%;border-radius:3px;background:var(--teal)}
+  .room.clean .meter i{background:#d9a93c}
+  .st{width:9px;height:9px;border-radius:50%;flex:none}
+  .st.g{background:#1f8a4c;box-shadow:0 0 0 3px var(--green-soft)}
+  .st.t{background:#0e8f93;box-shadow:0 0 0 3px var(--teal-soft)}
+  .st.y{background:#d9a93c;box-shadow:0 0 0 3px var(--amber-soft)}
+
+  /* ---------- no-show list ---------- */
+  .ns{padding:6px 0}
+  .ns-row{
+    display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid #eef3f7;
+  }
+  .ns-row:last-child{border-bottom:0}
+  .ns-row .meta{flex:1;min-width:0}
+  .ns-row .meta b{display:block;font-size:13.5px;font-weight:600}
+  .ns-row .meta i{font-style:normal;font-size:11.5px;color:var(--ink-3)}
+  .ns-row.handled{opacity:.5}
+  .ns-row.handled .meta b{text-decoration:line-through}
+  .badge-x{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--red);
+    background:var(--red-soft);padding:3px 7px;border-radius:6px;white-space:nowrap
+  }
+
+  /* ---------- providers ---------- */
+  .prov{padding:6px 16px 14px}
+  .prow{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #f0f4f7}
+  .prow:last-child{border:0}
+  .prow .nm{flex:1;min-width:0}
+  .prow .nm b{font-size:13.5px;font-weight:600;display:block}
+  .prow .nm i{font-style:normal;font-size:11.5px;color:var(--ink-3)}
+  .util{width:120px}
+  .util .trk{height:7px;background:#eef2f6;border-radius:4px;overflow:hidden}
+  .util .trk i{display:block;height:100%;border-radius:4px}
+  .util .num{font-size:11px;color:var(--ink-3);font-weight:600;margin-top:4px;display:block;text-align:right}
+
+  /* ---------- hourly load ---------- */
+  .load{padding:18px 18px 14px;display:flex;align-items:flex-end;gap:10px;height:168px}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+  .bar .stack{width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:100%}
+  .bar .seg{border-radius:4px;transition:.2s}
+  .bar .seg.b1{background:#0e8f93}
+  .bar .seg.b2{background:#8ecbcd}
+  .bar .seg.b3{background:#f0c3bd}
+  .bar:hover .seg{filter:brightness(1.08)}
+  .bar .hr{font-size:11px;color:var(--ink-3);font-weight:600;font-family:'JetBrains Mono',monospace}
+  .bar.nowb .hr{color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:1px 5px}
+  .legend{display:flex;gap:16px;padding:0 18px 16px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:block}
+
+  .alert{
+    display:flex;gap:11px;align-items:flex-start;margin:0 0 18px;padding:13px 16px;
+    background:#fff8ec;border:1px solid #f1dfbd;border-radius:var(--radius);color:#7a5406;font-size:13px;
+  }
+  .alert b{color:#5d4005}
+  .alert svg{flex:none;margin-top:1px}
+
+  footer{margin-top:4px;text-align:center;color:var(--ink-3);font-size:11.5px}
+
+  @media (max-width:1180px){
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (max-width:700px){
+    .wrap{padding:14px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .rooms{grid-template-columns:1fr}
+    .hide-s{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+      </div>
+      <div>
+        <span>Lakeside Family Clinic</span>
+        <h1>Front Desk Dashboard</h1>
+      </div>
+    </div>
+    <div class="dateline" id="dateline">—</div>
+    <div class="sep"></div>
+    <div class="clock"><span class="pulse"></span>Clinic time <b id="clock">11:42 AM</b></div>
+    <button class="btn">Print day sheet</button>
+    <button class="btn primary">+ New appointment</button>
+  </header>
+
+  <!-- ============ STATS ============ -->
+  <section class="stats">
+    <div class="stat" style="--c:#2f6fd0">
+      <div class="lbl">Booked today</div>
+      <div class="val">24 <small>appts</small></div>
+      <div class="sub"><span class="trend flat">+2 vs. avg</span> 3 walk-ins</div>
+    </div>
+    <div class="stat" style="--c:#1f8a4c">
+      <div class="lbl">Seen / completed</div>
+      <div class="val">9 <small>/ 24</small></div>
+      <div class="sub">Running <b style="color:var(--amber)">6 min</b> behind</div>
+    </div>
+    <div class="stat" style="--c:#b57500">
+      <div class="lbl">In waiting room</div>
+      <div class="val">4</div>
+      <div class="sub">Longest wait: 14 min</div>
+    </div>
+    <div class="stat" style="--c:#c0392f">
+      <div class="lbl">No-shows</div>
+      <div class="val">3 <small>· 12.5%</small></div>
+      <div class="sub"><span class="trend up">▲ 4.1 pts</span> vs. 30-day</div>
+    </div>
+    <div class="stat" style="--c:#0e8f93">
+      <div class="lbl">Rooms in use</div>
+      <div class="val">5 <small>/ 8</small></div>
+      <div class="sub">1 awaiting turnover</div>
+    </div>
+  </section>
+
+  <div class="alert">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+    <div><b>Exam 3 is out of service</b> until facilities clears the sharps container (reported 10:15 AM). Two afternoon slots were moved to Exam 6 — <a href="#" style="color:#7a5406">review affected patients</a>.</div>
+  </div>
+
+  <!-- ============ MAIN GRID ============ -->
+  <div class="grid">
+
+    <!-- LEFT -->
+    <div>
+      <section class="card">
+        <div class="card-h">
+          <h2>Today's schedule</h2>
+          <span class="count" id="schedCount">24 appointments</span>
+          <div class="sep"></div>
+          <div class="chips" id="chips">
+            <button class="chip" aria-pressed="true" data-f="all">All</button>
+            <button class="chip" aria-pressed="false" data-f="waiting">Waiting</button>
+            <button class="chip" aria-pressed="false" data-f="upcoming">Upcoming</button>
+            <button class="chip" aria-pressed="false" data-f="noshow">No-shows</button>
+          </div>
+        </div>
+        <div class="sched">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Patient</th>
+                <th class="hide-s">Reason</th>
+                <th>Provider</th>
+                <th>Room</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="schedBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">
+          <h2>Appointment load by hour</h2>
+          <div class="sep"></div>
+          <span class="hint">Peak 10:00 — 11:00</span>
+        </div>
+        <div class="load" id="load"></div>
+        <div class="legend">
+          <span><i style="background:#0e8f93"></i> Completed / in room</span>
+          <span><i style="background:#8ecbcd"></i> Scheduled</span>
+          <span><i style="background:#f0c3bd"></i> No-show / cancelled</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <section class="card">
+        <div class="card-h">
+          <h2>Rooms in use</h2>
+          <span class="count">5 of 8 occupied</span>
+        </div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">
+          <h2>No-shows &amp; late cancels</h2>
+          <span class="count" style="background:var(--red-soft);color:var(--red)">3 open</span>
+        </div>
+        <div class="ns" id="ns"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">
+          <h2>Provider panel</h2>
+          <div class="sep"></div>
+          <span class="hint">seen / booked</span>
+        </div>
+        <div class="prov" id="prov"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>Data refreshed 11:42 AM · Lakeside Family Clinic · demo dashboard, no PHI</footer>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const NOW = 11*60 + 42; // 11:42 AM, clinic time in minutes
+
+const providers = [
+  {id:'av', name:'Dr. Amara Vance',   role:'Family medicine', color:'#0e8f93', seen:5, booked:10},
+  {id:'ro', name:'Dr. Ruben Ortiz',   role:'Internal medicine', color:'#2f6fd0', seen:3, booked:8},
+  {id:'kl', name:'Kira Lund, NP',     role:'Urgent care',     color:'#6d4bbd', seen:1, booked:6},
+];
+const P = Object.fromEntries(providers.map(p=>[p.id,p]));
+
+const appts = [
+  {t:480,  dur:20, name:'Harold Benning',   mrn:'MRN 40192', reason:'Hypertension f/u',  prov:'av', room:'Exam 1', st:'done'},
+  {t:500,  dur:20, name:'Priya Raman',      mrn:'MRN 38771', reason:'Annual physical',   prov:'ro', room:'Exam 2', st:'done'},
+  {t:520,  dur:20, name:'Dale Fergus',      mrn:'MRN 41550', reason:'Lab review',        prov:'av', room:'Exam 1', st:'done'},
+  {t:540,  dur:30, name:'Marisol Cruz',     mrn:'MRN 29104', reason:'Diabetes check',    prov:'ro', room:'Exam 2', st:'done'},
+  {t:540,  dur:20, name:'Tom Ngo',          mrn:'MRN 44320', reason:'Ear pain',          prov:'kl', room:'Exam 4', st:'done'},
+  {t:570,  dur:20, name:'Janet Oyelaran',   mrn:'MRN 33876', reason:'Med refill',        prov:'av', room:'—',      st:'noshow'},
+  {t:580,  dur:20, name:'Colin Pratt',      mrn:'MRN 45011', reason:'Rash',              prov:'kl', room:'Exam 4', st:'done'},
+  {t:600,  dur:30, name:'Eileen Marsh',     mrn:'MRN 21004', reason:'Post-op check',     prov:'ro', room:'Exam 2', st:'done'},
+  {t:600,  dur:20, name:'Sam Whitaker',     mrn:'MRN 46712', reason:'Flu-like symptoms', prov:'av', room:'Exam 1', st:'done'},
+  {t:620,  dur:20, name:'Lydia Soto',       mrn:'MRN 39228', reason:'Blood pressure rechk', prov:'av', room:'—',   st:'noshow'},
+  {t:630,  dur:40, name:'Grace Mbeki',      mrn:'MRN 30417', reason:'Wound care',        prov:'kl', room:'Procedure', st:'inroom'},
+  {t:645,  dur:20, name:'Arthur Dillon',    mrn:'MRN 42339', reason:'Knee injection',    prov:'av', room:'Exam 1', st:'inroom'},
+  {t:660,  dur:30, name:'Nadia Khoury',     mrn:'MRN 44908', reason:'New patient intake',prov:'ro', room:'Exam 6', st:'inroom'},
+  {t:680,  dur:20, name:'Wes Carter',       mrn:'MRN 47750', reason:'Cough, 3 weeks',    prov:'kl', room:'Exam 5', st:'inroom'},
+  {t:690,  dur:20, name:'Bernice Hall',     mrn:'MRN 22551', reason:'Warfarin check',    prov:'av', room:'Lab',   st:'waiting', wait:14},
+  {t:700,  dur:20, name:'Felix Donahue',    mrn:'MRN 48002', reason:'Sports physical',   prov:'ro', room:'—',     st:'waiting', wait:9},
+  {t:705,  dur:20, name:'Opal Reyes',       mrn:'MRN 31880', reason:'Headaches',         prov:'kl', room:'—',     st:'waiting', wait:4},
+  {t:710,  dur:20, name:'Dmitri Lang',      mrn:'MRN 45566', reason:'Walk-in · sore throat', prov:'kl', room:'—',  st:'waiting', wait:2},
+  {t:780,  dur:20, name:'Celia Ward',       mrn:'MRN 40055', reason:'Thyroid f/u',       prov:'av', room:'Exam 1', st:'sched'},
+  {t:800,  dur:30, name:'Ira Goldstein',    mrn:'MRN 25613', reason:'Chronic care visit',prov:'ro', room:'Exam 2', st:'sched'},
+  {t:820,  dur:20, name:'Hana Takeda',      mrn:'MRN 46220', reason:'Immunizations',     prov:'kl', room:'Exam 4', st:'sched'},
+  {t:840,  dur:20, name:'Rowan Price',      mrn:'MRN 47391', reason:'Back pain',         prov:'av', room:'Exam 6', st:'sched'},
+  {t:870,  dur:30, name:'Vera Nowak',       mrn:'MRN 28744', reason:'Pre-op clearance',  prov:'ro', room:'Exam 2', st:'sched'},
+  {t:900,  dur:20, name:'Luis Arrieta',     mrn:'MRN 48115', reason:'Cast removal',      prov:'kl', room:'Procedure', st:'sched'},
+];
+
+const rooms = [
+  {n:'Exam 1', state:'occ',  who:'Arthur Dillon', prov:'Dr. Vance',  since:'10:45', pct:72},
+  {n:'Exam 2', state:'clean',who:'Turnover — housekeeping paged', since:'11:30', pct:35},
+  {n:'Exam 3', state:'free', who:'Out of service', since:'10:15', pct:0, oos:true},
+  {n:'Exam 4', state:'free', who:'Available', since:'11:05', pct:0},
+  {n:'Exam 5', state:'occ',  who:'Wes Carter', prov:'K. Lund, NP', since:'11:20', pct:48},
+  {n:'Exam 6', state:'occ',  who:'Nadia Khoury', prov:'Dr. Ortiz', since:'11:00', pct:86},
+  {n:'Procedure', state:'occ', who:'Grace Mbeki', prov:'K. Lund, NP', since:'10:30', pct:64},
+  {n:'Lab draw', state:'occ', who:'Bernice Hall', prov:'Phlebotomy', since:'11:38', pct:20},
+];
+
+const noshows = [
+  {name:'Janet Oyelaran', mrn:'MRN 33876', slot:'9:30 AM · Dr. Vance', reason:'Med refill', hist:'3rd this yr', phone:'(503) 555-0148'},
+  {name:'Lydia Soto',     mrn:'MRN 39228', slot:'10:20 AM · Dr. Vance', reason:'BP recheck', hist:'1st', phone:'(503) 555-0193'},
+  {name:'Owen Brightman', mrn:'MRN 43019', slot:'8:40 AM · Dr. Ortiz', reason:'Late cancel (<2h)', hist:'2nd this yr', phone:'(503) 555-0267'},
+];
+
+const hourly = [ // 8am–5pm: [done, scheduled, missed]
+  {h:'8a', d:3, s:0, m:1},
+  {h:'9a', d:3, s:0, m:1},
+  {h:'10a',d:4, s:0, m:1},
+  {h:'11a',d:3, s:4, m:0},
+  {h:'12p',d:0, s:1, m:0},
+  {h:'1p', d:0, s:2, m:0},
+  {h:'2p', d:0, s:3, m:0},
+  {h:'3p', d:0, s:3, m:0},
+  {h:'4p', d:0, s:2, m:0},
+  {h:'5p', d:0, s:1, m:0},
+];
+
+/* ---------------- helpers ---------------- */
+const fmt = m => {
+  let h = Math.floor(m/60), mm = String(m%60).padStart(2,'0');
+  const ap = h>=12 ? 'PM':'AM'; h = h%12 || 12;
+  return `${h}:${mm} ${ap}`;
+};
+const initials = n => n.split(' ').map(w=>w[0]).slice(0,2).join('');
+const STATUS = {
+  done:   {cls:'s-done', label:'Completed'},
+  inroom: {cls:'s-in',   label:'In room'},
+  waiting:{cls:'s-wait', label:'Waiting'},
+  sched:  {cls:'s-sched',label:'Scheduled'},
+  noshow: {cls:'s-no',   label:'No-show'},
+};
+
+/* ---------------- schedule render ---------------- */
+let filter = 'all';
+function matches(a){
+  if(filter==='all') return true;
+  if(filter==='waiting') return a.st==='waiting';
+  if(filter==='upcoming') return a.st==='sched';
+  if(filter==='noshow') return a.st==='noshow';
+}
+function renderSched(){
+  const body = document.getElementById('schedBody');
+  const list = appts.filter(matches);
+  body.innerHTML = '';
+  let nowPlaced = false;
+  list.forEach(a=>{
+    if(!nowPlaced && a.t > NOW && filter==='all'){
+      nowPlaced = true;
+      const tr = document.createElement('tr');
+      tr.className = 'nowline';
+      tr.innerHTML = `<td colspan="7"><div class="bar"><span>NOW · ${fmt(NOW)}</span></div></td>`;
+      body.appendChild(tr);
+    }
+    const p = P[a.prov], s = STATUS[a.st];
+    const tr = document.createElement('tr');
+    if(a.st==='done'||a.st==='noshow') tr.className='past';
+    if(a.st==='waiting') tr.className='nowrow';
+    tr.innerHTML = `
+      <td><span class="time">${fmt(a.t)}</span><span class="dur">${a.dur} min</span></td>
+      <td>
+        <div class="pt">
+          <div class="av" style="background:${p.color}">${initials(a.name)}</div>
+          <div><b>${a.name}</b><i>${a.mrn}</i></div>
+        </div>
+      </td>
+      <td class="hide-s"><span class="type">${a.reason}</span></td>
+      <td><span class="type">${p.name.replace('Dr. ','Dr. ')}</span></td>
+      <td><span class="roomtag">${a.room}</span></td>
+      <td><span class="pill ${s.cls}"><span class="dot"></span>${s.label}${a.wait?` · ${a.wait}m`:''}</span></td>
+      <td style="text-align:right">${
+        a.st==='waiting' ? '<button class="mini">Room</button>'
+        : a.st==='sched' ? '<button class="mini">Check in</button>'
+        : a.st==='noshow'? '<button class="mini">Rebook</button>' : ''
+      }</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('schedCount').textContent =
+    `${list.length} ${filter==='all'?'appointments':'shown'}`;
+  body.querySelectorAll('.mini').forEach(b=>b.addEventListener('click',e=>{
+    e.currentTarget.textContent = '✓ Done';
+    e.currentTarget.style.cssText += 'background:var(--green-soft);color:var(--green);border-color:#bfe4cc';
+  }));
+}
+document.getElementById('chips').addEventListener('click', e=>{
+  const c = e.target.closest('.chip'); if(!c) return;
+  filter = c.dataset.f;
+  [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed', x===c));
+  renderSched();
+});
+
+/* ---------------- rooms ---------------- */
+document.getElementById('rooms').innerHTML = rooms.map(r=>{
+  const stClass = r.state==='occ' ? 't' : r.state==='clean' ? 'y' : 'g';
+  const label = r.state==='occ' ? 'In use' : r.state==='clean' ? 'Turnover' : (r.oos ? 'Out' : 'Open');
+  return `<div class="room ${r.state}">
+    <div class="rn"><b>${r.n}</b><span class="pill ${r.state==='occ'?'s-in':r.state==='clean'?'s-wait':'s-done'}"><span class="st ${stClass}"></span>${label}</span></div>
+    <div class="who">${r.state==='occ'
+      ? `<b style="font-weight:600">${r.who}</b><br><em>${r.prov} · since ${r.since}</em>`
+      : `<em>${r.who}${r.state==='clean'?` · ${r.since}`:''}</em><br><em>&nbsp;</em>`}</div>
+    <div class="meter"><i style="width:${r.pct}%"></i></div>
+  </div>`;
+}).join('');
+
+/* ---------------- no-shows ---------------- */
+document.getElementById('ns').innerHTML = noshows.map((n,i)=>`
+  <div class="ns-row" data-i="${i}">
+    <div class="av" style="background:#c0392f;width:32px;height:32px;border-radius:10px">${initials(n.name)}</div>
+    <div class="meta">
+      <b>${n.name}</b>
+      <i>${n.slot} · ${n.reason} · ${n.phone}</i>
+    </div>
+    <span class="badge-x">${n.hist}</span>
+    <button class="mini">Call</button>
+  </div>`).join('');
+document.querySelectorAll('#ns .mini').forEach(b=>b.addEventListener('click',e=>{
+  const row = e.target.closest('.ns-row');
+  row.classList.toggle('handled');
+  e.target.textContent = row.classList.contains('handled') ? 'Called' : 'Call';
+}));
+
+/* ---------------- providers ---------------- */
+document.getElementById('prov').innerHTML = providers.map(p=>{
+  const pct = Math.round(p.seen/p.booked*100);
+  return `<div class="prow">
+    <div class="av" style="background:${p.color}">${initials(p.name.replace('Dr. ',''))}</div>
+    <div class="nm"><b>${p.name}</b><i>${p.role}</i></div>
+    <div class="util">
+      <div class="trk"><i style="width:${pct}%;background:${p.color}"></i></div>
+      <span class="num">${p.seen} / ${p.booked} seen</span>
+    </div>
+  </div>`;
+}).join('');
+
+/* ---------------- hourly load ---------------- */
+const max = Math.max(...hourly.map(h=>h.d+h.s+h.m));
+document.getElementById('load').innerHTML = hourly.map(h=>{
+  const unit = 118/max;
+  const seg = (v,c)=> v? `<div class="seg ${c}" style="height:${Math.max(v*unit,6)}px" title="${v}"></div>`:'';
+  return `<div class="bar ${h.h==='11a'?'nowb':''}" title="${h.h}: ${h.d+h.s+h.m} appts">
+    <div class="stack">${seg(h.m,'b3')}${seg(h.s,'b2')}${seg(h.d,'b1')}</div>
+    <div class="hr">${h.h}</div>
+  </div>`;
+}).join('');
+
+/* ---------------- clock / date ---------------- */
+const d = new Date();
+document.getElementById('dateline').textContent =
+  d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+document.getElementById('clock').textContent = fmt(NOW);
+
+renderSched();
+</script>
+</body>
+</html>

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larkspur Goods — Sales Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f3ee;
+    --panel:#ffffff;
+    --ink:#1d1c1a;
+    --ink-2:#3a3833;
+    --muted:#7a746a;
+    --line:#e8e4db;
+    --soft:#f0ede6;
+    --accent:#e4572e;
+    --accent-soft:#fde8e1;
+    --teal:#2a6f6b;
+    --teal-soft:#dcecea;
+    --gold:#d9a441;
+    --plum:#6b4e8a;
+    --good:#2f8f5b;
+    --good-soft:#e0f2e8;
+    --bad:#c2412d;
+    --bad-soft:#fbe4df;
+    --radius:14px;
+    --shadow:0 1px 0 rgba(29,28,26,.04), 0 1px 3px rgba(29,28,26,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:"JetBrains Mono",ui-monospace,monospace;font-feature-settings:"tnum";letter-spacing:-.01em}
+  button,input,select{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+  /* Layout */
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+  aside{
+    background:var(--ink);color:#d9d5cc;padding:22px 16px;position:sticky;top:0;height:100vh;
+    display:flex;flex-direction:column;gap:24px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 8px;color:#fff;font-weight:700;font-size:16px;letter-spacing:-.01em}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center}
+  .logo svg{width:18px;height:18px}
+  nav{display:flex;flex-direction:column;gap:2px}
+  .nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8d887e;padding:0 10px;margin:8px 0 6px}
+  nav a{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#cfcac0;text-decoration:none;font-weight:500
+  }
+  nav a svg{width:17px;height:17px;opacity:.85}
+  nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+  nav a.active{background:rgba(255,255,255,.1);color:#fff}
+  nav a .badge{margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:99px}
+  .side-foot{margin-top:auto;background:rgba(255,255,255,.06);border-radius:12px;padding:14px}
+  .side-foot strong{color:#fff;display:block;margin-bottom:4px}
+  .side-foot p{margin:0 0 10px;font-size:12.5px;color:#a9a397}
+  .meter{height:6px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden}
+  .meter span{display:block;height:100%;background:var(--gold);border-radius:99px}
+
+  main{padding:26px 32px 48px;min-width:0}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+  .eyebrow{color:var(--muted);font-size:13px;margin:0 0 2px}
+  h1{margin:0;font-size:26px;letter-spacing:-.02em;font-weight:700}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow)}
+  .seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:600;color:var(--muted);font-size:13px}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .seg button:not([aria-pressed="true"]):hover{color:var(--ink)}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);padding:7px 12px;
+    border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;box-shadow:var(--shadow)
+  }
+  .btn:hover{border-color:#d5d0c4}
+  .btn svg{width:15px;height:15px}
+
+  /* Cards */
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;min-width:0}
+  .card h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-.01em}
+  .card .sub{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+
+  .kpi .label{color:var(--muted);font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
+  .kpi .dot{width:8px;height:8px;border-radius:50%}
+  .kpi .value{font-size:26px;font-weight:500;margin:8px 0 6px;letter-spacing:-.03em}
+  .kpi-row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+  .delta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;padding:2px 7px;border-radius:99px}
+  .delta.up{background:var(--good-soft);color:var(--good)}
+  .delta.down{background:var(--bad-soft);color:var(--bad)}
+  .delta-note{color:var(--muted);font-size:12px;margin-left:6px}
+  .spark{width:96px;height:34px;flex:none}
+
+  .row-a{grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px}
+  .row-b{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);margin-bottom:16px}
+
+  .legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .legend i.dash{background:repeating-linear-gradient(90deg,#b9b3a7 0 4px,transparent 4px 7px)}
+
+  .chart-wrap{position:relative;height:290px}
+  .donut-wrap{position:relative;height:190px;margin:4px 0 14px}
+  .donut-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+  .donut-center .big{font-size:20px;font-weight:500}
+  .donut-center .small{font-size:12px;color:var(--muted)}
+  .chan-list{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+  .chan-list li{display:flex;align-items:center;gap:9px;font-size:13px}
+  .chan-list .sw{width:10px;height:10px;border-radius:3px;flex:none}
+  .chan-list .nm{flex:1}
+  .chan-list .pc{color:var(--muted);width:44px;text-align:right}
+
+  /* products */
+  .prod-list{list-style:none;margin:0;padding:0;display:grid;gap:13px}
+  .prod{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center}
+  .thumb{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-size:17px}
+  .prod .nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prod .meta{color:var(--muted);font-size:12px}
+  .bar{height:5px;background:var(--soft);border-radius:99px;margin-top:6px;overflow:hidden}
+  .bar span{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .5s ease}
+  .prod .rev{text-align:right;font-size:13px}
+  .prod .rev small{display:block;color:var(--muted);font-family:"DM Sans";font-size:11.5px}
+
+  /* funnel */
+  .funnel{display:grid;gap:10px}
+  .fstep{display:grid;grid-template-columns:110px 1fr 54px;gap:10px;align-items:center;font-size:13px}
+  .fstep .track{height:26px;background:var(--soft);border-radius:7px;overflow:hidden;position:relative}
+  .fstep .fill{height:100%;background:var(--teal);border-radius:7px;transition:width .5s ease;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11.5px;white-space:nowrap}
+  .fstep .pc{text-align:right;color:var(--muted);font-size:12px}
+  .funnel-note{margin-top:14px;padding:10px 12px;background:var(--teal-soft);color:var(--teal);border-radius:10px;font-size:12.5px}
+
+  /* table */
+  .table-tools{display:flex;gap:8px;flex-wrap:wrap}
+  .search{position:relative}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted)}
+  .search input{border:1px solid var(--line);border-radius:9px;padding:7px 10px 7px 30px;width:210px;background:var(--bg)}
+  select{border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--bg);cursor:pointer}
+  .table-scroll{overflow-x:auto;margin:0 -20px;padding:0 20px}
+  table{width:100%;border-collapse:collapse;min-width:720px}
+  th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th button{border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;display:inline-flex;align-items:center;gap:4px}
+  th button:hover{color:var(--ink)}
+  th.r,td.r{text-align:right}
+  td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13.5px;white-space:nowrap}
+  tbody tr:hover{background:#faf9f6}
+  tbody tr:last-child td{border-bottom:0}
+  .cust{display:flex;align-items:center;gap:9px}
+  .avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;flex:none}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.Paid{background:var(--good-soft);color:var(--good)}
+  .pill.Shipped{background:var(--teal-soft);color:var(--teal)}
+  .pill.Pending{background:#fbf1dc;color:#9a6b12}
+  .pill.Refunded{background:var(--bad-soft);color:var(--bad)}
+  .muted{color:var(--muted)}
+  .empty{text-align:center;color:var(--muted);padding:28px}
+  .table-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted);font-size:12.5px}
+  .pager{display:flex;gap:6px}
+  .pager button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 10px;cursor:pointer;font-weight:600;font-size:12.5px}
+  .pager button:disabled{opacity:.4;cursor:default}
+
+  @media (max-width:1200px){
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .row-b{grid-template-columns:1fr 1fr}
+    .row-b > :first-child{grid-column:1 / -1}
+  }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    aside{position:static;height:auto;flex-direction:row;align-items:center;padding:12px 16px;overflow-x:auto}
+    aside nav{flex-direction:row}
+    .nav-label,.side-foot{display:none}
+    nav a span.t{display:none}
+    main{padding:20px 16px 40px}
+    .row-a,.row-b{grid-template-columns:1fr}
+  }
+  @media (max-width:520px){
+    .kpis{grid-template-columns:1fr}
+    .search input{width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+      </div>
+      Larkspur Goods
+    </div>
+    <nav aria-label="Main">
+      <div class="nav-label">Store</div>
+      <a href="#" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span class="t">Overview</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg><span class="t">Orders</span><span class="badge">12</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg><span class="t">Products</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M17 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg><span class="t">Customers</span></a>
+      <div class="nav-label">Growth</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg><span class="t">Marketing</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="17" cy="14" r="1.5"/></svg><span class="t">Payouts</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="t">Settings</span></a>
+    </nav>
+    <div class="side-foot">
+      <strong>Q-goal: $1.2M</strong>
+      <p id="goalText">Tracking toward quarterly target</p>
+      <div class="meter" role="progressbar" aria-label="Quarterly goal progress" aria-valuemin="0" aria-valuemax="100" id="goalMeter"><span id="goalBar" style="width:0"></span></div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div>
+        <p class="eyebrow" id="dateLabel">—</p>
+        <h1>Sales overview</h1>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Date range">
+          <button data-range="7" aria-pressed="false">7D</button>
+          <button data-range="30" aria-pressed="true">30D</button>
+          <button data-range="90" aria-pressed="false">90D</button>
+          <button data-range="365" aria-pressed="false">12M</button>
+        </div>
+        <button class="btn" id="exportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </header>
+
+    <section class="grid kpis" aria-label="Key metrics">
+      <div class="card kpi" id="kpi-revenue"></div>
+      <div class="card kpi" id="kpi-orders"></div>
+      <div class="card kpi" id="kpi-aov"></div>
+      <div class="card kpi" id="kpi-conv"></div>
+    </section>
+
+    <section class="grid row-a">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Revenue</h2>
+            <p class="sub" id="revSub">Net sales vs. previous period</p>
+          </div>
+          <div class="legend" aria-hidden="true">
+            <span><i style="background:var(--accent)"></i>Current</span>
+            <span><i class="dash"></i>Previous</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="revChart" aria-label="Revenue over time chart" role="img"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Sales by channel</h2>
+            <p class="sub">Share of net revenue</p>
+          </div>
+        </div>
+        <div class="donut-wrap">
+          <canvas id="chanChart" aria-label="Sales by channel chart" role="img"></canvas>
+          <div class="donut-center"><div><div class="big num" id="chanTotal">—</div><div class="small">total</div></div></div>
+        </div>
+        <ul class="chan-list" id="chanList"></ul>
+      </div>
+    </section>
+
+    <section class="grid row-b">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Top products</h2>
+            <p class="sub">By revenue in period</p>
+          </div>
+        </div>
+        <ul class="prod-list" id="prodList"></ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Revenue by category</h2>
+            <p class="sub">Current vs. previous</p>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="catChart" aria-label="Revenue by category chart" role="img"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Conversion funnel</h2>
+            <p class="sub">Sessions to purchase</p>
+          </div>
+        </div>
+        <div class="funnel" id="funnel"></div>
+        <div class="funnel-note" id="funnelNote"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head" style="flex-wrap:wrap">
+        <div>
+          <h2>Recent orders</h2>
+          <p class="sub">Latest 60 orders across all channels</p>
+        </div>
+        <div class="table-tools">
+          <label class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input type="search" id="search" placeholder="Search order, customer…" aria-label="Search orders">
+          </label>
+          <select id="statusFilter" aria-label="Filter by status">
+            <option value="">All statuses</option>
+            <option>Paid</option><option>Shipped</option><option>Pending</option><option>Refunded</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Product</th>
+              <th>Channel</th>
+              <th><button data-sort="date">Date <span aria-hidden="true">↕</span></button></th>
+              <th>Status</th>
+              <th class="r"><button data-sort="total">Total <span aria-hidden="true">↕</span></button></th>
+            </tr>
+          </thead>
+          <tbody id="orderBody"></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <span id="pageInfo"></span>
+        <div class="pager">
+          <button id="prevPage" aria-label="Previous page">← Prev</button>
+          <button id="nextPage" aria-label="Next page">Next →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  /* ---------- Utilities ---------- */
+  const mulberry32 = a => () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  const fmtUSD = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+  const fmtUSD2 = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtInt = new Intl.NumberFormat('en-US');
+  const compact = v => {
+    if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return '$' + (v/1e3).toFixed(1) + 'k';
+    return fmtUSD.format(v);
+  };
+  const sum = a => a.reduce((s,v)=>s+v,0);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = {
+    accent:css('--accent'), teal:css('--teal'), gold:css('--gold'), plum:css('--plum'),
+    ink:css('--ink'), muted:css('--muted'), line:css('--line')
+  };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayMs = 864e5;
+  const shortDate = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+  /* ---------- Data generation ---------- */
+  const weekly = [0.16,-0.07,-0.10,-0.05,0.0,0.09,0.21]; // Sun..Sat
+  const monthSeason = [-.12,-.15,-.05,-.02,.0,.02,-.03,.0,.04,.08,.28,.40];
+
+  function dailySeries(n, seed, base, trend){
+    const r = mulberry32(seed);
+    const out = [];
+    for (let i=0;i<n;i++){
+      const d = new Date(today.getTime() - (n-1-i)*dayMs);
+      const w = weekly[d.getDay()];
+      const s = monthSeason[d.getMonth()] * .5;
+      const v = base * (1 + trend*i/n) * (1 + w) * (1 + s) * (0.86 + r()*0.28);
+      out.push({date:d, revenue:v});
+    }
+    return out;
+  }
+
+  function buildData(range){
+    const seed = range * 7 + 3;
+    const r = mulberry32(seed * 13);
+    const base = 14200;
+    let cur, prev, labels;
+    if (range === 365){
+      const dCur = dailySeries(365, seed, base*0.9, 0.22);
+      const dPrev = dailySeries(365, seed+99, base*0.78, 0.16);
+      const bucket = arr => {
+        const m = {};
+        arr.forEach(p => {
+          const k = p.date.getFullYear()+'-'+p.date.getMonth();
+          (m[k] ||= {date:new Date(p.date.getFullYear(),p.date.getMonth(),1), revenue:0}).revenue += p.revenue;
+        });
+        return Object.values(m).slice(-12);
+      };
+      cur = bucket(dCur); prev = bucket(dPrev);
+      labels = cur.map(p => p.date.toLocaleDateString('en-US',{month:'short'}));
+    } else {
+      cur = dailySeries(range, seed, base, 0.12);
+      prev = dailySeries(range, seed+99, base*0.9, 0.06);
+      labels = cur.map(p => shortDate(p.date));
+    }
+    const revenue = cur.map(p=>p.revenue);
+    const prevRevenue = prev.map(p=>p.revenue);
+    const aovSeries = revenue.map((_,i)=> 66 + Math.sin(i/3)*3 + r()*5);
+    const orders = revenue.map((v,i)=> v / aovSeries[i]);
+    const convSeries = revenue.map((_,i)=> 0.029 + Math.sin(i/4)*0.002 + r()*0.004);
+    const sessions = orders.map((o,i)=> o / convSeries[i]);
+    const prevAov = 64.1 + r()*2;
+    const prevOrders = prevRevenue.map(v => v / prevAov);
+    const prevConv = 0.0295 + r()*0.002;
+    const prevSessions = sum(prevOrders) / prevConv;
+
+    const totRev = sum(revenue), totPrev = sum(prevRevenue);
+    const totOrders = sum(orders), totPrevOrders = sum(prevOrders);
+    const totSessions = sum(sessions);
+
+    // Channels
+    const chanBase = [['Online store',.46],['Instagram Shop',.19],['Marketplace',.17],['Wholesale',.11],['Retail POS',.07]];
+    let chan = chanBase.map(([n,s]) => [n, s*(0.88 + r()*0.24)]);
+    const cs = sum(chan.map(c=>c[1]));
+    chan = chan.map(([n,s]) => ({name:n, share:s/cs, revenue: totRev*s/cs}));
+
+    // Categories
+    const cats = ['Apparel','Footwear','Accessories','Home','Beauty'];
+    const catW = [.34,.22,.18,.15,.11];
+    const catCur = catW.map(w => totRev * w * (0.85 + r()*0.3));
+    const catPrev = catW.map(w => totPrev * w * (0.85 + r()*0.3));
+
+    // Products
+    const prods = [
+      ['Merino Crew Sweater','Apparel',98,'🧶','#fde8e1'],
+      ['Trail Runner 2.0','Footwear',142,'👟','#dcecea'],
+      ['Waxed Canvas Tote','Accessories',76,'👜','#fbf1dc'],
+      ['Linen Duvet Set','Home',189,'🛏️','#ece5f3'],
+      ['Ceramic Pour-Over','Home',54,'☕','#f0ede6'],
+      ['Botanical Face Oil','Beauty',38,'🌿','#e0f2e8'],
+      ['Organic Tee 3-Pack','Apparel',64,'👕','#e3ecf7'],
+    ];
+    const scale = totRev / (base*30);
+    let products = prods.map(([name,cat,price,emoji,bg]) => {
+      const units = Math.round((60 + r()*240) * scale * (200/price) );
+      return {name,cat,price,emoji,bg,units,revenue:units*price, growth:(r()*40-12)};
+    }).sort((a,b)=>b.revenue-a.revenue).slice(0,6);
+
+    // Funnel
+    const funnel = [
+      ['Sessions', totSessions],
+      ['Product views', totSessions*(0.58 + r()*0.05)],
+      ['Added to cart', totSessions*(0.112 + r()*0.015)],
+      ['Checkout', totSessions*(0.054 + r()*0.006)],
+      ['Purchased', totOrders],
+    ];
+
+    // Sparklines (downsample)
+    const ds = (arr, n=20) => {
+      if (arr.length <= n) return arr;
+      const step = arr.length / n, out=[];
+      for (let i=0;i<n;i++){ const s = arr.slice(Math.floor(i*step), Math.floor((i+1)*step)); out.push(sum(s)/s.length); }
+      return out;
+    };
+
+    return {
+      range, labels, revenue, prevRevenue, chan, cats, catCur, catPrev, products, funnel,
+      start: cur[0].date, end: range===365 ? today : cur[cur.length-1].date,
+      kpi: {
+        revenue:{v:totRev, p:totPrev, spark:ds(revenue)},
+        orders:{v:totOrders, p:totPrevOrders, spark:ds(orders)},
+        aov:{v:totRev/totOrders, p:totPrev/totPrevOrders, spark:ds(aovSeries)},
+        conv:{v:totOrders/totSessions, p:sum(prevOrders)/prevSessions, spark:ds(convSeries)},
+      }
+    };
+  }
+
+  /* ---------- KPI cards ---------- */
+  function sparkSVG(values, color){
+    const w=96,h=34,p=3;
+    const min=Math.min(...values), max=Math.max(...values), rng = max-min || 1;
+    const pts = values.map((v,i)=>[p + i*(w-2*p)/(values.length-1), h-p-(v-min)/rng*(h-2*p)]);
+    const d = pts.map((pt,i)=>(i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ');
+    const area = d + ` L ${pts[pts.length-1][0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z`;
+    const id = 'g'+Math.random().toString(36).slice(2,8);
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+      <defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#${id})"/>
+      <path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+  }
+  function renderKPI(el, label, color, data, fmt){
+    const change = (data.v - data.p) / data.p * 100;
+    const up = change >= 0;
+    el.innerHTML = `
+      <div class="label"><span class="dot" style="background:${color}"></span>${label}</div>
+      <div class="kpi-row">
+        <div>
+          <div class="value num">${fmt(data.v)}</div>
+          <span class="delta ${up?'up':'down'}" aria-label="${up?'Up':'Down'} ${Math.abs(change).toFixed(1)} percent">${up?'▲':'▼'} ${Math.abs(change).toFixed(1)}%</span><span class="delta-note">vs ${fmt(data.p)}</span>
+        </div>
+        ${sparkSVG(data.spark, color)}
+      </div>`;
+  }
+
+  /* ---------- Charts ---------- */
+  Chart.defaults.font.family = '"DM Sans", system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = C.muted;
+  const tooltipBase = {
+    backgroundColor: C.ink, titleColor:'#fff', bodyColor:'#e9e5dc', padding:10, cornerRadius:8,
+    titleFont:{weight:'600'}, bodyFont:{family:'"JetBrains Mono", monospace', size:12}, boxPadding:4
+  };
+
+  const revCtx = document.getElementById('revChart').getContext('2d');
+  const grad = revCtx.createLinearGradient(0,0,0,290);
+  grad.addColorStop(0,'rgba(228,87,46,.20)'); grad.addColorStop(1,'rgba(228,87,46,0)');
+  const revChart = new Chart(revCtx, {
+    type:'line',
+    data:{labels:[],datasets:[
+      {label:'Current', data:[], borderColor:C.accent, backgroundColor:grad, fill:true, tension:.35, borderWidth:2.2, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:C.accent, pointHoverBorderColor:'#fff', pointHoverBorderWidth:2},
+      {label:'Previous', data:[], borderColor:'#b9b3a7', borderDash:[4,4], tension:.35, borderWidth:1.6, pointRadius:0, pointHoverRadius:0, fill:false}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false}, tooltip:{...tooltipBase, callbacks:{label:c=>` ${c.dataset.label}: ${fmtUSD.format(c.parsed.y)}`}}},
+      scales:{
+        x:{grid:{display:false}, border:{display:false}, ticks:{maxTicksLimit:8, maxRotation:0}},
+        y:{grid:{color:C.line}, border:{display:false}, ticks:{callback:v=>compact(v), maxTicksLimit:6}}
+      }
+    }
+  });
+
+  const chanColors = [C.accent, C.teal, C.gold, C.plum, '#b9b3a7'];
+  const chanChart = new Chart(document.getElementById('chanChart'), {
+    type:'doughnut',
+    data:{labels:[],datasets:[{data:[], backgroundColor:chanColors, borderColor:'#fff', borderWidth:3, hoverOffset:6}]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'72%',
+      plugins:{legend:{display:false}, tooltip:{...tooltipBase, callbacks:{label:c=>` ${fmtUSD.format(c.parsed)}`}}}
+    }
+  });
+
+  const catChart = new Chart(document.getElementById('catChart'), {
+    type:'bar',
+    data:{labels:[],datasets:[
+      {label:'Current', data:[], backgroundColor:C.teal, borderRadius:5, barPercentage:.7, categoryPercentage:.7},
+      {label:'Previous', data:[], backgroundColor:'#d8d3c8', borderRadius:5, barPercentage:.7, categoryPercentage:.7}
+    ]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'bottom', labels:{boxWidth:10, boxHeight:10, useBorderRadius:true, borderRadius:3}},
+        tooltip:{...tooltipBase, callbacks:{label:c=>` ${c.dataset.label}: ${fmtUSD.format(c.parsed.x)}`}}},
+      scales:{
+        x:{grid:{color:C.line}, border:{display:false}, ticks:{callback:v=>compact(v), maxTicksLimit:5}},
+        y:{grid:{display:false}, border:{display:false}, ticks:{color:C.ink}}
+      }
+    }
+  });
+
+  /* ---------- Render ---------- */
+  let current;
+  function render(range){
+    const d = current = buildData(range);
+    const rangeText = range===365 ? 'Last 12 months' : `Last ${range} days`;
+    document.getElementById('dateLabel').textContent =
+      `${rangeText} · ${d.start.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} – ${d.end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+    document.getElementById('revSub').textContent = `Net sales ${range===365?'by month':'by day'} vs. previous period`;
+
+    renderKPI(document.getElementById('kpi-revenue'),'Net revenue',C.accent,d.kpi.revenue, v=>compact(v));
+    renderKPI(document.getElementById('kpi-orders'),'Orders',C.teal,d.kpi.orders, v=>fmtInt.format(Math.round(v)));
+    renderKPI(document.getElementById('kpi-aov'),'Avg. order value',C.gold,d.kpi.aov, v=>fmtUSD2.format(v));
+    renderKPI(document.getElementById('kpi-conv'),'Conversion rate',C.plum,d.kpi.conv, v=>(v*100).toFixed(2)+'%');
+
+    revChart.data.labels = d.labels;
+    revChart.data.datasets[0].data = d.revenue;
+    revChart.data.datasets[1].data = d.prevRevenue;
+    revChart.update();
+
+    chanChart.data.labels = d.chan.map(c=>c.name);
+    chanChart.data.datasets[0].data = d.chan.map(c=>c.revenue);
+    chanChart.update();
+    document.getElementById('chanTotal').textContent = compact(d.kpi.revenue.v);
+    document.getElementById('chanList').innerHTML = d.chan.map((c,i)=>`
+      <li><span class="sw" style="background:${chanColors[i]}"></span><span class="nm">${c.name}</span>
+      <span class="num">${compact(c.revenue)}</span><span class="pc num">${(c.share*100).toFixed(1)}%</span></li>`).join('');
+
+    catChart.data.labels = d.cats;
+    catChart.data.datasets[0].data = d.catCur;
+    catChart.data.datasets[1].data = d.catPrev;
+    catChart.update();
+
+    const maxP = d.products[0].revenue;
+    document.getElementById('prodList').innerHTML = d.products.map(p=>`
+      <li class="prod">
+        <div class="thumb" style="background:${p.bg}" aria-hidden="true">${p.emoji}</div>
+        <div style="min-width:0">
+          <div class="nm">${p.name}</div>
+          <div class="meta">${p.cat} · <span class="num">${fmtInt.format(p.units)}</span> sold</div>
+          <div class="bar"><span style="width:${(p.revenue/maxP*100).toFixed(1)}%"></span></div>
+        </div>
+        <div class="rev num">${compact(p.revenue)}<small style="color:${p.growth>=0?'var(--good)':'var(--bad)'}">${p.growth>=0?'+':''}${p.growth.toFixed(1)}%</small></div>
+      </li>`).join('');
+
+    const top = d.funnel[0][1];
+    document.getElementById('funnel').innerHTML = d.funnel.map(([name,v],i)=>{
+      const pct = v/top*100;
+      return `<div class="fstep">
+        <span>${name}</span>
+        <div class="track"><div class="fill num" style="width:${Math.max(pct,8).toFixed(1)}%;background:${i===d.funnel.length-1?C.accent:C.teal};opacity:${1-i*0.12}">${fmtInt.format(Math.round(v))}</div></div>
+        <span class="pc num">${pct<10?pct.toFixed(1):pct.toFixed(0)}%</span>
+      </div>`;
+    }).join('');
+    const cartAbandon = 1 - d.funnel[4][1]/d.funnel[2][1];
+    document.getElementById('funnelNote').innerHTML =
+      `<strong>${(cartAbandon*100).toFixed(0)}%</strong> of carts were abandoned. Recovery emails could reclaim ~${compact(d.funnel[2][1]*cartAbandon*0.08*d.kpi.aov.v)}.`;
+
+    // quarterly goal (based on last 90 days of data proxy)
+    const q = buildQuarter();
+    const pct = Math.min(100, q/1.2e6*100);
+    document.getElementById('goalBar').style.width = pct.toFixed(0)+'%';
+    document.getElementById('goalMeter').setAttribute('aria-valuenow', pct.toFixed(0));
+    document.getElementById('goalText').textContent = `${compact(q)} booked · ${pct.toFixed(0)}% of target`;
+  }
+  let qCache;
+  function buildQuarter(){
+    if (qCache) return qCache;
+    const daysIn = Math.floor((today - new Date(today.getFullYear(), Math.floor(today.getMonth()/3)*3, 1))/dayMs)+1;
+    qCache = sum(dailySeries(daysIn, 777, 14200, 0.1).map(p=>p.revenue));
+    return qCache;
+  }
+
+  document.querySelectorAll('.seg button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed', x===b ? 'true':'false'));
+      render(+b.dataset.range);
+    });
+  });
+
+  /* ---------- Orders table ---------- */
+  const firstNames = ['Ava','Noah','Mia','Liam','Zoe','Ethan','Isla','Mateo','Priya','Kenji','Lena','Omar','Sofia','Jonah','Amara','Felix','Nora','Ravi','Chloe','Theo'];
+  const lastNames = ['Reyes','Chen','Okafor','Larsen','Patel','Moreau','Kim','Novak','Silva','Haddad','Brooks','Ito','Walsh','Duarte','Fischer'];
+  const prodNames = ['Merino Crew Sweater','Trail Runner 2.0','Waxed Canvas Tote','Linen Duvet Set','Ceramic Pour-Over','Botanical Face Oil','Organic Tee 3-Pack','Wool Beanie','Leather Card Wallet'];
+  const channels = ['Online store','Instagram Shop','Marketplace','Wholesale','Retail POS'];
+  const statuses = ['Paid','Paid','Shipped','Shipped','Shipped','Pending','Refunded'];
+  const avColors = [C.accent,C.teal,C.gold,C.plum,'#4a7bb7','#8a6d3b'];
+  const orng = mulberry32(2024);
+  let t = Date.now();
+  const orders = Array.from({length:60},(_,i)=>{
+    t -= (8 + orng()*90) * 60000;
+    const fn = firstNames[Math.floor(orng()*firstNames.length)], ln = lastNames[Math.floor(orng()*lastNames.length)];
+    const items = 1 + Math.floor(orng()*3);
+    return {
+      id: '#'+(48210 - i),
+      name: fn+' '+ln, initials: fn[0]+ln[0], color: avColors[Math.floor(orng()*avColors.length)],
+      product: prodNames[Math.floor(orng()*prodNames.length)], items,
+      channel: channels[Math.floor(Math.pow(orng(),1.6)*channels.length)],
+      date: new Date(t),
+      status: statuses[Math.floor(orng()*statuses.length)],
+      total: Math.round((28 + orng()*190) * items * 100)/100
+    };
+  });
+
+  let sortKey = 'date', sortDir = -1, page = 0;
+  const PAGE = 8;
+  const esc = s => s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function relTime(d){
+    const m = Math.round((Date.now()-d)/60000);
+    if (m < 60) return m+'m ago';
+    const h = Math.round(m/60);
+    if (h < 24) return h+'h ago';
+    return shortDate(d);
+  }
+  function filtered(){
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    return orders.filter(o =>
+      (!st || o.status===st) &&
+      (!q || (o.id+' '+o.name+' '+o.product+' '+o.channel).toLowerCase().includes(q))
+    ).sort((a,b)=> (a[sortKey]-b[sortKey]) * sortDir);
+  }
+  function renderTable(){
+    const rows = filtered();
+    const pages = Math.max(1, Math.ceil(rows.length/PAGE));
+    page = Math.min(page, pages-1);
+    const slice = rows.slice(page*PAGE, page*PAGE+PAGE);
+    document.getElementById('orderBody').innerHTML = slice.length ? slice.map(o=>`
+      <tr>
+        <td class="num">${o.id}</td>
+        <td><div class="cust"><span class="avatar" style="background:${o.color}" aria-hidden="true">${o.initials}</span>${esc(o.name)}</div></td>
+        <td>${esc(o.product)}${o.items>1?` <span class="muted">×${o.items}</span>`:''}</td>
+        <td class="muted">${o.channel}</td>
+        <td class="muted" title="${o.date.toLocaleString()}">${relTime(o.date)}</td>
+        <td><span class="pill ${o.status}">${o.status}</span></td>
+        <td class="r num">${o.status==='Refunded'?'<span class="muted">−</span>':''}${fmtUSD2.format(o.total)}</td>
+      </tr>`).join('') : `<tr><td colspan="7" class="empty">No orders match your filters.</td></tr>`;
+    document.getElementById('pageInfo').textContent = rows.length
+      ? `Showing ${page*PAGE+1}–${Math.min(rows.length,(page+1)*PAGE)} of ${rows.length}`
+      : '0 results';
+    document.getElementById('prevPage').disabled = page===0;
+    document.getElementById('nextPage').disabled = page>=pages-1;
+  }
+  document.getElementById('search').addEventListener('input',()=>{page=0;renderTable();});
+  document.getElementById('statusFilter').addEventListener('change',()=>{page=0;renderTable();});
+  document.getElementById('prevPage').addEventListener('click',()=>{page--;renderTable();});
+  document.getElementById('nextPage').addEventListener('click',()=>{page++;renderTable();});
+  document.querySelectorAll('th button[data-sort]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const k = b.dataset.sort;
+      if (sortKey===k) sortDir *= -1; else { sortKey=k; sortDir=-1; }
+      document.querySelectorAll('th button[data-sort] span').forEach(s=>s.textContent='↕');
+      b.querySelector('span').textContent = sortDir===-1 ? '↓' : '↑';
+      renderTable();
+    });
+  });
+
+  /* ---------- Export ---------- */
+  document.getElementById('exportBtn').addEventListener('click',()=>{
+    const d = current;
+    const lines = [['Period','Revenue','Previous revenue']];
+    d.labels.forEach((l,i)=>lines.push([l, d.revenue[i].toFixed(2), d.prevRevenue[i].toFixed(2)]));
+    const csv = lines.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download = `sales-${d.range===365?'12m':d.range+'d'}.csv`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  });
+
+  render(30);
+  renderTable();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store Sales Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1d2433;
+    --muted: #6b7385;
+    --border: #e4e8f0;
+    --accent: #4f46e5;
+    --good: #16a34a;
+    --bad: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; justify-content: space-between;
+    padding: 18px 28px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5;
+  }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+  select {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; font: inherit; font-size: 14px; color: var(--text);
+  }
+  main { padding: 24px 28px; max-width: 1280px; margin: 0 auto; }
+  .kpis {
+    display: grid; gap: 16px; margin-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+  }
+  .kpi-label { color: var(--muted); font-size: 13px; font-weight: 500; }
+  .kpi-value {
+    font-size: 28px; font-weight: 700; margin: 6px 0 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .delta { font-size: 13px; }
+  .up { color: var(--good); font-weight: 600; }
+  .down { color: var(--bad); font-weight: 600; }
+  .muted { color: var(--muted); }
+  .grid {
+    display: grid; gap: 16px; margin-bottom: 16px;
+    grid-template-columns: 2fr 1fr;
+  }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) {
+    .grid, .grid2 { grid-template-columns: 1fr; }
+  }
+  .card h2 { font-size: 15px; margin: 0 0 14px; font-weight: 600; }
+  svg { width: 100%; height: auto; display: block; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    font-size: 13px; color: var(--muted); margin-top: 12px;
+  }
+  .dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; margin-right: 6px; vertical-align: middle;
+  }
+  .dash {
+    display: inline-block; width: 16px; height: 0;
+    border-top: 2px dashed #9ca3af; margin-right: 6px; vertical-align: middle;
+  }
+  .hbar-row {
+    display: grid; grid-template-columns: 110px 1fr 90px;
+    align-items: center; gap: 12px; margin-bottom: 14px; font-size: 14px;
+  }
+  .hbar { height: 10px; background: #eef1f7; border-radius: 6px; overflow: hidden; }
+  .hbar span { display: block; height: 100%; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th {
+    color: var(--muted); font-weight: 500; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; background: #eef1f7; border-radius: 4px; overflow: hidden; min-width: 70px; }
+  .bar span { display: block; height: 100%; background: var(--accent); }
+  .tip {
+    position: fixed; pointer-events: none; opacity: 0;
+    background: #111827; color: #fff; padding: 8px 10px; border-radius: 8px;
+    font-size: 12px; line-height: 1.5; white-space: nowrap;
+    transition: opacity .1s; z-index: 10;
+  }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+  .donut-wrap { display: flex; flex-direction: column; align-items: center; }
+  .donut-wrap svg { max-width: 220px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Store Sales Analytics</h1>
+    <div class="sub" id="subtitle"></div>
+  </div>
+  <div class="filters">
+    <select id="range" aria-label="Date range">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="180">Last 180 days</option>
+    </select>
+    <select id="cat" aria-label="Category">
+      <option value="all">All categories</option>
+      <option value="0">Apparel</option>
+      <option value="1">Electronics</option>
+      <option value="2">Home</option>
+      <option value="3">Beauty</option>
+    </select>
+    <select id="channel" aria-label="Channel">
+      <option value="all">All channels</option>
+      <option value="0">Website</option>
+      <option value="1">Mobile app</option>
+      <option value="2">Marketplace</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <section class="kpis">
+    <div class="card">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value" id="kpiRevenue">–</div>
+      <div class="delta" id="kpiRevenueD"></div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Orders</div>
+      <div class="kpi-value" id="kpiOrders">–</div>
+      <div class="delta" id="kpiOrdersD"></div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Average order value</div>
+      <div class="kpi-value" id="kpiAov">–</div>
+      <div class="delta" id="kpiAovD"></div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Units sold</div>
+      <div class="kpi-value" id="kpiUnits">–</div>
+      <div class="delta" id="kpiUnitsD"></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Revenue over time</h2>
+      <svg id="lineChart" role="img" aria-label="Revenue over time"></svg>
+      <div class="legend">
+        <span><i class="dot" style="background:#4f46e5"></i>Current period</span>
+        <span><i class="dash"></i>Previous period</span>
+      </div>
+    </div>
+    <div class="card donut-wrap">
+      <h2 style="align-self:flex-start">Sales by channel</h2>
+      <svg id="donut" viewBox="0 0 160 160" role="img" aria-label="Revenue by channel"></svg>
+      <div class="legend" id="chLegend"></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>Revenue by category</h2>
+      <div id="catBars"></div>
+    </div>
+    <div class="card">
+      <h2>Top products</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Category</th>
+            <th class="num">Units</th>
+            <th class="num">Revenue</th>
+            <th class="num">% of total</th>
+          </tr>
+        </thead>
+        <tbody id="topBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  const CATS = ['Apparel', 'Electronics', 'Home', 'Beauty'];
+  const CAT_COLORS = ['#4f46e5', '#06b6d4', '#f59e0b', '#ec4899'];
+  const CHANNELS = ['Website', 'Mobile app', 'Marketplace'];
+  const CH_COLORS = ['#4f46e5', '#06b6d4', '#f59e0b'];
+  const PRODUCTS = [
+    { name: 'Classic Denim Jacket',    cat: 0, price: 89 },
+    { name: 'Linen Summer Dress',      cat: 0, price: 64 },
+    { name: 'Merino Crew Sweater',     cat: 0, price: 78 },
+    { name: 'Wireless Earbuds Pro',    cat: 1, price: 129 },
+    { name: '4K Action Camera',        cat: 1, price: 199 },
+    { name: 'Smart Desk Lamp',         cat: 1, price: 49 },
+    { name: 'Ceramic Pour-Over Set',   cat: 2, price: 42 },
+    { name: 'Walnut Cutting Board',    cat: 2, price: 36 },
+    { name: 'Cotton Throw Blanket',    cat: 2, price: 55 },
+    { name: 'Vitamin C Serum',         cat: 3, price: 28 },
+    { name: 'Hydrating Face Mask Set', cat: 3, price: 24 },
+    { name: 'Botanical Body Oil',      cat: 3, price: 32 },
+  ];
+
+  const DAYS = 360;                       // enough history for "previous period" comparisons
+  const TODAY = Date.UTC(2026, 10, 10);   // 2026-11-10 (UTC)
+  const DAY_MS = 864e5;
+
+  // Seeded PRNG so the sample data is stable across reloads
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rnd = mulberry32(42);
+
+  // Generate sample rows: one per (day, product, channel)
+  const ROWS = [];
+  for (let d = 0; d < DAYS; d++) {
+    const dow = new Date(TODAY - (DAYS - 1 - d) * DAY_MS).getUTCDay();
+    const weekend = (dow === 0 || dow === 6) ? 1.35 : 1;
+    const growth = 0.75 + 0.5 * d / DAYS;
+    const season = 1 + 0.12 * Math.sin(d / 11);
+    PRODUCTS.forEach((p, pi) => {
+      CHANNELS.forEach((_, ci) => {
+        const share = [0.55, 0.30, 0.15][ci];
+        const demand = (6 - p.price / 40) * share * weekend * growth * season * 2.5;
+        const orders = Math.round(demand * (0.4 + rnd() * 1.2));
+        if (!orders) return;
+        const units = orders + Math.floor(rnd() * orders * 0.6);
+        const revenue = Math.round(units * p.price * (0.92 + rnd() * 0.08));
+        ROWS.push({ d, p: pi, c: ci, orders, units, revenue });
+      });
+    });
+  }
+
+  // Formatting helpers
+  const fmtMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const fmtInt = n => Math.round(n).toLocaleString('en-US');
+  const fmtShort = v => v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M'
+                     : v >= 1e3 ? '$' + (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k'
+                     : '$' + Math.round(v);
+  function dayLabel(i, long) {
+    const d = new Date(TODAY - (DAYS - 1 - i) * DAY_MS);
+    return d.toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric',
+      year: long ? 'numeric' : undefined,
+      timeZone: 'UTC'
+    });
+  }
+
+  // Aggregate rows for a day range [from, to] with filters
+  function summarize(from, to, cat, ch) {
+    const t = {
+      revenue: 0, orders: 0, units: 0,
+      daily: new Array(to - from + 1).fill(0),
+      cats: [0, 0, 0, 0],
+      chans: [0, 0, 0],
+      prods: PRODUCTS.map(() => ({ revenue: 0, units: 0 }))
+    };
+    for (const r of ROWS) {
+      if (r.d < from || r.d > to) continue;
+      const cIdx = PRODUCTS[r.p].cat;
+      if (cat !== 'all' && cIdx !== +cat) continue;
+      if (ch !== 'all' && r.c !== +ch) continue;
+      t.revenue += r.revenue;
+      t.orders += r.orders;
+      t.units += r.units;
+      t.daily[r.d - from] += r.revenue;
+      t.cats[cIdx] += r.revenue;
+      t.chans[r.c] += r.revenue;
+      t.prods[r.p].revenue += r.revenue;
+      t.prods[r.p].units += r.units;
+    }
+    return t;
+  }
+
+  function delta(curVal, prevVal) {
+    if (!prevVal) return '<span class="muted">No prior data</span>';
+    const d = (curVal - prevVal) / prevVal * 100;
+    return `<span class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%</span> <span class="muted">vs previous period</span>`;
+  }
+
+  // Line chart with hover tooltip
+  function lineChart(cur, prev, from) {
+    const svg = document.getElementById('lineChart');
+    const tip = document.getElementById('tip');
+    const W = 800, H = 300, L = 64, RR = 16, T = 16, B = 30;
+    const n = cur.length;
+    const maxV = Math.max(...cur, ...prev, 1);
+    const pow = Math.pow(10, Math.floor(Math.log10(maxV)));
+    const top = Math.ceil(maxV / pow) * pow;
+    const X = i => L + (n < 2 ? 0 : i / (n - 1)) * (W - L - RR);
+    const Y = v => T + (1 - v / top) * (H - T - B);
+    const path = arr => arr.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join('');
+
+    let g = `<defs><linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#4f46e5" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#4f46e5" stop-opacity="0"/></linearGradient></defs>`;
+
+    for (let k = 0; k <= 4; k++) {
+      const v = top * k / 4, y = Y(v).toFixed(1);
+      g += `<line x1="${L}" x2="${W - RR}" y1="${y}" y2="${y}" stroke="#e4e8f0"/>`;
+      g += `<text x="${L - 8}" y="${+y + 4}" text-anchor="end" font-size="11" fill="#6b7385">${fmtShort(v)}</text>`;
+    }
+
+    const step = Math.max(1, Math.ceil(n / 7));
+    for (let i = 0; i < n; i += step) {
+      g += `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7385">${dayLabel(from + i)}</text>`;
+    }
+
+    g += `<path d="${path(prev)}" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5 4"/>`;
+    g += `<path d="${path(cur)}L${X(n - 1)},${Y(0)}L${X(0)},${Y(0)}Z" fill="url(#areaGrad)"/>`;
+    g += `<path d="${path(cur)}" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linejoin="round"/>`;
+    g += `<line id="hl" y1="${T}" y2="${H - B}" stroke="#9ca3af" stroke-dasharray="3 3" opacity="0"/>`;
+    g += `<circle id="hc" r="4.5" fill="#4f46e5" stroke="#fff" stroke-width="2" opacity="0"/>`;
+    g += `<rect id="ov" x="${L}" y="${T}" width="${W - L - RR}" height="${H - T - B}" fill="transparent"/>`;
+
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = g;
+
+    const hl = svg.querySelector('#hl');
+    const hc = svg.querySelector('#hc');
+    const ov = svg.querySelector('#ov');
+
+    ov.addEventListener('mousemove', e => {
+      const rc = svg.getBoundingClientRect();
+      const px = (e.clientX - rc.left) / rc.width * W;
+      let i = Math.round((px - L) / (W - L - RR) * (n - 1));
+      i = Math.max(0, Math.min(n - 1, i));
+      hl.setAttribute('x1', X(i)); hl.setAttribute('x2', X(i)); hl.setAttribute('opacity', 1);
+      hc.setAttribute('cx', X(i)); hc.setAttribute('cy', Y(cur[i])); hc.setAttribute('opacity', 1);
+      tip.innerHTML = `<b>${dayLabel(from + i, true)}</b><br>Current: ${fmtMoney.format(cur[i])}<br>Previous: ${fmtMoney.format(prev[i] || 0)}`;
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY + 14) + 'px';
+      tip.style.opacity = 1;
+    });
+    ov.addEventListener('mouseleave', () => {
+      hl.setAttribute('opacity', 0);
+      hc.setAttribute('opacity', 0);
+      tip.style.opacity = 0;
+    });
+  }
+
+  // Donut chart for channel mix
+  function donut(values) {
+    const el = document.getElementById('donut');
+    const sum = values.reduce((a, b) => a + b, 0);
+    const C = 2 * Math.PI * 60;
+    let acc = 0, s = '';
+    if (sum > 0) {
+      values.forEach((v, i) => {
+        const len = v / sum * C;
+        s += `<circle cx="80" cy="80" r="60" fill="none" stroke="${CH_COLORS[i]}" stroke-width="22"
+               stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 80 80)"/>`;
+        acc += len;
+      });
+    } else {
+      s += `<circle cx="80" cy="80" r="60" fill="none" stroke="#eef1f7" stroke-width="22"/>`;
+    }
+    s += `<text x="80" y="76" text-anchor="middle" font-size="11" fill="#6b7385">Total revenue</text>
+          <text x="80" y="96" text-anchor="middle" font-size="16" font-weight="700" fill="#1d2433">${fmtShort(sum)}</text>`;
+    el.innerHTML = s;
+    document.getElementById('chLegend').innerHTML = CHANNELS.map((c, i) =>
+      `<span><i class="dot" style="background:${CH_COLORS[i]}"></i>${c} · ${sum ? Math.round(values[i] / sum * 100) : 0}%</span>`
+    ).join('');
+  }
+
+  function categoryBars(cats) {
+    const max = Math.max(...cats, 1);
+    document.getElementById('catBars').innerHTML = CATS.map((c, i) => `
+      <div class="hbar-row">
+        <span>${c}</span>
+        <div class="hbar"><span style="width:${(cats[i] / max * 100).toFixed(1)}%;background:${CAT_COLORS[i]}"></span></div>
+        <span class="num">${fmtMoney.format(cats[i])}</span>
+      </div>`).join('');
+  }
+
+  function topProducts(cur) {
+    const total = cur.revenue || 1;
+    const rows = PRODUCTS.map((p, i) => ({
+      name: p.name, cat: p.cat, revenue: cur.prods[i].revenue, units: cur.prods[i].units
+    })).filter(r => r.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+
+    const body = document.getElementById('topBody');
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="6" class="empty">No sales for this selection</td></tr>`;
+      return;
+    }
+    const top = rows[0].revenue;
+    body.innerHTML = rows.map((r, k) => `
+      <tr>
+        <td class="muted">${k + 1}</td>
+        <td>${r.name}</td>
+        <td class="muted">${CATS[r.cat]}</td>
+        <td class="num">${fmtInt(r.units)}</td>
+        <td class="num">${fmtMoney.format(r.revenue)}</td>
+        <td class="num">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+            <div class="bar" style="width:70px"><span style="width:${(r.revenue / top * 100).toFixed(1)}%"></span></div>
+            <span style="min-width:44px">${(r.revenue / total * 100).toFixed(1)}%</span>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function render() {
+    const R = +document.getElementById('range').value;
+    const cat = document.getElementById('cat').value;
+    const ch = document.getElementById('channel').value;
+
+    const from = DAYS - R, to = DAYS - 1;
+    const pFrom = DAYS - 2 * R, pTo = DAYS - R - 1;
+
+    const cur = summarize(from, to, cat, ch);
+    const prev = summarize(pFrom, pTo, cat, ch);
+
+    const aov = cur.orders ? cur.revenue / cur.orders : 0;
+    const pAov = prev.orders ? prev.revenue / prev.orders : 0;
+
+    document.getElementById('subtitle').textContent =
+      `${dayLabel(from, true)} – ${dayLabel(to, true)} · Sample data`;
+
+    document.getElementById('kpiRevenue').textContent = fmtMoney.format(cur.revenue);
+    document.getElementById('kpiRevenueD').innerHTML = delta(cur.revenue, prev.revenue);
+    document.getElementById('kpiOrders').textContent = fmtInt(cur.orders);
+    document.getElementById('kpiOrdersD').innerHTML = delta(cur.orders, prev.orders);
+    document.getElementById('kpiAov').textContent = fmtMoney.format(aov);
+    document.getElementById('kpiAovD').innerHTML = delta(aov, pAov);
+    document.getElementById('kpiUnits').textContent = fmtInt(cur.units);
+    document.getElementById('kpiUnitsD').innerHTML = delta(cur.units, prev.units);
+
+    lineChart(cur.daily, prev.daily, from);
+    donut(cur.chans);
+    categoryBars(cur.cats);
+    topProducts(cur);
+  }
+
+  ['range', 'cat', 'channel'].forEach(id =>
+    document.getElementById(id).addEventListener('change', render));
+
+  render();
+})();
+</script>
+</body>
+</html>

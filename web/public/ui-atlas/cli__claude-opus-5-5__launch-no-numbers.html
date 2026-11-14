@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally Hall — Bookkeeping for freelancers</title>
+<meta name="description" content="Tally Hall is a simple bookkeeping app for freelancers. Track income, expenses, and what you owe in tax, without learning accounting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f6f1e7;
+    --paper-2: #efe7d6;
+    --ink: #1c2622;
+    --ink-soft: #4a5550;
+    --green: #2f5d46;
+    --green-deep: #1f4232;
+    --red: #b8473a;
+    --rule: #d9cfbb;
+    --blue-rule: #a9bfd0;
+    --radius: 14px;
+    --max: 1120px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "DM Sans", system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { font-family: "Fraunces", Georgia, serif; line-height: 1.12; letter-spacing: -0.01em; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(246, 241, 231, 0.88);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: "Fraunces", serif; font-weight: 700; font-size: 22px; text-decoration: none; }
+  .logo svg { width: 30px; height: 30px; }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a { text-decoration: none; color: var(--ink-soft); font-weight: 500; font-size: 15px; }
+  .nav-links a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--green); color: #fff !important;
+    padding: 12px 22px; border-radius: 999px;
+    text-decoration: none; font-weight: 700; font-size: 15px;
+    border: none; cursor: pointer; font-family: inherit;
+    transition: background .2s, transform .2s;
+  }
+  .btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn.ghost { background: transparent; color: var(--ink) !important; border: 1.5px solid var(--ink); }
+  .btn.ghost:hover { background: var(--ink); color: var(--paper) !important; }
+
+  /* Hero */
+  .hero { padding: 80px 0 96px; position: relative; overflow: hidden; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid var(--rule);
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 24px;
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(47,93,70,.15); }
+  .hero h1 { font-size: clamp(42px, 6vw, 68px); font-weight: 600; margin-bottom: 22px; }
+  .hero h1 em { font-style: italic; color: var(--green); }
+  .hero p.lede { font-size: 20px; color: var(--ink-soft); max-width: 520px; margin-bottom: 32px; }
+  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-note { margin-top: 18px; font-size: 14px; color: var(--ink-soft); }
+
+  /* Ledger mock */
+  .ledger {
+    background: #fffdf8;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: 0 30px 60px -30px rgba(28,38,34,.35), 0 2px 0 var(--rule);
+    padding: 26px 26px 20px;
+    position: relative;
+    transform: rotate(1.2deg);
+    background-image: repeating-linear-gradient(to bottom, transparent 0 39px, var(--blue-rule) 39px 40px);
+    background-position: 0 70px;
+  }
+  .ledger::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 64px; width: 1.5px; background: rgba(184,71,58,.45);
+  }
+  .ledger-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; padding-left: 52px; }
+  .ledger-head h3 { font-size: 20px; }
+  .ledger-head span { font-size: 12px; color: var(--ink-soft); }
+  .row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; height: 40px; font-size: 14.5px; }
+  .row .tally { font-family: "JetBrains Mono", monospace; color: var(--ink-soft); font-size: 12px; }
+  .row .amt { font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  .amt.in { color: var(--green); }
+  .amt.out { color: var(--red); }
+  .tag { font-size: 11px; background: var(--paper-2); padding: 2px 8px; border-radius: 6px; margin-left: 8px; color: var(--ink-soft); }
+  .ledger-foot {
+    margin-top: 14px; padding: 14px 16px; background: var(--ink); color: var(--paper);
+    border-radius: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .ledger-foot div small { display: block; font-size: 11px; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
+  .ledger-foot div strong { font-family: "JetBrains Mono", monospace; font-size: 16px; }
+  .sample-note { text-align: right; font-size: 12px; color: var(--ink-soft); margin-top: 14px; font-style: italic; }
+
+  /* Sections */
+  section { padding: 96px 0; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--green); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+  .section-head { max-width: 640px; margin-bottom: 56px; }
+  .section-head h2 { font-size: clamp(32px, 4.2vw, 46px); font-weight: 600; margin-bottom: 16px; }
+  .section-head p { color: var(--ink-soft); font-size: 18px; }
+
+  /* Problem strip */
+  .strip { background: var(--ink); color: var(--paper); padding: 64px 0; }
+  .strip .wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+  .strip h3 { font-size: 22px; margin-bottom: 8px; color: #fff; }
+  .strip p { opacity: .75; font-size: 16px; }
+  .strip .marks { font-family: "JetBrains Mono", monospace; color: #8fb9a0; margin-bottom: 12px; letter-spacing: 2px; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .feature {
+    background: #fffdf8; border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 30px 28px; transition: transform .2s, box-shadow .2s;
+  }
+  .feature:hover { transform: translateY(-3px); box-shadow: 0 18px 36px -24px rgba(28,38,34,.4); }
+  .icon {
+    width: 46px; height: 46px; border-radius: 12px; background: var(--paper-2);
+    display: grid; place-items: center; margin-bottom: 20px;
+  }
+  .icon svg { width: 24px; height: 24px; stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .feature h3 { font-size: 21px; margin-bottom: 10px; }
+  .feature p { color: var(--ink-soft); font-size: 16px; }
+
+  /* Steps */
+  .how { background: var(--paper-2); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; counter-reset: step; }
+  .step { position: relative; padding-top: 70px; }
+  .step::before {
+    counter-increment: step; content: counter(step, decimal-leading-zero);
+    position: absolute; top: 0; left: 0;
+    font-family: "Fraunces", serif; font-size: 56px; font-weight: 700; color: var(--green); opacity: .9; line-height: 1;
+  }
+  .step h3 { font-size: 22px; margin-bottom: 10px; }
+  .step p { color: var(--ink-soft); }
+
+  /* Honest section */
+  .honest .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+  .honest h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 600; margin-bottom: 18px; }
+  .honest p { color: var(--ink-soft); margin-bottom: 16px; font-size: 18px; }
+  .card-note {
+    background: #fffdf8; border: 1px dashed var(--ink-soft); border-radius: var(--radius); padding: 32px;
+  }
+  .card-note h3 { font-size: 20px; margin-bottom: 16px; }
+  .card-note ul { list-style: none; }
+  .card-note li { padding: 12px 0; border-bottom: 1px solid var(--rule); display: flex; gap: 12px; font-size: 16px; }
+  .card-note li:last-child { border-bottom: none; }
+  .card-note li span.k { font-family: "JetBrains Mono", monospace; color: var(--green); font-weight: 600; min-width: 22px; }
+
+  /* Pricing */
+  .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 860px; }
+  .plan { background: #fffdf8; border: 1px solid var(--rule); border-radius: var(--radius); padding: 36px 32px; display: flex; flex-direction: column; }
+  .plan.featured { background: var(--ink); color: var(--paper); border-color: var(--ink); position: relative; }
+  .plan.featured .ribbon {
+    position: absolute; top: -13px; left: 32px; background: var(--red); color: #fff;
+    font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; letter-spacing: .04em;
+  }
+  .plan h3 { font-size: 24px; margin-bottom: 6px; }
+  .plan .desc { font-size: 15px; opacity: .75; margin-bottom: 22px; }
+  .price { font-family: "Fraunces", serif; font-size: 52px; font-weight: 700; line-height: 1; }
+  .price small { font-family: "DM Sans", sans-serif; font-size: 16px; font-weight: 400; opacity: .7; }
+  .plan ul { list-style: none; margin: 26px 0 30px; flex: 1; }
+  .plan li { padding: 7px 0 7px 28px; position: relative; font-size: 15.5px; }
+  .plan li::before {
+    content: "||||"; position: absolute; left: 0; top: 9px; font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: -1px; color: var(--green);
+  }
+  .plan.featured li::before { color: #8fb9a0; }
+  .plan.featured .btn { background: var(--paper); color: var(--ink) !important; }
+  .plan.featured .btn:hover { background: #fff; }
+  .plan .btn { justify-content: center; }
+
+  /* FAQ */
+  .faq { max-width: 780px; }
+  details { border-bottom: 1px solid var(--rule); padding: 22px 0; }
+  summary {
+    cursor: pointer; list-style: none; font-family: "Fraunces", serif; font-size: 21px; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-family: "JetBrains Mono", monospace; font-size: 22px; color: var(--green); transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin-top: 12px; color: var(--ink-soft); }
+
+  /* CTA */
+  .cta { background: var(--green); color: #fff; border-radius: 24px; padding: 64px 56px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; position: relative; overflow: hidden; }
+  .cta::after {
+    content: "|||| |||| |||| |||| ||||"; position: absolute; right: -20px; bottom: -30px;
+    font-family: "JetBrains Mono", monospace; font-size: 110px; opacity: .07; white-space: nowrap; letter-spacing: -6px;
+  }
+  .cta h2 { font-size: clamp(30px, 4vw, 42px); margin-bottom: 12px; }
+  .cta p { opacity: .85; }
+  .signup { display: flex; gap: 10px; position: relative; z-index: 1; flex-wrap: wrap; }
+  .signup input {
+    flex: 1; min-width: 200px; padding: 14px 18px; border-radius: 999px; border: none;
+    font-family: inherit; font-size: 16px; background: #fff; color: var(--ink);
+  }
+  .signup input:focus { outline: 3px solid rgba(255,255,255,.4); }
+  .signup .btn { background: var(--ink); }
+  .signup .btn:hover { background: #000; }
+  .signup-msg { width: 100%; font-size: 14px; min-height: 20px; opacity: .9; }
+
+  footer { padding: 56px 0 40px; color: var(--ink-soft); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; border-top: 1px solid var(--rule); padding-top: 32px; }
+  footer .links { display: flex; gap: 22px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+
+  /* Reveal */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .hero .wrap, .honest .wrap, .cta { grid-template-columns: 1fr; }
+    .features, .steps, .strip .wrap { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+    .ledger { transform: none; }
+    .cta { padding: 44px 28px; }
+    section { padding: 72px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#" class="logo" aria-label="Tally Hall home">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="#2f5d46"/>
+        <g stroke="#f6f1e7" stroke-width="2.2" stroke-linecap="round">
+          <line x1="9" y1="9" x2="9" y2="23"/><line x1="13" y1="9" x2="13" y2="23"/>
+          <line x1="17" y1="9" x2="17" y2="23"/><line x1="21" y1="9" x2="21" y2="23"/>
+          <line x1="6" y1="20" x2="25" y2="12"/>
+        </g>
+      </svg>
+      Tally Hall
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="#signup" class="btn">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="badge"><span class="dot"></span> Just launched — say hello</div>
+      <h1>Bookkeeping for people who'd <em>rather be working.</em></h1>
+      <p class="lede">Tally Hall keeps track of what you earned, what you spent, and what to set aside for taxes — so the money side of freelancing takes minutes a week, not a lost weekend every quarter.</p>
+      <div class="hero-ctas">
+        <a href="#signup" class="btn">Start free →</a>
+        <a href="#how" class="btn ghost">See how it works</a>
+      </div>
+      <p class="hero-note">Free to start. No credit card. No accounting degree.</p>
+    </div>
+
+    <div class="ledger reveal" aria-label="Example ledger with sample data">
+      <div class="ledger-head">
+        <h3>November</h3>
+        <span class="mono">example ledger</span>
+      </div>
+      <div class="row"><span class="tally">11/03</span><span>Logo project — final invoice <span class="tag">Client</span></span><span class="amt in">+$2,400.00</span></div>
+      <div class="row"><span class="tally">11/04</span><span>Design software <span class="tag">Software</span></span><span class="amt out">−$54.99</span></div>
+      <div class="row"><span class="tally">11/06</span><span>Coworking day pass <span class="tag">Workspace</span></span><span class="amt out">−$25.00</span></div>
+      <div class="row"><span class="tally">11/08</span><span>Website retainer <span class="tag">Client</span></span><span class="amt in">+$1,200.00</span></div>
+      <div class="row"><span class="tally">11/09</span><span>New monitor <span class="tag">Equipment</span></span><span class="amt out">−$329.00</span></div>
+      <div class="ledger-foot">
+        <div><small>Earned</small><strong>$3,600</strong></div>
+        <div><small>Spent</small><strong>$409</strong></div>
+        <div><small>Set aside</small><strong>$893</strong></div>
+      </div>
+      <p class="sample-note">Sample numbers for illustration</p>
+    </div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="marks">|</div>
+      <h3>Receipts in five places</h3>
+      <p>Email, your camera roll, a coat pocket. Tally Hall gives them one home.</p>
+    </div>
+    <div class="reveal">
+      <div class="marks">||</div>
+      <h3>Tax time surprises</h3>
+      <p>See a running estimate of what to set aside, every time you get paid.</p>
+    </div>
+    <div class="reveal">
+      <div class="marks">|||</div>
+      <h3>Tools built for companies</h3>
+      <p>You're one person. Your books shouldn't need a finance department.</p>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">What it does</div>
+      <h2>Everything a freelancer needs. Nothing you'll never use.</h2>
+      <p>We built Tally Hall around the handful of jobs freelancers actually do with their books — and made each of them fast.</p>
+    </div>
+    <div class="features">
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+        <h3>Income &amp; expense tracking</h3>
+        <p>Log a payment or expense in a couple of taps. Categories are tuned for freelance work, not corporate charts of accounts.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <h3>Tax set-aside estimate</h3>
+        <p>A running number for how much of each payment to put away, so quarterly estimates don't sneak up on you.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M7 5l1.5-2h7L17 5"/></svg></div>
+        <h3>Receipt capture</h3>
+        <p>Snap a photo or forward an email. The receipt is attached to the expense, ready when you need it.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M9 18h4"/></svg></div>
+        <h3>Simple invoices</h3>
+        <p>Send a clean invoice, mark it paid when the money lands, and it flows straight into your income.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+        <h3>Plain-English reports</h3>
+        <p>Profit, spending by category, and best and worst months — explained without jargon.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
+        <h3>Accountant-ready export</h3>
+        <p>Hand your accountant a tidy CSV or PDF at year end. Your data is always yours to take with you.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">How it works</div>
+      <h2>Up and running before your coffee cools.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <h3>Tell us how you work</h3>
+        <p>A few quick questions about the kind of freelancing you do, so categories and tax estimates fit you from day one.</p>
+      </div>
+      <div class="step reveal">
+        <h3>Add as you go</h3>
+        <p>Log payments and expenses when they happen, or catch up in one sitting. Snap receipts along the way.</p>
+      </div>
+      <div class="step reveal">
+        <h3>Know where you stand</h3>
+        <p>Open the app any time to see what you've earned, what you've spent, and what to keep aside.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="honest">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">The honest part</div>
+      <h2>We're brand new. Here's what that means for you.</h2>
+      <p>Tally Hall launched last week. We don't have a wall of testimonials or a big logo bar yet — and we're not going to pretend we do.</p>
+      <p>What we do have is a focused product, a small team that reads every message, and a real interest in building this alongside the first people who use it.</p>
+    </div>
+    <div class="card-note reveal">
+      <h3>If you join early, you get:</h3>
+      <ul>
+        <li><span class="k">01</span><span>Founding-member pricing, locked in for as long as you stay.</span></li>
+        <li><span class="k">02</span><span>A direct line to the people building it — replies from a human, not a bot.</span></li>
+        <li><span class="k">03</span><span>A real say in what we build next.</span></li>
+        <li><span class="k">04</span><span>Full export of your data any time, so trying us is low-risk.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Pricing</div>
+      <h2>Simple pricing, like the app.</h2>
+      <p>Start free. Upgrade if and when it earns its keep.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan reveal">
+        <h3>Starter</h3>
+        <p class="desc">For getting your books in order.</p>
+        <div class="price">$0 <small>/ month</small></div>
+        <ul>
+          <li>Income &amp; expense tracking</li>
+          <li>Freelance-friendly categories</li>
+          <li>Tax set-aside estimate</li>
+          <li>CSV export</li>
+        </ul>
+        <a href="#signup" class="btn ghost">Start free</a>
+      </div>
+      <div class="plan featured reveal">
+        <span class="ribbon">FOUNDING MEMBER</span>
+        <h3>Pro</h3>
+        <p class="desc">For freelancers who want it all handled.</p>
+        <div class="price">$8 <small>/ month, locked in</small></div>
+        <ul>
+          <li>Everything in Starter</li>
+          <li>Receipt capture &amp; email forwarding</li>
+          <li>Invoicing</li>
+          <li>Reports &amp; accountant-ready PDF export</li>
+          <li>Founding price kept for as long as you're subscribed</li>
+        </ul>
+        <a href="#signup" class="btn">Become a founding member</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Questions</div>
+      <h2>Fair questions, straight answers.</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Do I need to know anything about accounting?</summary>
+        <p>No. Tally Hall uses everyday language — "money in," "money out," "set aside for taxes." If you can read a bank statement, you can use it.</p>
+      </details>
+      <details>
+        <summary>Does Tally Hall file my taxes?</summary>
+        <p>No. We help you keep organized records and estimate what to set aside, and we make it easy to hand everything to your accountant or tax software. The tax estimate is a planning guide, not tax advice.</p>
+      </details>
+      <details>
+        <summary>You just launched. Why should I trust you with my books?</summary>
+        <p>Reasonable question. You can start on the free plan, and you can export all of your data whenever you like — so you're never locked in. If Tally Hall isn't right for you, you leave with everything you put in.</p>
+      </details>
+      <details>
+        <summary>What does "founding member" pricing mean?</summary>
+        <p>If you subscribe to Pro during our early period, you keep the $8/month price for as long as your subscription stays active, even if our regular price goes up later.</p>
+      </details>
+      <details>
+        <summary>Can I cancel any time?</summary>
+        <p>Yes. No contracts, no cancellation fees. Cancel from your settings and you'll drop back to the free plan with your data intact.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="signup" style="padding-top: 24px;">
+  <div class="wrap">
+    <div class="cta reveal">
+      <div>
+        <h2>Start your first tally.</h2>
+        <p>Create a free account in under a minute. Be one of the first freelancers on Tally Hall.</p>
+      </div>
+      <form class="signup" id="signupForm" novalidate>
+        <label for="email" class="sr-only" style="position:absolute;left:-9999px;">Email address</label>
+        <input type="email" id="email" placeholder="you@yourwork.com" required autocomplete="email">
+        <button type="submit" class="btn">Get started</button>
+        <div class="signup-msg" id="signupMsg" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="#" class="logo" style="font-size:18px;">Tally Hall</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+    <span>© <span id="year"></span> Tally Hall</span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Signup (front-end only)
+  document.getElementById('signupForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('email');
+    const msg = document.getElementById('signupMsg');
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
+    if (!ok) {
+      msg.textContent = "That email doesn't look quite right — mind checking it?";
+      input.focus();
+      return;
+    }
+    msg.textContent = "Thanks! Check your inbox to finish setting up your account.";
+    input.value = "";
+  });
+</script>
+</body>
+</html>

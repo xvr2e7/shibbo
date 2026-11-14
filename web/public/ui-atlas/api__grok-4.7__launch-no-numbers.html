@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Tally Hall is bookkeeping for freelancers. Track what you received, what you spent, who still owes you, and what to set aside. Launched last week.">
+<meta name="theme-color" content="#f6f1e7">
+<title>Tally Hall — Bookkeeping for freelancers</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231e4a38'/%3E%3Cpath d='M7 7v18M12 7v18M17 7v18M22 7v18M6 23L26 9' stroke='%23f3ecdf' stroke-width='1.7' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f6f1e7;
+    --paper-2: #efe6d6;
+    --sheet: #fbf7f0;
+    --ink: #1c1915;
+    --ink-soft: #3f3a33;
+    --muted: #5e584e;
+    --line: #e0d5c6;
+    --green: #1e4a38;
+    --green-deep: #143528;
+    --red: #c4482d;
+    --gold: #d7b56d;
+    --shadow: 0 18px 40px rgba(28, 25, 20, 0.08);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding-left: 22px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Outfit, system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    left: 13px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--red);
+    z-index: 80;
+    pointer-events: none;
+  }
+  h1, h2, h3, p, ul, ol, figure, dl, dd { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  a { color: inherit; }
+  button, input, textarea { font: inherit; color: inherit; }
+  ::selection { background: var(--green); color: var(--paper); }
+  :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+  .skip {
+    position: absolute;
+    left: 28px;
+    top: -48px;
+    background: var(--green);
+    color: var(--paper);
+    padding: 8px 12px;
+    z-index: 90;
+  }
+  .skip:focus { top: 12px; }
+  .wrap { width: min(1120px, calc(100% - 64px)); margin-inline: auto; }
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(246, 241, 231, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(28, 25, 20, 0.08);
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    min-height: 74px;
+    gap: 20px;
+  }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 600;
+    font-size: 1.28rem;
+    letter-spacing: -0.02em;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    margin-left: auto;
+  }
+  .nav-links a:not(.btn) { text-decoration: none; }
+  .nav-links a:not(.btn):hover { color: var(--green); }
+  .nav-toggle {
+    display: none;
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .kicker {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    font-weight: 500;
+  }
+  h1, h2, h3 { font-family: Fraunces, Georgia, serif; font-weight: 600; letter-spacing: -0.03em; }
+  h1 {
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    line-height: 1;
+  }
+  h1 em { font-style: italic; font-weight: 500; color: var(--green); }
+  h2 { font-size: clamp(2.05rem, 4vw, 3.4rem); line-height: 1.05; }
+  h3 { font-size: 1.45rem; line-height: 1.2; letter-spacing: -0.02em; }
+  .lede { color: var(--ink-soft); }
+  .hero { padding: 52px 0 72px; }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.12fr 0.88fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .hero-kicker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .stamp {
+    border: 1.5px solid var(--red);
+    color: var(--red);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 7px;
+    transform: rotate(-8deg);
+    white-space: nowrap;
+  }
+  .hero .lede { max-width: 38rem; margin-top: 18px; font-size: 1.15rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--green);
+    color: var(--paper);
+    text-decoration: none;
+    border: 1px solid var(--green);
+    border-radius: 3px;
+    padding: 13px 18px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn:hover { background: #173c2e; }
+  .btn.secondary { background: transparent; color: var(--ink); border-color: #c9bfb0; }
+  .btn.secondary:hover { border-color: var(--ink); background: transparent; }
+  .btn-small { padding: 8px 12px; }
+  .btn.full { width: 100%; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; }
+  .facts li {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+  }
+  .facts li::before { content: "— "; color: var(--red); }
+  .specimen { margin: 0; }
+  .book {
+    width: 100%;
+    max-width: 440px;
+    background: var(--green);
+    padding: 14px 14px 14px 26px;
+    border-radius: 3px 10px 10px 3px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 16px 22px 40px rgba(28, 25, 20, 0.12);
+    position: relative;
+    transform: rotate(-1.1deg);
+  }
+  .book::before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 18px;
+    bottom: 18px;
+    width: 7px;
+    background: repeating-linear-gradient(to bottom, var(--gold) 0 2px, transparent 2px 16px);
+    opacity: 0.85;
+  }
+  .sheet {
+    background: var(--sheet);
+    color: var(--ink);
+    padding: 20px 18px 16px 26px;
+    position: relative;
+  }
+  .sheet::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #e07a72;
+  }
+  .sheet-top, .inv div, .rows div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: baseline;
+  }
+  .sheet-top {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sheet-label {
+    margin: 10px 0 14px;
+    font-family: Fraunces, Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+  }
+  .rows div { padding: 7px 0; border-bottom: 1px solid rgba(28, 25, 20, 0.08); }
+  .rows dt { font-weight: 500; }
+  .rows dd, .inv span:last-child {
+    margin: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+  }
+  .rows .strong dt, .rows .strong dd { font-weight: 600; }
+  .inv { margin-top: 16px; }
+  .inv p {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .inv div { padding: 5px 0; font-size: 0.95rem; }
+  .inv-total { font-weight: 600; border-top: 1px solid rgba(28, 25, 20, 0.12); margin-top: 4px; padding-top: 8px; }
+  figcaption { margin-top: 14px; max-width: 42ch; color: var(--muted); font-size: 0.86rem; }
+  .strip { background: var(--green); color: var(--paper); }
+  .strip p {
+    margin: 0;
+    padding: 14px 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  section { padding: 88px 0; }
+  .section-head { max-width: 40rem; margin-bottom: 32px; }
+  .section-head h2, .section-head .lede { margin-top: 10px; }
+  .features { counter-reset: feature; }
+  .features li {
+    counter-increment: feature;
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    column-gap: 12px;
+    padding: 26px 0;
+    border-top: 1px solid var(--line);
+  }
+  .features li:last-child { border-bottom: 1px solid var(--line); }
+  .features li::before {
+    content: counter(feature, decimal-leading-zero);
+    grid-row: 1 / span 2;
+    font-family: Fraunces, Georgia, serif;
+    font-style: italic;
+    font-size: 1.7rem;
+    color: var(--green);
+    line-height: 1.2;
+  }
+  .features p { grid-column: 2; color: var(--ink-soft); margin-top: 6px; max-width: 62ch; }
+  .note-line { margin-top: 18px; color: var(--muted); }
+  .note-line a { color: var(--green); }
+  .wall { background: var(--paper-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .blanks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .blank {
+    background: var(--sheet);
+    border: 1px dashed #c9bfb0;
+    min-height: 290px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .blank header {
+    display: flex;
+    justify-content: space-between;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+  .blank-line {
+    border-bottom: 1px solid var(--line);
+    color: #8a8175;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  .star-row { display: flex; gap: 8px; margin: 8px 0 16px; }
+  .star-row span {
+    width: 11px;
+    height: 11px;
+    border: 1px solid #b7ad9e;
+    border-radius: 50%;
+  }
+  .quiet {
+    margin-top: auto;
+    font-family: Fraunces, Georgia, serif;
+    font-style: italic;
+    font-size: 1.28rem;
+  }
+  .wall .actions { margin-top: 28px; }
+  .calc {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--line);
+    background: var(--sheet);
+  }
+  .calc-in, .calc-out { padding: 28px; }
+  .calc-out { background: #f3ecdf; border-left: 1px solid var(--line); }
+  .field { margin-top: 16px; }
+  label { display: block; font-weight: 500; margin-bottom: 6px; }
+  input[type="number"], input[type="text"], input[type="email"], textarea {
+    width: 100%;
+    background: #fffdf9;
+    border: 1px solid #d9d0c3;
+    border-radius: 3px;
+    padding: 12px;
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  .money-field { position: relative; }
+  .money-field span {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--muted);
+  }
+  .money-field input { padding-left: 28px; }
+  input[type="range"] { width: 100%; accent-color: var(--green); }
+  .rate-row { display: flex; justify-content: space-between; align-items: baseline; }
+  #rate-out { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .result { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .result span { display: block; color: var(--muted); font-size: 0.92rem; }
+  .result strong {
+    display: block;
+    margin-top: 2px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 1.35rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .result.main strong {
+    font-family: Fraunces, Georgia, serif;
+    font-size: clamp(2rem, 4vw, 2.7rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .neg { color: #a33b32; }
+  #calc-note { margin-top: 16px; color: var(--muted); font-size: 0.9rem; }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .steps li { border-top: 2px solid var(--green); padding-top: 14px; }
+  .steps span {
+    font-family: Fraunces, Georgia, serif;
+    font-style: italic;
+    color: var(--green);
+    font-size: 1.6rem;
+  }
+  .steps h3 { margin: 8px 0; }
+  .steps p { color: var(--ink-soft); }
+  .price-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .plan {
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .plan.full { background: var(--green); color: var(--paper); border-color: var(--green); }
+  .cost { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0; }
+  .price {
+    font-family: Fraunces, Georgia, serif;
+    font-size: clamp(3rem, 6vw, 4.4rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 600;
+  }
+  .per {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding-bottom: 8px;
+  }
+  .plan li {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(28, 25, 20, 0.1);
+  }
+  .plan.full li { border-top-color: rgba(246, 241, 231, 0.16); }
+  .dot {
+    width: 7px;
+    height: 7px;
+    margin-top: 0.55em;
+    background: currentColor;
+    flex: none;
+  }
+  .plan .btn { margin-top: 16px; }
+  .plan.full .btn { background: var(--paper); color: var(--green); border-color: var(--paper); }
+  .plan.full .btn:hover { background: #fff; }
+  .fine { font-size: 0.84rem; color: var(--muted); line-height: 1.45; }
+  .plan.full .fine { color: #d5e0da; }
+  .plan.full .kicker { color: var(--gold); }
+  details { border-top: 1px solid var(--line); padding: 16px 0; }
+  details:last-of-type { border-bottom: 1px solid var(--line); }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.05rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+";
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--green);
+  }
+  details[open] summary::after { content: "–"; }
+  details p { max-width: 68ch; color: var(--ink-soft); margin-top: 8px; }
+  .close-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .close .lede { margin-top: 14px; max-width: 38rem; }
+  .form-card {
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  form { display: grid; gap: 14px; }
+  form h3 { margin: 4px 0; }
+  .joined h3 { margin: 8px 0 10px; }
+  footer {
+    background: var(--green-deep);
+    color: #f3ecdf;
+    padding: 64px 0 28px;
+    border-top: 3px solid var(--gold);
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1fr;
+    gap: 32px;
+  }
+  footer .kicker { color: var(--gold); }
+  footer .logo { color: #f3ecdf; margin-bottom: 10px; }
+  footer a { display: block; text-decoration: none; padding: 3px 0; color: #f3ecdf; }
+  footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  footer .lede, .legal { color: #c9d5ce; }
+  .legal {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(243, 236, 223, 0.18);
+    font-size: 0.86rem;
+  }
+  @media (max-width: 860px) {
+    .wrap { width: min(1120px, calc(100% - 32px)); }
+    .nav-toggle { display: inline-flex; }
+    .nav-links {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      background: rgba(246, 241, 231, 0.98);
+      border-bottom: 1px solid var(--line);
+      padding: 8px 22px 18px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .nav-links.is-open { display: flex; }
+    .hero-grid, .close-grid, .price-grid, .steps, .blanks, .calc, .footer-grid {
+      grid-template-columns: 1fr;
+    }
+    .book { transform: none; }
+    .calc-out { border-left: 0; border-top: 1px solid var(--line); }
+    section { padding: 64px 0; }
+    .hero { padding-top: 36px; }
+  }
+  @media (max-width: 560px) {
+    .features li { grid-template-columns: 46px 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .book { transform: none; }
+    * { transition: none !important; }
+  }
+  @media print {
+    body { padding: 0; background: white; }
+    body::before, .site-header, .strip, .actions, form { display: none !important; }
+    footer { border: 0; }
+  }
+</style>
+</head>
+<body id="top">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap nav">
+      <a class="logo" href="#top">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <rect width="32" height="32" rx="4" fill="#1e4a38"></rect>
+          <path d="M7 7v18M12 7v18M17 7v18M22 7v18M6 23L26 9" stroke="#f3ecdf" stroke-width="1.7" fill="none"></path>
+        </svg>
+        <span>Tally Hall</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+      <nav id="nav" class="nav-links" aria-label="Primary">
+        <a href="#ledger">The ledger</a>
+        <a href="#wall">Reviews</a>
+        <a href="#pricing">Price</a>
+        <a href="#questions">Questions</a>
+        <a class="btn btn-small" href="#start">Start free</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="hero-kicker">
+            <p class="kicker">Bookkeeping for freelancers</p>
+            <p class="stamp">Est. last week</p>
+          </div>
+          <h1>Keep the books.<br><em>Skip the second job.</em></h1>
+          <p class="lede">A ledger for people who invoice from a kitchen table. What you received, what you spent, who still owes you, and what to set aside before you treat the whole balance as yours.</p>
+          <div class="actions">
+            <a class="btn" href="#start">Start a free ledger</a>
+            <a class="btn secondary" href="#ledger">See what it keeps</a>
+          </div>
+          <ul class="facts">
+            <li>Manual entry, on purpose</li>
+            <li>Free ledger, no card</li>
+            <li>Not tax advice</li>
+          </ul>
+        </div>
+        <figure class="specimen">
+          <!-- Specimen reconciles: 8240.00 - 1905.40 = 6334.60; 30% of left = 1900.38; after set-aside = 4434.22. Unpaid 1800 + 960 = 2760, not included in received. -->
+          <div class="book">
+            <div class="sheet">
+              <div class="sheet-top">
+                <span>Tally Hall</span>
+                <span>March · Sample</span>
+              </div>
+              <p class="sheet-label">Specimen. Not your books.</p>
+              <dl class="rows">
+                <div><dt>Received</dt><dd>8,240.00</dd></div>
+                <div><dt>Spent</dt><dd>1,905.40</dd></div>
+                <div class="strong"><dt>Left</dt><dd>6,334.60</dd></div>
+                <div><dt>Set aside 30%</dt><dd>1,900.38</dd></div>
+                <div class="strong"><dt>After set-aside</dt><dd>4,434.22</dd></div>
+              </dl>
+              <div class="inv">
+                <p>Unpaid, not in received</p>
+                <div><span>Northwind Studio</span><span>1,800.00</span></div>
+                <div><span>Harbor &amp; Co.</span><span>960.00</span></div>
+                <div class="inv-total"><span>Still out</span><span>2,760.00</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Specimen ledger. 8,240.00 − 1,905.40 = 6,334.60. The client names are invented.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <div class="strip">
+      <div class="wrap">
+        <p>Week one · No customers · No reviews · No borrowed praise · The sums still balance</p>
+      </div>
+    </div>
+    <section id="ledger">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">The ledger</p>
+          <h2>Four things freelancers actually lose.</h2>
+          <p class="lede">A spreadsheet can do this. A lot of them become a file you are afraid to open. Tally Hall is the page you open instead.</p>
+        </div>
+        <ol class="features">
+          <li>
+            <h3>Received and spent</h3>
+            <p>Enter income when it lands and expenses when you pay them. Categories stay in plain language: software, travel, contractors, fees, home office. Not a chart of accounts on day one.</p>
+          </li>
+          <li>
+            <h3>Who has not paid</h3>
+            <p>Unpaid invoices sit on the month until they clear. They are not mixed into money you already received. A late client is a line, not a feeling you try to reconstruct in June.</p>
+          </li>
+          <li>
+            <h3>What to set aside</h3>
+            <p>Pick a percentage of what is left. The number stays on the month, so the whole balance does not look spendable. It is a pocket, not a filing and not a bill.</p>
+          </li>
+          <li>
+            <h3>A file you can leave with</h3>
+            <p>Export a CSV of the month or the year. No proprietary binder. If you stop using Tally Hall, the books are still yours.</p>
+          </li>
+        </ol>
+        <p class="note-line">Bank sync is not in the first release. <a href="#questions">Why that is deliberate.</a></p>
+      </div>
+    </section>
+    <section class="wall" id="wall">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Reviews</p>
+          <h2>The review wall is empty.</h2>
+          <p class="lede">Tally Hall launched last week. There are no customers, so there are no reviews. A blank wall is better than a borrowed compliment.</p>
+        </div>
+        <div class="blanks">
+          <article class="blank">
+            <header><span>Form 01</span><span>Unsigned</span></header>
+            <div class="blank-line">Name</div>
+            <div class="blank-line">Trade</div>
+            <div class="blank-line">Month used</div>
+            <p class="star-row" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></p>
+            <p class="quiet">No sentence written.</p>
+          </article>
+          <article class="blank">
+            <header><span>Form 02</span><span>Unsigned</span></header>
+            <div class="blank-line">Name</div>
+            <div class="blank-line">Trade</div>
+            <div class="blank-line">Month used</div>
+            <p class="star-row" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></p>
+            <p class="quiet">No name we could borrow.</p>
+          </article>
+          <article class="blank">
+            <header><span>Form 03</span><span>Unsigned</span></header>
+            <div class="blank-line">Name</div>
+            <div class="blank-line">Trade</div>
+            <div class="blank-line">Month used</div>
+            <p class="star-row" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></p>
+            <p class="quiet">No stars we would paint on.</p>
+          </article>
+        </div>
+        <div class="actions">
+          <a class="btn" href="#start">Start with an empty month</a>
+        </div>
+      </div>
+    </section>
+    <section id="try">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">A rough sum</p>
+          <h2>Try a month before you trust us with one.</h2>
+          <p class="lede">Type your own figures. They stay in this browser. The page does not keep them, and the result is not a tax bill.</p>
+        </div>
+        <div class="calc" aria-describedby="calc-note">
+          <div class="calc-in">
+            <div class="field">
+              <label for="income">Received this month</label>
+              <div class="money-field">
+                <span>$</span>
+                <input id="income" type="number" min="0" step="0.01" inputmode="decimal" value="6240" autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <label for="spent">Spent this month</label>
+              <div class="money-field">
+                <span>$</span>
+                <input id="spent" type="number" min="0" step="0.01" inputmode="decimal" value="1375.50" autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <div class="rate-row">
+                <label for="rate">Set-aside rate</label>
+                <span id="rate-out">30%</span>
+              </div>
+              <input id="rate" type="range" min="0" max="50" step="1" value="30">
+            </div>
+            <noscript><p class="fine">Recalculating needs JavaScript. The figures on the right match these amounts at 30%.</p></noscript>
+          </div>
+          <div class="calc-out" aria-live="polite">
+            <div class="result">
+              <span>Left after expenses</span>
+              <strong id="out-left">$4,864.50</strong>
+            </div>
+            <div class="result">
+              <span id="aside-label">Set aside (30%)</span>
+              <strong id="out-aside">$1,459.35</strong>
+            </div>
+            <div class="result main">
+              <span>After set-aside</span>
+              <strong id="out-use">$3,405.15</strong>
+            </div>
+            <p id="calc-note">A pocket for later, not a tax bill. Rules differ by place and by year. Examples on this page are in US dollars.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">How a month goes</p>
+          <h2>In, read, close.</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span>01</span>
+            <h3>Put the month in</h3>
+            <p>Add what landed and what you paid. A short note is enough. “Font license, March” beats a blank row you will not remember.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Read one page</h3>
+            <p>Received, spent, still unpaid, and the set-aside. The month is a page, not a workbook with fourteen tabs.</p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Close it</h3>
+            <p>Export a CSV when your accountant asks, or when you ask yourself in December. The next month starts with the file already saved.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+    <section id="pricing">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Price</p>
+          <h2>A free ledger, and the rest of the book.</h2>
+          <p class="lede">Free is not a tour that locks. Hall is the rest, at a launch-month rate. No countdown clock.</p>
+        </div>
+        <div class="price-grid">
+          <article class="plan">
+            <p class="kicker">Free</p>
+            <h3>Enough to see the month</h3>
+            <p class="cost"><span class="price">$0</span><span class="per">USD</span></p>
+            <p>Stays free. No card. No time limit.</p>
+            <ul>
+              <li><span class="dot" aria-hidden="true"></span> Income and expenses</li>
+              <li><span class="dot" aria-hidden="true"></span> A monthly net</li>
+              <li><span class="dot" aria-hidden="true"></span> CSV export</li>
+            </ul>
+            <a class="btn secondary" href="#start">Open a free ledger</a>
+          </article>
+          <article class="plan full">
+            <p class="kicker">Hall · launch month</p>
+            <h3>The complete ledger</h3>
+            <p class="cost"><span class="price">$12</span><span class="per">USD / month</span></p>
+            <p class="fine">$12 holds for twelve months if you start during launch month. Then $18, or move back to free and export. This page will say so before the rate changes.</p>
+            <ul>
+              <li><span class="dot" aria-hidden="true"></span> Everything in Free</li>
+              <li><span class="dot" aria-hidden="true"></span> Unpaid invoices, kept until they clear</li>
+              <li><span class="dot" aria-hidden="true"></span> Set-aside on each month</li>
+              <li><span class="dot" aria-hidden="true"></span> Profit by client</li>
+              <li><span class="dot" aria-hidden="true"></span> Notes on expenses</li>
+              <li><span class="dot" aria-hidden="true"></span> Clients kept apart</li>
+            </ul>
+            <a class="btn" href="#start">Start Hall</a>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section id="questions">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Questions</p>
+          <h2>Straight answers.</h2>
+        </div>
+        <details>
+          <summary>Is this tax or legal advice?</summary>
+          <p>No. Tally Hall adds and remembers. It does not file, represent you, or know your local rules. If a government cares about the number, ask a tax professional. The set-aside tool on this page is a rough pocket, not an amount due.</p>
+        </details>
+        <details>
+          <summary>Do you connect to my bank?</summary>
+          <p>Not in this first release. You enter what you received and what you spent. It is more typing, and a sync error cannot invent a purchase you did not make. If that changes, it will be optional and written on this page first.</p>
+        </details>
+        <details>
+          <summary>Who is it for?</summary>
+          <p>Freelancers and solo consultants who send invoices and want the month to make sense: design, writing, development, photography, consulting, and the work that does not fit a department. Not for firms that need payroll, inventory, or a full chart of accounts.</p>
+        </details>
+        <details>
+          <summary>What happens to the price?</summary>
+          <p>Free stays free. Hall is $12 a month during launch month, and that rate holds for twelve months from the day you start. After that it is $18 a month, or you can return to the free ledger. Cancel whenever. There is no annual contract.</p>
+        </details>
+        <details>
+          <summary>Can I leave and take the books?</summary>
+          <p>Yes. CSV export is on the free ledger and on Hall. If you stop paying, you can still export. We would rather lose a subscription than hold your year hostage.</p>
+        </details>
+        <details>
+          <summary>What about currency?</summary>
+          <p>The prices and the specimen on this page are in US dollars. The first release does not convert currencies, so keep one currency per ledger and enter figures the way you invoice.</p>
+        </details>
+        <details>
+          <summary>Why are there no reviews?</summary>
+          <p>Because we launched last week and have no customers. We are not going to buy quotes, borrow logos, or write praise ourselves. If you want a reference, we cannot give you one. We can give you the ledger.</p>
+        </details>
+      </div>
+    </section>
+    <section class="close" id="start">
+      <div class="wrap close-grid">
+        <div>
+          <p class="kicker">Start</p>
+          <h2>Open an empty ledger. That is the whole pitch.</h2>
+          <p class="lede">No migrated mess. No sample clients pretending to be yours. Month one starts blank, which is how books should start. We launched last week, so if you write, a person reads it.</p>
+        </div>
+        <div class="form-card">
+          <form id="join" action="#start" method="post">
+            <p class="kicker">Free ledger</p>
+            <h3>Put your name on an empty month.</h3>
+            <div class="field">
+              <label for="name">Name</label>
+              <input id="name" name="name" type="text" autocomplete="name" required>
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="field">
+              <label for="note">What should we know? <span class="fine">Optional</span></label>
+              <textarea id="note" name="note" placeholder="I invoice monthly for illustration work."></textarea>
+            </div>
+            <button class="btn full" type="submit">Request my ledger</button>
+            <p class="fine">This file is a self-contained page. Submitting does not open an account or transmit your email.</p>
+          </form>
+          <div id="joined" class="joined" role="status" tabindex="-1" hidden>
+            <p class="kicker">Week one</p>
+            <h3>This is as far as a static page can take you.</h3>
+            <p>Nothing was sent, and no ledger was opened. On the live app, this is where an empty month would start — blank on purpose.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap footer-grid">
+      <div>
+        <p class="logo">Tally Hall</p>
+        <p class="lede">Bookkeeping for freelancers. A ledger, not a tax firm. Where the month lines up.</p>
+      </div>
+      <div>
+        <p class="kicker">On this page</p>
+        <a href="#ledger">The ledger</a>
+        <a href="#wall">Reviews</a>
+        <a href="#try">Set-aside</a>
+        <a href="#how">How a month goes</a>
+        <a href="#pricing">Price</a>
+        <a href="#questions">Questions</a>
+        <a href="#start">Start</a>
+      </div>
+      <div>
+        <p class="kicker">Plainly</p>
+        <p class="lede">Not tax, legal, or accounting advice. Figures you type into the set-aside tool are not saved. The March ledger on this page is a specimen, not a customer.</p>
+      </div>
+    </div>
+    <div class="wrap legal">
+      <p>© Tally Hall. Launch week.</p>
+    </div>
+  </footer>
+  <script>
+    (function () {
+      var income = document.getElementById("income");
+      var spent = document.getElementById("spent");
+      var rate = document.getElementById("rate");
+      var rateOut = document.getElementById("rate-out");
+      var outLeft = document.getElementById("out-left");
+      var outAside = document.getElementById("out-aside");
+      var outUse = document.getElementById("out-use");
+      var asideLabel = document.getElementById("aside-label");
+      var note = document.getElementById("calc-note");
+      var money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+      function num(el) {
+        var n = parseFloat(el.value);
+        if (!isFinite(n) || n < 0) return 0;
+        return n;
+      }
+
+      function render() {
+        var inn = num(income);
+        var out = num(spent);
+        var pct = Math.min(50, num(rate));
+        var left = inn - out;
+        var aside = left > 0 ? left * (pct / 100) : 0;
+        var use = left - aside;
+        rateOut.textContent = pct + "%";
+        asideLabel.textContent = "Set aside (" + pct + "%)";
+        outLeft.textContent = money.format(left);
+        outAside.textContent = money.format(aside);
+        outUse.textContent = money.format(use);
+        outLeft.classList.toggle("neg", left < 0);
+        outUse.classList.toggle("neg", use < 0);
+        note.textContent = left < 0
+          ? "This month ran hot. Set-aside stays at zero so the gap stays visible. Not a tax bill."
+          : "A pocket for later, not a tax bill. Rules differ by place and by year. Examples on this page are in US dollars.";
+      }
+
+      [income, spent, rate].forEach(function (el) {
+        el.addEventListener("input", render);
+      });
+      render();
+
+      var toggle = document.querySelector(".nav-toggle");
+      var links = document.getElementById("nav");
+      toggle.addEventListener("click", function () {
+        var open = links.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.textContent = open ? "Close" : "Menu";
+      });
+      links.querySelectorAll("a").forEach(function (a) {
+        a.addEventListener("click", function () {
+          links.classList.remove("is-open");
+          toggle.setAttribute("aria-expanded", "false");
+          toggle.textContent = "Menu";
+        });
+      });
+
+      var form = document.getElementById("join");
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        form.hidden = true;
+        var done = document.getElementById("joined");
+        done.hidden = false;
+        done.focus();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Team Kanban</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f2f7;
+    --surface: #ffffff;
+    --col-bg: #eaecf3;
+    --border: #dde1ec;
+    --text: #1a1d2e;
+    --muted: #7b82a0;
+    --accent: #5b6af0;
+    --accent-light: #eef0ff;
+    --danger: #f04f5a;
+    --success: #2ec27e;
+    --warning: #f5a623;
+    --purple: #9b59b6;
+    --radius: 12px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --shadow: 0 4px 16px rgba(0,0,0,.10);
+    --shadow-drag: 0 12px 32px rgba(0,0,0,.18);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 12px; }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  header h1 { font-size: 16px; font-weight: 600; }
+  header .subtitle { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .avatar-stack { display: flex; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #fff;
+    margin-left: -6px; cursor: pointer;
+    transition: transform .15s;
+    position: relative;
+  }
+  .avatar:first-child { margin-left: 0; }
+  .avatar:hover { transform: translateY(-2px); z-index: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px; font-size: 13px;
+    font-weight: 500; cursor: pointer; border: none;
+    transition: all .15s; font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4757e0; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--col-bg); color: var(--text); }
+
+  /* ── Board area ── */
+  .board-wrapper {
+    flex: 1;
+    padding: 24px 28px 40px;
+    overflow-x: auto;
+  }
+
+  .board {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    min-width: max-content;
+  }
+
+  /* ── Column ── */
+  .column {
+    width: 280px;
+    background: var(--col-bg);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 120px);
+  }
+
+  .col-header {
+    padding: 14px 14px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .col-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .col-title {
+    font-size: 13px; font-weight: 600;
+    flex: 1; white-space: nowrap;
+  }
+
+  .col-count {
+    background: rgba(0,0,0,.08);
+    color: var(--muted);
+    font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+  }
+
+  .col-add-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 20px; line-height: 1;
+    padding: 0 2px; transition: color .15s;
+    display: flex; align-items: center;
+  }
+  .col-add-btn:hover { color: var(--accent); }
+
+  .cards-container {
+    flex: 1;
+    padding: 4px 10px 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .cards-container::-webkit-scrollbar { width: 4px; }
+  .cards-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* drop target highlight */
+  .cards-container.drag-over {
+    background: rgba(91,106,240,.06);
+    border-radius: 8px;
+    outline: 2px dashed rgba(91,106,240,.35);
+    outline-offset: -2px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 12px 13px;
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+    transition: box-shadow .15s, transform .15s, opacity .15s;
+    user-select: none;
+    position: relative;
+    border: 1px solid transparent;
+  }
+  .card:hover { box-shadow: var(--shadow); border-color: var(--border); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .4; }
+  .card.drag-placeholder {
+    background: var(--accent-light);
+    border: 2px dashed var(--accent);
+    box-shadow: none;
+    min-height: 60px;
+  }
+
+  .card-label {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 600; letter-spacing: .3px;
+    text-transform: uppercase; margin-bottom: 7px;
+  }
+
+  .card-title {
+    font-size: 13px; font-weight: 500; line-height: 1.4;
+    margin-bottom: 10px; color: var(--text);
+  }
+
+  .card-cover {
+    width: 100%; height: 110px;
+    border-radius: 7px; object-fit: cover;
+    margin-bottom: 10px; display: block;
+    background: var(--col-bg);
+  }
+
+  .card-cover-placeholder {
+    width: 100%; height: 110px;
+    border-radius: 7px; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+
+  .card-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-meta-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .meta-chip {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--muted);
+  }
+  .meta-chip svg { flex-shrink: 0; }
+
+  .priority-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .card-assignee {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0;
+  }
+
+  .card-menu {
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); opacity: 0;
+    transition: opacity .15s; border-radius: 6px;
+    padding: 2px 4px; font-size: 16px;
+  }
+  .card:hover .card-menu { opacity: 1; }
+  .card-menu:hover { background: var(--col-bg); color: var(--text); }
+
+  /* ── Add card inline form ── */
+  .add-card-form {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--accent);
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .add-card-form.visible { display: flex; }
+
+  .add-card-form textarea {
+    border: none; outline: none; resize: none;
+    font-family: inherit; font-size: 13px;
+    color: var(--text); background: transparent;
+    min-height: 56px; line-height: 1.4;
+  }
+  .add-card-form textarea::placeholder { color: var(--muted); }
+
+  .add-card-actions { display: flex; gap: 6px; }
+
+  .btn-sm {
+    padding: 5px 10px; font-size: 12px; border-radius: 6px;
+  }
+
+  .btn-cancel {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 20px; line-height: 1;
+    padding: 4px; transition: color .15s;
+  }
+  .btn-cancel:hover { color: var(--danger); }
+
+  /* ── Add column button ── */
+  .add-column-btn {
+    width: 50px; height: 50px;
+    background: rgba(255,255,255,.6);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 24px;
+    transition: all .2s; align-self: flex-start; margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .add-column-btn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+
+  /* ── Progress bar ── */
+  .col-progress {
+    height: 3px; background: var(--border); border-radius: 3px;
+    margin: 0 14px 10px; overflow: hidden;
+  }
+  .col-progress-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,12,30,.45);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    width: 480px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    box-shadow: var(--shadow-drag);
+    transform: translateY(12px);
+    transition: transform .2s;
+    padding: 28px;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 22px; line-height: 1;
+    padding: 2px; transition: color .15s; border-radius: 6px;
+  }
+  .modal-close:hover { color: var(--text); background: var(--col-bg); }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; display: block; }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-family: inherit; font-size: 13px;
+    color: var(--text); background: var(--surface);
+    outline: none; transition: border-color .15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(91,106,240,.12);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+
+  /* ── Tooltip ── */
+  [data-tip] { position: relative; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: #1a1d2e; color: #fff;
+    font-size: 11px; padding: 4px 8px; border-radius: 5px;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity .15s;
+  }
+  [data-tip]:hover::after { opacity: 1; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    padding: 10px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 24px; align-items: center;
+    overflow-x: auto;
+  }
+  .stat-item { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .stat-value { font-size: 18px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted); line-height: 1.3; }
+
+  /* scrollbar */
+  .board-wrapper::-webkit-scrollbar { height: 6px; }
+  .board-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 14px; }
+    .board-wrapper { padding: 16px 14px 32px; }
+    .stats-bar { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-left">
+    <div class="logo">D</div>
+    <div>
+      <div style="font-size:15px;font-weight:600;">Design Sprint</div>
+      <div class="subtitle">Q3 Product Refresh · 4 members</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="avatar-stack" id="avatarStack"></div>
+    <button class="btn btn-ghost btn-sm" id="filterBtn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Filter
+    </button>
+    <button class="btn btn-primary btn-sm" id="newCardBtn">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v12M2 8h12"/></svg>
+      New Card
+    </button>
+  </div>
+</header>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- ── Board ── -->
+<div class="board-wrapper">
+  <div class="board" id="board">
+    <button class="add-column-btn" title="Add column" id="addColBtn">+</button>
+  </div>
+</div>
+
+<!-- ── New/Edit Card Modal ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">New Card</span>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title *</label>
+      <input class="form-input" id="cardTitleInput" placeholder="What needs to be done?" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="cardDescInput" placeholder="Add a brief description…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Column</label>
+        <select class="form-select" id="cardColInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select class="form-select" id="cardPrioInput">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Label</label>
+        <select class="form-select" id="cardLabelInput">
+          <option value="ux">UX Research</option>
+          <option value="visual">Visual</option>
+          <option value="motion">Motion</option>
+          <option value="branding">Branding</option>
+          <option value="proto">Prototype</option>
+          <option value="content">Content</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assignee</label>
+        <select class="form-select" id="cardAssigneeInput"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Due Date</label>
+        <input class="form-input" type="date" id="cardDueInput">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Story Points</label>
+        <input class="form-input" type="number" id="cardPointsInput" min="1" max="21" value="3" placeholder="3">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   Data
+══════════════════════════════════════ */
+const MEMBERS = [
+  { id: 'alex',  name: 'Alex',   initials: 'AK', color: '#5b6af0' },
+  { id: 'brie',  name: 'Brie',   initials: 'BW', color: '#2ec27e' },
+  { id: 'cam',   name: 'Cameron',initials: 'CM', color: '#f5a623' },
+  { id: 'dana',  name: 'Dana',   initials: 'DL', color: '#e05799' },
+];
+
+const LABEL_META = {
+  ux:       { text: 'UX Research', bg: '#eef0ff', color: '#5b6af0' },
+  visual:   { text: 'Visual',      bg: '#fdf0fb', color: '#c850a8' },
+  motion:   { text: 'Motion',      bg: '#fff8ec', color: '#d97706' },
+  branding: { text: 'Branding',    bg: '#f0fdf4', color: '#16a34a' },
+  proto:    { text: 'Prototype',   bg: '#fef2f2', color: '#dc2626' },
+  content:  { text: 'Content',     bg: '#f0f9ff', color: '#0369a1' },
+};
+
+const PRIORITY_COLOR = { high: '#f04f5a', medium: '#f5a623', low: '#2ec27e' };
+
+const COL_COLORS = ['#5b6af0','#f5a623','#2ec27e','#f04f5a','#9b59b6','#0ea5e9'];
+
+let columns = [
+  { id: 'col1', title: 'Backlog',     color: '#7b82a0' },
+  { id: 'col2', title: 'To Do',       color: '#5b6af0' },
+  { id: 'col3', title: 'In Progress', color: '#f5a623' },
+  { id: 'col4', title: 'Review',      color: '#9b59b6' },
+  { id: 'col5', title: 'Done',        color: '#2ec27e' },
+];
+
+let cards = [
+  { id:'c1',  colId:'col1', title:'Audit current design system tokens', label:'ux',       priority:'medium', assignee:'alex',  due:'2024-07-15', points:5,  desc:'Review all existing tokens across components.' },
+  { id:'c2',  colId:'col1', title:'Competitor benchmarking report',      label:'ux',       priority:'low',    assignee:'brie',  due:'2024-07-20', points:3,  desc:'Analyse 5 competitors for design patterns.' },
+  { id:'c3',  colId:'col2', title:'Homepage hero redesign',              label:'visual',   priority:'high',   assignee:'cam',   due:'2024-07-10', points:8,  desc:'New hero layout with updated brand direction.' },
+  { id:'c4',  colId:'col2', title:'Onboarding flow wireframes',          label:'ux',       priority:'high',   assignee:'dana',  due:'2024-07-12', points:5,  desc:'Low-fi wireframes for the 4-step onboarding.' },
+  { id:'c5',  colId:'col2', title:'Icon library expansion (40 icons)',   label:'visual',   priority:'medium', assignee:'alex',  due:'2024-07-18', points:5,  desc:'Extend the icon set with outlined variants.' },
+  { id:'c6',  colId:'col3', title:'Brand motion guidelines doc',         label:'motion',   priority:'high',   assignee:'brie',  due:'2024-07-08', points:8,  desc:'Define easing, duration and animation principles.' },
+  { id:'c7',  colId:'col3', title:'Mobile nav prototype',                label:'proto',    priority:'high',   assignee:'cam',   due:'2024-07-09', points:5,  desc:'Interactive Figma prototype for new bottom nav.' },
+  { id:'c8',  colId:'col3', title:'Colour palette refresh',              label:'branding', priority:'medium', assignee:'dana',  due:'2024-07-14', points:3,  desc:'Update primary, secondary and semantic palettes.' },
+  { id:'c9',  colId:'col4', title:'Typography scale proposal',           label:'visual',   priority:'medium', assignee:'alex',  due:'2024-07-07', points:3,  desc:'New type scale from 10px to 48px with line-height.' },
+  { id:'c10', colId:'col4', title:'Empty state illustrations',           label:'visual',   priority:'low',    assignee:'brie',  due:'2024-07-16', points:5,  desc:'6 bespoke illustrations for key empty states.' },
+  { id:'c11', colId:'col5', title:'Logo & wordmark refresh',             label:'branding', priority:'high',   assignee:'cam',   due:'2024-07-01', points:8,  desc:'Completed logo redesign with usage guidelines.' },
+  { id:'c12', colId:'col5', title:'Design token documentation',          label:'content',  priority:'medium', assignee:'dana',  due:'2024-07-03', points:3,  desc:'Full docs for token naming conventions.' },
+];
+
+let dragState = { cardId: null, originColId: null, placeholder: null };
+let editingCardId = null;
+
+/* ══════════════════════════════════════
+   Render helpers
+══════════════════════════════════════ */
+function memberById(id) { return MEMBERS.find(m => m.id === id); }
+
+function formatDate(d) {
+  if (!d) return null;
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function isOverdue(d) {
+  if (!d) return false;
+  return new Date(d + 'T00:00:00') < new Date(new Date().toDateString());
+}
+
+/* ══════════════════════════════════════
+   Build avatars in header
+══════════════════════════════════════ */
+function renderAvatars() {
+  const stack = document.getElementById('avatarStack');
+  stack.innerHTML = MEMBERS.map(m =>
+    `<div class="avatar" style="background:${m.color}" data-tip="${m.name}">${m.initials}</div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════
+   Stats bar
+══════════════════════════════════════ */
+function renderStats() {
+  const bar = document.getElementById('statsBar');
+  const total = cards.length;
+  const done  = cards.filter(c => c.colId === 'col5').length;
+  const inProg= cards.filter(c => c.colId === 'col3').length;
+  const high  = cards.filter(c => c.priority === 'high').length;
+  const pts   = cards.reduce((s,c)=>s+(+c.points||0),0);
+
+  bar.innerHTML = `
+    <div class="stat-item">
+      <span class="stat-value">${total}</span>
+      <span class="stat-label">Total<br>Cards</span>
+    </div>
+    <div style="width:1px;height:28px;background:var(--border)"></div>
+    <div class="stat-item">
+      <span class="stat-value" style="color:var(--success)">${done}</span>
+      <span class="stat-label">Done</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" style="color:var(--warning)">${inProg}</span>
+      <span class="stat-label">In<br>Progress</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" style="color:var(--danger)">${high}</span>
+      <span class="stat-label">High<br>Priority</span>
+    </div>
+    <div style="width:1px;height:28px;background:var(--border)"></div>
+    <div class="stat-item">
+      <span class="stat-value" style="color:var(--accent)">${pts}</span>
+      <span class="stat-label">Story<br>Points</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;min-width:160px">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">Overall progress</span>
+      <div style="flex:1;height:6px;background:var(--border);border-radius:6px;min-width:80px;overflow:hidden">
+        <div style="height:100%;background:var(--success);border-radius:6px;width:${total?Math.round(done/total*100):0}%;transition:width .4s"></div>
+      </div>
+      <span style="font-size:11px;font-weight:600;white-space:nowrap">${total?Math.round(done/total*100):0}%</span>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════
+   Build a card element
+══════════════════════════════════════ */
+function buildCardEl(card) {
+  const lm  = LABEL_META[card.label] || LABEL_META.ux;
+  const mem = memberById(card.assignee);
+  const pc  = PRIORITY_COLOR[card.priority] || '#7b82a0';
+
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.cardId = card.id;
+  el.draggable = true;
+
+  let dateHtml = '';
+  if (card.due) {
+    const od = isOverdue(card.due) && card.colId !== 'col5';
+    dateHtml = `<span class="meta-chip" style="${od ? 'color:var(--danger);font-weight:600' : ''}">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="12" height="12" rx="2"/><path d="M5 1v2M11 1v2M2 7h12"/></svg>
+      ${formatDate(card.due)}${od ? ' ⚠' : ''}
+    </span>`;
+  }
+
+  let pointsHtml = card.points ? `<span class="meta-chip">
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+    ${card.points}pt
+  </span>` : '';
+
+  el.innerHTML = `
+    <button class="card-menu" data-card-id="${card.id}" title="Edit card">⋯</button>
+    <div class="card-label" style="background:${lm.bg};color:${lm.color}">${lm.text}</div>
+    <div class="card-title">${card.title}</div>
+    <div class="card-meta">
+      <div class="card-meta-left">
+        <span class="meta-chip" data-tip="${card.priority} priority">
+          <span class="priority-dot" style="background:${pc}"></span>
+          ${card.priority.charAt(0).toUpperCase()+card.priority.slice(1)}
+        </span>
+        ${dateHtml}
+        ${pointsHtml}
+      </div>
+      ${mem ? `<div class="card-assignee" style="background:${mem.color}" data-tip="${mem.name}">${mem.initials}</div>` : ''}
+    </div>
+  `;
+
+  // drag events
+  el.addEventListener('dragstart', onDragStart);
+  el.addEventListener('dragend',   onDragEnd);
+
+  // menu button
+  el.querySelector('.card-menu').addEventListener('click', e => {
+    e.stopPropagation();
+    openEditModal(card.id);
+  });
+
+  return el;
+}
+
+/* ══════════════════════════════════════
+   Build a column element
+══════════════════════════════════════ */
+function buildColumnEl(col) {
+  const colCards = cards.filter(c => c.colId === col.id);
+  const doneInCol = col.id === 'col5' ? colCards.length : 0;
+  const pct = colCards.length ? Math.round(doneInCol / colCards.length * 100) : 0;
+
+  const colEl = document.createElement('div');
+  colEl.className = 'column';
+  colEl.dataset.colId = col.id;
+
+  colEl.innerHTML = `
+    <div class="col-header">
+      <div class="col-dot" style="background:${col.color}"></div>
+      <div class="col-title">${col.title}</div>
+      <span class="col-count">${colCards.length}</span>
+      <button class="col-add-btn" title="Add card to ${col.title}" data-col-id="${col.id}">+</button>
+    </div>
+    ${col.id === 'col5' ? `<div class="col-progress"><div class="col-progress-fill" style="background:${col.color};width:100%"></div></div>` : ''}
+    <div class="cards-container" data-col-id="${col.id}"></div>
+    <div class="add-card-form" id="form-${col.id}">
+      <textarea placeholder="Card title…" rows="2"></textarea>
+      <div class="add-card-actions">
+        <button class="btn btn-primary btn-sm add-card-save" data-col-id="${col.id}">Add</button>
+        <button class="btn-cancel add-card-cancel" data-col-id="${col.id}">×</button>
+      </div>
+    </div>
+  `;
+
+  // populate cards
+  const container = colEl.querySelector('.cards-container');
+  colCards.forEach(card => container.appendChild(buildCardEl(card)));
+
+  // drop events on container
+  container.addEventListener('dragover',  onDragOver);
+  container.addEventListener('dragleave', onDragLeave);
+  container.addEventListener('drop',      onDrop);
+
+  // inline add form
+  colEl.querySelector('.col-add-btn').addEventListener('click', () => {
+    const form = document.getElementById(`form-${col.id}`);
+    form.classList.add('visible');
+    form.querySelector('textarea').focus();
+  });
+
+  colEl.querySelector('.add-card-save').addEventListener('click', () => {
+    const form = document.getElementById(`form-${col.id}`);
+    const txt = form.querySelector('textarea').value.trim();
+    if (!txt) return;
+    addCard({ colId: col.id, title: txt });
+    form.classList.remove('visible');
+    form.querySelector('textarea').value = '';
+  });
+
+  colEl.querySelector('.add-card-cancel').addEventListener('click', () => {
+    const form = document.getElementById(`form-${col.id}`);
+    form.classList.remove('visible');
+    form.querySelector('textarea').value = '';
+  });
+
+  return colEl;
+}
+
+/* ══════════════════════════════════════
+   Render whole board
+══════════════════════════════════════ */
+function renderBoard() {
+  const board = document.getElementById('board');
+  // remove all columns
+  board.querySelectorAll('.column').forEach(el => el.remove());
+  const addBtn = document.getElementById('addColBtn');
+  columns.forEach(col => board.insertBefore(buildColumnEl(col), addBtn));
+  renderStats();
+}
+
+/* ══════════════════════════════════════
+   Add / edit card data
+══════════════════════════════════════ */
+function uid() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
+
+function addCard(data) {
+  const card = {
+    id: uid(),
+    colId: data.colId || columns[0].id,
+    title: data.title || 'Untitled card',
+    label: data.label || 'ux',
+    priority: data.priority || 'medium',
+    assignee: data.assignee || MEMBERS[0].id,
+    due: data.due || '',
+    points: data.points || 3,
+    desc: data.desc || '',
+  };
+  cards.push(card);
+  renderBoard();
+}
+
+function saveCard(id, data) {
+  const idx = cards.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  cards[idx] = { ...cards[idx], ...data };
+  renderBoard();
+}
+
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  renderBoard();
+}
+
+/* ══════════════════════════════════════
+   Modal
+══════════════════════════════════════ */
+function openModal(title) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingCardId = null;
+}
+
+function populateModalSelects() {
+  const colSel = document.getElementById('cardColInput');
+  colSel.innerHTML = columns.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+
+  const asnSel = document.getElementById('cardAssigneeInput');
+  asnSel.innerHTML = `<option value="">— Unassigned —</option>` +
+    MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+function openNewModal(colId) {
+  editingCardId = null;
+  populateModalSelects();
+  document.getElementById('cardTitleInput').value = '';
+  document.getElementById('cardDescInput').value = '';
+  document.getElementById('cardColInput').value = colId || columns[0].id;
+  document.getElementById('cardPrioInput').value = 'medium';
+  document.getElementById('cardLabelInput').value = 'ux';
+  document.getElementById('cardAssigneeInput').value = '';
+  document.getElementById('cardDueInput').value = '';
+  document.getElementById('cardPointsInput').value = '3';
+  document.getElementById('modalSaveBtn').textContent = 'Add Card';
+  openModal('New Card');
+}
+
+function openEditModal(cardId) {
+  const card = cards.find(c => c.id === cardId);
+  if (!card) return;
+  editingCardId = cardId;
+  populateModalSelects();
+  document.getElementById('cardTitleInput').value    = card.title;
+  document.getElementById('cardDescInput').value     = card.desc || '';
+  document.getElementById('cardColInput').value      = card.colId;
+  document.getElementById('cardPrioInput').value     = card.priority;
+  document.getElementById('cardLabelInput').value    = card.label;
+  document.getElementById('cardAssigneeInput').value = card.assignee || '';
+  document.getElementById('cardDueInput').value      = card.due || '';
+  document.getElementById('cardPointsInput').value   = card.points || 3;
+  document.getElementById('modalSaveBtn').textContent = 'Save Changes';
+  openModal('Edit Card');
+}
+
+document.getElementById('modalSaveBtn').addEventListener('click', () => {
+  const title = document.getElementById('cardTitleInput').value.trim();
+  if (!title) { document.getElementById('cardTitleInput').focus(); return; }
+  const data = {
+    title,
+    desc:     document.getElementById('cardDescInput').value.trim(),
+    colId:    document.getElementById('cardColInput').value,
+    priority: document.getElementById('cardPrioInput').value,
+    label:    document.getElementById('cardLabelInput').value,
+    assignee: document.getElementById('cardAssigneeInput').value,
+    due:      document.getElementById('cardDueInput').value,
+    points:   +document.getElementById('cardPointsInput').value || 0,
+  };
+  if (editingCardId) {
+    saveCard(editingCardId, data);
+  } else {
+    addCard(data);
+  }
+  closeModal();
+});
+
+document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+document.getElementById('newCardBtn').addEventListener('click', () => openNewModal());
+
+/* ══════════════════════════════════════
+   Add column
+══════════════════════════════════════ */
+document.getElementById('addColBtn').addEventListener('click', () => {
+  const name = prompt('Column name:');
+  if (!name || !name.trim()) return;
+  const col = {
+    id: 'col' + Date.now(),
+    title: name.trim(),
+    color: COL_COLORS[columns.length % COL_COLORS.length],
+  };
+  columns.push(col);
+  renderBoard();
+});
+
+/* ══════════════════════════════════════
+   Drag & Drop
+══════════════════════════════════════ */
+function onDragStart(e) {
+  const card = e.currentTarget;
+  dragState.cardId    = card.dataset.cardId;
+  dragState.originColId = card.closest('.cards-container').dataset.colId;
+  setTimeout(() => card.classList.add('dragging'), 0);
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  if (dragState.placeholder) {
+    dragState.placeholder.remove();
+    dragState.placeholder = null;
+  }
+  document.querySelectorAll('.cards-container').forEach(c => c.classList.remove('drag-over'));
+  dragState.cardId = null;
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const container = e.currentTarget;
+  container.classList.add('drag-over');
+
+  // placeholder
+  if (!dragState.placeholder) {
+    const ph = document.createElement('div');
+    ph.className = 'card drag-placeholder';
+    dragState.placeholder = ph;
+  }
+
+  // find insertion point
+  const afterEl = getDragAfterElement(container, e.clientY);
+  if (afterEl) {
+    container.insertBefore(dragState.placeholder, afterEl);
+  } else {
+    container.appendChild(dragState.placeholder);
+  }
+}
+
+function onDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const container = e.currentTarget;
+  container.classList.remove('drag-over');
+  if (!dragState.cardId) return;
+
+  const targetColId = container.dataset.colId;
+  const cardData = cards.find(c => c.id === dragState.cardId);
+  if (!cardData) return;
+
+  // determine index
+  const colCards = Array.from(container.querySelectorAll('.card:not(.drag-placeholder)'));
+  const afterEl  = getDragAfterElement(container, e.clientY);
+  let newIndex;
+  if (afterEl) {
+    const afterId = afterEl.dataset.cardId;
+    newIndex = cards.filter(c => c.colId === targetColId).findIndex(c => c.id === afterId);
+    if (newIndex === -1) newIndex = cards.filter(c => c.colId === targetColId).length;
+  } else {
+    newIndex = cards.filter(c => c.colId === targetColId).length;
+  }
+
+  // update data
+  cards = cards.filter(c => c.id !== dragState.cardId);
+  cardData.colId = targetColId;
+
+  // splice into correct position in cards array
+  const targetCards = cards.filter(c => c.colId === targetColId);
+  const otherCards  = cards.filter(c => c.colId !== targetColId);
+  targetCards.splice(newIndex, 0, cardData);
+
+  // rebuild full array preserving column order
+  const newCards = [];
+  columns.forEach(col => {
+    if (col.id === targetColId) {
+      newCards.push(...targetCards);
+    } else {
+      newCards.push(...otherCards.filter(c => c.colId === col.id));
+    }
+  });
+  cards = newCards;
+
+  renderBoard();
+}
+
+function getDragAfterElement(container, y) {
+  const els = [...container.querySelectorAll('.card:not(.dragging):not(.drag-placeholder)')];
+  return els.reduce((closest, el) => {
+    const box = el.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, el };
+    }
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).el;
+}
+
+/* ══════════════════════════════════════
+   Keyboard shortcut
+══════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openNewModal(); }
+});
+
+/* ══════════════════════════════════════
+   Init
+══════════════════════════════════════ */
+renderAvatars();
+renderBoard();
+</script>
+</body>
+</html>

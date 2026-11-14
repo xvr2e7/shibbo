@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — The notebook that knows when to be quiet</title>
+<meta name="description" content="Murmur is an AI notebook that files your thoughts and brings them back only when you ask. No badges. No noise.">
+<meta name="theme-color" content="#f3efe6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%23f3efe6' width='32' height='32' rx='7'/%3E%3Cpath d='M6 20c3-8 17-8 20 0' fill='none' stroke='%231a1714' stroke-width='1.8' stroke-linecap='round'/%3E%3Cpath d='M10 20c2-4.2 10-4.2 12 0' fill='none' stroke='%239a341f' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&amp;family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&amp;family=Outfit:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3efe6;
+    --desk: #e4dccf;
+    --paper: #fffdf9;
+    --ink: #1a1714;
+    --ink-soft: #3f3a34;
+    --muted: #5c564e;
+    --line: #e0d6c8;
+    --line-strong: #d4c9b8;
+    --accent: #9a341f;
+    --accent-bright: #c24b32;
+    --blush: #f0c2b4;
+    --sage: #243f34;
+    --sage-ink: #f4f7f4;
+    --shadow: 0 18px 50px rgba(48, 32, 16, .10);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--desk);
+    color: var(--ink);
+    font-family: Outfit, "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--accent); color: var(--paper); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  img, svg { display: block; }
+  button, input { font: inherit; color: inherit; }
+  a { color: inherit; }
+  h1, h2, h3, p { text-wrap: pretty; }
+  .sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); border: 0;
+  }
+  .sheet {
+    max-width: 1240px;
+    margin: 18px auto;
+    background:
+      radial-gradient(ellipse at 8% 0%, rgba(194, 75, 50, .06), transparent 36%),
+      radial-gradient(ellipse at 96% 12%, rgba(36, 63, 52, .06), transparent 34%),
+      var(--bg);
+    border: 1px solid #d8d0c3;
+    box-shadow: 0 1px 0 rgba(255,255,255,.65) inset, 0 24px 70px rgba(48, 34, 18, .08);
+    position: relative;
+  }
+  .wrap { width: min(1120px, calc(100% - 48px)); margin-inline: auto; }
+  .skip {
+    position: absolute; left: 12px; top: -48px; z-index: 80;
+    background: var(--paper); color: var(--ink); padding: 8px 12px;
+  }
+  .skip:focus { top: 12px; }
+
+  .topline {
+    background: var(--ink);
+    color: #f3efe6;
+    text-align: center;
+    font-size: 13.5px;
+    letter-spacing: .01em;
+    padding: 10px 16px;
+  }
+  .topline a { color: var(--blush); }
+  .topline strong { font-weight: 560; letter-spacing: .12em; text-transform: uppercase; font-size: 11px; margin-right: 8px; }
+
+  header {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(243, 239, 230, .92);
+    backdrop-filter: blur(14px) saturate(1.2);
+    border-bottom: 1px solid rgba(26, 23, 20, .06);
+  }
+  .nav { display: flex; align-items: center; gap: 16px; min-height: 70px; position: relative; }
+  .logo { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+  .logo span {
+    font-family: Fraunces, Palatino, serif;
+    font-style: italic;
+    font-weight: 520;
+    font-size: 23px;
+    letter-spacing: -.03em;
+    line-height: 1;
+  }
+  .nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+  .nav-links a {
+    text-decoration: none;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    padding: 8px 10px;
+    border-radius: 999px;
+  }
+  .nav-links a:hover { color: var(--ink); background: rgba(26,23,20,.04); }
+  .burger {
+    display: none;
+    margin-left: auto;
+    border: 1px solid var(--ink);
+    background: transparent;
+    border-radius: 999px;
+    min-height: 40px;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 48px; padding: 0 20px;
+    border-radius: 999px; text-decoration: none;
+    font-size: 15px; font-weight: 530; border: 1px solid transparent;
+    cursor: pointer; line-height: 1;
+  }
+  .btn-ink { background: var(--ink); color: var(--paper); }
+  .btn-ink:hover { background: #2c261f; }
+  .btn-ghost { background: transparent; border-color: var(--ink); color: var(--ink); }
+  .btn-ghost:hover { background: rgba(26,23,20,.05); }
+  .btn-cream { background: var(--paper); color: var(--ink); }
+  .btn-cream:hover { background: #fff; }
+  .nav-cta { margin-left: 8px; min-height: 42px; padding: 0 16px; }
+  .sec-kicker, .kicker {
+    font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+    font-weight: 600; color: var(--accent); margin: 0 0 12px;
+  }
+  .sec-kicker { display: flex; align-items: center; gap: 10px; }
+  .sec-kicker::before { content: ""; width: 18px; height: 1px; background: currentColor; }
+
+  .hero { padding: 54px 0 28px; }
+  .hero-grid { display: grid; gap: 36px; align-items: center; }
+  .issue {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: Fraunces, Palatino, serif;
+    font-weight: 500;
+    font-size: clamp(42px, 5.4vw, 76px);
+    line-height: .96;
+    letter-spacing: -.035em;
+    margin: 0;
+    font-variation-settings: "SOFT" 40, "WONK" 1;
+  }
+  h1 em { font-style: italic; font-weight: 480; color: var(--accent); }
+  .lede { font-size: 18px; line-height: 1.55; color: var(--ink-soft); max-width: 42ch; margin: 18px 0 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .micro { color: var(--muted); font-size: 13.5px; margin: 14px 0 0; }
+  .stage { display: grid; gap: 14px; }
+  .note, .whisper, .clean, .tile, .plan {
+    background: var(--paper);
+    border: 1px solid rgba(26,23,20,.07);
+    box-shadow: var(--shadow);
+  }
+  .note { border-radius: 18px; padding: 24px 24px 16px; }
+  .note-top, .chip-top {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .note p { font-size: 16.5px; line-height: 1.55; margin: 14px 0 0; color: var(--ink); }
+  .live { display: inline-flex; align-items: center; gap: 7px; color: var(--sage); letter-spacing: .1em; }
+  .live i {
+    width: 7px; height: 7px; border-radius: 50%; background: #2f6b4f;
+    box-shadow: 0 0 0 0 rgba(47,107,79,.45);
+    animation: pulse 1.8s ease infinite;
+  }
+  .circled { position: relative; display: inline-block; z-index: 0; }
+  .circled::after {
+    content: ""; position: absolute; z-index: -1;
+    inset: -4px -7px; border: 1.5px solid var(--accent-bright);
+    border-radius: 50%; transform: rotate(-8deg);
+  }
+  .mark { background-image: linear-gradient(transparent 60%, rgba(194,75,50,.28) 60%); }
+  .caret {
+    display: inline-block; width: 1px; height: .95em; background: var(--ink);
+    margin-left: 2px; vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite;
+  }
+  .chip {
+    margin-top: 18px; background: var(--sage); color: var(--sage-ink);
+    border-radius: 14px; padding: 14px 15px 15px;
+  }
+  .chip-top { color: var(--blush); margin-bottom: 8px; justify-content: flex-start; gap: 8px; }
+  .chip p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--sage-ink); }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 14px; }
+  .bars i {
+    display: block; width: 3px; height: 100%; background: #d7e4d8; border-radius: 2px;
+    transform-origin: bottom; animation: eq 1.15s ease-in-out infinite;
+  }
+  .bars i:nth-child(1) { animation-delay: 0s; }
+  .bars i:nth-child(2) { animation-delay: .12s; }
+  .bars i:nth-child(3) { animation-delay: .22s; }
+  .bars i:nth-child(4) { animation-delay: .05s; }
+  .bars i:nth-child(5) { animation-delay: .18s; }
+  .whisper {
+    border-radius: 14px; border-left: 3px solid var(--sage);
+    padding: 14px 16px; font-size: 14.5px; box-shadow: 0 14px 36px rgba(40,28,16,.08);
+  }
+  .whisper p { margin: 0; color: var(--ink-soft); }
+  .disciplines {
+    display: flex; flex-wrap: wrap; gap: 8px 0;
+    margin: 48px 0 8px; padding: 16px 0;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  }
+  .disciplines span { padding-right: 18px; margin-right: 18px; border-right: 1px solid var(--line-strong); line-height: 1.2; }
+  .disciplines span:last-child { border: 0; margin: 0; padding: 0; }
+
+  .section { padding: 88px 0; }
+  h2 {
+    font-family: Fraunces, Palatino, serif;
+    font-weight: 500; letter-spacing: -.03em; line-height: 1.02;
+    font-size: clamp(34px, 4.4vw, 56px); margin: 0 0 14px;
+    font-variation-settings: "SOFT" 30, "WONK" 1;
+  }
+  .sec-head { max-width: 640px; margin-bottom: 34px; }
+  .sec-head p { margin: 0; color: var(--ink-soft); max-width: 48ch; }
+
+  .compare { display: grid; gap: 28px; align-items: center; }
+  .mess { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sticky {
+    position: relative; padding: 16px 16px 18px;
+    font-family: Caveat, "Segoe Print", cursive;
+    font-size: 23px; line-height: 1.15; color: var(--ink);
+    box-shadow: 0 10px 24px rgba(40,28,16,.08);
+    transform: rotate(-1.5deg);
+  }
+  .sticky span {
+    display: block; font-family: Outfit, sans-serif; font-size: 10px;
+    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 6px; color: #7a5a3a;
+  }
+  .sticky::before {
+    content: ""; position: absolute; top: -9px; left: 50%; width: 42px; height: 13px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: rgba(255,255,255,.55); border: 1px solid rgba(26,23,20,.06);
+  }
+  .s1 { background: #f6e7c1; }
+  .s2 { background: #f3d9d2; transform: rotate(1.6deg); }
+  .s3 { background: #e4ebe4; }
+  .s4 { background: #fffdf9; transform: rotate(1.2deg); }
+  .clean { border-radius: 18px; padding: 26px 26px 20px 58px; position: relative; }
+  .clean::before {
+    content: ""; position: absolute; top: 16px; bottom: 16px; left: 34px; width: 1px;
+    background: rgba(154, 52, 31, .4);
+  }
+  .clean header {
+    position: static; background: none; border: 0; backdrop-filter: none;
+    display: flex; justify-content: space-between; gap: 12px;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .clean h3 {
+    font-family: Fraunces, serif; font-weight: 520; font-size: 32px;
+    letter-spacing: -.03em; margin: 14px 0 0;
+  }
+  .clean ol { list-style: none; padding: 0; margin: 16px 0 8px; }
+  .clean li {
+    display: grid; grid-template-columns: 92px 1fr; gap: 12px;
+    padding: 12px 0; border-top: 1px solid #eee6da; font-size: 15.5px;
+  }
+  .tag { font-family: Fraunces, serif; font-style: italic; color: var(--accent); }
+  .linked { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+  .bento {
+    display: grid; gap: 14px;
+    grid-template-columns: 1fr;
+    grid-template-areas: "recall" "voice" "private" "margin" "export";
+  }
+  .recall { grid-area: recall; }
+  .t-voice { grid-area: voice; }
+  .t-private { grid-area: private; }
+  .t-margin { grid-area: margin; }
+  .t-export { grid-area: export; }
+  .tile { border-radius: 18px; padding: 22px; box-shadow: none; transition: transform .25s ease, box-shadow .25s ease; }
+  .tile:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(40,28,16,.07); }
+  .tile h3 {
+    font-family: Fraunces, serif; font-weight: 520; font-size: 28px;
+    letter-spacing: -.03em; line-height: 1.1; margin: 0 0 8px;
+  }
+  .tile p { margin: 0; color: var(--muted); font-size: 15px; }
+  .icon {
+    width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    background: #eae3d7; margin-bottom: 16px;
+  }
+  .ask {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    background: #f3efe6; border-radius: 12px; padding: 12px 14px; margin: 18px 0 12px;
+    color: var(--ink); font-size: 15.5px;
+  }
+  kbd {
+    font-family: Outfit, sans-serif; font-size: 11px; color: var(--muted);
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 3px 6px;
+    background: var(--paper);
+  }
+  .answer { background: var(--sage); color: var(--sage-ink); border-radius: 14px; padding: 16px; }
+  .answer .when {
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--blush); margin: 0 0 8px;
+  }
+  .answer p { margin: 0; color: var(--sage-ink); line-height: 1.5; }
+
+  .steps { display: grid; gap: 22px; }
+  .steps article { border-top: 1px solid var(--ink); padding-top: 16px; }
+  .step-num {
+    font-family: Fraunces, serif; font-style: italic; font-weight: 480;
+    font-size: 40px; color: var(--accent); line-height: 1; display: block; margin-bottom: 10px;
+  }
+  .steps h3 { font-family: Fraunces, serif; font-weight: 520; font-size: 28px; margin: 0 0 8px; letter-spacing: -.02em; }
+  .steps p { margin: 0; color: var(--ink-soft); }
+
+  .band { background: #e8e1d4; padding: 80px 0; }
+  .refusals { display: grid; gap: 22px; }
+  .refusals h3 {
+    font-family: Fraunces, serif; font-weight: 500; font-size: 30px; margin: 0 0 8px; letter-spacing: -.02em;
+  }
+  .refusals h3 s { text-decoration-thickness: 2px; text-decoration-color: var(--accent-bright); }
+  .refusals p { margin: 0; color: var(--ink-soft); }
+
+  .quote-band { background: var(--sage); color: var(--sage-ink); padding: 84px 0; }
+  .quote-band .sec-kicker { color: var(--blush); }
+  .quote-band blockquote { margin: 0; }
+  .quote-band blockquote::before {
+    content: "“"; display: block; font-family: Fraunces, serif;
+    font-size: 108px; line-height: .55; color: #e8b7a8; margin-bottom: 12px;
+  }
+  .quote-band blockquote p {
+    font-family: Fraunces, serif; font-weight: 480; font-style: italic;
+    font-size: clamp(32px, 4.6vw, 54px); line-height: 1.12; letter-spacing: -.03em;
+    margin: 0; max-width: 16em;
+  }
+  .by { margin: 22px 0 0; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; color: #d5e0d6; }
+
+  .pricing-head {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 28px;
+  }
+  .bill { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); flex: none; }
+  .bill em { font-style: normal; color: var(--accent); font-weight: 560; }
+  .switch {
+    width: 46px; height: 28px; background: #ddd4c6; border-radius: 99px;
+    position: relative; display: inline-block; flex: none;
+  }
+  .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+  .switch i {
+    position: absolute; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); top: 4px; left: 4px; transition: transform .2s ease;
+  }
+  .switch:has(input:checked) { background: var(--sage); }
+  .switch input:checked + i { transform: translateX(18px); background: var(--paper); }
+  .switch:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .plans { display: grid; gap: 14px; }
+  .plan {
+    border-radius: 22px; padding: 26px; display: flex; flex-direction: column;
+    box-shadow: none; position: relative; min-height: 100%;
+  }
+  .plan .cost { margin: 6px 0 0; display: flex; align-items: flex-end; gap: 6px; }
+  .amt {
+    font-family: Fraunces, serif; font-weight: 500; font-size: 58px;
+    letter-spacing: -.04em; line-height: .9;
+  }
+  .per { color: var(--muted); margin-bottom: 8px; font-size: 14px; }
+  .fine { color: var(--muted); margin: 12px 0 0; font-size: 14.5px; }
+  .plan ul { list-style: none; padding: 0; margin: 18px 0 22px; }
+  .plan li {
+    position: relative; padding: 9px 0 9px 16px;
+    border-top: 1px solid rgba(26,23,20,.07); font-size: 14.5px;
+  }
+  .plan li::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-bright); position: absolute; left: 0; top: 16px;
+  }
+  .plan .btn { margin-top: auto; align-self: flex-start; }
+  .plan.featured { background: var(--sage); color: var(--sage-ink); border-color: var(--sage); }
+  .plan.featured .kicker, .badge { color: var(--blush); }
+  .plan.featured .fine, .plan.featured .per { color: #c9d7cc; }
+  .plan.featured li { border-top-color: rgba(255,255,255,.12); }
+  .plan.featured li::before { background: var(--blush); }
+  .badge {
+    position: absolute; top: 22px; right: 22px;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
+  }
+  .price-y { display: none; }
+  .pricing:has(#yearly:checked) .price-m { display: none; }
+  .pricing:has(#yearly:checked) .price-y { display: inline; }
+  .assure { margin: 18px 0 0; color: var(--muted); font-size: 14.5px; max-width: 62ch; }
+
+  .faq-grid { display: grid; gap: 28px; }
+  .faq-list details { border-top: 1px solid var(--line); }
+  .faq-list details:last-child { border-bottom: 1px solid var(--line); }
+  .faq-list summary {
+    display: flex; justify-content: space-between; align-items: center; gap: 18px;
+    padding: 18px 0; cursor: pointer; font-weight: 540; list-style: none;
+  }
+  .faq-list summary::-webkit-details-marker { display: none; }
+  .faq-list summary::after {
+    content: ""; width: 9px; height: 9px; flex: none;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg); margin-top: -4px;
+  }
+  .faq-list details[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
+  .faq-list details p { margin: 0 0 18px; color: var(--muted); max-width: 62ch; }
+
+  .closing { text-align: center; padding: 96px 0 88px; }
+  .closing h2 { max-width: 12em; margin-inline: auto; }
+  .closing .lede { margin-inline: auto; }
+  #join .thanks { display: none; }
+  #join.done .row-form, #join.done .micro { display: none; }
+  #join.done .thanks {
+    display: block; font-family: Fraunces, serif; font-style: italic;
+    font-size: clamp(26px, 3vw, 36px); line-height: 1.25; margin: 18px auto 0; max-width: 16em;
+  }
+  .row-form {
+    display: flex; gap: 8px; max-width: 480px; margin: 28px auto 0;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 18px;
+  }
+  .row-form:focus-within { border-color: var(--accent); }
+  .row-form input { border: 0; background: transparent; flex: 1; min-width: 0; padding: 10px 0; outline: none; }
+  ::placeholder { color: #8a8176; }
+
+  footer { background: var(--ink); color: #efeae2; overflow: hidden; }
+  .foot { display: grid; gap: 28px; padding-top: 56px; }
+  .foot p { color: #cfc6ba; margin: 12px 0 0; max-width: 32ch; font-size: 15px; }
+  .foot a { display: block; text-decoration: none; color: #cfc6ba; padding: 4px 0; font-size: 15px; }
+  .foot a:hover { color: #fff; }
+  .foot .logo { color: #fbf8f3; }
+  .foot-label {
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--blush); margin: 0 0 8px; font-weight: 600;
+  }
+  .foot-word {
+    font-family: Fraunces, serif; font-style: italic; font-weight: 500;
+    font-size: clamp(72px, 16vw, 188px); line-height: .78; letter-spacing: -.045em;
+    color: rgba(255,255,255,.045); margin: 20px 0 0; user-select: none;
+  }
+  .foot-bottom {
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 16px 0 22px; color: #b7aea3; font-size: 13px;
+  }
+
+  @keyframes pulse {
+    70% { box-shadow: 0 0 0 7px rgba(47,107,79,0); }
+    100% { box-shadow: 0 0 0 0 rgba(47,107,79,0); }
+  }
+  @keyframes eq {
+    0%, 100% { transform: scaleY(.4); }
+    50% { transform: scaleY(1); }
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  .hero h1, .hero .lede, .hero .actions { animation: rise .7s ease both; }
+  .hero .lede { animation-delay: .08s; }
+  .hero .actions { animation-delay: .15s; }
+
+  @media (min-width: 800px) {
+    .plans { grid-template-columns: repeat(3, 1fr); }
+    .refusals { grid-template-columns: 1fr 1fr; }
+    .faq-grid { grid-template-columns: .72fr 1.28fr; gap: 48px; align-items: start; }
+    .foot { grid-template-columns: 1.4fr .7fr .7fr .85fr; }
+  }
+  @media (min-width: 900px) {
+    .compare { grid-template-columns: 1fr 1fr; }
+    .mess { display: block; position: relative; min-height: 460px; }
+    .sticky { position: absolute; width: 46%; }
+    .s1 { top: 0; left: 0; transform: rotate(-7deg); }
+    .s2 { top: 22px; right: 0; left: auto; transform: rotate(4deg); }
+    .s3 { top: 214px; left: 7%; transform: rotate(2deg); }
+    .s4 { top: 248px; right: 2%; left: auto; transform: rotate(-3deg); }
+    .steps { grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .refusals { grid-template-columns: repeat(4, 1fr); }
+    .bento {
+      grid-template-columns: 1.35fr 1fr 1fr;
+      grid-template-areas:
+        "recall voice private"
+        "recall margin export";
+    }
+    .recall { min-height: 100%; }
+  }
+  @media (min-width: 981px) {
+    .hero-grid { grid-template-columns: 1.05fr .95fr; gap: 48px; }
+    .stage { position: relative; gap: 0; padding: 12px 0 8px; }
+    .stage::before {
+      content: ""; position: absolute; width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(194,75,50,.13), transparent 68%);
+      top: 28px; right: 12px; pointer-events: none;
+    }
+    .note { width: 92%; justify-self: end; transform: rotate(-1.15deg); position: relative; z-index: 1; }
+    .whisper { width: 78%; margin-top: -34px; transform: rotate(1.6deg); position: relative; z-index: 2; }
+  }
+  @media (max-width: 900px) {
+    .burger { display: inline-flex; }
+    .nav-links {
+      display: none; position: absolute; left: 0; right: 0; top: calc(100% + 1px);
+      flex-direction: column; align-items: stretch; gap: 2px;
+      background: #f7f3ec; border-bottom: 1px solid var(--line);
+      padding: 8px 8px 16px; box-shadow: 0 18px 40px rgba(40,28,16,.08);
+    }
+    .nav-links.open { display: flex; }
+    .nav-links a { padding: 12px 10px; }
+    .nav-cta { margin: 8px 10px 0; }
+    .pricing-head { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 720px) {
+    .sheet { margin: 0; border: 0; box-shadow: none; }
+    .wrap { width: min(1120px, calc(100% - 32px)); }
+    .section, .band, .quote-band { padding: 64px 0; }
+    .hero { padding-top: 36px; }
+    .mess { grid-template-columns: 1fr; }
+    .clean li { grid-template-columns: 1fr; gap: 2px; }
+    .row-form { flex-direction: column; border-radius: 18px; padding: 10px; }
+    .foot-word { margin-left: -4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="topline"><strong>Quiet beta</strong> Voice capture learned to wait its turn. <a href="#method">Read the method</a></div>
+<div class="sheet" id="top">
+  <header>
+    <div class="wrap nav">
+      <a class="logo" href="#top" aria-label="Murmur, home">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <path d="M6 20c3-8 17-8 20 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M10 20c2-4.2 10-4.2 12 0" fill="none" stroke="#9a341f" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Murmur</span>
+      </a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+      <nav class="nav-links" id="nav">
+        <a href="#difference">Difference</a>
+        <a href="#product">Product</a>
+        <a href="#method">Method</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#start" class="btn btn-ink nav-cta">Begin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="issue">No. 01 — The quiet page</p>
+          <p class="sec-kicker">An AI notebook</p>
+          <h1>The notebook that knows when to be <em>quiet.</em></h1>
+          <p class="lede">Murmur listens as you write, files the thought where it belongs, and brings it back only when you ask. The rest of the time, it stays quiet.</p>
+          <div class="actions">
+            <a class="btn btn-ink" href="#start">Begin a notebook</a>
+            <a class="btn btn-ghost" href="#method">See the method</a>
+          </div>
+          <p class="micro">Free to begin · Export anytime · No badges, ever</p>
+        </div>
+        <div class="stage" aria-hidden="false">
+          <article class="note">
+            <div class="note-top">
+              <span>Tuesday · 9:14 pm</span>
+              <span class="live"><i></i> Listening</span>
+            </div>
+            <p>The meeting ran long. Lena wants the brief <span class="circled">Thursday</span> morning, not Friday — board prep at ten. Leave out the <span class="mark">pricing slide</span>; she’s handling that. Mention the quieter onboarding, the one we sketched on the train.<span class="caret" aria-hidden="true"></span></p>
+            <div class="chip">
+              <div class="chip-top">
+                <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                Murmur
+              </div>
+              <p>Filed under Halden. Reminder Thursday 8:00. Pricing slide left out. Original kept, unedited.</p>
+            </div>
+          </article>
+          <aside class="whisper">
+            <p class="kicker">Resurfaced · just now</p>
+            <p>The train sketch belongs in Thursday’s brief. The original note was left as you wrote it.</p>
+          </aside>
+        </div>
+      </div>
+      <div class="wrap">
+        <p class="disciplines">
+          <span>Field notes</span>
+          <span>Editorial</span>
+          <span>Research</span>
+          <span>Studios</span>
+          <span>Lectures</span>
+          <span>Archives</span>
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="difference">
+      <div class="wrap">
+        <div class="sec-head">
+          <p class="sec-kicker">01 — Filing</p>
+          <h2>Same thoughts. Less static.</h2>
+          <p>Loose scraps stay loose until you want them gathered. Murmur doesn’t tidy a sentence you meant to keep rough.</p>
+        </div>
+        <div class="compare">
+          <div class="mess" aria-label="Four loose scraps">
+            <div class="sticky s1"><span>scrap</span>brief — thursday?? or friday. ask Lena.</div>
+            <div class="sticky s2"><span>scrap</span>pricing slide — she said don’t include it</div>
+            <div class="sticky s3"><span>scrap</span>train sketch: quieter onboarding. use this.</div>
+            <div class="sticky s4"><span>scrap</span>board prep at ten. don’t be late with the deck.</div>
+          </div>
+          <article class="clean">
+            <header>
+              <span>Shelf · Halden</span>
+              <span>Filed · Tue 9:14</span>
+            </header>
+            <h3>Thursday brief</h3>
+            <ol>
+              <li><span class="tag">Thu 8:00</span><span>Send Lena the brief before board prep.</span></li>
+              <li><span class="tag">Omit</span><span>Pricing slide — she’s handling it.</span></li>
+              <li><span class="tag">Include</span><span>Quieter onboarding, sketched on the train.</span></li>
+            </ol>
+            <p class="linked">Linked from four loose notes · originals kept</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="product" style="padding-top: 0">
+      <div class="wrap">
+        <div class="sec-head">
+          <p class="sec-kicker">02 — Product</p>
+          <h2>A small set of abilities, practiced until they’re quiet.</h2>
+          <p>No dashboard. No second brain. A page, a margin, and a way to ask later.</p>
+        </div>
+        <div class="bento">
+          <article class="tile recall">
+            <p class="kicker">Recall</p>
+            <h3>Ask in the words you actually remember.</h3>
+            <p>Not a keyword box you have to feed. A question is enough.</p>
+            <div class="ask"><span>What did I promise Lena?</span><kbd>⌘K</kbd></div>
+            <div class="answer">
+              <p class="when">Tuesday · 9:14 pm · Shelf / Halden</p>
+              <p>Send the brief Thursday at 8:00. Leave out the pricing slide. Mention the quieter onboarding.</p>
+            </div>
+          </article>
+          <article class="tile t-voice">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h1"/></svg>
+            </div>
+            <h3>Speak, then stop.</h3>
+            <p>Voice capture keeps the ums if you want them, and ends when you do. Eleven seconds is a complete note.</p>
+          </article>
+          <article class="tile t-private">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Read only when asked.</h3>
+            <p>Pages stay encrypted. The model sees a note when you recall it — not while you are still writing.</p>
+          </article>
+          <article class="tile t-margin">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4h9l3 3v13H6z"/><path d="M15 4v3h3M8 12h5M8 16h3"/></svg>
+            </div>
+            <h3>Margin, not modal.</h3>
+            <p>Suggestions sit in the margin. Accept one, or ignore them. Ignoring is a complete answer.</p>
+          </article>
+          <article class="tile t-export">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+            </div>
+            <h3>Leave with the pages.</h3>
+            <p>Markdown, PDF, and a plain folder. Export stays free on every plan, including the one that costs nothing.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="method" style="padding-top: 8px">
+      <div class="wrap">
+        <div class="sec-head">
+          <p class="sec-kicker">03 — Method</p>
+          <h2>Three gestures. Then it gets out of the way.</h2>
+        </div>
+        <div class="steps">
+          <article>
+            <span class="step-num">01</span>
+            <h3>Write it wrong.</h3>
+            <p>Half sentences, voice memos, a word you will fix later. Murmur keeps the original. Nothing is cleaned until you ask.</p>
+          </article>
+          <article>
+            <span class="step-num">02</span>
+            <h3>Let it file.</h3>
+            <p>People, dates, and shelves are noticed in the margin. A tap accepts them. Silence declines them. Both are fine.</p>
+          </article>
+          <article>
+            <span class="step-num">03</span>
+            <h3>Ask later.</h3>
+            <p>Recall is a question, not a hunt. “What did I promise Lena?” is the whole interface.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <div class="sec-head">
+          <p class="sec-kicker">The quiet part</p>
+          <h2>What it refuses to do.</h2>
+          <p>Most note apps get louder as they get smarter. Murmur is built around the things it will not do.</p>
+        </div>
+        <div class="refusals">
+          <article>
+            <h3><s>Streaks</s></h3>
+            <p>A missed day is not a failure. A notebook is not a gym, and we don’t count the days you were elsewhere.</p>
+          </article>
+          <article>
+            <h3><s>Badges</s></h3>
+            <p>Nothing pulses, pings, or tallies what you haven’t read. There is no unread number to clear.</p>
+          </article>
+          <article>
+            <h3><s>Uninvited summaries</s></h3>
+            <p>Murmur will not rewrite a page you didn’t ask about. A summary is a request, not a default.</p>
+          </article>
+          <article>
+            <h3><s>Shared by default</s></h3>
+            <p>A notebook is private until you put it on a shelf with someone. Sharing is a deliberate act.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="quote-band">
+      <div class="wrap">
+        <p class="sec-kicker">From the margin</p>
+        <blockquote>
+          <p>I didn’t want a second brain. I wanted a better margin.</p>
+        </blockquote>
+        <p class="by">I. Pell · field editor, Halden</p>
+      </div>
+    </section>
+
+    <section class="section pricing" id="pricing">
+      <div class="wrap">
+        <div class="pricing-head">
+          <div class="sec-head" style="margin: 0">
+            <p class="sec-kicker">04 — Pricing</p>
+            <h2>Pay only if it earns the desk.</h2>
+            <p>Start with a page. Leaf can be enough — we’ll say so if it is.</p>
+          </div>
+          <div class="bill">
+            <span>Monthly</span>
+            <label class="switch">
+              <input type="checkbox" id="yearly" aria-label="Show yearly prices">
+              <i></i>
+            </label>
+            <span>Yearly <em>two months kept</em></span>
+          </div>
+        </div>
+        <div class="plans">
+          <article class="plan">
+            <p class="kicker">Leaf</p>
+            <p class="cost"><span class="amt">$0</span></p>
+            <p class="fine">A single notebook. Enough to know if you’ll stay.</p>
+            <ul>
+              <li>Unlimited pages</li>
+              <li>Recall, 30 times a month</li>
+              <li>Markdown export</li>
+              <li>Offline writing</li>
+            </ul>
+            <a class="btn btn-ghost" href="#start">Begin with Leaf</a>
+          </article>
+          <article class="plan featured">
+            <span class="badge">Most kept</span>
+            <p class="kicker">Folio</p>
+            <p class="cost"><span class="amt"><span class="price-m">$8</span><span class="price-y">$6</span></span><span class="per">/ month</span></p>
+            <p class="fine"><span class="price-m">Billed monthly. Cancel when the desk changes.</span><span class="price-y">Billed as $72 a year.</span></p>
+            <ul>
+              <li>Everything in Leaf</li>
+              <li>Unlimited recall</li>
+              <li>Voice capture</li>
+              <li>PDF and folder export</li>
+            </ul>
+            <a class="btn btn-cream" href="#start">Keep a Folio</a>
+          </article>
+          <article class="plan">
+            <p class="kicker">Bindery</p>
+            <p class="cost"><span class="amt"><span class="price-m">$18</span><span class="price-y">$14</span></span><span class="per">/ month</span></p>
+            <p class="fine"><span class="price-m">For a small desk of people.</span><span class="price-y">Billed as $168 a year.</span></p>
+            <ul>
+              <li>Everything in Folio</li>
+              <li>Shared shelves</li>
+              <li>Admin for the desk</li>
+              <li>A human, if something breaks</li>
+            </ul>
+            <a class="btn btn-ghost" href="#start">Open a Bindery</a>
+          </article>
+        </div>
+        <p class="assure">Students and notebooks with no budget: write to <a href="mailto:hello@murmur.note">hello@murmur.note</a>. Export is always free, on every plan, including Leaf.</p>
+      </div>
+    </section>
+
+    <section class="section" id="questions" style="padding-top: 10px">
+      <div class="wrap faq-grid">
+        <div>
+          <p class="sec-kicker">Questions</p>
+          <h2>Asked plainly.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Does Murmur train on my notes?</summary>
+            <p>No. A page is read only when you ask about it. Your notebook is not training data, and it is not used to improve a model for anyone else.</p>
+          </details>
+          <details>
+            <summary>What happens when I’m offline?</summary>
+            <p>Writing and editing work without a connection. A new recall question waits until you’re back, then answers from the pages already on your device.</p>
+          </details>
+          <details>
+            <summary>Can I leave?</summary>
+            <p>Yes. Markdown and PDF export are on every plan, including the free one, and they don’t expire. You get the originals, not just the tidy version.</p>
+          </details>
+          <details>
+            <summary>Will it write my notes for me?</summary>
+            <p>Only if you ask for a draft. Drafts are marked as drafts. The daily work is filing, linking, and answering — not taking the pen.</p>
+          </details>
+          <details>
+            <summary>Who is it for?</summary>
+            <p>Anyone whose thoughts arrive out of order: editors, researchers, students, founders, and people who still prefer a page to a dashboard.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing" id="start">
+      <div class="wrap">
+        <p class="sec-kicker" style="justify-content: center">Open a page</p>
+        <h2>We’ll keep the rest down.</h2>
+        <p class="lede">Begin a notebook. If the quiet beta is full, you’ll get one letter when a page is ready — and not before.</p>
+        <form id="join" action="#" method="post">
+          <div class="row-form">
+            <label class="sr" for="email">Email address</label>
+            <input id="email" name="email" type="email" required autocomplete="email" placeholder="Email address">
+            <button class="btn btn-ink" type="submit">Begin</button>
+          </div>
+          <p class="micro">No newsletter. One letter when your page is ready.</p>
+          <p class="thanks">You’re in. We’ll write when your notebook is ready — and not before.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div>
+        <a class="logo" href="#top">
+          <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+            <path d="M6 20c3-8 17-8 20 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            <path d="M10 20c2-4.2 10-4.2 12 0" fill="none" stroke="#e8b7a8" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+          <span>Murmur</span>
+        </a>
+        <p>A notebook that files the thought and leaves the rest alone.</p>
+      </div>
+      <div>
+        <p class="foot-label">Product</p>
+        <a href="#product">Features</a>
+        <a href="#method">Method</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#questions">Questions</a>
+      </div>
+      <div>
+        <p class="foot-label">Notebook</p>
+        <a href="#start">Export</a>
+        <a href="#questions">Privacy</a>
+        <a href="#questions">Security</a>
+        <a href="#top">Status</a>
+      </div>
+      <div>
+        <p class="foot-label">Desk</p>
+        <a href="mailto:hello@murmur.note">hello@murmur.note</a>
+        <a href="#start">Press</a>
+        <a href="#top">Colophon</a>
+      </div>
+    </div>
+    <p class="foot-word" aria-hidden="true">murmur</p>
+    <div class="wrap foot-bottom">
+      <span>© <span id="year">2026</span> Murmur</span>
+      <span>Set in Fraunces &amp; Outfit</span>
+    </div>
+  </footer>
+</div>
+<script>
+(function () {
+  var year = document.getElementById("year");
+  if (year) year.textContent = String(new Date().getFullYear());
+  var burger = document.querySelector(".burger");
+  var nav = document.getElementById("nav");
+  function setOpen(open) {
+    if (!nav || !burger) return;
+    nav.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open ? "true" : "false");
+    burger.textContent = open ? "Close" : "Menu";
+  }
+  if (burger && nav) {
+    burger.addEventListener("click", function () {
+      setOpen(!nav.classList.contains("open"));
+    });
+    nav.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () { setOpen(false); });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") setOpen(false);
+    });
+  }
+  var form = document.getElementById("join");
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!form.checkValidity()) return;
+      form.classList.add("done");
+    });
+  }
+})();
+</script>
+</body>
+</html>

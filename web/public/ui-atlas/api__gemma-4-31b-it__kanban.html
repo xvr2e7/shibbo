@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --column-bg: #f1f5f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-add:hover {
+            background: var(--primary-hover);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            align-items: start;
+            flex-grow: 1;
+            overflow-x: auto;
+        }
+
+        .column {
+            background: var(--column-bg);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            min-width: 280px;
+            max-height: 100%;
+            border: 1px solid var(--border);
+        }
+
+        .column-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .count {
+            background: var(--border);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+
+        .task-list {
+            padding: 12px;
+            min-height: 150px;
+            flex-grow: 1;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        .card.sortable-ghost {
+            opacity: 0.4;
+            background: var(--primary);
+        }
+
+        .card-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        .tag.ui { background: #fef2f2; color: #991b1b; }
+        .tag.brand { background: #f0fdf4; color: #166534; }
+        .tag.research { background: #fffbeb; color: #92400e; }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .card:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* Modal Styles */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎨 Design Team Board</h1>
+        <button class="btn-add" onclick="openModal()">+ New Task</button>
+    </header>
+
+    <div class="board">
+        <!-- Backlog -->
+        <div class="column" id="col-backlog">
+            <div class="column-header">
+                <span class="column-title">Backlog</span>
+                <span class="count" id="count-backlog">0</span>
+            </div>
+            <div class="task-list" data-id="backlog"></div>
+        </div>
+
+        <!-- In Progress -->
+        <div class="column" id="col-progress">
+            <div class="column-header">
+                <span class="column-title">In Progress</span>
+                <span class="count" id="count-progress">0</span>
+            </div>
+            <div class="task-list" data-id="progress"></div>
+        </div>
+
+        <!-- Review -->
+        <div class="column" id="col-review">
+            <div class="column-header">
+                <span class="column-title">Review</span>
+                <span class="count" id="count-review">0</span>
+            </div>
+            <div class="task-list" data-id="review"></div>
+        </div>
+
+        <!-- Done -->
+        <div class="column" id="col-done">
+            <div class="column-header">
+                <span class="column-title">Done</span>
+                <span class="count" id="count-done">0</span>
+            </div>
+            <div class="task-list" data-id="done"></div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="modal">
+        <div class="modal-content">
+            <h3 style="margin-top: 0">Create New Task</h3>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="task-input" placeholder="e.g. Design Mobile Login">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="tag-input">
+                    <option value="ui">UI Design</option>
+                    <option value="brand">Branding</option>
+                    <option value="research">Research</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-add" onclick="addTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('modal');
+        const taskInput = document.getElementById('task-input');
+        const tagInput = document.getElementById('tag-input');
+
+        // Initial Dummy Data
+        const initialTasks = [
+            { id: 1, text: 'User Interview Analysis', tag: 'research', col: 'backlog' },
+            { id: 2, text: 'Landing Page Hero Section', tag: 'ui', col: 'progress' },
+            { id: 3, text: 'Logo Color Palette', tag: 'brand', col: 'review' },
+            { id: 4, text: 'Design System Audit', tag: 'ui', col: 'done' },
+        ];
+
+        function init() {
+            initialTasks.forEach(task => createTaskElement(task));
+            updateCounts();
+            setupDragAndDrop();
+        }
+
+        function setupDragAndDrop() {
+            const lists = document.querySelectorAll('.task-list');
+            lists.forEach(el => {
+                new Sortable(el, {
+                    group: 'kanban',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: () => updateCounts()
+                });
+            });
+        }
+
+        function createTaskElement({id, text, tag, col}) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <button class="delete-btn" onclick="this.parentElement.remove(); updateCounts();">&times;</button>
+                <span class="card-title">${text}</span>
+                <div class="card-meta">
+                    <span class="tag ${tag}">${tag.toUpperCase()}</span>
+                </div>
+            `;
+            document.querySelector(`[data-id="${col}"]`).appendChild(card);
+        }
+
+        function updateCounts() {
+            document.querySelectorAll('.column').forEach(col => {
+                const count = col.querySelector('.task-list').children.length;
+                const colId = col.id.replace('col-', '');
+                document.getElementById(`count-${colId}`).innerText = count;
+            });
+        }
+
+        function openModal() {
+            modal.style.display = 'flex';
+            taskInput.focus();
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            taskInput.value = '';
+        }
+
+        function addTask() {
+            const text = taskInput.value.trim();
+            if (!text) return;
+
+            const task = {
+                id: Date.now(),
+                text: text,
+                tag: tagInput.value,
+                col: 'backlog'
+            };
+
+            createTaskElement(task);
+            updateCounts();
+            closeModal();
+        }
+
+        // Close modal on background click
+        window.onclick = (event) => {
+            if (event.target == modal) closeModal();
+        }
+
+        init();
+    </script>
+</body>
+</html>

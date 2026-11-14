@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plotix — A modern charting library for the web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d14;
+    --bg-soft: #11141d;
+    --panel: #151826;
+    --panel-2: #1a1e2e;
+    --border: #262b3d;
+    --text: #e9eaf2;
+    --text-dim: #9aa0b4;
+    --text-dimmer: #6b7184;
+    --accent: #7c5cff;
+    --accent-2: #38d9c9;
+    --accent-grad: linear-gradient(135deg, #7c5cff 0%, #38d9c9 100%);
+    --radius: 14px;
+    --shadow: 0 10px 40px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a{ color: inherit; text-decoration: none; }
+  code, pre, .mono{ font-family: 'JetBrains Mono', monospace; }
+
+  /* background texture */
+  .bg-glow{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .bg-glow::before{
+    content:"";
+    position:absolute;
+    top:-20%; left:50%;
+    transform: translateX(-50%);
+    width: 1100px; height: 700px;
+    background: radial-gradient(circle at 30% 30%, rgba(124,92,255,0.25), transparent 60%),
+                radial-gradient(circle at 70% 60%, rgba(56,217,201,0.18), transparent 60%);
+    filter: blur(40px);
+  }
+  .bg-glow::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 70%);
+  }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    position: sticky;
+    top:0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(11,13,20,0.75);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    height: 66px;
+    gap: 24px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -0.02em;
+    white-space:nowrap;
+  }
+  .brand .logo{
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--accent-grad);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 4px 16px rgba(124,92,255,0.45);
+    flex-shrink:0;
+  }
+  .brand .logo svg{ width:17px; height:17px; }
+  .brand .ver{
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dimmer);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 100px;
+    margin-left: 2px;
+  }
+
+  nav.links{
+    display:flex;
+    gap: 28px;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+  nav.links a{ position:relative; transition: color .15s; }
+  nav.links a:hover{ color: var(--text); }
+  nav.links a.active{ color: var(--text); }
+  nav.links a.active::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:-23px;
+    height:2px;
+    background: var(--accent-grad);
+    border-radius: 2px;
+  }
+
+  .nav-right{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+  .search-box{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 7px 10px 7px 12px;
+    border-radius: 9px;
+    color: var(--text-dimmer);
+    font-size: 13px;
+    width: 200px;
+    cursor:text;
+    transition: border-color .15s;
+  }
+  .search-box:hover{ border-color: #3a4057; }
+  .search-box svg{ width:14px; height:14px; flex-shrink:0; opacity:.8; }
+  .search-box kbd{
+    margin-left:auto;
+    font-size: 10.5px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-dimmer);
+  }
+
+  .icon-btn{
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display:flex; align-items:center; justify-content:center;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: all .15s;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{ color: var(--text); border-color:#3a4057; }
+  .icon-btn svg{ width:17px; height:17px; }
+
+  .menu-toggle{ display:none; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding: 96px 0 70px;
+    text-align:center;
+    position:relative;
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background: var(--panel);
+    border:1px solid var(--border);
+    padding: 6px 14px 6px 6px;
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+  }
+  .pill .tag{
+    background: var(--accent-grad);
+    color:#0b0d14;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 100px;
+  }
+  h1.hero-title{
+    font-size: clamp(36px, 6vw, 64px);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0 0 22px;
+  }
+  h1.hero-title .grad{
+    background: var(--accent-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero-sub{
+    max-width: 620px;
+    margin: 0 auto 36px;
+    color: var(--text-dim);
+    font-size: 18px;
+  }
+  .hero-actions{
+    display:flex;
+    gap: 14px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom: 52px;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 13px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor:pointer;
+    border: 1px solid transparent;
+    transition: transform .15s, box-shadow .15s, background .15s;
+  }
+  .btn svg{ width:16px;height:16px; }
+  .btn-primary{
+    background: var(--accent-grad);
+    color: #0a0b12;
+    box-shadow: 0 10px 30px rgba(124,92,255,0.35);
+  }
+  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 14px 36px rgba(124,92,255,0.45); }
+  .btn-ghost{
+    background: var(--panel);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover{ border-color:#3a4057; transform: translateY(-2px); }
+
+  .stats{
+    display:flex;
+    justify-content:center;
+    gap: 40px;
+    flex-wrap: wrap;
+    color: var(--text-dimmer);
+    font-size: 13.5px;
+    margin-bottom: 70px;
+  }
+  .stats span{ color: var(--text); font-weight: 700; }
+
+  /* hero preview card */
+  .preview{
+    max-width: 920px;
+    margin: 0 auto;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-soft) 100%);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    text-align:left;
+  }
+  .preview-top{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-top .dot{ width:10px; height:10px; border-radius:50%; }
+  .preview-top .dot:nth-child(1){ background:#ff5f57; }
+  .preview-top .dot:nth-child(2){ background:#febc2e; }
+  .preview-top .dot:nth-child(3){ background:#28c840; }
+  .preview-top .fname{
+    margin-left: 10px;
+    font-size: 12.5px;
+    color: var(--text-dimmer);
+  }
+  .preview-body{
+    display:grid;
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+  .preview-code{
+    padding: 22px 24px;
+    font-size: 13px;
+    overflow-x:auto;
+    border-right: 1px solid var(--border);
+  }
+  .preview-code .ln{ color: var(--text-dimmer); display:inline-block; width: 18px; }
+  .tok-key{ color:#ff79c6; }
+  .tok-str{ color:#38d9c9; }
+  .tok-fn{ color:#7c5cff; }
+  .tok-com{ color:#5b6178; }
+  .tok-num{ color:#ffb86c; }
+  .tok-var{ color:#e9eaf2; }
+
+  .preview-chart{
+    padding: 24px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .chart-svg-wrap{ width:100%; }
+
+  @media (max-width: 760px){
+    .preview-body{ grid-template-columns: 1fr; }
+    .preview-code{ border-right:none; border-bottom:1px solid var(--border); }
+  }
+
+  /* ---------- Sections ---------- */
+  section{ padding: 90px 0; }
+  .section-head{
+    text-align:center;
+    max-width: 640px;
+    margin: 0 auto 52px;
+  }
+  .eyebrow{
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-2);
+    margin-bottom: 12px;
+  }
+  .section-head h2{
+    font-size: clamp(26px, 4vw, 36px);
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+  .section-head p{ color: var(--text-dim); font-size: 16px; margin:0; }
+
+  /* feature grid */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    transition: transform .2s, border-color .2s;
+  }
+  .card:hover{ transform: translateY(-4px); border-color:#3a4057; }
+  .card .icn{
+    width: 42px; height:42px;
+    border-radius: 10px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(56,217,201,0.18));
+    color: var(--accent-2);
+    margin-bottom: 18px;
+  }
+  .card .icn svg{ width:21px; height:21px; }
+  .card h3{ margin: 0 0 8px; font-size: 17px; }
+  .card p{ margin:0; color: var(--text-dim); font-size: 14.5px; }
+
+  /* quick start tabs */
+  .tabs{
+    display:flex;
+    gap:6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 5px;
+    border-radius: 11px;
+    width: fit-content;
+    margin: 0 auto 20px;
+  }
+  .tab-btn{
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    font-family:inherit;
+  }
+  .tab-btn.active{
+    background: var(--panel-2);
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .code-block{
+    max-width: 740px;
+    margin: 0 auto;
+    background: #0d0f17;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow:hidden;
+    position: relative;
+  }
+  .code-block .cb-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dimmer);
+  }
+  .copy-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    cursor:pointer;
+    font-family: inherit;
+  }
+  .copy-btn:hover{ color: var(--text); }
+  .copy-btn svg{ width:12px; height:12px; }
+  .code-block pre{
+    margin:0;
+    padding: 20px 22px;
+    font-size: 14px;
+    overflow-x:auto;
+    color: #e9eaf2;
+  }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  /* gallery */
+  .gallery{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .gal-card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor:pointer;
+    transition: transform .2s, border-color .2s;
+  }
+  .gal-card:hover{ transform: translateY(-4px); border-color: #3a4057; }
+  .gal-card .thumb{
+    height: 100px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--panel-2);
+    overflow:hidden;
+  }
+  .gal-card svg{ width: 100%; height:100%; }
+  .gal-card h4{ margin:0 0 4px; font-size: 14.5px; }
+  .gal-card span{ color: var(--text-dimmer); font-size: 12.5px; }
+
+  /* community / cta */
+  .cta{
+    text-align:center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 64px 40px;
+    position:relative;
+    overflow:hidden;
+  }
+  .cta::before{
+    content:"";
+    position:absolute;
+    width: 500px; height:500px;
+    background: radial-gradient(circle, rgba(124,92,255,0.25), transparent 65%);
+    top:-250px; left:50%; transform:translateX(-50%);
+  }
+  .cta h2{ font-size: 32px; margin: 0 0 14px; letter-spacing:-0.02em; position:relative; }
+  .cta p{ color: var(--text-dim); margin: 0 0 30px; position:relative; }
+  .cta .hero-actions{ margin-bottom:0; position:relative; }
+
+  /* footer */
+  footer{
+    border-top: 1px solid var(--border);
+    padding: 60px 0 30px;
+    color: var(--text-dimmer);
+    font-size: 13.5px;
+  }
+  .footer-grid{
+    display:grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 50px;
+  }
+  .footer-grid h5{
+    color: var(--text);
+    font-size: 13px;
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .footer-grid ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+  .footer-grid a:hover{ color: var(--text); }
+  .footer-bottom{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    flex-wrap:wrap;
+    gap: 14px;
+  }
+  .footer-bottom .socials{ display:flex; gap:10px; }
+
+  @media (max-width: 900px){
+    nav.links{ display:none; }
+    .search-box{ display:none; }
+    .grid{ grid-template-columns: repeat(2,1fr); }
+    .gallery{ grid-template-columns: repeat(2,1fr); }
+    .footer-grid{ grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 560px){
+    .grid{ grid-template-columns: 1fr; }
+    .gallery{ grid-template-columns: 1fr; }
+    .footer-grid{ grid-template-columns: 1fr; }
+    .stats{ gap: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <span class="logo">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V11M10 19V5M16 19V13M22 19V8" stroke="#0a0b12" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </span>
+      Plotix <span class="ver">v3.2</span>
+    </div>
+    <nav class="links">
+      <a href="#" class="active">Docs</a>
+      <a href="#features">Guide</a>
+      <a href="#quickstart">API Reference</a>
+      <a href="#gallery">Examples</a>
+      <a href="#">Playground</a>
+    </nav>
+    <div class="nav-right">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Search docs
+        <kbd>⌘K</kbd>
+      </div>
+      <a class="icon-btn" href="#" title="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.75 5.48.75 11.75c0 5.02 3.26 9.27 7.78 10.77.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.17.69-3.84-1.35-3.84-1.35-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.95.1-.74.4-1.25.73-1.54-2.53-.29-5.19-1.27-5.19-5.63 0-1.24.44-2.26 1.17-3.05-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.9 10.9 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.79 1.17 1.81 1.17 3.05 0 4.37-2.67 5.33-5.21 5.62.41.36.78 1.07.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .3.21.66.79.55A11.26 11.26 0 0 0 23.25 11.75C23.25 5.48 18.27.5 12 .5Z"/></svg>
+      </a>
+      <div class="icon-btn menu-toggle" title="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="pill"><span class="tag">NEW</span> Plotix 3.2 — WebGL renderer &amp; 40% smaller bundle</div>
+      <h1 class="hero-title">Beautiful charts, <br class="br-mobile"><span class="grad">zero friction.</span></h1>
+      <p class="hero-sub">Plotix is a fast, framework-agnostic charting library for building elegant, interactive data visualizations — in React, Vue, Svelte, or plain JavaScript.</p>
+      <div class="hero-actions">
+        <a href="#quickstart" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Get Started
+        </a>
+        <a href="#" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.75 5.48.75 11.75c0 5.02 3.26 9.27 7.78 10.77.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.17.69-3.84-1.35-3.84-1.35-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.95.1-.74.4-1.25.73-1.54-2.53-.29-5.19-1.27-5.19-5.63 0-1.24.44-2.26 1.17-3.05-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.9 10.9 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.79 1.17 1.81 1.17 3.05 0 4.37-2.67 5.33-5.21 5.62.41.36.78 1.07.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .3.21.66.79.55A11.26 11.26 0 0 0 23.25 11.75C23.25 5.48 18.27.5 12 .5Z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+      <div class="stats">
+        <div><span>18.2k</span> GitHub stars</div>
+        <div><span>2.1M</span> weekly downloads</div>
+        <div><span>9.4kb</span> gzipped core</div>
+        <div><span>MIT</span> licensed</div>
+      </div>
+
+      <div class="preview">
+        <div class="preview-top">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="fname">chart.js</span>
+        </div>
+        <div class="preview-body">
+          <div class="preview-code">
+<pre><span class="ln">1</span><span class="tok-key">import</span> { <span class="tok-var">Chart</span> } <span class="tok-key">from</span> <span class="tok-str">'plotix'</span>
+
+<span class="ln">2</span><span class="tok-key">const</span> <span class="tok-var">chart</span> = <span class="tok-key">new</span> <span class="tok-fn">Chart</span>(<span class="tok-str">'#app'</span>, {
+<span class="ln">3</span>  <span class="tok-var">type</span>: <span class="tok-str">'area'</span>,
+<span class="ln">4</span>  <span class="tok-var">data</span>: {
+<span class="ln">5</span>    <span class="tok-var">labels</span>: [<span class="tok-str">'Mon'</span>,<span class="tok-str">'Tue'</span>,<span class="tok-str">'Wed'</span>,<span class="tok-str">'Thu'</span>,<span class="tok-str">'Fri'</span>],
+<span class="ln">6</span>    <span class="tok-var">series</span>: [{
+<span class="ln">7</span>      <span class="tok-var">name</span>: <span class="tok-str">'Revenue'</span>,
+<span class="ln">8</span>      <span class="tok-var">values</span>: [<span class="tok-num">12</span>, <span class="tok-num">19</span>, <span class="tok-num">14</span>, <span class="tok-num">26</span>, <span class="tok-num">22</span>]
+<span class="ln">9</span>    }]
+<span class="ln">10</span>  },
+<span class="ln">11</span>  <span class="tok-com">// smooth gradients, built-in</span>
+<span class="ln">12</span>  <span class="tok-var">theme</span>: <span class="tok-str">'aurora'</span>
+<span class="ln">13</span>})</pre>
+          </div>
+          <div class="preview-chart">
+            <div class="chart-svg-wrap">
+              <svg viewBox="0 0 320 180" width="100%" height="180">
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#7c5cff" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="#7c5cff" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#7c5cff"/>
+                    <stop offset="100%" stop-color="#38d9c9"/>
+                  </linearGradient>
+                </defs>
+                <g stroke="#262b3d" stroke-width="1">
+                  <line x1="0" y1="20" x2="320" y2="20"/>
+                  <line x1="0" y1="60" x2="320" y2="60"/>
+                  <line x1="0" y1="100" x2="320" y2="100"/>
+                  <line x1="0" y1="140" x2="320" y2="140"/>
+                </g>
+                <path d="M0,130 L64,90 L128,115 L192,45 L256,70 L320,30 L320,180 L0,180 Z" fill="url(#areaGrad)"/>
+                <path d="M0,130 L64,90 L128,115 L192,45 L256,70 L320,30" fill="none" stroke="url(#lineGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="0" cy="130" r="4" fill="#7c5cff"/>
+                <circle cx="64" cy="90" r="4" fill="#7c5cff"/>
+                <circle cx="128" cy="115" r="4" fill="#8a66ff"/>
+                <circle cx="192" cy="45" r="4" fill="#5fcdd1"/>
+                <circle cx="256" cy="70" r="4" fill="#45d6cd"/>
+                <circle cx="320" cy="30" r="4.5" fill="#38d9c9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Why Plotix</div>
+        <h2>Everything you need, nothing you don't</h2>
+        <p>A thoughtfully designed API focused on performance, accessibility, and developer happiness.</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg></div>
+          <h3>Lightweight &amp; fast</h3>
+          <p>9.4kb gzipped core with a WebGL-accelerated renderer for buttery smooth 60fps charts, even with 100k+ points.</p>
+        </div>
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17V7a2 2 0 012-2h12a2 2 0 012 2v10M4 17l4-4 3 3 5-6 4 4M4 17h16"/></svg></div>
+          <h3>Framework agnostic</h3>
+          <p>First-class bindings for React, Vue, Svelte, and Angular — or drop it straight into vanilla JS.</p>
+        </div>
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M8 16h5M8 8h8"/></svg></div>
+          <h3>Fully typed</h3>
+          <p>Written in TypeScript from day one, with rich autocompletion and inline docs for every option.</p>
+        </div>
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <h3>Rich interactions</h3>
+          <p>Tooltips, zoom, pan, brushing, crosshairs and animated transitions — built in and fully customizable.</p>
+        </div>
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+          <h3>Themeable</h3>
+          <p>Ship with 12 built-in themes or craft your own with a simple, token-based design system.</p>
+        </div>
+        <div class="card">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M5.5 4.5h13A1.5 1.5 0 0120 6v13a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19V6a1.5 1.5 0 011.5-1.5z"/></svg></div>
+          <h3>Accessible by default</h3>
+          <p>Keyboard navigation, ARIA live regions, and screen-reader-friendly data tables out of the box.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK START -->
+  <section id="quickstart">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Quick start</div>
+        <h2>Up and running in under a minute</h2>
+        <p>Install via your favorite package manager, or drop in a CDN script — no build step required.</p>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="npm">npm</button>
+        <button class="tab-btn" data-tab="yarn">yarn</button>
+        <button class="tab-btn" data-tab="pnpm">pnpm</button>
+        <button class="tab-btn" data-tab="cdn">CDN</button>
+      </div>
+
+      <div class="code-block">
+        <div class="cb-top">
+          <span>Terminal</span>
+          <button class="copy-btn" onclick="copyCode(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></svg>
+            Copy
+          </button>
+        </div>
+        <div class="tab-panel active" data-panel="npm"><pre>npm install plotix</pre></div>
+        <div class="tab-panel" data-panel="yarn"><pre>yarn add plotix</pre></div>
+        <div class="tab-panel" data-panel="pnpm"><pre>pnpm add plotix</pre></div>
+        <div class="tab-panel" data-panel="cdn"><pre>&lt;script src="https://cdn.jsdelivr.net/npm/plotix@3/dist/plotix.min.js"&gt;&lt;/script&gt;</pre></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="gallery">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Chart gallery</div>
+        <h2>One API, every chart type</h2>
+        <p>Line, bar, area, pie, radar, scatter, candlestick, and heatmap — all composable and animatable.</p>
+      </div>
+      <div class="gallery">
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><polyline points="5,45 25,25 45,35 65,10 85,20" fill="none" stroke="#7c5cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Line Chart</h4><span>Trends over time</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><rect x="10" y="30" width="12" height="25" fill="#7c5cff"/><rect x="30" y="15" width="12" height="40" fill="#8a66ff"/><rect x="50" y="22" width="12" height="33" fill="#5fcdd1"/><rect x="70" y="5" width="12" height="50" fill="#38d9c9"/></svg>
+          </div>
+          <h4>Bar Chart</h4><span>Compare categories</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="22" fill="none" stroke="#262b3d" stroke-width="10"/><circle cx="50" cy="30" r="22" fill="none" stroke="#7c5cff" stroke-width="10" stroke-dasharray="90 138" stroke-linecap="round" transform="rotate(-90 50 30)"/><circle cx="50" cy="30" r="22" fill="none" stroke="#38d9c9" stroke-width="10" stroke-dasharray="40 138" stroke-dashoffset="-90" stroke-linecap="round" transform="rotate(-90 50 30)"/></svg>
+          </div>
+          <h4>Pie / Donut</h4><span>Part-to-whole</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><path d="M5,45 25,30 45,38 65,15 85,25 85,55 5,55 Z" fill="#38d9c9" opacity="0.35"/><polyline points="5,45 25,30 45,38 65,15 85,25" fill="none" stroke="#38d9c9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Area Chart</h4><span>Cumulative magnitude</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><circle cx="15" cy="40" r="3.5" fill="#7c5cff"/><circle cx="32" cy="20" r="3.5" fill="#8a66ff"/><circle cx="48" cy="35" r="3.5" fill="#5fcdd1"/><circle cx="63" cy="15" r="3.5" fill="#45d6cd"/><circle cx="80" cy="28" r="3.5" fill="#38d9c9"/><circle cx="55" cy="48" r="3.5" fill="#7c5cff"/><circle cx="22" cy="12" r="3.5" fill="#38d9c9"/></svg>
+          </div>
+          <h4>Scatter Plot</h4><span>Correlations</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><polygon points="50,8 70,22 62,45 38,45 30,22" fill="none" stroke="#262b3d" stroke-width="1.5"/><polygon points="50,18 62,28 58,42 42,42 38,28" fill="#7c5cff" opacity="0.5" stroke="#8a66ff" stroke-width="2"/></svg>
+          </div>
+          <h4>Radar Chart</h4><span>Multivariate data</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60"><line x1="15" y1="15" x2="15" y2="45" stroke="#38d9c9" stroke-width="2"/><rect x="11" y="22" width="8" height="15" fill="#38d9c9"/><line x1="35" y1="10" x2="35" y2="40" stroke="#ff6b6b" stroke-width="2"/><rect x="31" y="20" width="8" height="12" fill="#ff6b6b"/><line x1="55" y1="18" x2="55" y2="48" stroke="#38d9c9" stroke-width="2"/><rect x="51" y="25" width="8" height="18" fill="#38d9c9"/><line x1="75" y1="12" x2="75" y2="38" stroke="#ff6b6b" stroke-width="2"/><rect x="71" y="14" width="8" height="10" fill="#ff6b6b"/></svg>
+          </div>
+          <h4>Candlestick</h4><span>Financial data</span>
+        </div>
+
+        <div class="gal-card">
+          <div class="thumb">
+            <svg viewBox="0 0 100 60">
+              <rect x="5" y="5" width="20" height="20" fill="#2a1f66"/><rect x="27" y="5" width="20" height="20" fill="#5536c9"/><rect x="49" y="5" width="20" height="20" fill="#7c5cff"/><rect x="71" y="5" width="20" height="20" fill="#9a84ff"/>
+              <rect x="5" y="27" width="20" height="20" fill="#164b47"/><rect x="27" y="27" width="20" height="20" fill="#1f776f"/><rect x="49" y="27" width="20" height="20" fill="#2ba89c"/><rect x="71" y="27" width="20" height="20" fill="#38d9c9"/>
+            </svg>
+          </div>
+          <h4>Heatmap</h4><span>Density &amp; intensity</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="wrap">
+      <div class="cta">
+        <h2>Ready to plot something beautiful?</h2>
+        <p>Jump into the guide, explore the API reference, or clone an example to get started in minutes.</p>
+        <div class="hero-actions">
+          <a href="#" class="btn btn-primary">Read the Docs</a>
+          <a href="#" class="btn btn-ghost">Join Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="brand" style="margin-bottom:14px;">
+          <span class="logo">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V11M10 19V5M16 19V13M22 19V8" stroke="#0a0b12" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </span>
+          Plotix
+        </div>
+        <p style="max-width:220px;">A modern, lightweight charting library for building beautiful data visualizations on the web.</p>
+      </div>
+      <div>
+        <h5>Docs</h5>
+        <ul>
+          <li><a href="#">Getting Started</a></li>
+          <li><a href="#">Guides</a></li>
+          <li><a href="#">API Reference</a></li>
+          <li><a href="#">Migration</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Resources</h5>
+        <ul>
+          <li><a href="#">Examples</a></li>
+          <li><a href="#">Playground</a></li>
+          <li><a href="#">Themes</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Community</h5>
+        <ul>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="#">Discord</a></li>
+          <li><a href="#">Twitter / X</a></li>
+          <li><a href="#">Discussions</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>More</h5>
+        <ul>
+          <li><a href="#">Sponsors</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Brand assets</a></li>
+          <li><a href="#">License</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2024 Plotix. Released under the MIT License.</span>
+      <div class="socials">
+        <a class="icon-btn" href="#" style="width:32px;height:32px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 .5C5.73.5.75 5.48.75 11.75c0 5.02 3.26 9.27 7.78 10.77.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.17.69-3.84-1.35-3.84-1.35-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.95.1-.74.4-1.25.73-1.54-2.53-.29-5.19-1.27-5.19-5.63 0-1.24.44-2.26 1.17-3.05-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.9 10.9 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.79 1.17 1.81 1.17 3.05 0 4.37-2.67 5.33-5.21 5.62.41.36.78 1.07.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .3.21.66.79.55A11.26 11.26 0 0 0 23.25 11.75C23.25 5.48 18.27.5 12 .5Z"/></svg>
+        </a>
+        <a class="icon-btn" href="#" style="width:32px;height:32px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.3 5.5c-.7.3-1.4.5-2.2.6.8-.5 1.4-1.2 1.6-2.2-.7.4-1.6.8-2.4 1a3.8 3.8 0 00-6.5 3.5A10.8 10.8 0 013 4.6a3.8 3.8 0 001.2 5.1c-.6 0-1.2-.2-1.7-.5v.1c0 1.8 1.3 3.4 3 3.7-.5.1-1.1.2-1.7.1.5 1.5 1.9 2.6 3.6 2.6A7.7 7.7 0 012 17.4a10.8 10.8 0 005.8 1.7c7 0 10.8-5.8 10.8-10.8v-.5c.8-.5 1.4-1.2 1.9-2z"/></svg>
+        </a>
+        <a class="icon-btn" href="#" style="width:32px;height:32px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.3 4.4a16.9 16.9 0 00-4.2-1.3l-.2.4a15.3 15.3 0 00-7.8 0l-.2-.4A16.9 16.9 0 003.7 4.4C1.3 8 .6 11.5.9 15a17 17 0 005.1 2.6l.8-1.3c-.5-.2-1-.4-1.4-.6l.3-.3c2.9 1.3 6 1.3 8.8 0l.3.3c-.5.2-.9.4-1.4.6l.8 1.3a17 17 0 005.1-2.6c.4-4-.5-7.5-2.3-10.6zM8.7 13.3c-.8 0-1.5-.8-1.5-1.7 0-1 .6-1.7 1.5-1.7.8 0 1.5.8 1.5 1.7 0 1-.7 1.7-1.5 1.7zm6.6 0c-.8 0-1.5-.8-1.5-1.7 0-1 .6-1.7 1.5-1.7.8 0 1.5.8 1.5 1.7 0 1-.7 1.7-1.5 1.7z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector('.tab-panel[data-panel="'+btn.dataset.tab+'"]').classList.add('active');
+    });
+  });
+
+  function copyCode(btn){
+    const panel = document.querySelector('.tab-panel.active pre');
+    navigator.clipboard.writeText(panel.innerText).then(()=>{
+      const original = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Copied';
+      setTimeout(()=>{ btn.innerHTML = original; }, 1600);
+    });
+  }
+</script>
+
+</body>
+</html>

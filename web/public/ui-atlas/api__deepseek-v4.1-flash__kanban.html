@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Board — Studio Nord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:#171a26;
+    background:
+      radial-gradient(900px 520px at 6% -12%, #eae6ff 0%, rgba(234,230,255,0) 62%),
+      radial-gradient(820px 520px at 102% -4%, #e0f0ff 0%, rgba(224,240,255,0) 58%),
+      #f6f7fb;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow:hidden;
+  }
+  button{font-family:inherit}
+  .app{
+    height:100vh; height:100dvh;
+    display:flex; flex-direction:column;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:18px;
+    padding:13px 24px;
+    background:rgba(255,255,255,.78);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid #e8eaf2;
+    position:relative; z-index:20;
+  }
+  .brand{display:flex; align-items:center; gap:12px; min-width:0}
+  .logo{
+    width:38px; height:38px; border-radius:12px; flex:none;
+    background:linear-gradient(140deg,#8b5cf6 0%,#4f8cff 100%);
+    display:grid; place-items:center;
+    box-shadow:0 6px 16px rgba(110,88,255,.32), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .titles h1{margin:0; font-size:15px; font-weight:700; letter-spacing:-.01em; white-space:nowrap}
+  .titles p{margin:2px 0 0; font-size:11.5px; font-weight:500; color:#8b91a5; white-space:nowrap}
+
+  .tools{display:flex; align-items:center; gap:14px; margin-left:auto}
+  .search{
+    display:flex; align-items:center; gap:8px;
+    background:#f1f2f7; border:1px solid #e7e9f1; border-radius:10px;
+    padding:7px 11px; width:238px; color:#9aa0b2;
+    transition:background .16s, border-color .16s, box-shadow .16s;
+  }
+  .search:focus-within{background:#fff; border-color:#cbd2e8; box-shadow:0 0 0 3.5px rgba(124,92,255,.11)}
+  .search input{
+    border:0; outline:0; background:transparent; width:100%;
+    font:inherit; font-size:13px; color:#171a26;
+  }
+  .search input::placeholder{color:#9aa0b2}
+
+  .avatars{display:flex; align-items:center; padding-left:2px}
+  .avatar{
+    border:0; padding:0; cursor:pointer;
+    width:30px; height:30px; border-radius:50%;
+    display:grid; place-items:center; flex:none;
+    font-size:11px; font-weight:700; letter-spacing:.02em; color:#fff;
+    font-family:inherit;
+    border:2px solid #fff;
+    margin-left:-9px;
+    transition:transform .16s ease, box-shadow .16s ease;
+    position:relative;
+  }
+  .avatars .avatar:first-child{margin-left:0}
+  .avatars .avatar:hover{transform:translateY(-2px); z-index:3}
+  .avatars .avatar.active{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--c); z-index:4}
+
+  .btn{
+    font-size:12.5px; font-weight:600; letter-spacing:.005em;
+    border-radius:10px; padding:8px 14px; border:1px solid transparent;
+    cursor:pointer; transition:background .15s, border-color .15s, color .15s, box-shadow .15s;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn-primary{
+    background:#191c29; color:#fff;
+    box-shadow:0 3px 10px rgba(25,28,41,.18);
+  }
+  .btn-primary:hover{background:#31354a}
+  .btn-primary:active{transform:translateY(.5px)}
+  .btn-ghost{background:transparent; color:#767d92}
+  .btn-ghost:hover{background:#f0f1f6; color:#4a5064}
+
+  /* ---------- Board ---------- */
+  .board{
+    flex:1; min-height:0;
+    overflow-x:auto; overflow-y:hidden;
+    padding:20px 24px 22px;
+  }
+  .board-inner{
+    display:flex; gap:18px;
+    height:100%; min-width:min-content;
+    align-items:stretch;
+  }
+
+  .column{
+    flex:0 0 298px; width:298px; min-height:0;
+    display:flex; flex-direction:column;
+    background:#eef0f7;
+    border:1px solid #e5e7f0;
+    border-radius:16px;
+    padding:13px 11px 10px;
+    transition:background .16s, box-shadow .16s, border-color .16s;
+  }
+  .column.drop-active{
+    background:#e7eaf6;
+    border-color:#c8cee6;
+    box-shadow:inset 0 0 0 1.5px #c3cae6;
+  }
+
+  .col-head{display:flex; align-items:center; gap:8px; padding:1px 6px 11px}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--accent); flex:none;
+       box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)}
+  .col-title{font-size:12.5px; font-weight:650; letter-spacing:.005em; color:#2b3040}
+  .col-count{
+    font-size:11px; font-weight:650; color:#8b91a5;
+    background:#e1e4ef; border-radius:999px; padding:1.5px 7px; line-height:1.35;
+  }
+  .spacer{flex:1}
+  .icon-btn{
+    border:0; background:transparent; color:#9aa0b5;
+    width:26px; height:26px; border-radius:8px;
+    display:grid; place-items:center; cursor:pointer; transition:.15s;
+  }
+  .icon-btn:hover{background:#e2e5f0; color:#5b6276}
+
+  .cards{
+    flex:1; min-height:70px;
+    display:flex; flex-direction:column; gap:9px;
+    overflow-y:auto; overflow-x:hidden;
+    padding:1px 2px 2px;
+    scrollbar-width:thin; scrollbar-color:#cdd2e2 transparent;
+  }
+  .cards::-webkit-scrollbar{width:9px}
+  .cards::-webkit-scrollbar-thumb{
+    background:#cdd2e2; border-radius:9px;
+    border:3px solid transparent; background-clip:content-box;
+  }
+  .cards::-webkit-scrollbar-thumb:hover{background:#b8bfd6; background-clip:content-box}
+  .cards:empty::after{
+    content:'Drop a task here';
+    display:grid; place-items:center;
+    height:74px; border-radius:12px;
+    border:1.5px dashed #d3d7e6;
+    font-size:12px; font-weight:500; color:#a3a9bd;
+  }
+
+  /* ---------- Card ---------- */
+  .card{
+    background:#fff;
+    border:1px solid #e9ebf3;
+    border-radius:12px;
+    padding:11px 12px 10px;
+    box-shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04);
+    cursor:grab;
+    user-select:none; -webkit-user-select:none;
+    transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease, opacity .18s ease;
+    will-change:transform;
+  }
+  .card:hover{
+    box-shadow:0 8px 20px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.05);
+    transform:translateY(-1px);
+    border-color:#dfe3f2;
+  }
+  .card:active{cursor:grabbing}
+  .card.dragging{
+    opacity:.4;
+    transform:scale(.98) rotate(1.2deg);
+    box-shadow:0 12px 26px rgba(16,24,40,.16);
+    cursor:grabbing;
+  }
+
+  .tag{
+    display:inline-block;
+    font-size:10px; font-weight:700; letter-spacing:.045em; text-transform:uppercase;
+    padding:3px 7px; border-radius:6px; line-height:1.3;
+  }
+  .card-title{
+    margin:8px 0 0;
+    font-size:13.5px; font-weight:550; line-height:1.45;
+    letter-spacing:-.006em; color:#1b1f2e;
+  }
+  .card-foot{
+    display:flex; align-items:center; gap:8px;
+    margin-top:11px;
+  }
+  .due{
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:11px; font-weight:600; color:#767d92;
+    background:#f3f4f9; border-radius:7px; padding:3px 7px;
+    line-height:1.3;
+  }
+  .due.urgent{color:#b42318; background:#fef3f2}
+  .foot-right{margin-left:auto; display:flex; align-items:center; gap:9px}
+  .stat{
+    display:inline-flex; align-items:center; gap:3.5px;
+    font-size:11px; font-weight:600; color:#98a0b5;
+  }
+  .card .avatar{
+    width:24px; height:24px; font-size:9.5px;
+    border:0; margin:0; cursor:default; pointer-events:none;
+    box-shadow:0 0 0 2px #fff;
+  }
+  .card .avatar:hover{transform:none}
+
+  /* ---------- Composer ---------- */
+  .add-card{
+    display:flex; align-items:center; gap:7px;
+    width:100%; margin-top:8px; padding:9px 10px;
+    border:1.5px dashed #d2d6e4; border-radius:11px;
+    background:transparent; color:#828a9e;
+    font-size:12.5px; font-weight:550; cursor:pointer;
+    transition:background .15s, border-color .15s, color .15s;
+  }
+  .add-card:hover{background:#fff; border-color:#bcc3d9; color:#4d5468}
+  .add-card:active{transform:translateY(.5px)}
+
+  .composer{
+    margin-top:8px; background:#fff;
+    border:1px solid #e9ebf3; border-radius:12px; padding:10px 11px 9px;
+    box-shadow:0 8px 22px rgba(16,24,40,.10);
+    animation:pop .16s ease-out;
+  }
+  @keyframes pop{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+  .composer textarea{
+    width:100%; border:0; outline:0; resize:none;
+    font:inherit; font-size:13.5px; line-height:1.45; color:#1b1f2e;
+    min-height:42px; padding:0; background:transparent;
+  }
+  .composer textarea::placeholder{color:#a9afc1}
+  .composer-actions{display:flex; align-items:center; gap:6px; margin-top:6px}
+  .composer .btn{padding:6px 12px; font-size:12px}
+
+  @media (max-width:820px){
+    .topbar{flex-wrap:wrap; gap:12px; padding:12px 16px}
+    .tools{width:100%; margin-left:0}
+    .search{flex:1; width:auto}
+    .board{padding:16px}
+    .column{flex:0 0 272px; width:272px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="18" rx="2.2"/>
+          <rect x="14" y="3" width="7" height="10" rx="2.2"/>
+        </svg>
+      </div>
+      <div class="titles">
+        <h1>Design Board</h1>
+        <p>Sprint 24 · Aug 4 – Aug 18</p>
+      </div>
+    </div>
+
+    <div class="tools">
+      <label class="search">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="search" type="text" placeholder="Search tasks…" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="avatars" id="avatars"></div>
+      <button class="btn btn-primary" id="newTask">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New task
+      </button>
+    </div>
+  </header>
+
+  <main class="board">
+    <div class="board-inner" id="boardInner"></div>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------------- Icons ---------------- */
+  var ICON = {
+    calendar: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10.5h18"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    dots: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg>'
+  };
+
+  /* ---------------- Data ---------------- */
+  var PEOPLE = {
+    AR:{name:'Ava Reyes',    color:'#7c5cff'},
+    JM:{name:'Jonas Meyer',  color:'#0ea5e9'},
+    PN:{name:'Priya Nair',   color:'#f59e0b'},
+    TL:{name:'Theo Lund',    color:'#10b981'},
+    MC:{name:'Mia Chen',     color:'#ec4899'}
+  };
+
+  var COLUMNS = [
+    {id:'backlog',  title:'Backlog',     accent:'#94a3b8'},
+    {id:'progress', title:'In Progress', accent:'#3b82f6'},
+    {id:'review',   title:'In Review',   accent:'#f59e0b'},
+    {id:'done',     title:'Done',        accent:'#22c55e'}
+  ];
+
+  var DATA = {
+    backlog: [
+      {title:'Refresh icon set for the mobile app', tag:{label:'Iconography', color:'#8b5cf6'}, who:'AR', due:'Aug 14', comments:2, files:3},
+      {title:'Competitive teardown: 5 fintech onboarding flows', tag:{label:'Research', color:'#0ea5e9'}, who:'PN', due:'Aug 16', comments:5, files:1},
+      {title:'Dark mode color tokens v2', tag:{label:'Design System', color:'#6366f1'}, who:'TL', due:'Aug 18', comments:1, files:0},
+      {title:'Illustration direction for empty states', tag:{label:'Illustration', color:'#ec4899'}, who:'MC', due:'Aug 21', comments:0, files:6}
+    ],
+    progress: [
+      {title:'Checkout flow — hi-fi screens', tag:{label:'UI Design', color:'#3b82f6'}, who:'JM', due:'Aug 9', urgent:true, comments:4, files:2},
+      {title:'Motion spec for the nav transition', tag:{label:'Motion', color:'#f97316'}, who:'AR', due:'Aug 11', comments:3, files:1},
+      {title:'Design QA on the new dashboard build', tag:{label:'QA', color:'#14b8a6'}, who:'PN', due:'Aug 12', comments:7, files:0}
+    ],
+    review: [
+      {title:'Brand guidelines v3 — typography section', tag:{label:'Brand', color:'#a855f7'}, who:'MC', due:'Aug 8', urgent:true, comments:2, files:4},
+      {title:'Marketing site hero — three variants', tag:{label:'Web', color:'#0ea5e9'}, who:'TL', due:'Aug 10', comments:6, files:2},
+      {title:'Accessibility audit: color contrast pass', tag:{label:'A11y', color:'#22c55e'}, who:'JM', due:'Aug 13', comments:1, files:1}
+    ],
+    done: [
+      {title:'User interview synthesis — Q3', tag:{label:'Research', color:'#0ea5e9'}, who:'PN', due:'Aug 5', comments:9, files:2},
+      {title:'New pricing page layout', tag:{label:'Web', color:'#0ea5e9'}, who:'AR', due:'Aug 6', comments:3, files:5},
+      {title:'Component library: buttons & inputs', tag:{label:'Design System', color:'#6366f1'}, who:'JM', due:'Aug 4', comments:2, files:0}
+    ]
+  };
+
+  /* ---------------- Helpers ---------------- */
+  function rgba(hex, a){
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function darken(hex, amt){
+    var n = parseInt(hex.slice(1), 16);
+    var r = Math.round((n >> 16 & 255) * (1 - amt));
+    var g = Math.round((n >> 8 & 255) * (1 - amt));
+    var b = Math.round((n & 255) * (1 - amt));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* ---------------- State ---------------- */
+  var query = '';
+  var personFilter = null;
+  var dragCard = null;
+  var board = document.getElementById('boardInner');
+
+  /* ---------------- Card builder ---------------- */
+  function cardEl(card){
+    var person = PEOPLE[card.who] || {name:'Unassigned', color:'#94a3b8'};
+    var el = document.createElement('article');
+    el.className = 'card';
+    el.draggable = true;
+    el.dataset.who = card.who;
+    el.dataset.search = (card.title + ' ' + (card.tag ? card.tag.label : '') + ' ' + person.name).toLowerCase();
+
+    var html = '';
+    if (card.tag){
+      html += '<div class="card-top"><span class="tag" style="background:' + rgba(card.tag.color, .13) +
+              ';color:' + darken(card.tag.color, .22) + '">' + esc(card.tag.label) + '</span></div>';
+    }
+    html += '<h4 class="card-title">' + esc(card.title) + '</h4>';
+    html += '<div class="card-foot">';
+    if (card.due){
+      html += '<span class="due' + (card.urgent ? ' urgent' : '') + '">' + ICON.calendar + esc(card.due) + '</span>';
+    }
+    html += '<div class="foot-right">';
+    if (card.comments) html += '<span class="stat">' + ICON.chat + card.comments + '</span>';
+    if (card.files)    html += '<span class="stat">' + ICON.clip + card.files + '</span>';
+    html += '<span class="avatar" style="background:' + person.color + '" title="' + esc(person.name) + '">' + card.who + '</span>';
+    html += '</div></div>';
+
+    el.innerHTML = html;
+    return el;
+  }
+
+  /* ---------------- Board builder ---------------- */
+  function buildBoard(){
+    board.innerHTML = '';
+
+    COLUMNS.forEach(function(col){
+      var section = document.createElement('section');
+      section.className = 'column';
+      section.dataset.col = col.id;
+      section.style.setProperty('--accent', col.accent);
+      section.innerHTML =
+        '<div class="col-head">' +
+          '<span class="dot"></span>' +
+          '<span class="col-title">' + col.title + '</span>' +
+          '<span class="col-count">0</span>' +
+          '<span class="spacer"></span>' +
+          '<button class="icon-btn" type="button" title="Column options" tabindex="-1">' + ICON.dots + '</button>' +
+        '</div>' +
+        '<div class="cards" data-list="' + col.id + '"></div>' +
+        '<button class="add-card" type="button">' + ICON.plus + ' Add task</button>';
+
+      board.appendChild(section);
+
+      var list = section.querySelector('.cards');
+      (DATA[col.id] || []).forEach(function(card){
+        list.appendChild(cardEl(card));
+      });
+
+      section.querySelector('.add-card').addEventListener('click', function(){
+        openComposer(section);
+      });
+    });
+
+    updateCounts();
+  }
+
+  /* ---------------- Counts & filters ---------------- */
+  function updateCounts(){
+    var cols = board.querySelectorAll('.column');
+    for (var i = 0; i < cols.length; i++){
+      var list = cols[i].querySelector('.cards');
+      var visible = 0;
+      for (var j = 0; j < list.children.length; j++){
+        if (list.children[j].style.display !== 'none') visible++;
+      }
+      cols[i].querySelector('.col-count').textContent = visible;
+    }
+  }
+
+  function applyFilters(){
+    var cards = board.querySelectorAll('.card');
+    for (var i = 0; i < cards.length; i++){
+      var card = cards[i];
+      var matchQ = !query || card.dataset.search.indexOf(query) !== -1;
+      var matchP = !personFilter || card.dataset.who === personFilter;
+      card.style.display = (matchQ && matchP) ? '' : 'none';
+    }
+    updateCounts();
+  }
+
+  /* ---------------- Composer ---------------- */
+  function openComposer(section){
+    if (section.querySelector('.composer')) return;
+
+    var addBtn = section.querySelector('.add-card');
+    var composer = document.createElement('div');
+    composer.className = 'composer';
+    composer.innerHTML =
+      '<textarea rows="2" placeholder="What needs to be done?" spellcheck="false"></textarea>' +
+      '<div class="composer-actions">' +
+        '<button class="btn btn-primary" type="button">Add task</button>' +
+        '<button class="btn btn-ghost" type="button">Cancel</button>' +
+      '</div>';
+
+    section.insertBefore(composer, addBtn);
+    addBtn.style.display = 'none';
+
+    var ta = composer.querySelector('textarea');
+    ta.focus();
+
+    function close(){
+      composer.remove();
+      addBtn.style.display = '';
+    }
+
+    function save(){
+      var value = ta.value.trim();
+      if (value){
+        var list = section.querySelector('.cards');
+        list.appendChild(cardEl({
+          title: value,
+          tag: {label:'New', color:'#7c5cff'},
+          who: 'AR',
+          due: '',
+          comments: 0,
+          files: 0
+        }));
+        list.scrollTop = list.scrollHeight;
+        applyFilters();
+      }
+      close();
+    }
+
+    composer.querySelector('.btn-primary').addEventListener('click', save);
+    composer.querySelector('.btn-ghost').addEventListener('click', close);
+
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); save(); }
+      if (e.key === 'Escape'){ e.preventDefault(); close(); }
+    });
+  }
+
+  /* ---------------- Drag & drop ---------------- */
+  function getDragAfterElement(container, y){
+    var nodes = container.querySelectorAll('.card:not(.dragging)');
+    var closest = { offset: Number.NEGATIVE_INFINITY, el: null };
+    for (var i = 0; i < nodes.length; i++){
+      var child = nodes[i];
+      if (child.style.display === 'none') continue;
+      var box = child.getBoundingClientRect();
+      var offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset){
+        closest = { offset: offset, el: child };
+      }
+    }
+    return closest.el;
+  }
+
+  document.addEventListener('dragstart', function(e){
+    var card = e.target.closest ? e.target.closest('.card') : null;
+    if (!card) return;
+    dragCard = card;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', 'card'); } catch (err) {}
+  });
+
+  document.addEventListener('dragover', function(e){
+    if (!dragCard) return;
+    var column = e.target.closest ? e.target.closest('.column') : null;
+    if (!column) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    var list = column.querySelector('.cards');
+    var after = getDragAfterElement(list, e.clientY);
+    if (after == null) list.appendChild(dragCard);
+    else list.insertBefore(dragCard, after);
+
+    var cols = board.querySelectorAll('.column');
+    for (var i = 0; i < cols.length; i++){
+      cols[i].classList.toggle('drop-active', cols[i] === column);
+    }
+  });
+
+  document.addEventListener('drop', function(e){
+    if (dragCard) e.preventDefault();
+  });
+
+  document.addEventListener('dragend', function(){
+    if (dragCard) dragCard.classList.remove('dragging');
+    dragCard = null;
+    var cols = board.querySelectorAll('.column');
+    for (var i = 0; i < cols.length; i++) cols[i].classList.remove('drop-active');
+    updateCounts();
+  });
+
+  /* ---------------- Header avatars ---------------- */
+  function buildAvatars(){
+    var wrap = document.getElementById('avatars');
+    Object.keys(PEOPLE).forEach(function(id){
+      var p = PEOPLE[id];
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'avatar';
+      b.textContent = id;
+      b.title = p.name + ' — click to filter';
+      b.dataset.who = id;
+      b.style.setProperty('--c', p.color);
+      b.style.background = p.color;
+
+      b.addEventListener('click', function(){
+        personFilter = (personFilter === id) ? null : id;
+        var all = wrap.querySelectorAll('.avatar');
+        for (var i = 0; i < all.length; i++){
+          all[i].classList.toggle('active', all[i].dataset.who === personFilter);
+        }
+        applyFilters();
+      });
+
+      wrap.appendChild(b);
+    });
+  }
+
+  /* ---------------- Wire up ---------------- */
+  buildAvatars();
+  buildBoard();
+
+  document.getElementById('search').addEventListener('input', function(e){
+    query = e.target.value.trim().toLowerCase();
+    applyFilters();
+  });
+
+  document.getElementById('newTask').addEventListener('click', function(){
+    var first = board.querySelector('.column[data-col="backlog"]');
+    if (!first) return;
+    openComposer(first);
+    var ta = first.querySelector('.composer textarea');
+    if (ta) ta.focus();
+  });
+
+})();
+</script>
+</body>
+</html>

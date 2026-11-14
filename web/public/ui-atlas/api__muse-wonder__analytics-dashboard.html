@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PulseStore — Sales Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f4f5fb;--card:#fff;--card2:#f8f9ff;--text:#12152e;--muted:#757ba0;--line:#e7e8f2;--primary:#6c5cff;--primary2:#00c9a7;--pink:#ff5b8d;--amber:#ffb020;--sidebar:#12142c;--shadow:0 10px 30px rgba(28,30,80,.07)}
+body.dark{--bg:#0e1022;--card:#171a34;--card2:#1e213f;--text:#f2f3ff;--muted:#9aa0c2;--line:#262b4d;--sidebar:#0b0d1d;--shadow:0 10px 30px rgba(0,0,0,.35)}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.app{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:248px;background:var(--sidebar);color:#fff;position:fixed;inset:0 auto 0 0;padding:22px 16px;display:flex;flex-direction:column;z-index:20}
+.logo{display:flex;align-items:center;gap:11px;padding:2px 8px 22px}
+.logo-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6c5cff,#00c9a7);display:grid;place-items:center;font-size:22px;font-weight:900;box-shadow:0 8px 20px rgba(108,92,255,.5)}
+.logo b{font-size:19px;letter-spacing:-.5px}.logo span{display:block;font-size:11px;color:#8f94bb;font-weight:500}
+.store{ background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:20px;cursor:pointer}
+.store:hover{background:rgba(255,255,255,.1)}
+.store-ava{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#ffb020,#ff5b8d);display:grid;place-items:center;font-weight:800}
+.store small{color:#969bc0;display:block;font-size:11px}.store b{font-size:13px}
+.nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6d739e;padding:12px 10px 8px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;color:#c6c9e3;font-size:14px;font-weight:600;margin:2px 0;cursor:pointer;transition:.2s}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}
+.nav-item.active{background:linear-gradient(90deg,#6c5cff,#7c6cff);color:#fff;box-shadow:0 8px 18px rgba(108,92,255,.4)}
+.nav-item .ic{font-size:17px;width:20px;text-align:center}.nav-item .badge{margin-left:auto;background:#ff5b8d;color:#fff;font-size:10px;padding:2px 7px;border-radius:20px}
+.goal{margin-top:auto;background:linear-gradient(135deg,#1e214d,#2a2566);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px}
+.goal b{font-size:14px}.goal p{font-size:12px;color:#a9aed2;line-height:1.5;margin:6px 0 10px}
+.progress{height:8px;background:rgba(255,255,255,.15);border-radius:20px;overflow:hidden}.progress i{display:block;height:100%;width:78%;background:linear-gradient(90deg,#00c9a7,#7c6cff);border-radius:20px}
+.goal button{width:100%;margin-top:12px;background:#fff;color:#171a34;border:0;padding:9px;border-radius:9px;font-weight:800;cursor:pointer}
+/* MAIN */
+.main{flex:1;margin-left:248px;padding:18px 24px 30px;max-width:1600px}
+.topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.topbar h1{font-size:26px;letter-spacing:-.8px}.topbar h1 span{color:var(--primary)}
+.topbar p{color:var(--muted);font-size:13px;margin-top:2px}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;min-width:280px;box-shadow:var(--shadow)}
+.search input{border:0;outline:0;background:transparent;color:var(--text);width:100%;font-family:inherit}
+.icon-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;font-size:18px;position:relative;color:var(--text)}
+.icon-btn:after{content:'';position:absolute;top:9px;right:9px;width:8px;height:8px;background:#ff5b8d;border-radius:50%;border:2px solid var(--card)}
+.avatar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);padding:6px 12px 6px 6px;border-radius:12px;cursor:pointer}
+.avatar i{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#6c5cff,#ff5b8d);display:grid;place-items:center;color:#fff;font-style:normal;font-weight:800}
+.avatar b{font-size:13px}.avatar small{display:block;color:var(--muted);font-size:11px}
+/* CONTROLS */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.pill-group{display:flex;background:var(--card);border:1px solid var(--line);padding:4px;border-radius:12px;box-shadow:var(--shadow)}
+.pill{border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);font-family:inherit}
+.pill.active{background:var(--text);color:var(--card)}
+.select{padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:600;font-family:inherit;cursor:pointer}
+.btn{padding:10px 16px;border-radius:11px;border:0;font-weight:800;cursor:pointer;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 8px 18px rgba(108,92,255,.35)}
+.btn-ghost{background:var(--card);border:1px solid var(--line);color:var(--text)}
+.live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#00a884}
+.dot{width:9px;height:9px;background:#00c9a7;border-radius:50%;box-shadow:0 0 0 0 rgba(0,201,167,.5);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px transparent}}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden;cursor:pointer;transition:.2s}
+.kpi:hover{transform:translateY(-3px)}
+.kpi:before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.kpi-top{display:flex;justify-content:space-between;align-items:center}
+.kpi label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.kpi-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:color-mix(in srgb,var(--accent) 14%, transparent)}
+.kpi-value{font-size:30px;font-weight:900;letter-spacing:-1px;margin:10px 0 4px;font-family:'JetBrains Mono',monospace}
+.delta{font-size:12px;font-weight:800;padding:4px 7px;border-radius:20px}.up{color:#008f76;background:#e6fff8}.down{color:#e11d63;background:#fff0f4}
+body.dark .up{background:#123a33} body.dark .down{background:#3d1626}
+.kpi small{color:var(--muted);font-size:12px}.spark{position:absolute;right:14px;bottom:12px;opacity:.9}
+/* GRID CARDS */
+.grid2{display:grid;grid-template-columns:2.15fr 1fr;gap:16px;margin-bottom:16px}
+.grid2b{display:grid;grid-template-columns:1.65fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.card-head h3{font-size:16px;letter-spacing:-.3px}.card-head p{color:var(--muted);font-size:12px;margin-top:3px}
+.seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 10px;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);font-family:inherit}
+.seg button.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.chart-wrap{height:290px;position:relative}.chart-wrap.small{height:250px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.legend span{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}.legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:10px 8px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--card2)}
+.prod{display:flex;gap:11px;align-items:center;min-width:220px}
+.thumb{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#fff;flex-shrink:0}
+.prod b{font-size:13px;display:block}.prod small{color:var(--muted)}
+.stock-bar{width:70px;height:6px;background:var(--line);border-radius:20px;overflow:hidden;margin-top:5px}.stock-bar i{display:block;height:100%}
+.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:20px;white-space:nowrap}
+.s-completed{background:#e6fff8;color:#008f76}.s-pending{background:#fff6db;color:#9a6a00}.s-shipped{background:#e9e7ff;color:#5546d6}.s-refunded{background:#ffeef3;color:#d81b60}
+body.dark .s-completed{background:#123a33}body.dark .s-pending{background:#3a2f0e}body.dark .s-shipped{background:#25224d}body.dark .s-refunded{background:#3d1626}
+/* CHANNELS / FEED */
+.channel{margin-bottom:14px}
+.channel-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.channel-top span{color:var(--muted)}
+.bar{height:9px;background:var(--line);border-radius:20px;overflow:hidden}.bar i{display:block;height:100%;border-radius:20px;transition:width .8s}
+.feed-item{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.feed-item:last-child{border:0}
+.feed-ava{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0}
+.feed-item b{font-size:13px}.feed-item p{font-size:12px;color:var(--muted);line-height:1.45}.feed-item time{font-size:11px;color:var(--muted);white-space:nowrap;margin-left:auto}
+.funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;margin-top:6px}
+.funnel div{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 6px}
+.funnel b{font-size:18px;display:block}.funnel span{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+/* MODAL & TOAST */
+.overlay{position:fixed;inset:0;background:rgba(10,12,30,.6);backdrop-filter:blur(6px);display:none;place-items:center;z-index:50;padding:16px}
+.overlay.show{display:grid}
+.modal{background:var(--card);color:var(--text);width:560px;max-width:100%;border-radius:20px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:pop .25s}
+@keyframes pop{from{transform:scale(.95);opacity:0}}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+.close{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);cursor:pointer;font-size:16px;color:var(--text)}
+.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.modal-grid div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px}.modal-grid b{font-size:18px;display:block}.modal-grid span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.toast{position:fixed;right:20px;bottom:20px;background:#12142c;color:#fff;padding:14px 16px;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.25);display:none;z-index:60;max-width:340px;font-size:13px;line-height:1.5}
+.toast.show{display:block;animation:pop .3s}.toast b{color:#00e5b8}
+.mobile-nav{display:none}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2,.grid2b{grid-template-columns:1fr}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;padding:14px}.kpis{grid-template-columns:1fr 1fr}.kpi-value{font-size:22px}.search{min-width:0;flex:1}.topbar h1{font-size:22px}.funnel{grid-template-columns:repeat(2,1fr)} .mobile-nav{display:flex;gap:8px;overflow:auto;margin-bottom:12px}.mobile-nav button{white-space:nowrap}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark">◈</div><div><b>PulseStore</b><span>COMMERCE OS</span></div></div>
+    <div class="store"><div class="store-ava">N</div><div><small>Current store</small><b>Nova Living Co.</b></div><span style="margin-left:auto;color:#8f94bb">⌄</span></div>
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active"><span class="ic">▦</span> Dashboard</div>
+    <div class="nav-item" onclick="toastMsg('Orders module','18 new orders need fulfilment today.')"><span class="ic">🛍️</span> Orders <span class="badge">18</span></div>
+    <div class="nav-item" onclick="scrollToId('products')"><span class="ic">⬢</span> Products</div>
+    <div class="nav-item" onclick="scrollToId('orders')"><span class="ic">👥</span> Customers</div>
+    <div class="nav-label">Growth</div>
+    <div class="nav-item" onclick="toastMsg('Marketing','Summer Sale ROAS is 4.8× — your best campaign this quarter.')"><span class="ic">📣</span> Marketing</div>
+    <div class="nav-item" onclick="scrollToId('channels')"><span class="ic">📊</span> Analytics</div>
+    <div class="nav-item" onclick="exportCSV()"><span class="ic">⇩</span> Reports</div>
+    <div class="nav-item" onclick="toggleDark()"><span class="ic">◐</span> Appearance</div>
+    <div class="goal"><b>🎯 Monthly goal</b><p>You’re at <b style="color:#fff">$94.2k</b> of $120k. Keep going — 9 days left.</p><div class="progress"><i></i></div><button onclick="toastMsg('Goal tracker','At current pace you will hit 104% of target by Aug 31.')">View forecast →</button></div>
+    <p style="font-size:11px;color:#6d739e;padding:14px 8px 0">● All systems operational</p>
+  </aside>
+
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div><h1>Good afternoon, Maya <span>👋</span></h1><p id="dateLine">Tuesday, Aug 12 • Here’s what’s happening in your store today.</p></div>
+      <label class="search">🔍 <input id="globalSearch" placeholder="Search products, orders, customers… ( / )"></label>
+      <button class="icon-btn" onclick="toastMsg('Notifications','3 alerts: low stock on Aura Lamp, 2 refunds pending, new 5★ review.')">🔔</button>
+      <button class="icon-btn" style="--card:transparent" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+      <div class="avatar" onclick="toastMsg('Maya Chen','Store Owner • Pro Plan • maya@novaliving.co')"><i>M</i><div><b>Maya Chen</b><small>Store Owner</small></div>⌄</div>
+    </div>
+
+    <div class="mobile-nav pill-group"><button class="pill active">Dashboard</button><button class="pill">Orders</button><button class="pill">Products</button><button class="pill">Analytics</button></div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <div class="pill-group" id="rangeGroup">
+        <button class="pill" data-range="7">7D</button>
+        <button class="pill active" data-range="30">30D</button>
+        <button class="pill" data-range="90">90D</button>
+        <button class="pill" data-range="365">12M</button>
+      </div>
+      <select class="select" id="categoryFilter"><option value="All">All Categories</option><option>Electronics</option><option>Fashion</option><option>Home & Living</option><option>Beauty</option><option>Sports</option></select>
+      <select class="select" id="channelFilter"><option value="All">All Channels</option><option>Online Store</option><option>Mobile App</option><option>Marketplace</option><option>Social Shop</option></select>
+      <span class="live"><span class="dot"></span> <span id="liveText">LIVE • Updated just now</span></span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="exportCSV()">⇩ Export CSV</button>
+        <button class="btn btn-primary" onclick="toastMsg('Report scheduled','Your sales report will be emailed every Monday at 9:00 AM.')">+ Create Report</button>
+      </div>
+    </div>
+
+    <!-- KPIS -->
+    <section class="kpis">
+      <article class="kpi" style="--accent:#6c5cff" onclick="focusChart('revenue')"><div class="kpi-top"><label>Total Revenue</label><span class="kpi-icon">💰</span></div><div class="kpi-value" id="kpiRevenue">$0</div><span class="delta up" id="dRevenue">▲ 18.2%</span> <small>vs prev. period</small><svg class="spark" width="84" height="30" viewBox="0 0 84 30"><polyline id="spark1" fill="none" stroke="#6c5cff" stroke-width="2.5" points="0,22 14,18 28,20 42,12 56,14 70,7 84,9"/></svg></article>
+      <article class="kpi" style="--accent:#00c9a7" onclick="focusChart('orders')"><div class="kpi-top"><label>Total Orders</label><span class="kpi-icon">🧾</span></div><div class="kpi-value" id="kpiOrders">0</div><span class="delta up" id="dOrders">▲ 12.4%</span> <small>vs prev. period</small><svg class="spark" width="84" height="30" viewBox="0 0 84 30"><polyline fill="none" stroke="#00c9a7" stroke-width="2.5" points="0,20 14,22 28,15 42,17 56,10 70,12 84,6"/></svg></article>
+      <article class="kpi" style="--accent:#ff5b8d" onclick="focusChart('aov')"><div class="kpi-top"><label>Avg. Order Value</label><span class="kpi-icon">🛒</span></div><div class="kpi-value" id="kpiAOV">$0</div><span class="delta up" id="dAOV">▲ 5.1%</span> <small>vs prev. period</small><svg class="spark" width="84" height="30" viewBox="0 0 84 30"><polyline fill="none" stroke="#ff5b8d" stroke-width="2.5" points="0,18 14,16 28,19 42,13 56,15 70,10 84,12"/></svg></article>
+      <article class="kpi" style="--accent:#ffb020" onclick="document.getElementById('funnelCard').scrollIntoView({behavior:'smooth'})"><div class="kpi-top"><label>Conversion Rate</label><span class="kpi-icon">⚡</span></div><div class="kpi-value" id="kpiConv">0%</div><span class="delta down" id="dConv">▼ 0.4%</span> <small>vs prev. period</small><svg class="spark" width="84" height="30" viewBox="0 0 84 30"><polyline fill="none" stroke="#ffb020" stroke-width="2.5" points="0,10 14,14 28,12 42,16 56,15 70,19 84,17"/></svg></article>
+    </section>
+
+    <!-- MAIN CHARTS -->
+    <section class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Revenue Overview</h3><p id="revenueSub">Daily revenue • Last 30 days • Hover to inspect, click legend to toggle</p></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:flex;gap:6px;align-items:center"><input type="checkbox" id="compareToggle" checked> Compare to previous</label>
+            <div class="seg"><button class="active" onclick="setChartType('line',this)">Line</button><button onclick="setChartType('bar',this)">Bar</button></div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+        <div class="legend"><span><i style="background:#6c5cff"></i> Current period</span><span><i style="background:#c3c7e6"></i> Previous period</span><span><i style="background:#00c9a7"></i> Orders (right axis)</span><span style="margin-left:auto;font-weight:800;color:var(--text)" id="chartTotal"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h3>Sales by Category</h3><p>Share of revenue — click a slice to filter products</p></div><span class="status s-shipped" id="catTotal">5 categories</span></div>
+        <div class="chart-wrap small"><canvas id="donutChart"></canvas></div>
+        <div id="catLegend"></div>
+      </div>
+    </section>
+
+    <!-- FUNNEL -->
+    <div class="card" id="funnelCard" style="margin-bottom:16px">
+      <div class="card-head"><div><h3>Conversion Funnel</h3><p>From visit to purchase in the selected period</p></div><button class="btn btn-ghost" style="padding:7px 11px" onclick="toastMsg('Funnel insight','Biggest drop: Product view → Add to cart (68% drop). Try adding social proof on PDPs.')">💡 Get insight</button></div>
+      <div class="funnel">
+        <div><span>👀 Visits</span><b id="fVisits">48,210</b><small style="color:#00a884;font-weight:800">100%</small></div>
+        <div><span>🔎 Product Views</span><b id="fViews">31,840</b><small style="color:var(--muted)">66.0% →</small></div>
+        <div><span>🛒 Add to Cart</span><b id="fCart">9,420</b><small style="color:var(--muted)">29.6% →</small></div>
+        <div><span>✅ Purchases</span><b id="fBuy">2,847</b><small style="color:#6c5cff;font-weight:800">30.2% checkout</small></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS + CHANNELS -->
+    <section class="grid2b">
+      <div class="card" id="products">
+        <div class="card-head"><div><h3>Top Products</h3><p id="prodSub">Click a row for details • Click headers to sort</p></div><label class="search" style="min-width:190px;padding:8px 11px;box-shadow:none">🔍 <input id="prodSearch" placeholder="Filter products…"></label></div>
+        <div style="overflow:auto"><table id="prodTable"><thead><tr><th data-sort="name">Product ↕</th><th data-sort="cat">Category</th><th data-sort="units">Units ↕</th><th data-sort="revenue">Revenue ↕</th><th data-sort="stock">Stock</th><th>Trend</th></tr></thead><tbody id="prodBody"></tbody></table></div>
+        <p id="prodEmpty" style="display:none;color:var(--muted);text-align:center;padding:20px">No products match your filters.</p>
+      </div>
+
+      <div>
+        <div class="card" id="channels" style="margin-bottom:16px">
+          <div class="card-head"><div><h3>Sales Channels</h3><p>Where revenue comes from</p></div></div>
+          <div id="channelList"></div>
+          <div class="chart-wrap" style="height:150px"><canvas id="channelChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Live Activity</h3><p>Real-time store events</p></div><button class="btn btn-ghost" style="padding:6px 10px" id="liveBtn" onclick="toggleLive()">⏸ Pause</button></div>
+          <div id="feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="card" id="orders">
+      <div class="card-head">
+        <div><h3>Recent Orders</h3><p>Latest transactions across all channels</p></div>
+        <div class="pill-group" id="statusFilter"><button class="pill active" data-status="All">All</button><button class="pill" data-status="Completed">Completed</button><button class="pill" data-status="Shipped">Shipped</button><button class="pill" data-status="Pending">Pending</button><button class="pill" data-status="Refunded">Refunded</button></div>
+      </div>
+      <div style="overflow:auto"><table><thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody id="orderBody"></tbody></table></div>
+    </section>
+
+    <footer style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px;padding:18px 2px 0"><span>© 2026 PulseStore Analytics • Data refreshes every 30s • Secured with 256-bit encryption</span><span>Top region: <b style="color:var(--text)">California — $18,420</b> &nbsp;|&nbsp; Top device: <b style="color:var(--text)">Mobile 64%</b></span></footer>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <div class="modal-head"><div style="display:flex;gap:13px;align-items:center"><div class="thumb" id="mThumb" style="width:52px;height:52px;font-size:26px">🎧</div><div><h2 id="mName" style="font-size:18px;letter-spacing:-.4px"></h2><p id="mMeta" style="color:var(--muted);font-size:12px;margin-top:3px"></p></div></div><button class="close" onclick="closeModal()">✕</button></div>
+    <div class="modal-grid"><div><span>Revenue</span><b id="mRev"></b></div><div><span>Units Sold</span><b id="mUnits"></b></div><div><span>Conversion</span><b id="mConv"></b></div></div>
+    <div class="chart-wrap" style="height:170px"><canvas id="modalChart"></canvas></div>
+    <p id="mInsight" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.6;margin-top:14px"></p>
+    <div style="display:flex;gap:9px;margin-top:14px"><button class="btn btn-primary" style="flex:1" onclick="toastMsg('Campaign created','Lookalike campaign for this product is now drafting in Marketing.');closeModal()">🚀 Promote Product</button><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- DATA ----------
+const productsBase=[
+ {name:"Aura Smart Table Lamp",sku:"HM-8841",cat:"Home & Living",price:89,units:642,stock:84,emoji:"💡",grad:"linear-gradient(135deg,#ffb020,#ff5b8d)",trend:+24},
+ {name:"Wireless Noise-Cancelling Headphones",sku:"EL-2041",cat:"Electronics",price:249,units:518,stock:42,emoji:"🎧",grad:"linear-gradient(135deg,#6c5cff,#00c9a7)",trend:+18},
+ {name:"Linen Overshirt — Sand",sku:"FA-3310",cat:"Fashion",price:119,units:471,stock:19,emoji:"👕",grad:"linear-gradient(135deg,#f59e0b,#ef4444)",trend:+9},
+ {name:"HydraBoost Vitamin C Serum",sku:"BE-1192",cat:"Beauty",price:54,units:829,stock:210,emoji:"✨",grad:"linear-gradient(135deg,#ff5b8d,#a855f7)",trend:+31},
+ {name:"ErgoFlex Desk Chair",sku:"HM-6720",cat:"Home & Living",price:329,units:214,stock:12,emoji:"🪑",grad:"linear-gradient(135deg,#0ea5e9,#6c5cff)",trend:-4},
+ {name:"TrailRunner Pro Shoes",sku:"SP-5521",cat:"Sports",price:159,units:386,stock:67,emoji:"👟",grad:"linear-gradient(135deg,#00c9a7,#84cc16)",trend:+14},
+ {name:"Ceramic Pour-Over Set",sku:"HM-9034",cat:"Home & Living",price:74,units:358,stock:93,emoji:"☕",grad:"linear-gradient(135deg,#78350f,#f59e0b)",trend:+7},
+ {name:"UltraCharge 65W GaN Charger",sku:"EL-7718",cat:"Electronics",price:49,units:912,stock:340,emoji:"🔌",grad:"linear-gradient(135deg,#12152e,#6c5cff)",trend:+42},
+];
+let orders=[
+ {id:"#9841",cust:"Sofia Martinez",prod:"Aura Smart Table Lamp",date:"Today, 2:41 PM",amt:178,status:"Completed",color:"#6c5cff"},
+ {id:"#9840",cust:"James Wilson",prod:"Wireless Headphones",date:"Today, 2:18 PM",amt:249,status:"Shipped",color:"#00a884"},
+ {id:"#9839",cust:"Aisha Khan",prod:"HydraBoost Serum ×2",date:"Today, 1:57 PM",amt:108,status:"Completed",color:"#ff5b8d"},
+ {id:"#9838",cust:"Liam O'Connor",prod:"TrailRunner Pro Shoes",date:"Today, 1:32 PM",amt:159,status:"Pending",color:"#ffb020"},
+ {id:"#9837",cust:"Emma Chen",prod:"ErgoFlex Desk Chair",date:"Today, 12:48 PM",amt:329,status:"Completed",color:"#0ea5e9"},
+ {id:"#9836",cust:"Noah Brown",prod:"UltraCharge 65W Charger",date:"Today, 12:11 PM",amt:98,status:"Shipped",color:"#12152e"},
+ {id:"#9835",cust:"Olivia Taylor",prod:"Linen Overshirt — Sand",date:"Today, 11:44 AM",amt:119,status:"Refunded",color:"#f59e0b"},
+ {id:"#9834",cust:"Lucas Meyer",prod:"Ceramic Pour-Over Set",date:"Today, 11:02 AM",amt:74,status:"Completed",color:"#84cc16"},
+];
+const channels=[
+ {name:"Online Store",val:38,color:"#6c5cff",rev:"$35,842"},
+ {name:"Mobile App",val:27,color:"#00c9a7",rev:"$25,474"},
+ {name:"Marketplace",val:19,color:"#ff5b8d",rev:"$17,928"},
+ {name:"Social Shop",val:16,color:"#ffb020",rev:"$15,095"},
+];
+const feedSeed=[
+ {n:"Sofia M.",t:"purchased <b>Aura Lamp ×2</b> — $178",time:"now",c:"#6c5cff"},
+ {n:"James W.",t:"left a <b>5★ review</b> for Headphones",time:"2m",c:"#00a884"},
+ {n:"Aisha K.",t:"added <b>3 items</b> to cart from Instagram",time:"5m",c:"#ff5b8d"},
+ {n:"Cart Alert",t:"<b>12 carts</b> abandoned in last hour — recovery email sent",time:"9m",c:"#ffb020"},
+];
+let state={range:30,scale:1,chartType:'line',category:'All',sortKey:'revenue',sortDir:-1,live:true};
+let revenueChart,donutChart,channelChart,modalChart;
+
+// seeded random
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^ t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function genData(days){
+  const r=rng(days*137+42), labels=[],rev=[],prev=[],ord=[];
+  const now=new Date();
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    labels.push(days===365? d.toLocaleDateString('en',{month:'short'}) : d.toLocaleDateString('en',{month:'short',day:'numeric'}));
+    const weekend=[0,6].includes(d.getDay())?1.22:1;
+    const base=(2850+Math.sin((days-i)/6)*520)*weekend;
+    const v=Math.round(base*(0.82+r()*0.45));
+    rev.push(v); prev.push(Math.round(v*(0.78+r()*0.18))); ord.push(Math.round(v/(68+r()*22)));
+  }
+  if(days===365){ // aggregate to 12 months approx by sampling
+    const L=[],R=[],P=[],O=[]; for(let i=0;i<12;i++){L.push(labels[Math.floor(i*30)]||''); let s=0,p=0,o=0; for(let j=0;j<30;j++){const idx=Math.min(rev.length-1,i*30+j); s+=rev[idx];p+=prev[idx];o+=ord[idx]} R.push(s);P.push(p);O.push(o)} return{labels:L,rev:R,prev:P,ord:O}
+  }
+  return{labels,rev,prev,ord};
+}
+const fmt$=n=>'$'+Math.round(n).toLocaleString();
+const fmtN=n=>Math.round(n).toLocaleString();
+function animate(el,to,format){let start=0;const t0=performance.now(),dur=700;function step(t){const p=Math.min(1,(t-t0)/dur);const e=1-Math.pow(1-p,3);el.textContent=format(start+(to-start)*e);if(p<1)requestAnimationFrame(step)}requestAnimationFrame(step)}
+
+// ---------- RENDER ----------
+function renderProducts(){
+  const q=document.getElementById('prodSearch').value.toLowerCase();
+  let list=productsBase.map(p=>({...p,revenue:p.price*p.units*state.scale,units:Math.round(p.units*state.scale)}))
+    .filter(p=>(state.category==='All'||p.cat===state.category)&&(p.name.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
+  list.sort((a,b)=> (a[state.sortKey]>b[state.sortKey]?1:-1)*state.sortDir);
+  document.getElementById('prodEmpty').style.display=list.length?'none':'block';
+  document.getElementById('prodBody').innerHTML=list.map((p,i)=>{
+    const orig=productsBase.find(x=>x.sku===p.sku);
+    return `<tr class="row" onclick="openProduct('${p.sku}')"><td><div class="prod"><div class="thumb" style="background:${p.grad}">${p.emoji}</div><div><b>${p.name}</b><small>SKU ${p.sku} • ${fmt$(p.price)}</small></div></div></td><td><span class="status s-shipped">${p.cat}</span></td><td><b>${fmtN(p.units)}</b></td><td><b>${fmt$(p.revenue)}</b></td><td><b style="color:${p.stock<20?'#e11d63':'inherit'}">${p.stock} left</b><div class="stock-bar"><i style="width:${Math.min(100,p.stock/3.4)}%;background:${p.stock<20?'#ff5b8d':'#00c9a7'}"></i></div></td><td><span class="delta ${orig.trend>=0?'up':'down'}">${orig.trend>=0?'▲':'▼'} ${Math.abs(orig.trend)}%</span></td></tr>`}).join('');
+  document.getElementById('prodSub').textContent=`${list.length} products • ${state.category} • Last ${state.range===365?'12 months':state.range+' days'} • Click a row for details`;
+}
+function renderOrders(filter='All'){
+  const list=orders.filter(o=>filter==='All'||o.status===filter);
+  document.getElementById('orderBody').innerHTML=list.map(o=>`<tr><td><b style="color:var(--primary)">${o.id}</b></td><td><div class="prod"><div class="feed-ava" style="background:${o.color}">${o.cust.split(' ').map(x=>x[0]).join('').slice(0,2)}</div><b>${o.cust}</b></div></td><td>${o.prod}</td><td style="color:var(--muted)">${o.date}</td><td><b>${fmt$(o.amt)}</b></td><td><span class="status s-${o.status.toLowerCase()}">${o.status}</span></td><td><button class="btn btn-ghost" style="padding:6px 10px" onclick="toastMsg('Order ${o.id}','${o.cust} — ${o.prod} — ${o.status}. Tracking & invoice sent by email.')">View</button></td></tr>`).join('')||`<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:22px">No orders with this status.</td></tr>`;
+}
+function renderChannels(){
+  document.getElementById('channelList').innerHTML=channels.map(c=>`<div class="channel"><div class="channel-top"><b>${c.name}</b><span><b style="color:var(--text)">${c.rev}</b> • ${c.val}%</span></div><div class="bar"><i style="width:${c.val*2.2}%;background:${c.color}"></i></div></div>`).join('');
+}
+function renderFeed(items=feedSeed){
+  document.getElementById('feed').innerHTML=items.map(f=>`<div class="feed-item"><div class="feed-ava" style="background:${f.c}">${f.n.split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${f.n}</b><p>${f.t}</p></div><time>${f.time}</time></div>`).join('');
+}
+function updateDashboard(){
+  const data=genData(state.range);
+  const totalRev=data.rev.reduce((a,b)=>a+b,0), totalOrd=data.ord.reduce((a,b)=>a+b,0), prevRev=data.prev.reduce((a,b)=>a+b,0);
+  animate(document.getElementById('kpiRevenue'),totalRev,fmt$);
+  animate(document.getElementById('kpiOrders'),totalOrd,fmtN);
+  animate(document.getElementById('kpiAOV'),totalRev/Math.max(1,totalOrd),fmt$);
+  animate(document.getElementById('kpiConv'),3.42+(state.range===7?0.3:state.range===365?-0.2:0),v=>v.toFixed(2)+'%');
+  document.getElementById('chartTotal').textContent='Total: '+fmt$(totalRev);
+  document.getElementById('revenueSub').textContent=`${state.range===365?'Monthly':'Daily'} revenue • Last ${state.range===365?'12 months':state.range+' days'} • ${fmt$(totalRev)} total`;
+  const dR=((totalRev-prevRev)/prevRev*100).toFixed(1);
+  document.getElementById('dRevenue').textContent=`▲ ${dR}%`;
+  document.getElementById('fVisits').textContent=fmtN(totalOrd*16.9);
+  document.getElementById('fViews').textContent=fmtN(totalOrd*11.2);
+  document.getElementById('fCart').textContent=fmtN(totalOrd*3.3);
+  document.getElementById('fBuy').textContent=fmtN(totalOrd);
+
+  const dark=document.body.classList.contains('dark');
+  const grid=dark?'#262b4d':'#e7e8f2', tick=dark?'#9aa0c2':'#757ba0';
+  Chart.defaults.font.family='Inter'; Chart.defaults.color=tick;
+  if(revenueChart) revenueChart.destroy();
+  const ctx=document.getElementById('revenueChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,280); grad.addColorStop(0,'rgba(108,92,255,.32)'); grad.addColorStop(1,'rgba(108,92,255,0)');
+  revenueChart=new Chart(ctx,{type:state.chartType,data:{labels:data.labels,datasets:[
+    {label:'Revenue',data:data.rev,borderColor:'#6c5cff',backgroundColor:state.chartType==='bar'?'rgba(108,92,255,.75)':grad,fill:state.chartType==='line',tension:.45,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,yAxisID:'y',borderRadius:6},
+    {label:'Previous',data:document.getElementById('compareToggle').checked?data.prev:[],borderColor:'#b9bde0',backgroundColor:'rgba(185,189,224,.6)',fill:false,tension:.45,borderWidth:2,borderDash:[6,5],pointRadius:0,yAxisID:'y'},
+    {label:'Orders',data:data.ord,borderColor:'#00c9a7',backgroundColor:'#00c9a7',tension:.4,borderWidth:2,pointRadius:0,yAxisID:'y1',type:'line'}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#12142c',padding:12,cornerRadius:10,callbacks:{label:c=>c.dataset.label+': '+(c.datasetIndex===2?fmtN(c.parsed.y)+' orders':fmt$(c.parsed.y))}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:grid},ticks:{callback:v=>'$'+(v/1000)+'k'}},y1:{position:'right',grid:{display:false},ticks:{maxTicksLimit:5}}}}});
+
+  if(donutChart) donutChart.destroy();
+  donutChart=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:['Electronics','Home & Living','Fashion','Beauty','Sports'],datasets:[{data:[32,28,18,13,9],backgroundColor:['#6c5cff','#00c9a7','#ffb020','#ff5b8d','#0ea5e9'],borderWidth:3,borderColor:dark?'#171a34':'#fff',hoverOffset:10}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#12142c',padding:11,callbacks:{label:c=>' '+c.label+': '+c.parsed+'% • '+fmt$(totalRev*c.parsed/100)}}},onClick:(e,els)=>{if(els.length){const cats=['Electronics','Home & Living','Fashion','Beauty','Sports'];state.category=cats[els[0].index];document.getElementById('categoryFilter').value=state.category;renderProducts();toastMsg('Filter applied',state.category+' products are now shown below.')}}}});
+  document.getElementById('catLegend').innerHTML=['Electronics|#6c5cff|32','Home & Living|#00c9a7|28','Fashion|#ffb020|18','Beauty|#ff5b8d|13','Sports|#0ea5e9|9'].map(x=>{const[a,b,c]=x.split('|');return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${b};margin-right:8px"></i>${a}</span><b>${c}% • ${fmt$(totalRev*c/100)}</b></div>`}).join('');
+
+  if(channelChart) channelChart.destroy();
+  channelChart=new Chart(document.getElementById('channelChart'),{type:'bar',data:{labels:channels.map(c=>c.name),datasets:[{data:channels.map(c=>c.val),backgroundColor:channels.map(c=>c.color),borderRadius:8}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#12142c'}},scales:{x:{grid:{color:grid},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}});
+  state.scale= state.range===7?0.24: state.range===30?1: state.range===90?2.85:11.4;
+  renderProducts(); renderChannels();
+}
+
+// ---------- INTERACTIONS ----------
+document.getElementById('rangeGroup').addEventListener('click',e=>{if(!e.target.dataset.range)return;document.querySelectorAll('#rangeGroup .pill').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');state.range=+e.target.dataset.range;updateDashboard();document.getElementById('liveText').textContent='LIVE • Updated just now';});
+document.getElementById('categoryFilter').addEventListener('change',e=>{state.category=e.target.value;renderProducts();});
+document.getElementById('channelFilter').addEventListener('change',e=>toastMsg('Channel filter',e.target.value==='All'?'Showing all channels.':`Showing ${e.target.value} only — revenue chart filtered.`));
+document.getElementById('prodSearch').addEventListener('input',renderProducts);
+document.getElementById('globalSearch').addEventListener('input',e=>{document.getElementById('prodSearch').value=e.target.value;renderProducts(); if(e.target.value) document.getElementById('products').scrollIntoView({behavior:'smooth'})});
+document.addEventListener('keydown',e=>{if(e.key==='/' && document.activeElement.tagName!=='INPUT'){e.preventDefault();document.getElementById('globalSearch').focus()}});
+document.querySelectorAll('#prodTable th').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.sort;if(!k)return; if(state.sortKey===k) state.sortDir*=-1; else{state.sortKey=k;state.sortDir=-1} renderProducts(); toastMsg('Sorted','Products sorted by '+k+(state.sortDir===-1?' (high → low)':' (low → high)'));}));
+document.getElementById('statusFilter').addEventListener('click',e=>{if(!e.target.dataset.status)return;document.querySelectorAll('#statusFilter .pill').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');renderOrders(e.target.dataset.status)});
+document.getElementById('compareToggle').addEventListener('change',updateDashboard);
+function setChartType(t,btn){state.chartType=t;btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateDashboard()}
+function focusChart(){document.getElementById('revenueChart').scrollIntoView({behavior:'smooth',block:'center'})}
+function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth'})}
+function toggleDark(){document.body.classList.toggle('dark');updateDashboard();toastMsg('Appearance',document.body.classList.contains('dark')?'Dark mode enabled.':'Light mode enabled.')}
+function exportCSV(){
+  const rows=[['Product','SKU','Category','Price','Units','Revenue'],...productsBase.map(p=>[p.name,p.sku,p.cat,p.price,Math.round(p.units*state.scale),Math.round(p.price*p.units*state.scale)])];
+  const csv=rows.map(r=>r.join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='pulsestore-sales.csv'; a.click(); toastMsg('Export complete','<b>pulsestore-sales.csv</b> downloaded with '+productsBase.length+' products.');
+}
+let toastTimer;
+function toastMsg(title,msg){const t=document.getElementById('toast');t.innerHTML=`<b>${title}</b><br>${msg}`;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4200)}
+function openProduct(sku){
+  const p=productsBase.find(x=>x.sku===sku); if(!p)return;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('mThumb').textContent=p.emoji; document.getElementById('mThumb').style.background=p.grad;
+  document.getElementById('mName').textContent=p.name;
+  document.getElementById('mMeta').textContent=`SKU ${p.sku} • ${p.cat} • ${fmt$(p.price)} • ${p.stock} in stock`;
+  document.getElementById('mRev').textContent=fmt$(p.price*p.units*state.scale);
+  document.getElementById('mUnits').textContent=fmtN(p.units*state.scale);
+  document.getElementById('mConv').textContent=(2.8+Math.abs(p.trend)/8).toFixed(1)+'%';
+  document.getElementById('mInsight').innerHTML=`💡 <b>Insight:</b> ${p.trend>=0?`Demand is up <b>${p.trend}%</b> — consider increasing ad spend by 10% and ${p.stock<25?'<span style="color:#e11d63;font-weight:800">reorder soon, stock is low.</span>':'keep stock healthy.'}`:`Sales dipped ${Math.abs(p.trend)}%. Try a 10% bundle discount or refresh the product photos.`}`;
+  if(modalChart) modalChart.destroy();
+  const r=rng(p.units); const vals=Array.from({length:14},()=>Math.round(p.units/14*(0.6+r()*0.9)));
+  modalChart=new Chart(document.getElementById('modalChart'),{type:'line',data:{labels:vals.map((_,i)=>'Day '+(i+1)),datasets:[{label:'Units',data:vals,borderColor:'#6c5cff',backgroundColor:'rgba(108,92,255,.15)',fill:true,tension:.45,pointRadius:0,borderWidth:2.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{grid:{color:'#e7e8f2'}}}}});
+}
+function closeModal(){document.getElementById('overlay').classList.remove('show')}
+function toggleLive(){state.live=!state.live;document.getElementById('liveBtn').textContent=state.live?'⏸ Pause':'▶ Resume';document.getElementById('liveText').textContent=state.live?'LIVE • Updated just now':'PAUSED';}
+// live simulation
+const liveNames=[["Maya R.","purchased <b>UltraCharge Charger</b> — $49","#6c5cff"],["Tom H.","purchased <b>Pour-Over Set</b> — $74","#00a884"],["Zara A.","added <b>Linen Overshirt</b> to cart — $119","#ff5b8d"],["Ben K.","purchased <b>TrailRunner Shoes</b> — $159","#ffb020"]];
+let liveIdx=0;
+setInterval(()=>{if(!state.live)return; const [n,t,c]=liveNames[liveIdx++%liveNames.length]; const feed=document.getElementById('feed'); const div=document.createElement('div'); div.className='feed-item'; div.innerHTML=`<div class="feed-ava" style="background:${c}">${n.split(' ').map(x=>x[0]).join('')}</div><div><b>${n}</b><p>${t}</p></div><time>now</time>`; feed.prepend(div); while(feed.children.length>5) feed.removeChild(feed.lastChild); document.getElementById('liveText').textContent='LIVE • New order just now'; if(liveIdx%2===0) toastMsg('🔔 New live order',t.replace(/<[^>]+>/g,''));},9000);
+
+// init
+document.getElementById('dateLine').textContent=new Date().toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'})+' • Here’s what’s happening in your store today.';
+renderOrders(); renderFeed(); updateDashboard();
+setTimeout(()=>toastMsg('Welcome back, Maya 👋','Revenue is <b>up 18.2%</b> vs last period. Aura Lamp is your breakout product today.'),700);
+</script>
+</body>
+</html>

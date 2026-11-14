@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .column {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .column-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-count {
+            background: #e5e7eb;
+            color: #6b7280;
+            border-radius: 9999px;
+            padding: 0.25rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .add-card-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-card-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .cards {
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: move;
+            transition: all 0.2s;
+            border-left: 3px solid #667eea;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+        }
+
+        .cards.drag-over {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+        }
+
+        .card-content {
+            font-size: 0.9375rem;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .card-assignee {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.625rem;
+            font-weight: 600;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 1rem;
+        }
+
+        .card:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9375rem;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Design Team Kanban</h1>
+            <p class="subtitle">Drag cards between columns to update status</p>
+        </header>
+
+        <div class="board">
+            <div class="column" data-status="backlog">
+                <div class="column-header">
+                    <div class="column-title">
+                        📋 Backlog
+                        <span class="card-count">0</span>
+                    </div>
+                    <button class="add-card-btn" onclick="openModal('backlog')">+ Add</button>
+                </div>
+                <div class="cards"></div>
+            </div>
+
+            <div class="column" data-status="in-progress">
+                <div class="column-header">
+                    <div class="column-title">
+                        🎨 In Progress
+                        <span class="card-count">0</span>
+                    </div>
+                    <button class="add-card-btn" onclick="openModal('in-progress')">+ Add</button>
+                </div>
+                <div class="cards"></div>
+            </div>
+
+            <div class="column" data-status="review">
+                <div class="column-header">
+                    <div class="column-title">
+                        👀 Review
+                        <span class="card-count">0</span>
+                    </div>
+                    <button class="add-card-btn" onclick="openModal('review')">+ Add</button>
+                </div>
+                <div class="cards"></div>
+            </div>
+
+            <div class="column" data-status="done">
+                <div class="column-header">
+                    <div class="column-title">
+                        ✅ Done
+                        <span class="card-count">0</span>
+                    </div>
+                    <button class="add-card-btn" onclick="openModal('done')">+ Add</button>
+                </div>
+                <div class="cards"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Card</div>
+            <form id="cardForm">
+                <div class="form-group">
+                    <label for="cardTitle">Task Description</label>
+                    <textarea id="cardTitle" required placeholder="Enter task description..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="cardAssignee">Assignee (initials)</label>
+                    <input type="text" id="cardAssignee" maxlength="2" placeholder="AB">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Card</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentColumn = '';
+        let cards = JSON.parse(localStorage.getItem('kanbanCards')) || [];
+
+        function saveCards() {
+            localStorage.setItem('kanbanCards', JSON.stringify(cards));
+        }
+
+        function openModal(status) {
+            currentColumn = status;
+            document.getElementById('cardModal').classList.add('active');
+            document.getElementById('cardTitle').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('cardModal').classList.remove('active');
+            document.getElementById('cardForm').reset();
+        }
+
+        document.getElementById('cardForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('cardTitle').value;
+            const assignee = document.getElementById('cardAssignee').value.toUpperCase();
+            
+            const card = {
+                id: Date.now(),
+                title,
+                assignee,
+                status: currentColumn,
+                createdAt: new Date().toISOString()
+            };
+            
+            cards.push(card);
+            saveCards();
+            renderCards();
+            closeModal();
+        });
+
+        function deleteCard(id) {
+            if (confirm('Delete this card?')) {
+                cards = cards.filter(card => card.id !== id);
+                saveCards();
+                renderCards();
+            }
+        }
+
+        function createCardElement(card) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.draggable = true;
+            div.dataset.id = card.id;
+            
+            div.innerHTML = `
+                <div class="card-content">${card.title}</div>
+                <div class="card-meta">
+                    <div class="card-assignee">
+                        ${card.assignee ? `<div class="avatar">${card.assignee}</div>` : ''}
+                        <span>${card.assignee || 'Unassigned'}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteCard(${card.id})">×</button>
+                </div>
+            `;
+            
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragend', handleDragEnd);
+            
+            return div;
+        }
+
+        function renderCards() {
+            document.querySelectorAll('.cards').forEach(container => {
+                container.innerHTML = '';
+            });
+            
+            cards.forEach(card => {
+                const container = document.querySelector(`[data-status="${card.status}"] .cards`);
+                if (container) {
+                    container.appendChild(createCardElement(card));
+                }
+            });
+            
+            updateCardCounts();
+        }
+
+        function updateCardCounts() {
+            document.querySelectorAll('.column').forEach(column => {
+                const status = column.dataset.status;
+                const count = cards.filter(card => card.status === status).length;
+                column.querySelector('.card-count').textContent = count;
+            });
+        }
+
+        let draggedCard = null;
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            this.classList.remove('drag-over');
+            
+            const cardId = parseInt(draggedCard.dataset.id);
+            const newStatus = this.closest('.column').dataset.status;
+            
+            const card = cards.find(c => c.id === cardId);
+            if (card) {
+                card.status = newStatus;
+                saveCards();
+                renderCards();
+            }
+            
+            return false;
+        }
+
+        document.querySelectorAll('.cards').forEach(container => {
+            container.addEventListener('dragover', handleDragOver);
+            container.addEventListener('dragenter', handleDragEnter);
+            container.addEventListener('dragleave', handleDragLeave);
+            container.addEventListener('drop', handleDrop);
+        });
+
+        document.getElementById('cardModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('cardModal')) {
+                closeModal();
+            }
+        });
+
+        // Initial render
+        renderCards();
+
+        // Sample data if empty
+        if (cards.length === 0) {
+            cards = [
+                { id: 1, title: 'Design new landing page hero section', assignee: 'SM', status: 'backlog', createdAt: new Date().toISOString() },
+                { id: 2, title: 'Create user flow diagrams for onboarding', assignee: 'AJ', status: 'in-progress', createdAt: new Date().toISOString() },
+                { id: 3, title: 'Design mobile app icons', assignee: 'KL', status: 'in-progress', createdAt: new Date().toISOString() },
+                { id: 4, title: 'Update brand style guide', assignee: 'SM', status: 'review', createdAt: new Date().toISOString() },
+                { id: 5, title: 'Design email templates', assignee: 'AJ', status: 'done', createdAt: new Date().toISOString() }
+            ];
+            saveCards();
+            renderCards();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tern - Find Slow Database Queries</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+
+        header {
+            border-bottom: 1px solid #e5e5e5;
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        nav a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: #1a1a1a;
+        }
+
+        .cta-button {
+            background: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background: #2563eb;
+        }
+
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            color: #000;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 4rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #3b82f6;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 2px solid #3b82f6;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f7ff;
+        }
+
+        .hero-demo {
+            background: #f8f9fa;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            overflow-x: auto;
+        }
+
+        .demo-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #1a1a1a;
+            text-align: left;
+        }
+
+        .demo-code span.prompt {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .demo-code span.output {
+            color: #059669;
+        }
+
+        .demo-code span.warning {
+            color: #dc2626;
+        }
+
+        .features {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .features h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .features-subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: #e0e7ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .use-cases {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .use-cases h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .use-cases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .use-case {
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .use-case h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .installation {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .installation h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .install-box {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .install-box pre {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-button:hover {
+            background: #2563eb;
+        }
+
+        .cta-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        footer {
+            border-top: 1px solid #e5e5e5;
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+            }
+
+            .features h2,
+            .use-cases h2,
+            .installation h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">T</div>
+                <span>Tern</span>
+            </div>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#install">Install</a>
+                <a href="https://github.com" target="_blank">GitHub</a>
+                <a href="https://docs.example.com" target="_blank">Docs</a>
+                <button class="cta-button" onclick="document.getElementById('install').scrollIntoView({ behavior: 'smooth' })">Get Started</button>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Find Slow Database Queries in Seconds</h1>
+        <p>Tern is a command-line tool that identifies and analyzes slow database queries in your application. Get actionable insights to optimize performance.</p>
+        
+        <div class="hero-buttons">
+            <button class="btn-primary" onclick="document.getElementById('install').scrollIntoView({ behavior: 'smooth' })">Install Now</button>
+            <a href="https://github.com" target="_blank" class="btn-secondary">View on GitHub</a>
+        </div>
+
+        <div class="hero-demo">
+            <div class="demo-code">
+                <div><span class="prompt">$ tern analyze --database postgres</span></div>
+                <div style="margin-top: 1rem;">Analyzing database queries...</div>
+                <div style="margin-top: 0.5rem;">Found 3 slow queries</div>
+                <div style="margin-top: 1rem; color: #dc2626;">⚠ Query #1 - users.find_by_email</div>
+                <div style="margin-left: 1rem;">Duration: 2,340ms</div>
+                <div style="margin-left: 1rem;">Execution count: 450 times/hour</div>
+                <div style="margin-left: 1rem;"><span class="output">✓ Suggestion: Add index on email column</span></div>
+                <div style="margin-top: 1rem; color: #dc2626;">⚠ Query #2 - orders.calculate_total</div>
+                <div style="margin-left: 1rem;">Duration: 1,890ms</div>
+                <div style="margin-left: 1rem;">Execution count: 120 times/hour</div>
+                <div style="margin-left: 1rem;"><span class="output">✓ Suggestion: Optimize JOIN condition</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2>Powerful Features</h2>
+        <p class="features-subtitle">Everything you need to optimize your database performance</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Automatic Detection</h3>
+                <p>Automatically identify slow queries in your database without manual configuration or code changes.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Detailed Analysis</h3>
+                <p>Get comprehensive metrics including execution time, query frequency, and resource consumption.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>Smart Suggestions</h3>
+                <p>Receive actionable recommendations for optimization including indexing and query restructuring.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-Time Monitoring</h3>
+                <p>Monitor query performance in real-time with streaming results and live updates.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Multi-Database Support</h3>
+                <p>Works with PostgreSQL, MySQL, MongoDB, and other popular database systems.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Historical Tracking</h3>
+                <p>Track query performance over time and identify performance trends and regressions.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="use-cases">
+        <h2>Use Cases</h2>
+        <div class="use-cases-grid">
+            <div class="use-case">
+                <h3>🚀 Performance Optimization</h3>
+                <p>Identify bottlenecks and optimize your application for better user experience and reduced load times.</p>
+            </div>
+            <div class="use-case">
+                <h3>🛡️ Capacity Planning</h3>
+                <p>Understand your database load patterns to make informed decisions about infrastructure scaling.</p>
+            </div>
+            <div class="use-case">
+                <h3>📋 Compliance & Auditing</h3>
+                <p>Track and report on database performance metrics for regulatory compliance and audits.</p>
+            </div>
+            <div class="use-case">
+                <h3>🔧 Development Debugging</h3>
+                <p>Debug performance issues during development and catch slow queries before they reach production.</p>
+            </div>
+            <div class="use-case">
+                <h3>📱 Mobile App Performance</h3>
+                <p>Ensure your API backends are optimized for mobile applications with tight performance budgets.</p>
+            </div>
+            <div class="use-case">
+                <h3>💼 Team Collaboration</h3>
+                <p>Share performance reports with your team to drive data-driven optimization discussions.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation" id="install">
+        <h2>Get Started in 30 Seconds</h2>
+        <div class="install-box">
+            <button class="copy-button" onclick="copyToClipboard('curl -sSL https://install.tern.sh | bash')">Copy</button>
+            <pre>curl -sSL https://install.tern.sh | bash</pre>
+        </div>
+        <div style="text-align: center; margin-top: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <p style="color: #666; margin-bottom: 1rem;">Or install via package manager:</p>
+            <p style="font-family: 'JetBrains Mono', monospace; background: #f8f9fa; padding: 1rem; border-radius: 6px; color: #1a1a1a;">npm install -g @tern/cli</p>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <h2>Ready to Optimize Your Database?</h2>
+        <p>Start using Tern today and discover hidden performance improvements.</p>
+        <button class="btn-primary" onclick="document.getElementById('install').scrollIntoView({ behavior: 'smooth' })">Install Now</button>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Tern. Find slow queries, build faster applications.</p>
+    </footer>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Budgeting for two, better.</title>
+<meta name="description" content="Hearth is the budgeting app built for couples. Split bills, share goals, and finally agree on what to eat for dinner.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='12' cy='16' r='8' fill='none' stroke='%23ff6a5a' stroke-width='3'/><circle cx='20' cy='16' r='8' fill='none' stroke='%2316b39a' stroke-width='3'/></svg>">
+<style>
+  /* ---------- Reset & base ---------- */
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b1526;background:#fff;line-height:1.6;-webkit-font-smoothing:antialiased}
+  img,svg{display:block;max-width:100%}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;cursor:pointer}
+  h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-.02em;margin:0}
+  p{margin:0}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+  .serif{font-family:'Fraunces',serif}
+
+  /* ---------- Tokens ---------- */
+  :root{
+    --ink:#1b1526;
+    --ink-soft:#4b4259;
+    --muted:#736a84;
+    --cream:#fdf7f2;
+    --cream-2:#f7efe8;
+    --coral:#ff6a5a;
+    --coral-dark:#e8503f;
+    --peach:#ffb489;
+    --mint:#12b39a;
+    --violet:#7a5af8;
+    --line:rgba(27,21,38,.10);
+    --line-2:rgba(27,21,38,.06);
+    --shadow-s:0 1px 2px rgba(27,21,38,.05),0 6px 16px -8px rgba(27,21,38,.14);
+    --shadow-m:0 2px 4px rgba(27,21,38,.04),0 18px 40px -18px rgba(27,21,38,.24);
+    --shadow-l:0 4px 8px rgba(27,21,38,.05),0 40px 80px -30px rgba(27,21,38,.32);
+    --r-s:12px; --r-m:18px; --r-l:28px; --r-xl:38px;
+  }
+
+  /* ---------- Announcement ---------- */
+  .announce{background:var(--ink);color:#f4eee9;font-size:13.5px;text-align:center;padding:10px 24px;position:relative;z-index:60}
+  .announce b{color:var(--peach);font-weight:600}
+  .announce .pill{display:inline-flex;align-items:center;gap:8px;margin-right:8px}
+
+  /* ---------- Nav ---------- */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.78);backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line-2);transition:box-shadow .3s,background .3s}
+  header.nav.scrolled{box-shadow:0 1px 0 rgba(27,21,38,.07),0 10px 30px -22px rgba(27,21,38,.5);background:rgba(255,255,255,.92)}
+  .nav-row{display:flex;align-items:center;gap:28px;height:70px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:600;font-size:20px;letter-spacing:-.02em}
+  .brand-mark{width:30px;height:30px;flex:0 0 auto}
+  .nav-links{display:flex;align-items:center;gap:26px;margin-left:12px;font-size:14.5px;color:var(--ink-soft);font-weight:500}
+  .nav-links a{position:relative;padding:4px 0}
+  .nav-links a::after{content:'';position:absolute;left:0;right:100%;bottom:0;height:1.5px;background:var(--coral);transition:right .28s ease}
+  .nav-links a:hover::after{right:0}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;font-weight:600;font-size:15px;padding:12px 22px;border:1px solid transparent;transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .22s,background .22s,color .2s;white-space:nowrap}
+  .btn:active{transform:translateY(1px) scale(.99)}
+  .btn-primary{background:var(--ink);color:#fff;box-shadow:0 8px 18px -10px rgba(27,21,38,.8)}
+  .btn-primary:hover{background:#2b2340;box-shadow:0 12px 26px -12px rgba(27,21,38,.85);transform:translateY(-1px)}
+  .btn-coral{background:linear-gradient(135deg,var(--coral),#ff8a63);color:#fff;box-shadow:0 10px 22px -10px rgba(255,106,90,.9)}
+  .btn-coral:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(255,106,90,.95)}
+  .btn-ghost{border-color:var(--line);color:var(--ink);background:#fff}
+  .btn-ghost:hover{border-color:rgba(27,21,38,.28);transform:translateY(-1px);box-shadow:var(--shadow-s)}
+  .btn-lg{padding:16px 30px;font-size:16.5px}
+  .btn-block{width:100%}
+  .burger{display:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;align-items:center;justify-content:center}
+  .burger span{display:block;width:16px;height:1.8px;background:var(--ink);position:relative}
+  .burger span::before,.burger span::after{content:'';position:absolute;left:0;width:16px;height:1.8px;background:var(--ink)}
+  .burger span::before{top:-5px}.burger span::after{top:5px}
+
+  .mobile-menu{display:none;border-top:1px solid var(--line-2);background:#fff;padding:14px 24px 22px}
+  .mobile-menu.open{display:block}
+  .mobile-menu a{display:block;padding:11px 0;font-weight:500;border-bottom:1px solid var(--line-2)}
+  .mobile-menu .btn{width:100%;margin-top:16px}
+
+  /* ---------- Hero ---------- */
+  .hero{position:relative;overflow:hidden;padding:64px 0 90px;background:
+     radial-gradient(900px 500px at 78% -10%,rgba(255,180,137,.34),transparent 60%),
+     radial-gradient(700px 480px at 8% 0%,rgba(18,179,154,.14),transparent 62%),
+     linear-gradient(#fff, #fdf8f4)}
+  .hero::after{content:'';position:absolute;inset:auto 0 0;height:120px;background:linear-gradient(transparent,#fff)}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:56px;align-items:center;position:relative;z-index:2}
+  .badge{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 15px 7px 8px;font-size:13px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-s);margin-bottom:26px}
+  .badge .tag{background:var(--coral);color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  h1.hero-h{font-size:clamp(40px,5.6vw,68px);letter-spacing:-.035em;margin-bottom:22px}
+  h1.hero-h .em{position:relative;display:inline-block;font-style:italic;color:var(--coral-dark)}
+  h1.hero-h .em::after{content:'';position:absolute;left:-2px;right:-2px;bottom:.08em;height:.34em;background:rgba(255,180,137,.42);border-radius:6px;z-index:-1;transform:rotate(-.6deg)}
+  .hero-sub{font-size:19px;color:var(--ink-soft);max-width:33em;margin-bottom:30px}
+  .signup{display:flex;gap:10px;max-width:470px;flex-wrap:wrap}
+  .signup input{flex:1 1 240px;min-width:0;border:1.5px solid var(--line);border-radius:999px;padding:15px 22px;font:inherit;font-size:15.5px;background:#fff;transition:border-color .2s,box-shadow .2s}
+  .signup input::placeholder{color:#9b93a9}
+  .signup input:focus{outline:none;border-color:var(--coral);box-shadow:0 0 0 4px rgba(255,106,90,.14)}
+  .micro{font-size:13.5px;color:var(--muted);margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .micro .stars{color:#ffb400;letter-spacing:1px;font-size:12px}
+  .trust-row{display:flex;align-items:center;gap:12px;margin-top:34px;flex-wrap:wrap}
+  .trust-faces{display:flex}
+  .trust-faces span{width:32px;height:32px;border-radius:50%;border:2.5px solid #fff;margin-left:-10px;display:grid;place-items:center;font-size:11.5px;font-weight:700;color:#fff;font-family:'Fraunces',serif}
+  .trust-faces span:first-child{margin-left:0}
+  .trust-row p{font-size:13.5px;color:var(--muted);line-height:1.4}
+  .trust-row b{color:var(--ink);font-weight:600}
+
+  /* ---------- Phone mockup ---------- */
+  .visual{position:relative;display:flex;justify-content:center}
+  .phone{width:308px;border-radius:44px;background:#1b1526;padding:11px;box-shadow:var(--shadow-l),0 0 0 1px rgba(27,21,38,.14);position:relative;z-index:2;transform:rotate(-2deg);transition:transform .6s cubic-bezier(.2,.8,.3,1)}
+  .phone:hover{transform:rotate(0deg) translateY(-6px)}
+  .screen{background:linear-gradient(180deg,#fffdfb,#f9f3ee);border-radius:34px;overflow:hidden;padding:16px 15px 20px;color:var(--ink)}
+  .notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:96px;height:22px;background:#1b1526;border-radius:0 0 14px 14px;z-index:5}
+  .statusbar{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;color:#5b5268;padding:2px 4px 12px}
+  .ph-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .ph-hello{font-size:11.5px;color:var(--muted);letter-spacing:.03em}
+  .ph-hello b{display:block;font-family:'Fraunces',serif;font-size:19px;color:var(--ink);letter-spacing:-.02em}
+  .avatars{display:flex}
+  .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:10.5px;font-weight:700;border:2px solid #fffdfb;font-family:'Fraunces',serif}
+  .av + .av{margin-left:-9px}
+  .av.a{background:linear-gradient(135deg,#ff8a63,#ff6a5a)}
+  .av.b{background:linear-gradient(135deg,#4ecdc4,#12b39a)}
+  .bal{background:linear-gradient(140deg,#2a2140,#1b1526);border-radius:20px;padding:16px;color:#fff;box-shadow:0 14px 26px -16px rgba(27,21,38,.9)}
+  .bal .lbl{font-size:11px;color:#bdb3cc;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+  .bal .amt{font-family:'Fraunces',serif;font-size:33px;letter-spacing:-.03em;margin:2px 0 12px}
+  .bal .amt small{font-size:15px;color:#bdb3cc;font-family:'Inter',sans-serif;font-weight:500}
+  .track{height:7px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+  .track i{display:block;height:100%;width:62%;border-radius:99px;background:linear-gradient(90deg,var(--peach),var(--coral))}
+  .bal .cap{display:flex;justify-content:space-between;font-size:11px;color:#bdb3cc;margin-top:8px}
+  .ph-sec{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;display:flex;justify-content:space-between}
+  .ph-sec a{color:var(--coral-dark);letter-spacing:0;text-transform:none;font-size:11.5px}
+  .cat{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line-2);border-radius:13px;padding:9px 11px;margin-bottom:7px;box-shadow:0 1px 2px rgba(27,21,38,.03)}
+  .emo{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:14px;background:var(--cream-2)}
+  .cat .nm{font-size:12.5px;font-weight:600;line-height:1.2}
+  .cat .bar{flex:1;height:5px;border-radius:99px;background:#f0e9e3;overflow:hidden;margin-left:4px}
+  .cat .bar i{display:block;height:100%;border-radius:99px}
+  .cat .val{font-size:11.5px;font-weight:600;color:var(--ink-soft);width:44px;text-align:right}
+  .tx{display:flex;align-items:center;gap:10px;padding:7px 2px}
+  .tx .emo{width:30px;height:30px;border-radius:50%;font-size:14px;background:#fff;border:1px solid var(--line-2)}
+  .tx .t1{font-size:12.5px;font-weight:600;line-height:1.25}
+  .tx .t2{font-size:10.5px;color:var(--muted);line-height:1.25}
+  .tx .amt{margin-left:auto;font-size:12.5px;font-weight:700}
+  .tx .split{font-size:10px;color:var(--mint);font-weight:700}
+
+  .float-card{position:absolute;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-m);padding:12px 14px;display:flex;gap:11px;align-items:center;z-index:3}
+  .float-1{left:-6px;top:19%;animation:float 6s ease-in-out infinite}
+  .float-2{right:-14px;bottom:12%;animation:float 7.4s ease-in-out infinite .8s}
+  .fc-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+  .fc-t{font-size:12.5px;font-weight:700;line-height:1.2}
+  .fc-s{font-size:11px;color:var(--muted);line-height:1.3}
+  .ring{width:38px;height:38px;border-radius:50%;background:conic-gradient(var(--mint) 68%, #efe8e1 0);display:grid;place-items:center;flex:0 0 auto}
+  .ring i{width:28px;height:28px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:9.5px;font-weight:700;font-style:normal}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;z-index:1}
+
+  /* ---------- Logos ---------- */
+  .logos{padding:46px 0 10px;background:#fff;position:relative;z-index:3}
+  .logos p{text-align:center;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:22px}
+  .logo-row{display:flex;flex-wrap:wrap;justify-content:center;gap:16px 44px;align-items:center}
+  .logo-row span{font-family:'Fraunces',serif;font-size:19px;color:#a79fb4;letter-spacing:-.01em;transition:color .25s}
+  .logo-row span:hover{color:var(--ink-soft)}
+
+  /* ---------- Sections ---------- */
+  section{position:relative}
+  .sec{padding:104px 0}
+  .sec-head{max-width:660px;margin:0 auto 56px;text-align:center}
+  .eyebrow{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--coral-dark);background:rgba(255,106,90,.1);padding:6px 14px;border-radius:999px;margin-bottom:18px}
+  .sec-head h2{font-size:clamp(30px,4vw,46px);letter-spacing:-.03em;margin-bottom:16px}
+  .sec-head p{font-size:18px;color:var(--ink-soft)}
+  .sec-head.left{margin-left:0;text-align:left}
+
+  /* ---------- Feature bento ---------- */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r-l);padding:30px;box-shadow:var(--shadow-s);position:relative;overflow:hidden;transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-m)}
+  .card h3{font-size:22px;margin:16px 0 9px;letter-spacing:-.02em}
+  .card p{font-size:15px;color:var(--ink-soft);max-width:38ch}
+  .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:20px;background:var(--cream-2)}
+  .c-1{grid-column:span 4}.c-2{grid-column:span 2;background:linear-gradient(160deg,#fff, #fff6f2)}
+  .c-3{grid-column:span 2}.c-4{grid-column:span 4;background:var(--ink);color:#fff;border-color:var(--ink)}
+  .c-4 p{color:#c3b9d2}.c-4 .ic{background:rgba(255,255,255,.1)}
+  .c-4 h3{color:#fff}
+  .mini-ui{margin-top:22px;display:flex;flex-direction:column;gap:9px}
+  .mini-line{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 12px}
+  .mini-line .t{font-size:13px;font-weight:600}
+  .mini-line .s{font-size:11px;color:#b3a8c4}
+  .mini-line .right{margin-left:auto;font-size:13px;font-weight:700;color:#fff}
+  .mini-line .right.neg{color:#ff9f8f}
+  .split-pill{font-size:10px;font-weight:700;background:rgba(18,179,154,.18);color:#5fe0cc;padding:3px 8px;border-radius:99px;margin-left:8px}
+  .charts{margin-top:24px;display:flex;align-items:flex-end;gap:10px;height:110px}
+  .charts .bar{flex:1;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,var(--peach),rgba(255,180,137,.35));position:relative;transition:height .6s cubic-bezier(.2,.8,.3,1)}
+  .charts .bar span{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:var(--muted)}
+  .chart-legend{display:flex;gap:18px;font-size:12px;color:var(--muted);margin-top:12px;flex-wrap:wrap}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+
+  /* ---------- Steps ---------- */
+  .steps-sec{background:var(--cream)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;counter-reset:s}
+  .step{position:relative;padding-top:8px}
+  .step .num{font-family:'Fraunces',serif;font-size:56px;line-height:1;color:rgba(255,106,90,.22);letter-spacing:-.04em;margin-bottom:14px}
+  .step h3{font-size:23px;margin-bottom:10px}
+  .step p{font-size:15.5px;color:var(--ink-soft)}
+  .step-num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;font-size:13px;font-weight:700;margin-bottom:16px}
+
+  /* ---------- Stats ---------- */
+  .stats{background:var(--ink);color:#fff;padding:64px 0;position:relative;overflow:hidden}
+  .stats::before{content:'';position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(255,106,90,.28),transparent 65%);top:-220px;right:-120px}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;text-align:center;position:relative}
+  .stat b{display:block;font-family:'Fraunces',serif;font-size:clamp(34px,4vw,50px);letter-spacing:-.03em;background:linear-gradient(120deg,#fff,#ffcfb4);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat span{font-size:14px;color:#b6abc8}
+
+  /* ---------- Testimonials ---------- */
+  .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .quote{background:#fff;border:1px solid var(--line);border-radius:var(--r-l);padding:28px;box-shadow:var(--shadow-s);display:flex;flex-direction:column;gap:16px;transition:transform .3s,box-shadow .3s}
+  .quote:hover{transform:translateY(-4px);box-shadow:var(--shadow-m)}
+  .qmark{font-family:'Fraunces',serif;font-size:44px;line-height:.7;color:var(--coral);opacity:.45}
+  .quote p{font-size:16.5px;color:var(--ink);line-height:1.55;flex:1}
+  .qperson{display:flex;align-items:center;gap:12px;border-top:1px solid var(--line-2);padding-top:16px}
+  .qperson .av2{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-family:'Fraunces',serif;font-size:14px}
+  .qperson b{display:block;font-size:14.5px;line-height:1.3}
+  .qperson span{font-size:12.5px;color:var(--muted)}
+  .stars-row{color:#ffb400;font-size:13px;letter-spacing:2px}
+
+  /* ---------- Pricing ---------- */
+  .pricing-sec{background:var(--cream)}
+  .toggle{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:34px;box-shadow:var(--shadow-s)}
+  .toggle button{border:0;background:transparent;border-radius:999px;padding:9px 20px;font-size:14px;font-weight:600;color:var(--muted);transition:.25s}
+  .toggle button.on{background:var(--ink);color:#fff}
+  .toggle .save{font-size:11px;background:rgba(18,179,154,.16);color:#0d8f7c;padding:2px 7px;border-radius:99px;margin-left:7px;font-weight:700}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:var(--r-l);padding:32px;box-shadow:var(--shadow-s);position:relative}
+  .plan.pop{background:linear-gradient(165deg,#2a2140,#1b1526);color:#fff;border-color:#1b1526;box-shadow:var(--shadow-m);transform:translateY(-10px)}
+  .plan.pop h3,.plan.pop .price .amt{color:#fff}
+  .plan.pop p{color:#bfb5cf}
+  .plan .tag{position:absolute;top:-13px;left:32px;background:linear-gradient(135deg,var(--coral),#ff8a63);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
+  .plan h3{font-size:21px;margin-bottom:6px}
+  .plan .price{display:flex;align-items:baseline;gap:5px;margin:16px 0 6px}
+  .plan .price .amt{font-family:'Fraunces',serif;font-size:44px;letter-spacing:-.04em;font-weight:600}
+  .plan .price .per{font-size:14px;color:var(--muted)}
+  .plan.pop .price .per{color:#bfb5cf}
+  .plan .desc{font-size:14.5px;color:var(--ink-soft);min-height:44px}
+  .plan ul{list-style:none;padding:0;margin:24px 0 28px;display:flex;flex-direction:column;gap:11px}
+  .plan li{display:flex;gap:11px;font-size:14.5px;color:var(--ink-soft);align-items:flex-start}
+  .plan.pop li{color:#ded7e8}
+  .plan li svg{flex:0 0 auto;margin-top:3px}
+  .plan.pop .btn-ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#fff}
+  .plan.pop .btn-ghost:hover{background:rgba(255,255,255,.14)}
+
+  /* ---------- FAQ ---------- */
+  .faq-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:56px;align-items:start}
+  details{border-bottom:1px solid var(--line);padding:20px 0}
+  details:first-of-type{border-top:1px solid var(--line)}
+  summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px;align-items:center;font-weight:600;font-size:17.5px;font-family:'Fraunces',serif;letter-spacing:-.01em}
+  summary::-webkit-details-marker{display:none}
+  .plus{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;position:relative;transition:.3s}
+  .plus::before,.plus::after{content:'';position:absolute;top:50%;left:50%;background:var(--ink);transform:translate(-50%,-50%);transition:.3s}
+  .plus::before{width:11px;height:1.6px}
+  .plus::after{width:1.6px;height:11px}
+  details[open] .plus{background:var(--ink);border-color:var(--ink)}
+  details[open] .plus::before{background:#fff}
+  details[open] .plus::after{transform:translate(-50%,-50%) rotate(90deg);opacity:0}
+  details p{margin-top:12px;font-size:15.5px;color:var(--ink-soft);max-width:56ch}
+
+  /* ---------- CTA ---------- */
+  .cta-band{background:linear-gradient(150deg,#2a2140,#1b1526 60%);border-radius:var(--r-xl);padding:66px 48px;text-align:center;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-l)}
+  .cta-band::before{content:'';position:absolute;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(255,106,90,.3),transparent 62%);top:-260px;left:50%;transform:translateX(-50%)}
+  .cta-band::after{content:'';position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(18,179,154,.25),transparent 65%);bottom:-220px;right:-60px}
+  .cta-band>*{position:relative;z-index:2}
+  .cta-band h2{font-size:clamp(30px,4.4vw,50px);letter-spacing:-.035em;margin-bottom:14px}
+  .cta-band p{color:#c7bdd6;font-size:18px;max-width:44ch;margin:0 auto 28px}
+  .cta-band .signup{max-width:480px;margin:0 auto}
+  .cta-band .signup input{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff}
+  .cta-band .signup input::placeholder{color:#a99ebc}
+  .cta-band .signup input:focus{background:rgba(255,255,255,.14)}
+  .cta-band .micro{justify-content:center;color:#a99ebc}
+  .cta-note{margin-top:22px;font-size:13.5px;color:#a99ebc}
+
+  /* ---------- Footer ---------- */
+  footer{border-top:1px solid var(--line);padding:64px 0 34px;background:#fff}
+  .f-grid{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:36px}
+  .f-brand p{font-size:14.5px;color:var(--muted);margin-top:14px;max-width:30ch}
+  .socials{display:flex;gap:10px;margin-top:18px}
+  .socials a{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-soft);transition:.2s}
+  .socials a:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .f-col h4{font-family:'Inter',sans-serif;font-size:12.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:700}
+  .f-col a{display:block;font-size:14.5px;color:var(--ink-soft);padding:6px 0;transition:color .2s}
+  .f-col a:hover{color:var(--coral-dark)}
+  .f-bottom{margin-top:52px;padding-top:24px;border-top:1px solid var(--line-2);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+
+  /* ---------- Reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.8,.3,1),transform .7s cubic-bezier(.2,.8,.3,1)}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}.float-card{animation:none}}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:1040px){
+    .hero-grid{grid-template-columns:1fr;gap:52px}
+    .hero{text-align:center;padding-top:48px}
+    .hero-sub,.signup{margin-left:auto;margin-right:auto}
+    .trust-row{justify-content:center}
+    .badge{margin-left:auto;margin-right:auto}
+    .visual{order:2}
+    .float-1{left:-2px}.float-2{right:-2px}
+    .bento{grid-template-columns:repeat(2,1fr)}
+    .c-1,.c-2,.c-3,.c-4{grid-column:span 1}
+    .c-1,.c-4{grid-column:span 2}
+    .faq-grid{grid-template-columns:1fr;gap:36px}
+    .f-grid{grid-template-columns:1fr 1fr 1fr;gap:28px}
+    .f-brand{grid-column:span 3}
+  }
+  @media (max-width:820px){
+    .nav-links,.nav-cta .btn-ghost{display:none}
+    .burger{display:flex}
+    .steps{grid-template-columns:1fr;gap:34px}
+    .quotes{grid-template-columns:1fr}
+    .plans{grid-template-columns:1fr}
+    .plan.pop{transform:none}
+    .stat-grid{grid-template-columns:repeat(2,1fr);gap:34px 20px}
+    .sec{padding:76px 0}
+    .cta-band{padding:48px 22px}
+  }
+  @media (max-width:560px){
+    .bento{grid-template-columns:1fr}
+    .c-1,.c-2,.c-3,.c-4{grid-column:span 1}
+    .f-grid{grid-template-columns:1fr 1fr}
+    .f-brand{grid-column:span 2}
+    .phone{width:274px}
+    .float-card{transform:scale(.9)}
+    .float-1{left:-24px;top:12%}
+    .float-2{right:-24px}
+    .announce{font-size:12.5px}
+  }
+</style>
+</head>
+<body>
+
+<div class="announce">
+  <span class="pill">🎉 New</span> Shared savings goals are here — <b>plan your Lisbon trip together</b>. &nbsp;<a href="#pricing" style="color:#ffb489;text-decoration:underline">See what's new →</a>
+</div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="12" cy="16" r="8.5" fill="none" stroke="#ff6a5a" stroke-width="3"/>
+        <circle cx="20" cy="16" r="8.5" fill="none" stroke="#12b39a" stroke-width="3"/>
+      </svg>
+      Hearth
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#">Log in</a>
+      <a class="btn btn-primary" href="#start">Start free</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false"><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#reviews">Reviews</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn btn-coral" href="#start">Start free</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <div class="badge rv"><span class="tag">New</span> Built for two, from day one</div>
+      <h1 class="hero-h rv">Money, but make it <span class="em">ours.</span></h1>
+      <p class="hero-sub rv">Hearth is the budgeting app for couples. One shared pot, fair splits, and goals you actually reach together — without the spreadsheet, the guilt, or the group chat archaeology.</p>
+
+      <form class="signup rv" id="signupForm" novalidate>
+        <input type="email" name="email" placeholder="you@email.com" aria-label="Email address" required>
+        <button class="btn btn-coral btn-lg" type="submit">Start budgeting together</button>
+      </form>
+      <div class="micro rv" id="signupNote"><span class="stars">★★★★★</span> 4.9 from 12,400+ couples · Free for 30 days</div>
+
+      <div class="trust-row rv">
+        <div class="trust-faces">
+          <span style="background:linear-gradient(135deg,#ff8a63,#ff6a5a)">A</span>
+          <span style="background:linear-gradient(135deg,#7a5af8,#5b3fd6)">J</span>
+          <span style="background:linear-gradient(135deg,#4ecdc4,#12b39a)">S</span>
+          <span style="background:linear-gradient(135deg,#ffc46b,#f09a2b)">M</span>
+          <span style="background:linear-gradient(135deg,#f26ba0,#d63d78)">K</span>
+        </div>
+        <p><b>48,000+ couples</b> budgeting better together<br>and arguing about it 23% less.</p>
+      </div>
+    </div>
+
+    <div class="visual rv">
+      <div class="blob" style="width:340px;height:340px;background:#ffb489;top:-40px;right:10px"></div>
+      <div class="blob" style="width:280px;height:280px;background:#12b39a;bottom:-30px;left:0;opacity:.35"></div>
+
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>●●● ⌁</span></div>
+          <div class="ph-head">
+            <div class="ph-hello">October<b>Hi, Alex &amp; Sam</b></div>
+            <div class="avatars"><span class="av a">A</span><span class="av b">S</span></div>
+          </div>
+
+          <div class="bal">
+            <div class="lbl">Left to spend</div>
+            <div class="amt">$1,240<small> / $2,000</small></div>
+            <div class="track"><i></i></div>
+            <div class="cap"><span>62% of monthly</span><span>14 days left</span></div>
+          </div>
+
+          <div class="ph-sec">Shared categories <a href="#">Edit</a></div>
+          <div class="cat">
+            <div class="emo">🏠</div>
+            <div class="nm">Rent</div>
+            <div class="bar"><i style="width:100%;background:#1b1526"></i></div>
+            <div class="val">$1,400</div>
+          </div>
+          <div class="cat">
+            <div class="emo">🍜</div>
+            <div class="nm">Food</div>
+            <div class="bar"><i style="width:46%;background:#ff6a5a"></i></div>
+            <div class="val">$322</div>
+          </div>
+          <div class="cat">
+            <div class="emo">✈️</div>
+            <div class="nm">Travel fund</div>
+            <div class="bar"><i style="width:65%;background:#12b39a"></i></div>
+            <div class="val">$2,600</div>
+          </div>
+
+          <div class="ph-sec">Recent</div>
+          <div class="tx">
+            <div class="emo">🍕</div>
+            <div><div class="t1">Pizzeria Uno</div><div class="t2">Split evenly</div></div>
+            <div class="amt">$46.00 <span class="split">✓ 50/50</span></div>
+          </div>
+          <div class="tx">
+            <div class="emo">🚕</div>
+            <div><div class="t1">Ride home</div><div class="t2">Alex paid</div></div>
+            <div class="amt">$22.40</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="float-card float-1">
+        <div class="fc-ic" style="background:rgba(18,179,154,.14)">✓</div>
+        <div><div class="fc-t">Split confirmed</div><div class="fc-s">$18.40 each · settled</div></div>
+      </div>
+      <div class="float-card float-2">
+        <div class="ring"><i>68%</i></div>
+        <div><div class="fc-t">Lisbon trip</div><div class="fc-s">$2,600 of $4,000</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<section class="logos">
+  <div class="wrap">
+    <p>Couples budgeting with Hearth</p>
+    <div class="logo-row">
+      <span>The Knot Weekly</span>
+      <span>Financed</span>
+      <span>House &amp; Home</span>
+      <span>Money Today</span>
+      <span>TwoOfUs</span>
+      <span>Wedlock</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Everything in one hearth</span>
+      <h2>Finally, finances that feel like a team sport</h2>
+      <p>Two incomes, two spending styles, one plan. Hearth quietly handles the maths so you can get back to the good stuff.</p>
+    </div>
+
+    <div class="bento">
+      <div class="card c-1 rv">
+        <div class="ic" style="background:rgba(255,106,90,.13)">🤝</div>
+        <h3>Split any bill in two taps</h3>
+        <p>Snap a receipt or tap a contact — Hearth works out the fairest split, down to the cent. Uneven contributions? It handles that too, without making you do algebra at dinner.</p>
+        <div class="mini-ui">
+          <div class="mini-line">
+            <div class="emo">🍜</div>
+            <div><div class="t">Ramen for two</div><div class="s">Shared expense · today</div></div>
+            <div class="right">$38.50</div>
+          </div>
+          <div class="mini-line">
+            <div class="emo">🎬</div>
+            <div><div class="t">Cinema tickets</div><div class="s">Alex $14 · Sam $10</div></div>
+            <div class="right neg">$24.00</div>
+          </div>
+          <div class="mini-line">
+            <div class="emo">🛋️</div>
+            <div><div class="t">New sofa</div><div class="s">70 / 30 split</div></div>
+            <div class="right neg">$840.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card c-2 rv">
+        <div class="ic" style="background:rgba(18,179,154,.13)">🎯</div>
+        <h3>Goals you chase together</h3>
+        <p>Set one shared goal, watch the bar fill up, and celebrate the finish line together.</p>
+        <div class="charts">
+          <div class="bar" style="height:32%"><span>Jan</span></div>
+          <div class="bar" style="height:44%"></div>
+          <div class="bar" style="height:58%"></div>
+          <div class="bar" style="height:72%"></div>
+          <div class="bar" style="height:88%"></div>
+          <div class="bar" style="height:100%;background:linear-gradient(180deg,#12b39a,rgba(18,179,154,.3))"><span>Now</span></div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="dot" style="background:#ffb489"></span>Lisbon · $2,600 saved</span>
+          <span><span class="dot" style="background:#12b39a"></span>Emergency fund</span>
+        </div>
+      </div>
+
+      <div class="card c-3 rv">
+        <div class="ic" style="background:rgba(122,90,248,.13)">💬</div>
+        <h3>Nudges, not lectures</h3>
+        <p>Weekly check-ins that take 30 seconds, and gentle reminders instead of guilt trips. Set the tone, we keep it warm.</p>
+      </div>
+
+      <div class="card c-4 rv">
+        <div class="ic" style="background:rgba(255,255,255,.1)">🔒</div>
+        <h3>Private by default</h3>
+        <p>Your money is nobody else's business. Bank-grade encryption (256-bit AES), read-only account connections, and no selling your data. Ever. Only the two of you can see what you share.</p>
+        <div class="mini-ui">
+          <div class="mini-line"><div class="emo">🏦</div><div><div class="t">Connected accounts</div><div class="s">256-bit AES encryption</div></div><div class="right">3 linked</div></div>
+          <div class="mini-line"><div class="emo">🛡️</div><div><div class="t">Data sold to third parties</div><div class="s">Our promise, in writing</div></div><div class="right" style="color:#5fe0cc">Never</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="sec steps-sec" id="how">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">How it works</span>
+      <h2>Set up in a coffee break</h2>
+      <p>No spreadsheet degree required. Most couples are budgeting together in under four minutes.</p>
+    </div>
+    <div class="steps">
+      <div class="step rv">
+        <div class="step-num">1</div>
+        <h3>Connect your accounts</h3>
+        <p>Link your bank accounts in seconds. Hearth imports 12 months of history so you can see where you actually spend — not where you think you do.</p>
+      </div>
+      <div class="step rv">
+        <div class="step-num">2</div>
+        <h3>Agree on your rhythm</h3>
+        <p>Set a shared spending pot, decide how bills split, and pick a weekly check-in day. Hearth does the tracking so neither of you has to be "the responsible one".</p>
+      </div>
+      <div class="step rv">
+        <div class="step-num">3</div>
+        <h3>Make plans, not spreadsheets</h3>
+        <p>Save for the trip, the sofa, the emergency fund. When you both add a little, the goal moves — and so does the good feeling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="wrap stat-grid">
+    <div class="stat rv"><b>48k+</b><span>Couples budgeting together</span></div>
+    <div class="stat rv"><b>$19M</b><span>Split without a single argument</span></div>
+    <div class="stat rv"><b>4.9★</b><span>Average store rating</span></div>
+    <div class="stat rv"><b>4 min</b><span>Median setup time</span></div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="sec" id="reviews">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Real couples</span>
+      <h2>Less fighting, more together</h2>
+      <p>Thousands of couples have stopped guessing and started planning. Here's what changed.</p>
+    </div>
+    <div class="quotes">
+      <div class="quote rv">
+        <div class="qmark">“</div>
+        <p>We used to have a money fight every Sunday night. Now we open Hearth on the sofa with tea and we're done in five minutes. We bought a house last year.</p>
+        <div class="qperson">
+          <div class="av2" style="background:linear-gradient(135deg,#ff8a63,#ff6a5a)">A</div>
+          <div><b>Aisha &amp; Tom</b><span>Bristol · together 6 years</span></div>
+        </div>
+      </div>
+      <div class="quote rv">
+        <div class="qmark">“</div>
+        <p>The split feature is genius. I pay for everything, he pays for everything else, and Hearth just quietly levels it up so we both feel like we're contributing equally.</p>
+        <div class="qperson">
+          <div class="av2" style="background:linear-gradient(135deg,#7a5af8,#5b3fd6)">J</div>
+          <div><b>Jess &amp; Marco</b><span>Toronto · together 3 years</span></div>
+        </div>
+      </div>
+      <div class="quote rv">
+        <div class="qmark">“</div>
+        <p>We saved $4,000 for a wedding in nine months without skipping a single coffee. The goal bar was weirdly addictive — we'd both rush to be the first to add money.</p>
+        <div class="qperson">
+          <div class="av2" style="background:linear-gradient(135deg,#4ecdc4,#12b39a)">S</div>
+          <div><b>Sofia &amp; Dan</b><span>Lisbon · together 2 years</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="sec pricing-sec" id="pricing">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Pricing</span>
+      <h2>One plan. Both of you. No surprises.</h2>
+      <p>Start free, upgrade when you're ready. Cancel anytime — but you won't want to.</p>
+    </div>
+
+    <div style="text-align:center" class="rv">
+      <div class="toggle" id="billingToggle" role="group" aria-label="Billing period">
+        <button class="on" data-period="monthly">Monthly</button>
+        <button data-period="yearly">Yearly <span class="save">−30%</span></button>
+      </div>
+    </div>
+
+    <div class="plans">
+      <div class="plan rv">
+        <h3>Kindling</h3>
+        <p class="desc">Everything you need to start sharing money calmly.</p>
+        <div class="price"><span class="amt" data-monthly="0" data-yearly="0">$0</span><span class="per">/ forever</span></div>
+        <ul>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 shared budget</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited splits</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 savings goal</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Weekly check-in</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="#start">Get started</a>
+      </div>
+
+      <div class="plan pop rv">
+        <span class="tag">Most popular</span>
+        <h3>Hearth</h3>
+        <p class="desc">The full picture, together — unlimited goals and real insight.</p>
+        <div class="price"><span class="amt" data-monthly="9" data-yearly="6">$9</span><span class="per">/ month, per couple</span></div>
+        <ul>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#5fe0cc" opacity=".18"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#5fe0cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Kindling</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#5fe0cc" opacity=".18"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#5fe0cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited savings goals</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#5fe0cc" opacity=".18"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#5fe0cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Spending insights &amp; forecasts</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#5fe0cc" opacity=".18"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#5fe0cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Shared wishlists &amp; shopping</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#5fe0cc" opacity=".18"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#5fe0cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority support</li>
+        </ul>
+        <a class="btn btn-coral btn-block" href="#start">Start 30-day free trial</a>
+      </div>
+
+      <div class="plan rv">
+        <h3>Hearth Plus</h3>
+        <p class="desc">For couples who want a serious head start on the rest of life.</p>
+        <div class="price"><span class="amt" data-monthly="19" data-yearly="13">$19</span><span class="per">/ month, per couple</span></div>
+        <ul>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Hearth</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Net-worth forecasting</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Investment &amp; property tracking</li>
+          <li><svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#12b39a" opacity=".15"/><path d="M6 10.2l2.6 2.6L14 7.4" stroke="#12b39a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 1:1 advisor session each quarter</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="#start">Start 30-day free trial</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec" id="faq">
+  <div class="wrap faq-grid">
+    <div class="sec-head left rv" style="margin-bottom:0">
+      <span class="eyebrow">FAQ</span>
+      <h2>Questions, answered</h2>
+      <p style="margin-bottom:22px">Still curious? Our support team is made of humans who like spreadsheets a little too much. Write to <a href="mailto:hello@hearth.app" style="color:var(--coral-dark);text-decoration:underline">hello@hearth.app</a>.</p>
+    </div>
+    <div class="rv">
+      <details open>
+        <summary>Do we both need our own account?<span class="plus"></span></summary>
+        <p>Yes — and it's the point. Each of you gets a private login, and you link your accounts together into one shared household budget. You both see the same picture, and you can each add expenses, set a private category, or snooze a reminder without the other seeing a thing.</p>
+      </details>
+      <details>
+        <summary>How does the bill splitting actually work?<span class="plus"></span></summary>
+        <p>Tap a receipt, and Hearth suggests a split based on what you usually order, who's home more, or a straight 50/50 — you decide. It handles unequal contributions, rounding, shared subscriptions and one-off splurges. Everything is adjustable before it posts.</p>
+      </details>
+      <details>
+        <summary>What if we have very different incomes?<span class="plus"></span></summary>
+        <p>Plenty of couples do. Hearth lets you set a shared spending pot funded proportionally to income, or equally — whichever feels fairer to you. There's no default assumption about whose money is "ours", and no percentage-of-income warnings we don't ask for.</p>
+      </details>
+      <details>
+        <summary>Is my financial data safe?<span class="plus"></span></summary>
+        <p>Connections are read-only and encrypted with 256-bit AES, secured with bank-grade tokenisation. We never sell your data, and we don't run ads. You can revoke access or delete your account at any time, and we'll wipe your data within 30 days.</p>
+      </details>
+      <details>
+        <summary>Can I use Hearth for just one account?<span class="plus"></span></summary>
+        <p>Absolutely. Plenty of people start solo, add their partner later, or keep Hearth purely as a shared goal tracker. The free plan works on its own for as long as you like.</p>
+      </details>
+      <details>
+        <summary>What happens after the free trial?<span class="plus"></span></summary>
+        <p>You'll drop to the free Kindling plan — no card charged, no features disabled mid-month. Upgrade whenever you want, and we'll prorate instantly. Yearly billing saves you 30%.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec" id="start" style="padding-top:20px">
+  <div class="wrap">
+    <div class="cta-band rv">
+      <h2>Let's make money the easy part</h2>
+      <p>Join 48,000 couples budgeting side by side. Free for 30 days, no card required.</p>
+      <form class="signup" id="signupForm2" novalidate>
+        <input type="email" name="email" placeholder="you@email.com" aria-label="Email address" required>
+        <button class="btn btn-coral btn-lg" type="submit">Create our shared budget</button>
+      </form>
+      <div class="micro">🔒 Secure &amp; private · Works with 12,000+ banks · Cancel anytime</div>
+      <div class="cta-note">Hearts included.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="f-grid">
+      <div class="f-brand">
+        <a class="brand" href="#">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="12" cy="16" r="8.5" fill="none" stroke="#ff6a5a" stroke-width="3"/>
+            <circle cx="20" cy="16" r="8.5" fill="none" stroke="#12b39a" stroke-width="3"/>
+          </svg>
+          Hearth
+        </a>
+        <p>Budgeting for two, better. Made with care for couples who want to build something together.</p>
+        <div class="socials">
+          <a href="#" aria-label="Twitter"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.9c-.7.3-1.5.5-2.4.6.8-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.6a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.6 3.3 4-.6.2-1.3.2-1.9.1a4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.4a11.6 11.6 0 0 0 6.3 1.9c7.5 0 11.7-6.3 11.7-11.7v-.6c.8-.6 1.5-1.3 2-2.1z"/></svg></a>
+          <a href="#" aria-label="Instagram"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+          <a href="#" aria-label="App Store"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.3-2.5 1.3-2.6 0 0-2.5-1-2.5-3.9zM14.2 5.9c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg></a>
+        </div>
+      </div>
+      <div class="f-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#">Changelog</a>
+        <a href="#">Bank connections</a>
+        <a href="#">Download the app</a>
+      </div>
+      <div class="f-col">
+        <h4>Company</h4>
+        <a href="#">About us</a>
+        <a href="#">Careers</a>
+        <a href="#">Press kit</a>
+        <a href="#">Blog</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="f-col">
+        <h4>Support</h4>
+        <a href="#faq">Help centre</a>
+        <a href="#">Getting started</a>
+        <a href="#">Community</a>
+        <a href="#">Status</a>
+      </div>
+      <div class="f-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Security</a>
+        <a href="#">Licences</a>
+      </div>
+    </div>
+    <div class="f-bottom">
+      <span>© 2024 Hearth Money Ltd. Made for two.</span>
+      <span>Not a bank. Hearth is a budgeting tool, not a financial institution.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Sticky nav shadow
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll(); window.addEventListener('scroll', onScroll, {passive:true});
+
+  // Mobile menu
+  const burger = document.getElementById('burger');
+  const menu = document.getElementById('mobileMenu');
+  burger.addEventListener('click', () => {
+    const open = menu.classList.toggle('open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    menu.classList.remove('open');
+    burger.setAttribute('aria-expanded','false');
+  }));
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        const delay = Number(e.target.dataset.delay || 0);
+        setTimeout(() => e.target.classList.add('in'), delay);
+        io.unobserve(e.target);
+      }
+    });
+  }, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.rv').forEach((el, i) => {
+    el.dataset.delay = (i % 4) * 70;
+    io.observe(el);
+  });
+
+  // Billing toggle
+  const toggle = document.getElementById('billingToggle');
+  toggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    const period = btn.dataset.period;
+    toggle.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.plan .price .amt').forEach(el => {
+      el.textContent = '$' + el.dataset[period];
+      el.animate([{opacity:.2, transform:'translateY(-6px)'},{opacity:1,transform:'none'}],{duration:260,easing:'cubic-bezier(.2,.8,.3,1)'});
+    });
+  });
+
+  // Fake signup
+  function handleSignup(e){
+    e.preventDefault();
+    const input = e.target.querySelector('input');
+    const val = input.value.trim();
+    if(!val || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val)){
+      input.focus();
+      input.style.borderColor = '#ff6a5a';
+      setTimeout(()=>input.style.borderColor='', 1600);
+      return;
+    }
+    const btn = e.target.querySelector('button');
+    const original = btn.textContent;
+    btn.textContent = '✓ Invite sent!';
+    btn.disabled = true;
+    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; input.value=''; }, 2600);
+  }
+  document.getElementById('signupForm').addEventListener('submit', handleSignup);
+  document.getElementById('signupForm2').addEventListener('submit', handleSignup);
+
+  // Smooth scroll offset
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href');
+      if(id.length < 2) return;
+      const t = document.querySelector(id);
+      if(!t) return;
+      e.preventDefault();
+      const y = t.getBoundingClientRect().top + window.scrollY - 78;
+      window.scrollTo({top:y, behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>

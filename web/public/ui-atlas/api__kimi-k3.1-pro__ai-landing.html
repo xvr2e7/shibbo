@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Murmur is the AI note-taking app that turns voice notes, quick thoughts, and meetings into clear, connected notes.">
+  <meta name="theme-color" content="#f7f6f1">
+  <title>Murmur — Catch the thought. Keep the clarity.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%237365df'/%3E%3Cpath d='M10 25v-9m5 13V11m5 14V14m5 11v-9m5 7v-5' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --paper: #f7f6f1;
+      --paper-deep: #efede6;
+      --white: #fffefa;
+      --ink: #24212c;
+      --muted: #706c77;
+      --purple: #7365df;
+      --purple-dark: #5e4fc9;
+      --lilac: #e8e2ff;
+      --peach: #f2e5d2;
+      --green: #dceccf;
+      --line: rgba(36, 33, 44, 0.12);
+      --shadow: 0 24px 70px rgba(47, 39, 75, 0.13);
+      --radius: 28px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 100px;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body, button, input { font-family: "DM Sans", sans-serif; }
+    button, input { font-size: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; }
+    p, h1, h2, h3, h4, blockquote { margin-top: 0; }
+    [hidden] { display: none !important; }
+
+    ::selection { background: #cec4ff; color: var(--ink); }
+
+    :focus-visible {
+      outline: 3px solid rgba(115, 101, 223, 0.5);
+      outline-offset: 4px;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: white;
+      transform: translateY(-150%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .container {
+      width: min(1200px, calc(100% - 48px));
+      margin-inline: auto;
+    }
+
+    .section { padding: 116px 0; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 20px;
+      color: var(--purple-dark);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.17em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .serif {
+      font-family: "Instrument Serif", serif;
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .section-title {
+      margin-bottom: 0;
+      font-size: clamp(40px, 4.6vw, 60px);
+      font-weight: 500;
+      letter-spacing: -0.055em;
+      line-height: 1.04;
+    }
+
+    .section-title .serif {
+      color: var(--purple);
+      letter-spacing: -0.035em;
+    }
+
+    .section-intro {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 70px;
+      align-items: end;
+    }
+
+    .section-intro > p {
+      max-width: 410px;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 55px;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      padding: 0 23px;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-primary {
+      background: var(--ink);
+      color: white;
+      box-shadow: 0 8px 20px rgba(36, 33, 44, 0.14);
+    }
+
+    .btn-primary:hover {
+      background: #342e43;
+      box-shadow: 0 12px 26px rgba(36, 33, 44, 0.2);
+    }
+
+    .btn-secondary {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--ink);
+    }
+
+    .btn-secondary:hover { background: white; }
+
+    .btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+
+    /* Navigation */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(36, 33, 44, 0.07);
+      background: rgba(247, 246, 241, 0.88);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-wrap {
+      display: flex;
+      height: 82px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: -0.055em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      color: var(--ink);
+      transition: transform 250ms ease;
+    }
+
+    .brand:hover .brand-mark { transform: rotate(-6deg); }
+
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-left: auto;
+      margin-right: 22px;
+    }
+
+    .nav-link {
+      position: relative;
+      padding: 10px 0;
+      color: #595560;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .nav-link::after {
+      position: absolute;
+      right: 0;
+      bottom: 4px;
+      left: 0;
+      height: 1px;
+      background: var(--purple);
+      content: "";
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 200ms ease;
+    }
+
+    .nav-link:hover { color: var(--ink); }
+    .nav-link:hover::after { transform: scaleX(1); transform-origin: left; }
+
+    .header-actions { display: flex; align-items: center; gap: 20px; }
+    .header-login { font-size: 13px; font-weight: 500; }
+    .header-login:hover { color: var(--purple-dark); }
+
+    .nav-cta {
+      min-height: 43px;
+      padding: 0 17px;
+      border-radius: 11px;
+      font-size: 12px;
+    }
+
+    .menu-toggle {
+      display: none;
+      width: 43px;
+      height: 43px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .menu-toggle svg { width: 21px; height: 21px; }
+
+    .mobile-menu {
+      padding: 0 24px 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .mobile-menu nav { display: grid; }
+
+    .mobile-menu a:not(.btn) {
+      padding: 16px 2px;
+      border-bottom: 1px solid var(--line);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .mobile-menu .btn { width: 100%; margin-top: 18px; }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      padding: 76px 0 98px;
+    }
+
+    .hero::before {
+      position: absolute;
+      top: -100px;
+      left: -220px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 226, 255, 0.55), transparent 68%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.07fr) minmax(440px, 0.93fr);
+      gap: 62px;
+      align-items: center;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+      animation: enter-up 650ms both;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px 8px 9px;
+      border: 1px solid rgba(115, 101, 223, 0.15);
+      border-radius: 100px;
+      background: #eee9ff;
+      color: #5a4db5;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.035em;
+    }
+
+    .hero-badge-icon {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--purple);
+      color: white;
+    }
+
+    .hero-badge-icon svg { width: 12px; height: 12px; }
+
+    .hero h1 {
+      max-width: 680px;
+      margin: 27px 0 26px;
+      font-size: clamp(58px, 6.1vw, 80px);
+      font-weight: 500;
+      letter-spacing: -0.07em;
+      line-height: 0.98;
+    }
+
+    .hero h1 .serif {
+      display: block;
+      margin-top: 5px;
+      color: var(--purple);
+      font-size: 1.08em;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-subtitle {
+      max-width: 540px;
+      margin-bottom: 30px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.72;
+    }
+
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .play-circle {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lilac);
+      color: var(--purple-dark);
+    }
+
+    .play-circle svg { width: 11px; height: 11px; }
+
+    .trust-row {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-top: 33px;
+    }
+
+    .avatar-stack { display: flex; padding-left: 8px; }
+
+    .avatar {
+      display: grid;
+      width: 33px;
+      height: 33px;
+      margin-left: -8px;
+      place-items: center;
+      border: 2px solid var(--paper);
+      border-radius: 50%;
+      color: #433b51;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .avatar:nth-child(1) { background: #e6c8b3; }
+    .avatar:nth-child(2) { background: #c9d9ec; }
+    .avatar:nth-child(3) { background: #d9c8ec; }
+    .avatar:nth-child(4) { background: #d5e4ba; }
+
+    .trust-copy { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .trust-copy strong { color: var(--ink); font-weight: 600; }
+    .stars { color: var(--purple); font-size: 11px; letter-spacing: 1px; }
+
+    .hero-visual {
+      position: relative;
+      min-height: 570px;
+      display: flex;
+      align-items: center;
+      padding: 30px 0 48px;
+      animation: enter-up 750ms 100ms both;
+    }
+
+    .visual-halo {
+      position: absolute;
+      inset: 1% -10% 2% -8%;
+      border-radius: 46% 54% 58% 42% / 43% 39% 61% 57%;
+      background: #e8e2fb;
+      transform: rotate(-7deg);
+    }
+
+    .visual-halo::after {
+      position: absolute;
+      right: 10%;
+      bottom: 7%;
+      width: 78px;
+      height: 78px;
+      border: 1px dashed rgba(115, 101, 223, 0.35);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .app-window {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid rgba(57, 47, 84, 0.13);
+      border-radius: 23px;
+      background: var(--white);
+      box-shadow: var(--shadow);
+      transform: rotate(1.3deg);
+      transition: transform 350ms ease;
+    }
+
+    .hero-visual:hover .app-window { transform: rotate(0deg) translateY(-3px); }
+
+    .window-toolbar {
+      display: flex;
+      height: 47px;
+      align-items: center;
+      gap: 12px;
+      padding: 0 15px;
+      border-bottom: 1px solid #eceaf0;
+      background: #fbfafc;
+    }
+
+    .window-dots { display: flex; gap: 5px; }
+    .window-dots span { width: 7px; height: 7px; border-radius: 50%; background: #d9d5df; }
+    .window-dots span:first-child { background: #e9b5a8; }
+    .window-dots span:nth-child(2) { background: #ead69b; }
+    .window-dots span:nth-child(3) { background: #b9d7b5; }
+
+    .window-title {
+      margin: auto;
+      color: #8a8491;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      transform: translateX(-10px);
+    }
+
+    .mini-avatar {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      border-radius: 50%;
+      background: #d8cff6;
+      color: #564893;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .window-layout {
+      display: grid;
+      grid-template-columns: 105px 1fr;
+      min-height: 457px;
+    }
+
+    .app-sidebar {
+      padding: 20px 11px;
+      border-right: 1px solid #eeecf1;
+      background: #faf9fc;
+    }
+
+    .workspace {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 5px 23px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .workspace-icon {
+      display: grid;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--ink);
+      color: white;
+      font-family: "Instrument Serif", serif;
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    .side-label {
+      margin: 0 7px 8px;
+      color: #aaa4af;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .side-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+      padding: 8px 7px;
+      border-radius: 7px;
+      color: #8a8490;
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .side-item svg { width: 11px; height: 11px; }
+    .side-item.active { background: #ebe6fb; color: #6151b8; font-weight: 600; }
+
+    .app-main { padding: 25px 25px 22px; }
+
+    .note-date {
+      margin-bottom: 9px;
+      color: #97909d;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .note-title {
+      max-width: 310px;
+      margin-bottom: 12px;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: -0.045em;
+      line-height: 1.08;
+    }
+
+    .note-intro {
+      margin-bottom: 17px;
+      color: #827c87;
+      font-size: 10px;
+      line-height: 1.55;
+    }
+
+    .voice-snippet {
+      padding: 12px 13px;
+      border: 1px solid #e4ddf8;
+      border-radius: 11px;
+      background: #f2effc;
+    }
+
+    .voice-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+      color: #6758ae;
+      font-size: 8px;
+      font-weight: 600;
+    }
+
+    .voice-name { display: flex; align-items: center; gap: 6px; }
+    .voice-name svg { width: 11px; height: 11px; }
+
+    .waveform {
+      display: flex;
+      height: 28px;
+      align-items: center;
+      gap: 3px;
+      overflow: hidden;
+    }
+
+    .waveform span {
+      width: 3px;
+      height: calc(var(--h) * 1px);
+      flex: 1;
+      max-width: 4px;
+      border-radius: 5px;
+      background: #9a89e9;
+      transform-origin: center;
+    }
+
+    .voice-snippet.recording .waveform span {
+      animation: sound-wave 650ms ease-in-out infinite alternate;
+      animation-delay: calc(var(--i) * -55ms);
+    }
+
+    .transcript {
+      min-height: 34px;
+      margin: 13px 1px 12px;
+      color: #716a78;
+      font-size: 9.5px;
+      line-height: 1.65;
+    }
+
+    .transcript mark { padding: 1px 2px; background: #ece6ff; color: #5848a0; }
+
+    .ai-summary {
+      position: relative;
+      padding: 12px 13px;
+      border: 1px solid #ebe6dc;
+      border-radius: 11px;
+      background: #fffdf7;
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+
+    .ai-summary.processing { opacity: 0.62; }
+    .ai-summary.ready { animation: summary-pop 400ms ease; }
+
+    .ai-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 6px;
+      color: #81754e;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .ai-label svg { width: 10px; height: 10px; }
+
+    .summary-text {
+      margin-bottom: 8px;
+      color: #4a444e;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .note-tags { display: flex; gap: 5px; }
+    .note-tag { padding: 3px 6px; border-radius: 4px; background: #f0ecdf; color: #8a816c; font-size: 6.5px; }
+
+    .demo-control {
+      display: flex;
+      width: 100%;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 13px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--ink);
+      color: white;
+      font-size: 8.5px;
+      font-weight: 600;
+      transition: background 180ms ease;
+    }
+
+    .demo-control:hover { background: var(--purple-dark); }
+    .demo-control[aria-pressed="true"] { background: var(--purple); }
+    .demo-control svg { width: 11px; height: 11px; }
+
+    .floating-capture {
+      position: absolute;
+      top: 20px;
+      right: -26px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 14px 11px 10px;
+      border: 1px solid rgba(36, 33, 44, 0.08);
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 12px 30px rgba(48, 41, 69, 0.13);
+      color: #5f5865;
+      font-size: 9px;
+      transform: rotate(3deg);
+    }
+
+    .capture-check {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--green);
+      color: #527047;
+    }
+
+    .capture-check svg { width: 13px; height: 13px; }
+    .floating-capture strong { display: block; margin-bottom: 2px; color: var(--ink); font-size: 10px; }
+
+    .floating-insight {
+      position: absolute;
+      bottom: 8px;
+      left: -35px;
+      z-index: 4;
+      width: 186px;
+      padding: 15px;
+      border: 1px solid rgba(36, 33, 44, 0.08);
+      border-radius: 15px;
+      background: white;
+      box-shadow: 0 14px 35px rgba(48, 41, 69, 0.14);
+      transform: rotate(-3deg);
+    }
+
+    .insight-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+    .insight-top span:first-child { color: #918a96; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .insight-spark {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lilac);
+      color: var(--purple);
+    }
+
+    .insight-spark svg { width: 12px; height: 12px; }
+    .insight-number { margin-bottom: 3px; font-size: 25px; font-weight: 600; letter-spacing: -0.05em; }
+    .insight-copy { margin: 0; color: #7a737f; font-size: 9px; }
+    .insight-topics { display: flex; gap: 4px; margin-top: 11px; }
+    .insight-topics span { width: 7px; height: 7px; border-radius: 50%; background: var(--purple); }
+    .insight-topics span:nth-child(2) { background: #d2ae77; }
+    .insight-topics span:nth-child(3) { background: #8fb79a; }
+
+    /* Thought stream */
+    .thought-stream { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+    .stream-inner {
+      display: flex;
+      min-height: 94px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    .stream-label { max-width: 130px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+    .stream-items {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 34px;
+      flex: 1;
+    }
+
+    .stream-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #5d5762;
+      font-family: "Instrument Serif", serif;
+      font-size: 20px;
+      font-style: italic;
+      white-space: nowrap;
+    }
+
+    .stream-item::before { width: 5px; height: 5px; border-radius: 50%; background: #b2a5e9; content: ""; }
+
+    /* Feature bento */
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+      margin-top: 52px;
+    }
+
+    .feature-card {
+      position: relative;
+      overflow: hidden;
+      padding: 33px;
+      border: 1px solid rgba(36, 33, 44, 0.08);
+      border-radius: var(--radius);
+      transition: transform 250ms ease, box-shadow 250ms ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 45px rgba(45, 38, 62, 0.08);
+    }
+
+    .feature-voice { grid-column: span 7; min-height: 465px; background: var(--lilac); }
+    .feature-search { grid-column: span 5; min-height: 465px; background: var(--white); }
+    .feature-connect { grid-column: span 5; min-height: 355px; background: #282330; color: white; }
+    .feature-privacy { grid-column: span 7; min-height: 355px; background: var(--peach); }
+
+    .feature-icon {
+      display: grid;
+      width: 41px;
+      height: 41px;
+      margin-bottom: 23px;
+      place-items: center;
+      border: 1px solid rgba(36, 33, 44, 0.09);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--purple-dark);
+    }
+
+    .feature-icon svg { width: 19px; height: 19px; }
+
+    .feature-card h3 {
+      margin-bottom: 11px;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: -0.045em;
+      line-height: 1.12;
+    }
+
+    .feature-card .feature-description {
+      max-width: 475px;
+      margin-bottom: 0;
+      color: #6e6679;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .voice-demo {
+      display: grid;
+      grid-template-columns: 1fr 31px 1fr;
+      gap: 11px;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    .raw-thought, .clean-thought {
+      min-height: 166px;
+      padding: 19px;
+      border: 1px solid rgba(70, 56, 110, 0.09);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .clean-thought { background: rgba(255, 255, 255, 0.9); box-shadow: 0 12px 25px rgba(79, 62, 130, 0.08); }
+
+    .mini-label {
+      display: block;
+      margin-bottom: 12px;
+      color: #8b7fac;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .raw-thought p {
+      margin-bottom: 17px;
+      color: #756c82;
+      font-family: "Instrument Serif", serif;
+      font-size: 17px;
+      font-style: italic;
+      line-height: 1.3;
+    }
+
+    .mini-wave { display: flex; height: 18px; align-items: center; gap: 3px; }
+    .mini-wave span { width: 3px; border-radius: 3px; background: #b2a4dd; }
+    .mini-wave span:nth-child(1), .mini-wave span:nth-child(7) { height: 5px; }
+    .mini-wave span:nth-child(2), .mini-wave span:nth-child(6) { height: 11px; }
+    .mini-wave span:nth-child(3), .mini-wave span:nth-child(8) { height: 16px; }
+    .mini-wave span:nth-child(4) { height: 9px; }
+    .mini-wave span:nth-child(5) { height: 14px; }
+
+    .transform-arrow {
+      display: grid;
+      width: 31px;
+      height: 31px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--purple);
+      color: white;
+      box-shadow: 0 5px 12px rgba(115, 101, 223, 0.25);
+    }
+
+    .transform-arrow svg { width: 14px; height: 14px; }
+
+    .clean-thought .mini-label { display: flex; align-items: center; gap: 5px; color: var(--purple-dark); }
+    .clean-thought .mini-label svg { width: 10px; height: 10px; }
+    .clean-thought h4 { margin-bottom: 10px; font-size: 18px; letter-spacing: -0.035em; }
+    .clean-thought ul { margin: 0; padding: 0; list-style: none; color: #6e6675; font-size: 10px; line-height: 1.9; }
+    .clean-thought li { display: flex; align-items: center; gap: 7px; }
+    .clean-thought li::before { width: 4px; height: 4px; border-radius: 50%; background: var(--purple); content: ""; }
+
+    .feature-search .feature-icon { background: #f0ecfb; }
+
+    .search-visual { margin-top: 32px; }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 15px;
+      border: 1px solid #ded9e6;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 7px 18px rgba(47, 40, 62, 0.06);
+      color: #514b57;
+      font-size: 11px;
+    }
+
+    .search-box svg { width: 15px; height: 15px; color: var(--purple); flex: 0 0 auto; }
+    .search-cursor { width: 1px; height: 14px; margin-left: -5px; background: var(--purple); animation: blink 1.1s step-end infinite; }
+
+    .answer-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 20px 0 10px;
+      color: #968e9e;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .answer-label svg { width: 11px; height: 11px; color: var(--purple); }
+
+    .search-result {
+      padding: 16px;
+      border: 1px solid #ebe7ef;
+      border-radius: 13px;
+      background: #faf8fd;
+    }
+
+    .result-title { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 11px; font-weight: 600; }
+    .result-doc { width: 20px; height: 24px; border-radius: 5px; background: var(--lilac); position: relative; }
+    .result-doc::before, .result-doc::after { position: absolute; left: 5px; width: 10px; height: 1px; background: #9b8bd3; content: ""; }
+    .result-doc::before { top: 8px; }
+    .result-doc::after { top: 12px; }
+    .search-result p { margin: 0; color: #807886; font-size: 9px; line-height: 1.65; }
+    .search-result mark { background: #e5dcff; color: #5f50a5; }
+    .result-date { display: block; margin-top: 10px; color: #aaa2af; font-size: 7px; }
+
+    .feature-connect .feature-icon { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.08); color: #cfc3ff; }
+    .feature-connect .feature-description { color: #aaa3b2; }
+
+    .constellation { position: relative; height: 145px; margin-top: 20px; }
+    .connection-lines { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; }
+
+    .node {
+      position: absolute;
+      z-index: 2;
+      padding: 8px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      background: #383141;
+      color: #d7d0df;
+      font-size: 9px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .node.one { top: 12px; left: 2%; transform: rotate(-3deg); }
+    .node.two { top: 4px; right: 0; transform: rotate(3deg); }
+    .node.three { right: 12%; bottom: 3px; transform: rotate(-2deg); }
+
+    .node-center {
+      position: absolute;
+      top: 52px;
+      left: 42%;
+      z-index: 3;
+      display: grid;
+      width: 47px;
+      height: 47px;
+      place-items: center;
+      border: 5px solid #302838;
+      border-radius: 15px;
+      background: var(--purple);
+      color: white;
+      box-shadow: 0 0 0 1px rgba(207, 195, 255, 0.25), 0 8px 25px rgba(115, 101, 223, 0.3);
+    }
+
+    .node-center svg { width: 22px; height: 22px; }
+
+    .privacy-content {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 30px;
+      align-items: center;
+      min-height: 285px;
+    }
+
+    .feature-privacy .feature-icon { background: rgba(255, 255, 255, 0.5); color: #806e4d; }
+    .feature-privacy .feature-description { color: #756a5c; }
+
+    .privacy-panel {
+      padding: 9px 18px;
+      border: 1px solid rgba(91, 74, 48, 0.09);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: 0 12px 30px rgba(98, 77, 45, 0.06);
+    }
+
+    .privacy-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(91, 74, 48, 0.09);
+    }
+
+    .privacy-row:last-child { border-bottom: 0; }
+    .privacy-row > svg { width: 16px; height: 16px; color: #897855; flex: 0 0 auto; }
+    .privacy-row strong { display: block; margin-bottom: 3px; font-size: 10px; font-weight: 600; }
+    .privacy-row small { display: block; color: #8b7e6b; font-size: 8px; }
+
+    .privacy-status {
+      margin-left: auto;
+      padding: 5px 8px;
+      border-radius: 100px;
+      background: #dfe9d5;
+      color: #5a7250;
+      font-size: 7px;
+      font-weight: 700;
+    }
+
+    /* How it works */
+    .how-section { padding-top: 20px; }
+
+    .how-inner {
+      padding: 82px 66px 70px;
+      border: 1px solid rgba(36, 33, 44, 0.06);
+      border-radius: 38px;
+      background: #efede6;
+    }
+
+    .how-heading { max-width: 690px; margin: 0 auto 65px; text-align: center; }
+
+    .steps-grid { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 50px; }
+
+    .steps-grid::before {
+      position: absolute;
+      top: 42px;
+      right: 17%;
+      left: 17%;
+      border-top: 1px dashed #c8c1d3;
+      content: "";
+    }
+
+    .step { position: relative; z-index: 1; text-align: center; }
+
+    .step-icon {
+      position: relative;
+      display: grid;
+      width: 84px;
+      height: 84px;
+      margin: 0 auto 25px;
+      place-items: center;
+      border: 1px solid #dfdbe2;
+      border-radius: 25px;
+      background: var(--white);
+      color: var(--purple);
+      box-shadow: 0 10px 25px rgba(47, 40, 62, 0.06);
+      transition: transform 250ms ease;
+    }
+
+    .step:hover .step-icon { transform: translateY(-5px) rotate(-3deg); }
+    .step-icon > svg { width: 27px; height: 27px; }
+
+    .step-number {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      display: grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border: 3px solid #efede6;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .step h3 { margin-bottom: 10px; font-size: 22px; font-weight: 600; letter-spacing: -0.035em; }
+    .step p { max-width: 270px; margin: 0 auto 17px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .step-format { color: #91879d; font-size: 9px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
+    .how-footnote { margin: 50px 0 0; color: #8b838f; font-family: "Instrument Serif", serif; font-size: 20px; font-style: italic; text-align: center; }
+
+    /* Testimonials */
+    .stories-section { padding-bottom: 70px; }
+
+    .testimonial-shell {
+      position: relative;
+      overflow: hidden;
+      padding: 62px 68px 56px;
+      border-radius: 36px;
+      background: #282330;
+      color: white;
+    }
+
+    .testimonial-shell::before {
+      position: absolute;
+      top: -180px;
+      right: -100px;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(115, 101, 223, 0.35), transparent 67%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .testimonial-shell::after {
+      position: absolute;
+      right: 8%;
+      bottom: -110px;
+      width: 240px;
+      height: 240px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .quote-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    .quote-top .eyebrow { margin: 0; color: #c9bdf8; }
+    .quote-rating { display: flex; align-items: center; gap: 10px; color: #d7cfff; font-size: 11px; letter-spacing: 2px; }
+    .quote-rating span { color: #9f97a9; font-size: 9px; letter-spacing: 0; }
+
+    .testimonial-shell blockquote {
+      position: relative;
+      z-index: 1;
+      max-width: 1010px;
+      margin: 48px 0 47px;
+      font-size: clamp(38px, 4.6vw, 59px);
+      font-weight: 400;
+      letter-spacing: -0.055em;
+      line-height: 1.12;
+    }
+
+    .testimonial-shell blockquote .serif { color: #cfc3ff; }
+
+    .quote-footer { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+    .person { display: flex; align-items: center; gap: 13px; }
+    .person-avatar { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 50%; background: #d8c2ad; color: #493b34; font-size: 11px; font-weight: 700; }
+    .person strong { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; }
+    .person small { color: #a8a0b0; font-size: 10px; }
+
+    .quote-note {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      color: #b9b1c1;
+      font-size: 9px;
+    }
+
+    .quote-note svg { width: 13px; height: 13px; color: #cfc3ff; }
+
+    .testimonial-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+
+    .small-quote {
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .small-quote:nth-child(2) { background: #eee9ff; border-color: transparent; }
+    .small-quote p { min-height: 69px; margin-bottom: 20px; color: #5f5865; font-family: "Instrument Serif", serif; font-size: 20px; line-height: 1.35; }
+    .small-quote footer { color: #8a828e; font-size: 9px; }
+    .small-quote footer strong { color: var(--ink); font-weight: 600; }
+
+    /* FAQ */
+    .faq-section { padding-top: 80px; }
+    .faq-layout { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 95px; }
+    .faq-intro { align-self: start; position: sticky; top: 120px; }
+    .faq-intro .section-title { margin-bottom: 22px; }
+    .faq-intro p { max-width: 310px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .text-link { display: inline-flex; align-items: center; gap: 7px; color: var(--purple-dark); font-size: 12px; font-weight: 600; }
+    .text-link:hover { gap: 11px; }
+    .text-link svg { width: 14px; height: 14px; }
+
+    .faq-list { border-bottom: 1px solid var(--line); }
+    .faq-list details { border-top: 1px solid var(--line); }
+
+    .faq-list summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 25px 0;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      list-style: none;
+    }
+
+    .faq-list summary::-webkit-details-marker { display: none; }
+
+    .faq-plus {
+      position: relative;
+      width: 27px;
+      height: 27px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      transition: transform 200ms ease, background 200ms ease;
+    }
+
+    .faq-plus::before, .faq-plus::after {
+      position: absolute;
+      top: 12px;
+      left: 7px;
+      width: 11px;
+      height: 1px;
+      background: var(--ink);
+      content: "";
+    }
+
+    .faq-plus::after { transform: rotate(90deg); }
+    details[open] .faq-plus { background: var(--lilac); transform: rotate(45deg); }
+    .faq-answer { max-width: 600px; padding: 0 45px 25px 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
+    .faq-answer p { margin: 0; }
+
+    /* Signup */
+    .signup-section { padding: 25px 0 100px; }
+
+    .signup-card {
+      position: relative;
+      overflow: hidden;
+      padding: 78px 40px;
+      border-radius: 36px;
+      background: var(--purple);
+      color: white;
+      text-align: center;
+    }
+
+    .signup-card::before, .signup-card::after {
+      position: absolute;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .signup-card::before { top: -210px; left: -100px; width: 480px; height: 480px; }
+    .signup-card::after { right: -130px; bottom: -250px; width: 560px; height: 560px; }
+
+    .signup-symbol {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: 51px;
+      height: 51px;
+      margin: 0 auto 24px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.12);
+      transform: rotate(-5deg);
+    }
+
+    .signup-symbol svg { width: 25px; height: 25px; }
+    .signup-card .eyebrow { position: relative; z-index: 1; color: #e2dcff; }
+
+    .signup-card h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto 20px;
+      font-size: clamp(43px, 5.5vw, 66px);
+      font-weight: 500;
+      letter-spacing: -0.06em;
+      line-height: 1;
+    }
+
+    .signup-card h2 .serif { color: #e8e0ff; }
+    .signup-subtitle { position: relative; z-index: 1; margin-bottom: 29px; color: #e0daf8; font-size: 14px; }
+
+    .signup-form {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      max-width: 565px;
+      gap: 7px;
+      margin: 0 auto;
+      padding: 7px;
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 15px 35px rgba(66, 49, 144, 0.2);
+    }
+
+    .signup-form input {
+      min-width: 0;
+      flex: 1;
+      padding: 0 15px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .signup-form input::placeholder { color: #9b95a0; }
+    .signup-form .btn { min-height: 47px; border-radius: 11px; white-space: nowrap; }
+    .signup-form .btn:disabled { cursor: default; background: #4f7250; transform: none; }
+
+    .form-note { position: relative; z-index: 1; min-height: 18px; margin: 15px 0 0; color: #ddd6fa; font-size: 10px; }
+    .form-status { position: relative; z-index: 2; min-height: 18px; margin: 13px auto 0; color: white; font-size: 11px; font-weight: 500; }
+    .form-status:empty { display: none; }
+
+    /* Footer */
+    .site-footer { padding: 0 0 30px; }
+    .footer-top { display: flex; align-items: center; justify-content: space-between; gap: 35px; padding-bottom: 42px; }
+    .footer-brand p { margin: 10px 0 0; color: var(--muted); font-family: "Instrument Serif", serif; font-size: 17px; font-style: italic; }
+    .footer-nav { display: flex; flex-wrap: wrap; gap: 28px; }
+    .footer-nav a { color: #6d6672; font-size: 11px; }
+    .footer-nav a:hover { color: var(--purple-dark); }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 25px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: #938c97;
+      font-size: 9px;
+    }
+
+    .system-status { display: flex; align-items: center; gap: 7px; }
+    .system-status::before { width: 6px; height: 6px; border-radius: 50%; background: #82a574; box-shadow: 0 0 0 3px rgba(130, 165, 116, 0.13); content: ""; }
+
+    @keyframes enter-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes sound-wave {
+      from { transform: scaleY(0.35); }
+      to { transform: scaleY(1); }
+    }
+
+    @keyframes summary-pop {
+      0% { opacity: 0.5; transform: scale(0.98); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    @media (max-width: 1100px) {
+      .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(410px, 0.9fr); gap: 35px; }
+      .hero h1 { font-size: 65px; }
+      .window-layout { grid-template-columns: 1fr; }
+      .app-sidebar { display: none; }
+      .floating-insight { left: -12px; }
+      .stream-items { gap: 20px; }
+      .stream-item { font-size: 17px; }
+      .feature-card { padding: 28px; }
+      .privacy-content { gap: 20px; }
+      .testimonial-shell { padding-inline: 50px; }
+    }
+
+    @media (max-width: 880px) {
+      .section { padding: 90px 0; }
+      .desktop-nav, .header-login, .nav-cta { display: none; }
+      .menu-toggle { display: flex; }
+      .nav-wrap { height: 74px; }
+
+      .hero { padding-top: 60px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-copy { text-align: center; }
+      .hero h1 { max-width: 720px; margin-inline: auto; font-size: clamp(60px, 10vw, 78px); }
+      .hero-subtitle { margin-inline: auto; }
+      .hero-actions, .trust-row { justify-content: center; }
+      .hero-visual { width: min(610px, 100%); min-height: 555px; margin: 15px auto 0; }
+      .visual-halo { inset-inline: -4%; }
+
+      .stream-inner { flex-direction: column; align-items: flex-start; padding: 27px 0; }
+      .stream-label { max-width: none; }
+      .stream-items { width: 100%; flex-wrap: wrap; justify-content: flex-start; gap: 18px 32px; }
+
+      .section-intro { grid-template-columns: 1fr; gap: 25px; }
+      .feature-voice, .feature-search, .feature-connect, .feature-privacy { grid-column: span 12; }
+      .feature-voice, .feature-search { min-height: auto; }
+      .feature-connect { min-height: 370px; }
+      .search-visual { max-width: 470px; }
+      .constellation { max-width: 440px; }
+
+      .how-inner { padding: 65px 35px; }
+      .steps-grid { gap: 25px; }
+      .step p { font-size: 12px; }
+
+      .testimonial-shell { padding: 48px 38px; }
+      .testimonial-row { grid-template-columns: 1fr; }
+      .small-quote p { min-height: auto; }
+
+      .faq-layout { grid-template-columns: 1fr; gap: 45px; }
+      .faq-intro { position: static; }
+      .faq-intro p { max-width: 480px; }
+
+      .footer-top { align-items: flex-start; }
+    }
+
+    @media (max-width: 620px) {
+      .container { width: calc(100% - 32px); }
+      .section { padding: 76px 0; }
+      .section-title { font-size: 42px; }
+      .brand { font-size: 23px; }
+      .brand-mark { width: 31px; height: 31px; }
+
+      .hero { padding: 43px 0 72px; }
+      .hero h1 { margin-top: 24px; font-size: clamp(49px, 14.5vw, 64px); line-height: 0.98; }
+      .hero-subtitle { font-size: 15px; }
+      .hero-actions { flex-direction: column; }
+      .hero-actions .btn { width: 100%; }
+      .trust-row { margin-top: 26px; }
+      .trust-copy { text-align: left; }
+
+      .hero-visual { min-height: 0; padding: 42px 0 80px; }
+      .visual-halo { inset: 1% -8% 5%; }
+      .app-window { border-radius: 18px; transform: none; }
+      .hero-visual:hover .app-window { transform: none; }
+      .app-main { padding: 22px 18px 18px; }
+      .note-title { font-size: 26px; }
+      .note-intro { font-size: 9px; }
+      .window-title { font-size: 8px; }
+      .floating-capture { top: 15px; right: -4px; transform: scale(0.9) rotate(3deg); transform-origin: right; }
+      .floating-insight { bottom: 10px; left: 7px; width: 174px; }
+      .waveform { gap: 2px; }
+
+      .stream-items { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+      .stream-item { font-size: 17px; white-space: normal; }
+
+      .bento { margin-top: 37px; }
+      .feature-card { padding: 25px; border-radius: 23px; }
+      .feature-card h3 { font-size: 25px; }
+      .voice-demo { grid-template-columns: 1fr; }
+      .raw-thought, .clean-thought { min-height: 145px; }
+      .transform-arrow { margin: -2px auto; transform: rotate(90deg); }
+      .privacy-content { grid-template-columns: 1fr; padding-bottom: 5px; }
+      .privacy-panel { margin-top: 5px; }
+      .feature-connect { min-height: 390px; }
+      .node-center { left: 40%; }
+
+      .how-section { padding-top: 5px; }
+      .how-inner { padding: 52px 24px 45px; border-radius: 27px; }
+      .how-heading { margin-bottom: 45px; }
+      .steps-grid { grid-template-columns: 1fr; gap: 42px; }
+      .steps-grid::before { display: none; }
+      .step-icon { width: 75px; height: 75px; margin-bottom: 19px; }
+      .step p { max-width: 290px; font-size: 13px; }
+      .how-footnote { margin-top: 40px; font-size: 18px; }
+
+      .testimonial-shell { padding: 34px 25px 31px; border-radius: 26px; }
+      .quote-top { flex-direction: column; align-items: flex-start; gap: 17px; }
+      .testimonial-shell blockquote { margin: 36px 0; font-size: 39px; }
+      .quote-footer { flex-direction: column; align-items: flex-start; }
+      .quote-note { border-radius: 14px; line-height: 1.5; }
+      .small-quote { padding: 23px; }
+
+      .faq-section { padding-top: 55px; }
+      .faq-list summary { padding: 22px 0; font-size: 15px; }
+      .faq-answer { padding-right: 15px; }
+
+      .signup-section { padding: 10px 0 75px; }
+      .signup-card { padding: 47px 22px; border-radius: 27px; }
+      .signup-card h2 { font-size: 46px; }
+      .signup-subtitle { font-size: 13px; line-height: 1.6; }
+      .signup-form { flex-direction: column; padding: 7px; }
+      .signup-form input { min-height: 47px; padding: 0 11px; }
+      .signup-form .btn { width: 100%; }
+
+      .footer-top { flex-direction: column; padding-bottom: 30px; }
+      .footer-nav { gap: 20px 25px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; gap: 13px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="icon-spark" viewBox="0 0 24 24">
+      <path d="M12 2c.6 5.9 4.1 9.4 10 10-5.9.6-9.4 4.1-10 10-.6-5.9-4.1-9.4-10-10 5.9-.6 9.4-4.1 10-10Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-mic" viewBox="0 0 24 24">
+      <rect x="8" y="3" width="8" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3m-3 0h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="m15.5 15.5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24">
+      <rect x="4" y="10" width="16" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/>
+      <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#top" aria-label="Murmur home">
+        <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
+          <rect width="34" height="34" rx="10" fill="currentColor"/>
+          <path d="M8.5 20v-6m5 9V11m5 9v-7m5 8v-6" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        <span>murmur</span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a class="nav-link" href="#product">Why Murmur</a>
+        <a class="nav-link" href="#how">How it works</a>
+        <a class="nav-link" href="#stories">Love notes</a>
+        <a class="nav-link" href="#faq">FAQ</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="header-login" href="#start">Log in</a>
+        <a class="btn btn-primary nav-cta" href="#start">
+          Try Murmur free
+          <svg aria-hidden="true"><use href="#icon-arrow"/></svg>
+        </a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="mobile-menu" id="mobile-menu" hidden>
+      <nav aria-label="Mobile navigation">
+        <a href="#product">Why Murmur</a>
+        <a href="#how">How it works</a>
+        <a href="#stories">Love notes</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-primary" href="#start">Try Murmur free <svg aria-hidden="true"><use href="#icon-arrow"/></svg></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="hero-badge">
+            <span class="hero-badge-icon"><svg aria-hidden="true"><use href="#icon-spark"/></svg></span>
+            AI NOTE-TAKING FOR HUMAN THINKING
+          </div>
+
+          <h1>
+            Catch the thought.
+            <span class="serif">Keep the clarity.</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            Murmur turns voice notes, quick thoughts, and meandering meetings into clear, connected notes—so your best ideas don’t get lost in the noise.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#start">
+              Start taking notes
+              <svg aria-hidden="true"><use href="#icon-arrow"/></svg>
+            </a>
+            <button class="btn btn-secondary" type="button" id="watch-demo">
+              <span class="play-circle">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4 2 6 4-6 4Z" fill="currentColor"/></svg>
+              </span>
+              See Murmur think
+            </button>
+          </div>
+
+          <div class="trust-row">
+            <div class="avatar-stack" aria-hidden="true">
+              <span class="avatar">MC</span>
+              <span class="avatar">JL</span>
+              <span class="avatar">AK</span>
+              <span class="avatar">RS</span>
+            </div>
+            <div class="trust-copy">
+              <div class="stars" aria-label="Five out of five stars">★★★★★</div>
+              <strong>Loved by 12,000+ curious minds</strong><br>
+              Free to start · No credit card
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual" id="app-preview" aria-label="Interactive preview of the Murmur app">
+          <div class="visual-halo" aria-hidden="true"></div>
+
+          <div class="floating-capture" aria-hidden="true">
+            <span class="capture-check"><svg><use href="#icon-check"/></svg></span>
+            <span><strong>Thought captured</strong>Saved to “Future of work”</span>
+          </div>
+
+          <div class="app-window">
+            <div class="window-toolbar">
+              <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <span class="window-title">murmur / today’s notes</span>
+              <span class="mini-avatar" aria-hidden="true">You</span>
+            </div>
+
+            <div class="window-layout">
+              <aside class="app-sidebar" aria-hidden="true">
+                <div class="workspace"><span class="workspace-icon">m</span> My space</div>
+                <div class="side-label">Library</div>
+                <div class="side-item active">
+                  <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8m-8 4h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                  All notes
+                </div>
+                <div class="side-item">
+                  <svg><use href="#icon-mic"/></svg>
+                  Voice notes
+                </div>
+                <div class="side-item">
+                  <svg><use href="#icon-spark"/></svg>
+                  For you
+                </div>
+                <div class="side-label" style="margin-top:20px">Collections</div>
+                <div class="side-item">● &nbsp;Work ideas</div>
+                <div class="side-item">● &nbsp;Personal</div>
+              </aside>
+
+              <div class="app-main">
+                <div class="note-date">Tuesday, May 14 · 9:14 AM</div>
+                <h2 class="note-title">A quieter kind of productivity</h2>
+                <p class="note-intro">Captured on your morning walk · 3 connected ideas</p>
+
+                <div class="voice-snippet" id="voice-snippet">
+                  <div class="voice-meta">
+                    <span class="voice-name">
+                      <svg aria-hidden="true"><use href="#icon-mic"/></svg>
+                      <span id="demo-label">Voice note · 01:42</span>
+                    </span>
+                    <span id="demo-timer" aria-hidden="true">01:42</span>
+                  </div>
+                  <div class="waveform" aria-hidden="true">
+                    <span style="--h:7;--i:1"></span><span style="--h:15;--i:2"></span>
+                    <span style="--h:23;--i:3"></span><span style="--h:12;--i:4"></span>
+                    <span style="--h:26;--i:5"></span><span style="--h:18;--i:6"></span>
+                    <span style="--h:9;--i:7"></span><span style="--h:21;--i:8"></span>
+                    <span style="--h:27;--i:9"></span><span style="--h:15;--i:10"></span>
+                    <span style="--h:8;--i:11"></span><span style="--h:19;--i:12"></span>
+                    <span style="--h:25;--i:13"></span><span style="--h:12;--i:14"></span>
+                    <span style="--h:22;--i:15"></span><span style="--h:7;--i:16"></span>
+                    <span style="--h:17;--i:17"></span><span style="--h:25;--i:18"></span>
+                    <span style="--h:13;--i:19"></span><span style="--h:20;--i:20"></span>
+                    <span style="--h:9;--i:21"></span><span style="--h:24;--i:22"></span>
+                    <span style="--h:16;--i:23"></span><span style="--h:8;--i:24"></span>
+                    <span style="--h:19;--i:25"></span><span style="--h:12;--i:26"></span>
+                  </div>
+                </div>
+
+                <p class="transcript" id="demo-transcript">
+                  “Maybe the best tools don’t help us do more. Maybe they give us <mark>more space to think</mark>…”
+                </p>
+
+                <div class="ai-summary" id="ai-summary">
+                  <div class="ai-label">
+                    <svg aria-hidden="true"><use href="#icon-spark"/></svg>
+                    <span id="summary-label">Murmur summary</span>
+                  </div>
+                  <p class="summary-text" id="summary-text">Make room for better ideas—not just more tasks.</p>
+                  <div class="note-tags" aria-hidden="true">
+                    <span class="note-tag">#creativity</span>
+                    <span class="note-tag">#future-of-work</span>
+                  </div>
+                </div>
+
+                <button class="demo-control" id="demo-control" type="button" aria-pressed="false">
+                  <svg aria-hidden="true"><use href="#icon-spark"/></svg>
+                  <span id="demo-action">Play interactive demo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="floating-insight" aria-hidden="true">
+            <div class="insight-top">
+              <span>Connections</span>
+              <span class="insight-spark"><svg><use href="#icon-spark"/></svg></span>
+            </div>
+            <div class="insight-number">3 themes</div>
+            <p class="insight-copy">quietly connected for you</p>
+            <div class="insight-topics"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="thought-stream" aria-label="Ways to use Murmur">
+      <div class="container stream-inner">
+        <p class="stream-label">A little more clarity for</p>
+        <div class="stream-items">
+          <span class="stream-item">founders &amp; makers</span>
+          <span class="stream-item">writers &amp; researchers</span>
+          <span class="stream-item">curious teams</span>
+          <span class="stream-item">beautifully busy minds</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" id="product">
+      <div class="container">
+        <div class="section-intro">
+          <div>
+            <span class="eyebrow">A note app that pulls its weight</span>
+            <h2 class="section-title">You bring the thoughts.<br><span class="serif">Murmur brings the shape.</span></h2>
+          </div>
+          <p>No stiff templates. No Sunday spent organizing folders. Just a calm place where half-formed ideas become something you can use.</p>
+        </div>
+
+        <div class="bento">
+          <article class="feature-card feature-voice">
+            <div class="feature-icon"><svg aria-hidden="true"><use href="#icon-mic"/></svg></div>
+            <h3>Ramble now. Make sense later.</h3>
+            <p class="feature-description">Talk like yourself. Murmur finds the key points, cleans up the transcript, and keeps the way you think intact.</p>
+
+            <div class="voice-demo" aria-hidden="true">
+              <div class="raw-thought">
+                <span class="mini-label">YOU, AT 8:42 AM</span>
+                <p>“So maybe the launch isn’t about more features, but…”</p>
+                <div class="mini-wave">
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <span class="transform-arrow"><svg><use href="#icon-arrow"/></svg></span>
+              <div class="clean-thought">
+                <span class="mini-label"><svg><use href="#icon-spark"/></svg>MURMUR’S TAKE</span>
+                <h4>Lead with simplicity.</h4>
+                <ul>
+                  <li>One clear promise</li>
+                  <li>Three thoughtful improvements</li>
+                  <li>A launch story people remember</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card feature-search">
+            <div class="feature-icon"><svg aria-hidden="true"><use href="#icon-search"/></svg></div>
+            <h3>Ask your notes anything.</h3>
+            <p class="feature-description">Search by meaning, not exact words. Murmur finds the thought, the source, and why it mattered.</p>
+
+            <div class="search-visual" aria-hidden="true">
+              <div class="search-box">
+                <svg><use href="#icon-search"/></svg>
+                Why did we change onboarding?
+                <span class="search-cursor"></span>
+              </div>
+              <div class="answer-label"><svg><use href="#icon-spark"/></svg>Found in your notes</div>
+              <div class="search-result">
+                <div class="result-title"><span class="result-doc"></span>Onboarding retro</div>
+                <p>We simplified setup to improve <mark>time to first value</mark>. The old flow asked for too much before users saw the benefit.</p>
+                <span class="result-date">Product sync · April 28 · 02:18</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card feature-connect">
+            <div class="feature-icon"><svg aria-hidden="true"><use href="#icon-spark"/></svg></div>
+            <h3>Your ideas know each other.</h3>
+            <p class="feature-description">Murmur quietly connects related notes and recurring themes, even when you captured them months apart.</p>
+
+            <div class="constellation" aria-hidden="true">
+              <svg class="connection-lines" viewBox="0 0 400 145" preserveAspectRatio="none">
+                <path d="M82 31 183 76M322 27 214 73M285 129 211 96" fill="none" stroke="#b8a8ef" stroke-width="1" stroke-dasharray="4 5"/>
+                <circle cx="82" cy="31" r="3" fill="#b8a8ef"/>
+                <circle cx="322" cy="27" r="3" fill="#b8a8ef"/>
+                <circle cx="285" cy="129" r="3" fill="#b8a8ef"/>
+              </svg>
+              <span class="node one">Research notes</span>
+              <span class="node two">Launch story</span>
+              <span class="node three">Human-first AI</span>
+              <span class="node-center"><svg><use href="#icon-spark"/></svg></span>
+            </div>
+          </article>
+
+          <article class="feature-card feature-privacy" id="privacy">
+            <div class="privacy-content">
+              <div>
+                <div class="feature-icon"><svg aria-hidden="true"><use href="#icon-lock"/></svg></div>
+                <h3>Your thoughts stay yours.</h3>
+                <p class="feature-description">Private by default, portable whenever you want, and never for sale. Your inner monologue is not a business model.</p>
+              </div>
+
+              <div class="privacy-panel" aria-hidden="true">
+                <div class="privacy-row">
+                  <svg><use href="#icon-lock"/></svg>
+                  <span><strong>Private by default</strong><small>Only you decide what gets shared.</small></span>
+                  <span class="privacy-status">ON</span>
+                </div>
+                <div class="privacy-row">
+                  <svg><use href="#icon-check"/></svg>
+                  <span><strong>No ad trackers</strong><small>A quieter app in every sense.</small></span>
+                  <span class="privacy-status">ALWAYS</span>
+                </div>
+                <div class="privacy-row">
+                  <svg><use href="#icon-arrow"/></svg>
+                  <span><strong>Export anytime</strong><small>Your notes, in formats you own.</small></span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section how-section" id="how">
+      <div class="container">
+        <div class="how-inner">
+          <div class="how-heading">
+            <span class="eyebrow">As easy as thinking out loud</span>
+            <h2 class="section-title">A little less managing.<br><span class="serif">A lot more making.</span></h2>
+          </div>
+
+          <div class="steps-grid">
+            <article class="step">
+              <div class="step-icon">
+                <svg aria-hidden="true"><use href="#icon-mic"/></svg>
+                <span class="step-number">01</span>
+              </div>
+              <h3>Catch it</h3>
+              <p>Speak, type, or bring in a meeting. No need to make it tidy before it deserves a place.</p>
+              <span class="step-format">Voice · Text · Imports</span>
+            </article>
+
+            <article class="step">
+              <div class="step-icon">
+                <svg aria-hidden="true"><use href="#icon-spark"/></svg>
+                <span class="step-number">02</span>
+              </div>
+              <h3>Let it settle</h3>
+              <p>Murmur shapes the mess into a clear summary, useful themes, and next steps you can edit.</p>
+              <span class="step-format">Summaries · Themes · To-dos</span>
+            </article>
+
+            <article class="step">
+              <div class="step-icon">
+                <svg aria-hidden="true"><use href="#icon-search"/></svg>
+                <span class="step-number">03</span>
+              </div>
+              <h3>Return to what matters</h3>
+              <p>Find the right note with a question, follow a connection, and pick up where your mind left off.</p>
+              <span class="step-format">Search · Links · Reminders</span>
+            </article>
+          </div>
+
+          <p class="how-footnote">No folders required. Unless folders are your thing.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section stories-section" id="stories">
+      <div class="container">
+        <div class="testimonial-shell">
+          <div class="quote-top">
+            <span class="eyebrow">Small notes, big relief</span>
+            <div class="quote-rating" aria-label="Five out of five stars">★★★★★ <span>from our early listeners</span></div>
+          </div>
+
+          <blockquote>
+            “I used to have seventeen places for my ideas. Now I have one—and, somehow, <span class="serif">more ideas.</span>”
+          </blockquote>
+
+          <div class="quote-footer">
+            <div class="person">
+              <span class="person-avatar" aria-hidden="true">MC</span>
+              <span><strong>Maya Chen</strong><small>Writer &amp; design researcher</small></span>
+            </div>
+            <div class="quote-note">
+              <svg aria-hidden="true"><use href="#icon-spark"/></svg>
+              46 wandering thoughts turned into useful notes this month
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-row">
+          <article class="small-quote">
+            <p>“It’s the first transcription tool that gives me something I actually want to read afterward.”</p>
+            <footer><strong>Jonah Lee</strong> · Startup founder</footer>
+          </article>
+          <article class="small-quote">
+            <p>“My 2 a.m. thoughts finally have a day job. Murmur finds the good bits and lets me go back to sleep.”</p>
+            <footer><strong>Aisha Khan</strong> · Screenwriter</footer>
+          </article>
+          <article class="small-quote">
+            <p>“Less like opening another productivity app, more like having a very patient second brain.”</p>
+            <footer><strong>Rafa Silva</strong> · PhD researcher</footer>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section faq-section" id="faq">
+      <div class="container faq-layout">
+        <div class="faq-intro">
+          <span class="eyebrow">A few things on your mind</span>
+          <h2 class="section-title">Questions,<br><span class="serif">meet answers.</span></h2>
+          <p>Still wondering about something? We’re good listeners, too.</p>
+          <a class="text-link" href="mailto:hello@murmur.so">Ask us anything <svg aria-hidden="true"><use href="#icon-arrow"/></svg></a>
+        </div>
+
+        <div class="faq-list">
+          <details open>
+            <summary>Do I have to record my voice?<span class="faq-plus" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>Not at all. You can type, paste, import documents, or record voice notes. Murmur works with whatever feels natural in the moment—and you can mix formats inside the same note.</p></div>
+          </details>
+          <details>
+            <summary>Will Murmur change what I meant to say?<span class="faq-plus" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>Murmur keeps your original recording or text alongside every summary. AI-created structure is always editable, so you stay in control of the words, tone, and final thought.</p></div>
+          </details>
+          <details>
+            <summary>Can I bring my existing notes with me?<span class="faq-plus" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>Yes. Import common text and document formats, then let Murmur help connect them with new ideas. You can also export your notes whenever you like—no lock-in, no awkward goodbye.</p></div>
+          </details>
+          <details>
+            <summary>How does Murmur handle privacy?<span class="faq-plus" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>Your notes are private by default. We don’t sell personal data or use advertising trackers, and sharing is always something you choose explicitly. Your inner life deserves boundaries.</p></div>
+          </details>
+          <details>
+            <summary>What does the free plan include?<span class="faq-plus" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>The free plan includes voice and text notes, AI summaries, semantic search, and enough monthly recording time to make Murmur part of your routine. No credit card is needed to start.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="signup-section" id="start">
+      <div class="container">
+        <div class="signup-card">
+          <div class="signup-symbol" aria-hidden="true">
+            <svg viewBox="0 0 34 34">
+              <path d="M5 20v-6m6 10V10m6 12V12m6 9v-7m6 5v-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="eyebrow">Your next idea is already on its way</span>
+          <h2>Think out loud.<br><span class="serif">We’ll take it from here.</span></h2>
+          <p class="signup-subtitle">Start free and give your wandering thoughts a place to land.</p>
+
+          <form class="signup-form" id="signup-form">
+            <label for="signup-email" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Email address</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" placeholder="you@yourcuriousmind.com" required>
+            <button class="btn btn-primary" type="submit">
+              Get Murmur free
+              <svg aria-hidden="true"><use href="#icon-arrow"/></svg>
+            </button>
+          </form>
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <p class="form-note">Free plan · No credit card · Mac, iOS &amp; Web</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="#top" aria-label="Murmur home">
+            <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
+              <rect width="34" height="34" rx="10" fill="currentColor"/>
+              <path d="M8.5 20v-6m5 9V11m5 9v-7m5 8v-6" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round"/>
+            </svg>
+            <span>murmur</span>
+          </a>
+          <p>Made for minds that wander.</p>
+        </div>
+
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="#product">Product</a>
+          <a href="#how">How it works</a>
+          <a href="#stories">Love notes</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#faq">FAQ</a>
+          <a href="mailto:hello@murmur.so">Contact</a>
+        </nav>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© <span id="year">2025</span> Murmur Labs, Inc. Think freely.</span>
+        <span class="system-status">All systems quietly humming</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const menuButton = document.querySelector('.menu-toggle');
+      const mobileMenu = document.getElementById('mobile-menu');
+
+      function closeMenu() {
+        mobileMenu.hidden = true;
+        menuButton.setAttribute('aria-expanded', 'false');
+        menuButton.setAttribute('aria-label', 'Open menu');
+      }
+
+      menuButton.addEventListener('click', () => {
+        const willOpen = mobileMenu.hidden;
+        mobileMenu.hidden = !willOpen;
+        menuButton.setAttribute('aria-expanded', String(willOpen));
+        menuButton.setAttribute('aria-label', willOpen ? 'Close menu' : 'Open menu');
+      });
+
+      mobileMenu.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !mobileMenu.hidden) {
+          closeMenu();
+          menuButton.focus();
+        }
+      });
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 880) closeMenu();
+      });
+
+      const demoControl = document.getElementById('demo-control');
+      const watchDemo = document.getElementById('watch-demo');
+      const voiceSnippet = document.getElementById('voice-snippet');
+      const demoLabel = document.getElementById('demo-label');
+      const demoTimer = document.getElementById('demo-timer');
+      const demoAction = document.getElementById('demo-action');
+      const transcript = document.getElementById('demo-transcript');
+      const summary = document.getElementById('ai-summary');
+      const summaryLabel = document.getElementById('summary-label');
+      const summaryText = document.getElementById('summary-text');
+
+      let recording = false;
+      let elapsed = 0;
+      let ticker = null;
+      let finisher = null;
+
+      const formatTime = seconds => {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${mins}:${secs}`;
+      };
+
+      function finishDemo() {
+        if (!recording) return;
+        recording = false;
+        clearInterval(ticker);
+        clearTimeout(finisher);
+        const duration = Math.max(elapsed, 6);
+
+        voiceSnippet.classList.remove('recording');
+        demoControl.setAttribute('aria-pressed', 'false');
+        demoAction.textContent = 'Replay interactive demo';
+        demoLabel.textContent = `Voice note · ${formatTime(duration)}`;
+        demoTimer.textContent = formatTime(duration);
+        transcript.innerHTML = '“What if productivity felt less like pressure and more like <mark>space to think</mark>…”';
+        summary.classList.remove('processing');
+        summary.classList.add('ready');
+        summaryLabel.textContent = 'Summary ready';
+        summaryText.textContent = 'Make room for better ideas—not just more tasks.';
+
+        window.setTimeout(() => summary.classList.remove('ready'), 450);
+      }
+
+      function startDemo() {
+        clearInterval(ticker);
+        clearTimeout(finisher);
+        recording = true;
+        elapsed = 0;
+
+        voiceSnippet.classList.add('recording');
+        demoControl.setAttribute('aria-pressed', 'true');
+        demoAction.textContent = 'Finish thought';
+        demoLabel.textContent = 'Listening to your thought…';
+        demoTimer.textContent = '00:00';
+        transcript.textContent = '“What if productivity felt less like pressure and more like making space for our best ideas…”';
+        summary.classList.remove('ready');
+        summary.classList.add('processing');
+        summaryLabel.textContent = 'Listening for the heart of it';
+        summaryText.textContent = 'Finding the key idea and a few useful connections…';
+
+        ticker = window.setInterval(() => {
+          elapsed += 1;
+          demoTimer.textContent = formatTime(elapsed);
+        }, 1000);
+
+        finisher = window.setTimeout(finishDemo, 6000);
+      }
+
+      demoControl.addEventListener('click', () => {
+        if (recording) finishDemo();
+        else startDemo();
+      });
+
+      watchDemo.addEventListener('click', () => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.getElementById('app-preview').scrollIntoView({
+          behavior: reducedMotion ? 'auto' : 'smooth',
+          block: 'center'
+        });
+        if (!recording) window.setTimeout(startDemo, reducedMotion ? 0 : 450);
+      });
+
+      const signupForm = document.getElementById('signup-form');
+      const formStatus = document.getElementById('form-status');
+
+      signupForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!signupForm.checkValidity()) {
+          signupForm.reportValidity();
+          return;
+        }
+
+        const input = document.getElementById('signup-email');
+        const button = signupForm.querySelector('button');
+        const email = input.value.trim();
+
+        input.disabled = true;
+        button.disabled = true;
+        button.textContent = 'You’re in ✓';
+        formStatus.textContent = `Thanks — next steps are headed to ${email}.`;
+      });
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+    })();
+  </script>
+</body>
+</html>

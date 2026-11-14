@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE URBAN GRID — Weekly Urban Planning Dispatch</title>
+  <!-- Google Fonts: Space Grotesk, Newsreader, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-paper: #F4F1EA;
+      --bg-card: #EAE6DF;
+      --bg-card-hover: #E2DDD4;
+      --ink: #181A18;
+      --ink-muted: #525652;
+      --grid-line: #D4CFC7;
+      --grid-line-strong: #181A18;
+      
+      /* Transit & Zoning Accents */
+      --transit-orange: #FF4F00;
+      --transit-orange-hover: #E04400;
+      --zoning-green: #2A6F4E;
+      --waterway-blue: #1D5B79;
+      --caution-yellow: #E5A93C;
+      
+      /* Typography */
+      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif: 'Newsreader', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      font-family: var(--font-serif);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        linear-gradient(to right, rgba(212, 207, 199, 0.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(212, 207, 199, 0.35) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: center top;
+    }
+
+    /* Master Architectural Container */
+    .blueprint-wrapper {
+      max-width: 1360px;
+      margin: 0 auto;
+      border-left: 1px solid var(--grid-line-strong);
+      border-right: 1px solid var(--grid-line-strong);
+      background-color: rgba(244, 241, 234, 0.88);
+      backdrop-filter: blur(2px);
+      position: relative;
+    }
+
+    /* Corner Crosshairs Utility */
+    .crosshair-box {
+      position: relative;
+    }
+    .crosshair-box::before,
+    .crosshair-box::after {
+      content: '+';
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--ink-muted);
+      position: absolute;
+      line-height: 1;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .crosshair-box::before {
+      top: -7px;
+      left: -5px;
+    }
+    .crosshair-box::after {
+      bottom: -7px;
+      right: -5px;
+    }
+
+    /* Top Datum Bar */
+    .datum-bar {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      border-bottom: 1px solid var(--grid-line-strong);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background-color: var(--bg-paper);
+    }
+
+    .datum-cell {
+      padding: 0.65rem 1.25rem;
+      border-right: 1px solid var(--grid-line-strong);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .datum-cell:last-child {
+      border-right: none;
+    }
+
+    .datum-marquee {
+      overflow: hidden;
+      position: relative;
+      color: var(--ink-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--zoning-green);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.35; }
+      100% { opacity: 1; }
+    }
+
+    /* Hero Section */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      border-bottom: 1px solid var(--grid-line-strong);
+    }
+
+    .hero-left {
+      padding: 3.5rem 3rem 3.5rem 2.5rem;
+      border-right: 1px solid var(--grid-line-strong);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .section-index {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-index span.badge {
+      background-color: var(--ink);
+      color: var(--bg-paper);
+      padding: 0.15rem 0.45rem;
+      font-weight: 600;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.75rem, 5.2vw, 4.75rem);
+      font-weight: 700;
+      line-height: 0.96;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
+      color: var(--ink);
+    }
+
+    .hero-title .highlight {
+      color: var(--transit-orange);
+      font-style: normal;
+      display: inline-block;
+      position: relative;
+    }
+
+    .hero-lead {
+      font-family: var(--font-serif);
+      font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+      line-height: 1.45;
+      color: var(--ink);
+      max-width: 60ch;
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+    }
+
+    /* Interactive Signup Module */
+    .signup-module {
+      background-color: var(--bg-card);
+      border: 1px solid var(--grid-line-strong);
+      padding: 1.75rem;
+      position: relative;
+      box-shadow: 6px 6px 0px var(--ink);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .signup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px dashed var(--grid-line-strong);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .interest-selector-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-bottom: 0.6rem;
+      display: block;
+    }
+
+    .interest-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .interest-pill {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .interest-pill input {
+      display: none;
+    }
+
+    .interest-pill span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      transition: all 0.15s ease;
+    }
+
+    .interest-pill span::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: transparent;
+      border: 1px solid var(--ink);
+      display: inline-block;
+    }
+
+    .interest-pill input:checked + span {
+      background-color: var(--ink);
+      color: var(--bg-paper);
+      font-weight: 500;
+    }
+
+    .interest-pill input:checked + span::before {
+      background-color: var(--transit-orange);
+      border-color: var(--transit-orange);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0;
+    }
+
+    .email-input {
+      width: 100%;
+      padding: 1rem 1.15rem;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      background-color: var(--bg-paper);
+      border: 1px solid var(--grid-line-strong);
+      border-right: none;
+      color: var(--ink);
+      outline: none;
+      transition: background-color 0.2s;
+    }
+
+    .email-input::placeholder {
+      color: #8C8881;
+    }
+
+    .email-input:focus {
+      background-color: #FFFFFF;
+    }
+
+    .submit-btn {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1rem 1.75rem;
+      background-color: var(--transit-orange);
+      color: #FFFFFF;
+      border: 1px solid var(--grid-line-strong);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: background-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--transit-orange-hover);
+    }
+
+    .submit-btn:active {
+      transform: translateY(1px);
+    }
+
+    .form-meta {
+      margin-top: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+
+    /* Permit Approved State */
+    .permit-stamp {
+      display: none;
+      background-color: var(--bg-paper);
+      border: 2px solid var(--zoning-green);
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    .permit-stamp.active {
+      display: block;
+      animation: stampIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes stampIn {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .permit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--zoning-green);
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .permit-badge {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--zoning-green);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .permit-details {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    /* Hero Right: Interactive GIS Map Blueprint */
+    .hero-right {
+      background-color: #EAE5DC;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .map-toolbar {
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-paper);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      z-index: 2;
+    }
+
+    .layer-toggles {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .layer-btn {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      padding: 0.25rem 0.55rem;
+      border: 1px solid var(--grid-line-strong);
+      background: var(--bg-card);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .layer-btn.active {
+      background: var(--ink);
+      color: var(--bg-paper);
+    }
+
+    .map-viewport {
+      position: relative;
+      flex-grow: 1;
+      min-height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: crosshair;
+      overflow: hidden;
+    }
+
+    .city-svg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* SVG Layer Transitions */
+    .svg-layer {
+      transition: opacity 0.3s ease;
+    }
+    .svg-layer.hidden {
+      opacity: 0.1;
+    }
+
+    .transit-train {
+      stroke-dasharray: 14 220;
+      animation: moveTrain 7s linear infinite;
+    }
+
+    @keyframes moveTrain {
+      from { stroke-dashoffset: 234; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .map-hud-overlay {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      background-color: rgba(244, 241, 234, 0.94);
+      border: 1px solid var(--grid-line-strong);
+      padding: 0.85rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      pointer-events: none;
+    }
+
+    .hud-metric-label {
+      color: var(--ink-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .hud-metric-val {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.8rem;
+    }
+
+    /* Metrics Bar Section */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-paper);
+    }
+
+    .metric-block {
+      padding: 1.75rem 2rem;
+      border-right: 1px solid var(--grid-line-strong);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-block:last-child {
+      border-right: none;
+    }
+
+    .metric-code {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric-number {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.35rem;
+    }
+
+    .metric-desc {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      color: var(--ink-muted);
+    }
+
+    /* Section Headers */
+    .section-banner {
+      padding: 1.25rem 2.5rem;
+      border-bottom: 1px solid var(--grid-line-strong);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-card);
+    }
+
+    .section-banner-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-banner-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--ink-muted);
+    }
+
+    /* 4 Pillars of Coverage */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--grid-line-strong);
+    }
+
+    .pillar-card {
+      padding: 2.25rem 2rem;
+      border-right: 1px solid var(--grid-line-strong);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: background-color 0.2s ease;
+      position: relative;
+    }
+
+    .pillar-card:last-child {
+      border-right: none;
+    }
+
+    .pillar-card:hover {
+      background-color: var(--bg-card);
+    }
+
+    .pillar-top {
+      margin-bottom: 2rem;
+    }
+
+    .zone-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border: 1px solid var(--grid-line-strong);
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+    }
+
+    .zone-tag.orange { background-color: var(--transit-orange); color: #FFF; }
+    .zone-tag.green { background-color: var(--zoning-green); color: #FFF; }
+    .zone-tag.blue { background-color: var(--waterway-blue); color: #FFF; }
+    .zone-tag.yellow { background-color: var(--caution-yellow); color: var(--ink); }
+
+    .pillar-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.85rem;
+    }
+
+    .pillar-body {
+      font-family: var(--font-serif);
+      font-size: 1.02rem;
+      color: var(--ink-muted);
+      line-height: 1.55;
+    }
+
+    .pillar-spec {
+      padding-top: 1.25rem;
+      border-top: 1px dashed var(--grid-line);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Sample Issue Inspection (Interactive Preview) */
+    .inspection-section {
+      display: grid;
+      grid-template-columns: 4fr 8fr;
+      border-bottom: 1px solid var(--grid-line-strong);
+    }
+
+    .inspection-sidebar {
+      padding: 2.5rem;
+      border-right: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-paper);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .issue-selector-list {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .issue-tab {
+      text-align: left;
+      padding: 1rem 1.15rem;
+      border: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .issue-tab:hover {
+      background-color: var(--bg-card-hover);
+    }
+
+    .issue-tab.active {
+      background-color: var(--ink);
+      color: var(--bg-paper);
+      box-shadow: 4px 4px 0px var(--transit-orange);
+    }
+
+    .issue-tab-meta {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    .issue-tab-title {
+      font-family: var(--font-display);
+      font-size: 0.98rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    /* Specimen Reader Pane */
+    .inspection-reader {
+      padding: 3rem 3.5rem;
+      background-color: #FAF8F5;
+      position: relative;
+    }
+
+    .specimen-dossier {
+      border: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-paper);
+      padding: 2.5rem;
+      box-shadow: 0 10px 30px rgba(24, 26, 24, 0.05);
+    }
+
+    .dossier-header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .dossier-kicker {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--transit-orange);
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .dossier-headline {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.5vw, 2.15rem);
+      font-weight: 700;
+      line-height: 1.1;
+      max-width: 28ch;
+    }
+
+    .dossier-stamp {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      border: 1px solid var(--ink);
+      padding: 0.4rem 0.65rem;
+      text-align: right;
+    }
+
+    .dossier-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 2.25rem;
+      align-items: start;
+    }
+
+    .dossier-prose p {
+      font-family: var(--font-serif);
+      font-size: 1.08rem;
+      line-height: 1.65;
+      margin-bottom: 1.15rem;
+      color: var(--ink);
+    }
+
+    .dossier-prose p:first-of-type::first-letter {
+      font-family: var(--font-display);
+      font-size: 3.1rem;
+      font-weight: 700;
+      float: left;
+      line-height: 0.85;
+      margin-right: 0.6rem;
+      margin-top: 0.15rem;
+      color: var(--transit-orange);
+    }
+
+    .dossier-diagram-box {
+      border: 1px solid var(--grid-line-strong);
+      background-color: var(--bg-card);
+      padding: 1.25rem;
+    }
+
+    .diagram-caption {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      margin-top: 0.85rem;
+      line-height: 1.45;
+      border-top: 1px solid var(--grid-line);
+      padding-top: 0.65rem;
+    }
+
+    .dossier-takeaways {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px dashed var(--grid-line-strong);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .takeaway-item strong {
+      display: block;
+      color: var(--ink-muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    /* Reader Endorsements / Field Reports */
+    .endorsements-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--grid-line-strong);
+    }
+
+    .endorsement-cell {
+      padding: 2.25rem 2rem;
+      border-right: 1px solid var(--grid-line-strong);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .endorsement-cell:last-child {
+      border-right: none;
+    }
+
+    .quote-text {
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      font-style: italic;
+      line-height: 1.55;
+      margin-bottom: 1.5rem;
+      color: var(--ink);
+    }
+
+    .quote-author {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--grid-line);
+      padding-top: 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+    }
+
+    .author-role {
+      color: var(--ink-muted);
+      display: block;
+      font-size: 0.68rem;
+    }
+
+    /* Footer Colophon & Secondary CTA */
+    .colophon-footer {
+      background-color: var(--ink);
+      color: var(--bg-paper);
+      padding: 4rem 2.5rem 2.5rem;
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 3rem;
+      padding-bottom: 3.5rem;
+      border-bottom: 1px solid #383B38;
+      align-items: end;
+    }
+
+    .footer-cta-headline {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.05;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .footer-form {
+      display: flex;
+      width: 100%;
+    }
+
+    .footer-input {
+      flex-grow: 1;
+      padding: 0.95rem 1.15rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background-color: #242724;
+      border: 1px solid #4A4E4A;
+      border-right: none;
+      color: var(--bg-paper);
+      outline: none;
+    }
+
+    .footer-input:focus {
+      border-color: var(--transit-orange);
+    }
+
+    .footer-bottom {
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #9A9E9A;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      color: var(--bg-paper);
+      text-decoration: none;
+      border-bottom: 1px dotted #525652;
+    }
+
+    .footer-links a:hover {
+      color: var(--transit-orange);
+      border-bottom-color: var(--transit-orange);
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1080px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-left {
+        border-right: none;
+        border-bottom: 1px solid var(--grid-line-strong);
+      }
+      .pillars-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .pillar-card:nth-child(2) {
+        border-right: none;
+      }
+      .pillar-card:nth-child(1),
+      .pillar-card:nth-child(2) {
+        border-bottom: 1px solid var(--grid-line-strong);
+      }
+      .inspection-section {
+        grid-template-columns: 1fr;
+      }
+      .inspection-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--grid-line-strong);
+      }
+      .dossier-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .datum-bar {
+        grid-template-columns: 1fr auto;
+      }
+      .datum-cell.hide-mobile {
+        display: none;
+      }
+      .hero-left {
+        padding: 2rem 1.25rem;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+      }
+      .email-input {
+        border-right: 1px solid var(--grid-line-strong);
+      }
+      .submit-btn {
+        justify-content: center;
+      }
+      .metrics-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .metric-block:nth-child(2) {
+        border-right: none;
+      }
+      .metric-block:nth-child(1),
+      .metric-block:nth-child(2) {
+        border-bottom: 1px solid var(--grid-line-strong);
+      }
+      .pillars-grid,
+      .endorsements-grid,
+      .footer-top {
+        grid-template-columns: 1fr;
+      }
+      .pillar-card,
+      .endorsement-cell {
+        border-right: none;
+        border-bottom: 1px solid var(--grid-line-strong);
+      }
+      .inspection-reader {
+        padding: 1.5rem 1.25rem;
+      }
+      .specimen-dossier {
+        padding: 1.5rem;
+      }
+      .dossier-takeaways {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="blueprint-wrapper">
+    
+    <!-- Top Architectural Datum Bar -->
+    <header class="datum-bar">
+      <div class="datum-cell">
+        <span class="status-dot"></span>
+        <strong>PUB. REF // UG-2025-W</strong>
+      </div>
+      <div class="datum-cell datum-marquee hide-mobile">
+        <span>DISPATCH SCHEDULE: EVERY THURSDAY 06:00 EST — ZONING • TRANSIT • PUBLIC REALM • MUNICIPAL FINANCE</span>
+      </div>
+      <div class="datum-cell hide-mobile" id="cursor-coords">
+        LAT 40°42'46"N // LON 74°00'22"W
+      </div>
+      <div class="datum-cell">
+        <span>ISSUE NO. 142</span>
+      </div>
+    </header>
+
+    <!-- Main Hero Section -->
+    <section class="hero-grid">
+      
+      <!-- Left Column: Editorial Pitch & Signup Form -->
+      <div class="hero-left crosshair-box">
+        <div>
+          <div class="section-index">
+            <span class="badge">FIG 01</span>
+            <span>WEEKLY URBAN PLANNING &amp; CIVIC DESIGN BRIEFING</span>
+          </div>
+          
+          <h1 class="hero-title">
+            DECODING THE <span class="highlight">BUILT</span> ENVIRONMENT.
+          </h1>
+          
+          <p class="hero-lead">
+            <strong>The Urban Grid</strong> is a rigorous weekly dispatch examining how zoning codes, transit geometry, street sections, and capital budgets quietly shape the cities we inhabit. Written for planners, architects, policymakers, and observant citizens.
+          </p>
+        </div>
+
+        <!-- Subscription Form Box -->
+        <div class="signup-module" id="signup-container">
+          <div class="signup-header">
+            <span>FORM 104-A // SUBSCRIPTION PERMIT REQUEST</span>
+            <span>COST: $0.00 / FREE</span>
+          </div>
+
+          <form id="newsletter-form" novalidate>
+            <label class="interest-selector-label">1. Select Primary Sector Interests (Optional):</label>
+            <div class="interest-pills">
+              <label class="interest-pill">
+                <input type="checkbox" name="sector" value="Missing Middle & Zoning" checked>
+                <span>R-4 Zoning &amp; Housing</span>
+              </label>
+              <label class="interest-pill">
+                <input type="checkbox" name="sector" value="Transit & Rail" checked>
+                <span>M-1 Transit &amp; Rail</span>
+              </label>
+              <label class="interest-pill">
+                <input type="checkbox" name="sector" value="Street Design">
+                <span>Complete Streets</span>
+              </label>
+              <label class="interest-pill">
+                <input type="checkbox" name="sector" value="Climate Resilience">
+                <span>Hydrology &amp; Shade</span>
+              </label>
+            </div>
+
+            <label class="interest-selector-label" for="email-field">2. Enter Dispatch Destination:</label>
+            <div class="form-row">
+              <input 
+                type="email" 
+                id="email-field" 
+                class="email-input" 
+                placeholder="planner@municipality.org" 
+                required 
+                autocomplete="email"
+              />
+              <button type="submit" class="submit-btn">
+                <span>ISSUE PERMIT</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 8h12M9 3l5 5-5 5"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="form-meta">
+              <span>✓ 5-MINUTE READ EVERY THURSDAY</span>
+              <span>NO ALGORITHMIC FLUFF • ONE-CLICK UNSUBSCRIBE</span>
+            </div>
+          </form>
+
+          <!-- Hidden Confirmation Stamp -->
+          <div class="permit-stamp" id="permit-confirmation">
+            <div class="permit-header">
+              <div class="permit-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                <span>ZONING PERMIT APPROVED</span>
+              </div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="permit-id">REF #UG-8841</span>
+            </div>
+            <div class="permit-details">
+              <p><strong>APPLICANT:</strong> <span id="confirmed-email">reader@city.gov</span></p>
+              <p><strong>SECTORS LOGGED:</strong> <span id="confirmed-sectors">Zoning, Transit</span></p>
+              <p style="margin-top: 0.5rem; color: var(--ink-muted);">Your first dossier (Issue #143: <em>The Economics of Single-Stair Point Access Blocks</em>) will arrive Thursday at 06:00 EST.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Cartographic Blueprint -->
+      <div class="hero-right">
+        <div class="map-toolbar">
+          <span>SECTOR PLAN // SCALE 1:2,500</span>
+          <div class="layer-toggles" role="group" aria-label="Map Layers">
+            <button type="button" class="layer-btn active" data-layer="zoning">ZONING</button>
+            <button type="button" class="layer-btn active" data-layer="transit">TRANSIT</button>
+            <button type="button" class="layer-btn active" data-layer="canopy">CANOPY</button>
+          </div>
+        </div>
+
+        <div class="map-viewport" id="interactive-map">
+          <!-- Custom Architectural & GIS SVG Illustration -->
+          <svg class="city-svg" viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Hatching patterns for zoning parcels -->
+              <pattern id="diagonalHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="#181A18" stroke-width="1" stroke-opacity="0.28" />
+              </pattern>
+              <pattern id="crossHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#1D5B79" stroke-width="0.8" stroke-opacity="0.3"/>
+              </pattern>
+            </defs>
+
+            <!-- Base Minor Grid -->
+            <g stroke="#D4CFC7" stroke-width="0.75">
+              <line x1="0" y1="65" x2="600" y2="65" />
+              <line x1="0" y1="130" x2="600" y2="130" />
+              <line x1="0" y1="195" x2="600" y2="195" />
+              <line x1="0" y1="260" x2="600" y2="260" />
+              <line x1="0" y1="325" x2="600" y2="325" />
+              <line x1="0" y1="390" x2="600" y2="390" />
+              <line x1="0" y1="455" x2="600" y2="455" />
+              <line x1="75" y1="0" x2="75" y2="520" />
+              <line x1="150" y1="0" x2="150" y2="520" />
+              <line x1="225" y1="0" x2="225" y2="520" />
+              <line x1="300" y1="0" x2="300" y2="520" />
+              <line x1="375" y1="0" x2="375" y2="520" />
+              <line x1="450" y1="0" x2="450" y2="520" />
+              <line x1="525" y1="0" x2="525" y2="520" />
+            </g>
+
+            <!-- Canal / Waterway Geometry -->
+            <path d="M -20 380 Q 180 360 310 230 T 620 90 L 620 155 Q 370 265 230 410 T -20 445 Z" fill="#D5E3E8" stroke="#1D5B79" stroke-width="1.5" />
+            <path d="M -20 395 Q 185 375 315 245 T 620 105" fill="none" stroke="#1D5B79" stroke-width="0.75" stroke-dasharray="6 4" />
+
+            <!-- LAYER 1: ZONING PARCELS & FOOTPRINTS -->
+            <g id="layer-zoning" class="svg-layer">
+              <!-- High-Density Mixed Use Parcel (C-3) -->
+              <rect x="45" y="40" width="160" height="130" fill="url(#diagonalHatch)" stroke="#181A18" stroke-width="1.5" />
+              <rect x="60" y="55" width="55" height="45" fill="#181A18" />
+              <rect x="125" y="55" width="65" height="100" fill="#181A18" />
+              <rect x="60" y="110" width="55" height="45" fill="#EAE6DF" stroke="#181A18" stroke-width="1.2" />
+              <text x="52" y="50" font-family="JetBrains Mono" font-size="9" fill="#181A18" font-weight="bold">ZONE C-4 // FAR 6.5</text>
+
+              <!-- Courtyard Block (R-5B) -->
+              <rect x="240" y="40" width="185" height="130" fill="#E3DEC6" fill-opacity="0.7" stroke="#181A18" stroke-width="1.5" />
+              <path d="M 255 55 H 410 V 155 H 255 Z M 280 80 V 130 H 385 V 80 Z" fill="#181A18" fill-rule="evenodd" />
+              <text x="248" y="50" font-family="JetBrains Mono" font-size="9" fill="#181A18" font-weight="bold">PERIMETER BLOCK // R-5</text>
+
+              <!-- Adaptive Reuse Industrial District (M-1) -->
+              <rect x="45" y="200" width="160" height="140" fill="url(#crossHatch)" stroke="#181A18" stroke-width="1.5" />
+              <rect x="60" y="218" width="130" height="42" fill="#181A18" />
+              <rect x="60" y="272" width="80" height="50" fill="#181A18" />
+              <text x="52" y="212" font-family="JetBrains Mono" font-size="9" fill="#1D5B79" font-weight="bold">M-1 // INCLUSIONARY TOD</text>
+
+              <!-- Waterfront Civic & Missing Middle -->
+              <rect x="360" y="290" width="200" height="175" fill="url(#diagonalHatch)" stroke="#181A18" stroke-width="1.5" />
+              <rect x="380" y="310" width="45" height="65" fill="#181A18" />
+              <rect x="435" y="310" width="45" height="65" fill="#181A18" />
+              <rect x="490" y="310" width="50" height="135" fill="#181A18" />
+              <rect x="380" y="390" width="100" height="55" fill="#EAE6DF" stroke="#181A18" stroke-width="1.5" />
+              <text x="368" y="303" font-family="JetBrains Mono" font-size="9" fill="#181A18" font-weight="bold">CIVIC PLAZA // P-2</text>
+            </g>
+
+            <!-- LAYER 2: GREEN CANOPY & HYDROLOGY -->
+            <g id="layer-canopy" class="svg-layer">
+              <!-- Park & Bioswale Corridors -->
+              <rect x="455" y="40" width="110" height="180" fill="#2A6F4E" fill-opacity="0.22" stroke="#2A6F4E" stroke-width="1.5" stroke-dasharray="4 2" />
+              <!-- Tree Crown Circles -->
+              <g fill="#2A6F4E" fill-opacity="0.65" stroke="#181A18" stroke-width="0.8">
+                <circle cx="485" cy="75" r="16" />
+                <circle cx="515" cy="95" r="20" />
+                <circle cx="485" cy="130" r="14" />
+                <circle cx="530" cy="145" r="18" />
+                <circle cx="332" cy="105" r="15" />
+                <!-- Street Trees along Arterial -->
+                <circle cx="222" cy="60" r="7" />
+                <circle cx="222" cy="95" r="7" />
+                <circle cx="222" cy="130" r="7" />
+                <circle cx="222" cy="165" r="7" />
+                <!-- Waterfront Promenade Trees -->
+                <circle cx="290" cy="340" r="12" />
+                <circle cx="320" cy="315" r="14" />
+                <circle cx="345" cy="285" r="11" />
+              </g>
+              <text x="462" y="54" font-family="JetBrains Mono" font-size="8.5" fill="#2A6F4E" font-weight="bold">BIOSWALE // +42% CANOPY</text>
+            </g>
+
+            <!-- LAYER 3: RAPID TRANSIT & COMPLETE STREETS -->
+            <g id="layer-transit" class="svg-layer">
+              <!-- Dedicated Bus Rapid Transit (BRT) Corridor -->
+              <line x1="222" y1="0" x2="222" y2="520" stroke="#181A18" stroke-width="6" />
+              <line x1="222" y1="0" x2="222" y2="520" stroke="#F4F1EA" stroke-width="1.5" stroke-dasharray="8 8" />
+
+              <!-- Heavy Rail / LRT Line (Transit Orange) -->
+              <path d="M 0 185 L 325 185 L 440 270 L 600 270" fill="none" stroke="#FF4F00" stroke-width="5" />
+              <!-- Animated Express Train Pulse -->
+              <path class="transit-train" d="M 0 185 L 325 185 L 440 270 L 600 270" fill="none" stroke="#FFFFFF" stroke-width="3" />
+
+              <!-- Transit Stations / Nodes -->
+              <g>
+                <circle cx="222" cy="185" r="9" fill="#F4F1EA" stroke="#181A18" stroke-width="3" />
+                <circle cx="222" cy="185" r="4" fill="#FF4F00" />
+                <!-- 15-Minute Walkshed Radius Ring -->
+                <circle cx="222" cy="185" r="88" fill="none" stroke="#FF4F00" stroke-width="1.2" stroke-dasharray="5 5" />
+                <rect x="235" y="164" width="118" height="18" fill="#181A18" />
+                <text x="241" y="176" font-family="JetBrains Mono" font-size="8.5" fill="#F4F1EA">NODE 04: CENTRAL TOD</text>
+
+                <circle cx="440" cy="270" r="8" fill="#F4F1EA" stroke="#181A18" stroke-width="2.5" />
+                <rect x="452" y="246" width="110" height="18" fill="#FF4F00" />
+                <text x="458" y="258" font-family="JetBrains Mono" font-size="8.5" fill="#FFFFFF" font-weight="bold">QUAYSIDE STATION</text>
+              </g>
+            </g>
+
+            <!-- Compass Rose & Scale Marker -->
+            <g transform="translate(545, 455)">
+              <circle cx="0" cy="0" r="22" fill="#F4F1EA" stroke="#181A18" stroke-width="1" />
+              <polygon points="0,-18 5,6 0,2 -5,6" fill="#181A18" />
+              <text x="-3.5" y="-24" font-family="JetBrains Mono" font-size="9" font-weight="bold">N</text>
+            </g>
+          </svg>
+
+          <!-- Live Telemetry HUD at Bottom of Map -->
+          <div class="map-hud-overlay">
+            <div>
+              <span class="hud-metric-label">WALKSHED COVERAGE</span>
+              <span class="hud-metric-val" id="hud-walkshed">84.2% (15-MIN)</span>
+            </div>
+            <div>
+              <span class="hud-metric-label">MODAL SPLIT (TRANSIT)</span>
+              <span class="hud-metric-val">62% RAIL / BRT</span>
+            </div>
+            <div>
+              <span class="hud-metric-label">CURSOR GRID REF</span>
+              <span class="hud-metric-val" id="hud-grid-ref">SEC-04 // X:220 Y:185</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Readership & Authority Telemetry Bar -->
+    <section class="metrics-bar">
+      <div class="metric-block">
+        <div class="metric-code">
+          <span>METRIC 01</span>
+          <span>[CIRCULATION]</span>
+        </div>
+        <div class="metric-number">48,900+</div>
+        <div class="metric-desc">Urban planners, municipal directors, transit engineers &amp; YIMBY advocates subscribed.</div>
+      </div>
+
+      <div class="metric-block">
+        <div class="metric-code">
+          <span>METRIC 02</span>
+          <span>[FOOTPRINT]</span>
+        </div>
+        <div class="metric-number">310 Cities</div>
+        <div class="metric-desc">Case studies analyzed across North America, Europe, Latin America, and East Asia.</div>
+      </div>
+
+      <div class="metric-block">
+        <div class="metric-code">
+          <span>METRIC 03</span>
+          <span>[ENGAGEMENT]</span>
+        </div>
+        <div class="metric-number">64.8%</div>
+        <div class="metric-desc">Average weekly open rate—read in City Halls, architectural studios, and transit agencies.</div>
+      </div>
+
+      <div class="metric-block">
+        <div class="metric-code">
+          <span>METRIC 04</span>
+          <span>[ARCHIVE]</span>
+        </div>
+        <div class="metric-number">142 Issues</div>
+        <div class="metric-desc">Full access to our searchable library of street-section diagrams and policy briefs.</div>
+      </div>
+    </section>
+
+    <!-- Section: The 4 Zoning Pillars of Coverage -->
+    <div class="section-banner">
+      <h2 class="section-banner-title">
+        <span>SECTION 02 // EDITORIAL MASTER PLAN</span>
+      </h2>
+      <span class="section-banner-meta">4 CORE DISCIPLINES COVERED EVERY WEEK</span>
+    </div>
+
+    <section class="pillars-grid">
+      <article class="pillar-card">
+        <div class="pillar-top">
+          <span class="zone-tag orange">ZONE R-4 // LAND USE</span>
+          <h3 class="pillar-title">Zoning Reform &amp; Housing Typologies</h3>
+          <p class="pillar-body">
+            From abolishing parking minimums and legalizing single-stair point-access blocks to form-based codes, ADUs, and the financial anatomy of missing-middle housing.
+          </p>
+        </div>
+        <div class="pillar-spec">
+          <span>DENSITY TARGET</span>
+          <strong>45–120 DU / ACRE</strong>
+        </div>
+      </article>
+
+      <article class="pillar-card">
+        <div class="pillar-top">
+          <span class="zone-tag blue">ZONE M-1 // MOBILITY</span>
+          <h3 class="pillar-title">Transit Geometry &amp; Network Effect</h3>
+          <p class="pillar-body">
+            Why some light rail lines cost $400M per mile while others cost $40M. Deep dives into signal priority, clock-face scheduling, station-area value capture, and regional rail.
+          </p>
+        </div>
+        <div class="pillar-spec">
+          <span>HEADWAY STANDARD</span>
+          <strong>&lt; 6 MIN PEAK</strong>
+        </div>
+      </article>
+
+      <article class="pillar-card">
+        <div class="pillar-top">
+          <span class="zone-tag yellow">ZONE C-2 // STREETSCAPE</span>
+          <h3 class="pillar-title">Curbside Economics &amp; Public Realm</h3>
+          <p class="pillar-body">
+            Dimensioned street sections dissecting Dutch-style protected intersections, modal filters, road diets, dynamic loading zones, and pedestrianized commercial corridors.
+          </p>
+        </div>
+        <div class="pillar-spec">
+          <span>DESIGN SPEED</span>
+          <strong>20 KM/H SHARED</strong>
+        </div>
+      </article>
+
+      <article class="pillar-card">
+        <div class="pillar-top">
+          <span class="zone-tag green">ZONE P-1 // ECOLOGY</span>
+          <h3 class="pillar-title">Sponge Cities &amp; Thermal Equity</h3>
+          <p class="pillar-body">
+            How cities engineer resilience against 100-year cloudbursts and urban heat islands through permeable pavements, daylighted creeks, and urban forestry mandates.
+          </p>
+        </div>
+        <div class="pillar-spec">
+          <span>PERMEABILITY</span>
+          <strong>+38% RUNOFF RETENTION</strong>
+        </div>
+      </article>
+    </section>
+
+    <!-- Section: Interactive Issue Specimen Inspection -->
+    <div class="section-banner">
+      <h2 class="section-banner-title">
+        <span>SECTION 03 // SPECIMEN DISPATCH INSPECTION</span>
+      </h2>
+      <span class="section-banner-meta">SELECT AN ARCHIVE FILE TO PREVIEW FORMAT</span>
+    </div>
+
+    <section class="inspection-section">
+      <!-- Left Selector Column -->
+      <div class="inspection-sidebar">
+        <div>
+          <div class="section-index" style="margin-bottom: 0.75rem;">
+            <span>RECENT FIELD DISPATCHES</span>
+          </div>
+          <p style="font-family: var(--font-serif); font-size: 0.98rem; color: var(--ink-muted);">
+            Every Thursday edition includes one primary case study, a custom-drafted cross-section or GIS diagram, and three municipal policy links worth your time.
+          </p>
+
+          <div class="issue-selector-list" role="tablist">
+            <button type="button" class="issue-tab active" data-issue="0" role="tab" aria-selected="true">
+              <span class="issue-tab-meta">ISSUE #142 • CURBSIDE GEOMETRY</span>
+              <div class="issue-tab-title">The 20-Meter Street Diet: Reclaiming Asphalt for BRT &amp; Bioswales</div>
+            </button>
+
+            <button type="button" class="issue-tab" data-issue="1" role="tab" aria-selected="false">
+              <span class="issue-tab-meta">ISSUE #139 • BUILDING CODES</span>
+              <div class="issue-tab-title">Why North American Apartments Have Double-Loaded Corridors (And How to Fix It)</div>
+            </button>
+
+            <button type="button" class="issue-tab" data-issue="2" role="tab" aria-selected="false">
+              <span class="issue-tab-meta">ISSUE #135 • MUNICIPAL FINANCE</span>
+              <div class="issue-tab-title">The Fiscal Math of Cul-de-Sacs vs. Traditional Gridiron Blocks</div>
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--grid-line); font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted);">
+          <div>AVERAGE READ TIME: 5 MIN 20 SEC</div>
+          <div>INCLUDES CAD / SVG STREET SECTIONS</div>
+        </div>
+      </div>
+
+      <!-- Right Specimen Reader -->
+      <div class="inspection-reader">
+        <article class="specimen-dossier" id="specimen-content">
+          <div class="dossier-header">
+            <div>
+              <div class="dossier-kicker" id="doc-kicker">ISSUE #142 // STREET SECTION ANALYSIS</div>
+              <h3 class="dossier-headline" id="doc-headline">The 20-Meter Street Diet: Reclaiming Asphalt for BRT &amp; Bioswales</h3>
+            </div>
+            <div class="dossier-stamp" id="doc-stamp">
+              DATE: OCT 2024<br>
+              SCALE: 1:100 METRIC
+            </div>
+          </div>
+
+          <div class="dossier-grid">
+            <div class="dossier-prose" id="doc-prose">
+              <p>
+                For sixty years, municipal traffic manuals treated the 20-meter urban arterial as a throughput pipe: four 3.5-meter travel lanes flanked by two parking lanes and narrow 1.5-meter sidewalks. The result is familiar—high-speed conflicts, zero tree canopy, and buses trapped in single-occupancy congestion.
+              </p>
+              <p>
+                By narrowing general travel lanes to 3.0 meters and consolidating curb parking into alternating loading bays, cities from Utrecht to Bogotá have unlocked 6.5 meters of right-of-way without moving a single building facade. That reclaimed width is enough for physically separated cycle tracks and center-running Bus Rapid Transit.
+              </p>
+            </div>
+
+            <!-- Architectural Street Section Diagram -->
+            <div class="dossier-diagram-box">
+              <div id="doc-svg-container">
+                <svg viewBox="0 0 320 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Dimension Lines -->
+                  <line x1="10" y1="20" x2="310" y2="20" stroke="#181A18" stroke-width="1" />
+                  <line x1="10" y1="15" x2="10" y2="25" stroke="#181A18" stroke-width="1" />
+                  <line x1="310" y1="15" x2="310" y2="25" stroke="#181A18" stroke-width="1" />
+                  <text x="160" y="14" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#181A18">20.0M TOTAL RIGHT-OF-WAY</text>
+
+                  <!-- Sub-dimensions -->
+                  <g font-family="JetBrains Mono" font-size="7" fill="#525652" text-anchor="middle">
+                    <text x="32" y="36">3.0m</text>
+                    <text x="72" y="36">2.2m</text>
+                    <text x="125" y="36">6.6m BRT</text>
+                    <text x="205" y="36">6.0m AUTO</text>
+                    <text x="280" y="36">2.2m</text>
+                  </g>
+
+                  <!-- Street Surface Profile -->
+                  <rect x="10" y="125" width="45" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+                  <rect x="55" y="128" width="35" height="9" fill="#2A6F4E" stroke="#181A18" stroke-width="1" />
+                  <rect x="90" y="130" width="70" height="7" fill="#FF4F00" stroke="#181A18" stroke-width="1" />
+                  <rect x="160" y="125" width="12" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+                  <rect x="172" y="130" width="78" height="7" fill="#525652" stroke="#181A18" stroke-width="1" />
+                  <rect x="250" y="125" width="60" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+
+                  <!-- Trees & Elements -->
+                  <circle cx="166" cy="82" r="18" fill="#2A6F4E" fill-opacity="0.8" stroke="#181A18" stroke-width="1" />
+                  <line x1="166" y1="100" x2="166" y2="125" stroke="#181A18" stroke-width="2" />
+                  
+                  <!-- BRT Vehicle Silhouette -->
+                  <rect x="100" y="96" width="50" height="34" rx="2" fill="#FF4F00" stroke="#181A18" stroke-width="1.2" />
+                  <rect x="105" y="102" width="40" height="14" fill="#F4F1EA" />
+
+                  <!-- Auto Silhouette -->
+                  <rect x="192" y="110" width="36" height="20" rx="2" fill="#EAE6DF" stroke="#181A18" stroke-width="1.2" />
+
+                  <!-- Labels -->
+                  <text x="32" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">WALK</text>
+                  <text x="72" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#2A6F4E" font-weight="bold">CYCLE</text>
+                  <text x="125" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#FF4F00" font-weight="bold">DEDICATED BRT</text>
+                  <text x="210" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">2-LANE LOCAL</text>
+                  <text x="280" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">CAFE ZONE</text>
+                </svg>
+              </div>
+              <div class="diagram-caption" id="doc-caption">
+                FIG 142.B — Reallocated 20m cross-section increases hourly person-capacity from 1,400 to 6,800 pphpd.
+              </div>
+            </div>
+          </div>
+
+          <div class="dossier-takeaways" id="doc-takeaways">
+            <div class="takeaway-item">
+              <strong>THROUGHPUT GAIN</strong>
+              <span>+385% Person Capacity / Hr</span>
+            </div>
+            <div class="takeaway-item">
+              <strong>SAFETY IMPACT</strong>
+              <span>-64% Pedestrian Injury Rate</span>
+            </div>
+            <div class="takeaway-item">
+              <strong>CAPITAL COST</strong>
+              <span>$3.2M / km (Quick-Build Curbs)</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Reader Field Reports / Testimonials -->
+    <div class="section-banner">
+      <h2 class="section-banner-title">
+        <span>SECTION 04 // PEER REVIEW &amp; FIELD REPORTS</span>
+      </h2>
+      <span class="section-banner-meta">VERIFIED SUBSCRIBER ENDORSEMENTS</span>
+    </div>
+
+    <section class="endorsements-grid">
+      <div class="endorsement-cell">
+        <p class="quote-text">
+          “The only newsletter in my inbox that actually includes dimensioned street cross-sections and municipal bond math instead of vague futurism. We forwarded the single-stair issue to our entire city council.”
+        </p>
+        <div class="quote-author">
+          <div>
+            <strong>ELENA ROSTOVA, AICP</strong>
+            <span class="author-role">Senior Principal Planner, Department of City Planning</span>
+          </div>
+          <span>[SEATTLE, WA]</span>
+        </div>
+      </div>
+
+      <div class="endorsement-cell">
+        <p class="quote-text">
+          “Whether they are dissecting Tokyo’s by-right zoning or Paris’s school-street pedestrianizations, The Urban Grid bridges the gap between academic urbanism and actionable zoning text.”
+        </p>
+        <div class="quote-author">
+          <div>
+            <strong>MARCUS VANCE, AIA</strong>
+            <span class="author-role">Partner, Civic Architecture &amp; Urban Design</span>
+          </div>
+          <span>[TORONTO, ON]</span>
+        </div>
+      </div>
+
+      <div class="endorsement-cell">
+        <p class="quote-text">
+          “Essential Thursday morning reading. It changed how I look at every curb radius, setback line, and bus shelter on my morning commute.”
+        </p>
+        <div class="quote-author">
+          <div>
+            <strong>DAVID CHEN, PE</strong>
+            <span class="author-role">Lead Transit Systems Engineer</span>
+          </div>
+          <span>[BOSTON, MA]</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architectural Colophon & Secondary Signup Footer -->
+    <footer class="colophon-footer">
+      <div class="footer-top">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--transit-orange); margin-bottom: 0.75rem; text-transform: uppercase;">
+            FINAL CALL FOR THURSDAY'S EDITION
+          </div>
+          <h2 class="footer-cta-headline">
+            JOIN 48,900+ READERS BUILDING BETTER CITIES.
+          </h2>
+          <p style="font-family: var(--font-serif); font-size: 1.15rem; color: #C2C6C2; max-width: 52ch;">
+            Delivered free every Thursday morning. Zero spam, independent editorial analysis, and full access to our cartographic archive.
+          </p>
+        </div>
+
+        <div>
+          <form class="footer-form" id="footer-newsletter-form">
+            <input 
+              type="email" 
+              id="footer-email-input"
+              class="footer-input" 
+              placeholder="Enter your email address..." 
+              required 
+            />
+            <button type="submit" class="submit-btn">
+              <span>SUBSCRIBE</span>
+            </button>
+          </form>
+          <div id="footer-confirm-msg" style="display:none; margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.8rem; color: #5CE69B;">
+            ✓ PERMIT REGISTERED. CHECK YOUR INBOX FOR ISSUE #142.
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          <strong>THE URBAN GRID</strong> — PUBLISHED WEEKLY BY CIVIC PRESS COOPERATIVE // ISSN 2834-910X
+        </div>
+        <div class="footer-links">
+          <a href="#signup-container">SUBSCRIPTION PERMIT</a>
+          <a href="#interactive-map" onclick="document.querySelector('[data-layer=zoning]').click()">GIS MAP</a>
+          <a href="#specimen-content">ISSUE ARCHIVE</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Interactive Scripts for GIS Map Layers, Coordinate Telemetry, Specimen Switcher & Permit Stamp -->
+  <script>
+    // 1. Interactive GIS Map Layer Toggles
+    const layerBtns = document.querySelectorAll('.layer-btn');
+    const walkshedHud = document.getElementById('hud-walkshed');
+
+    layerBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        const layerName = btn.getAttribute('data-layer');
+        const svgLayer = document.getElementById('layer-' + layerName);
+        if (svgLayer) {
+          svgLayer.classList.toggle('hidden', !btn.classList.contains('active'));
+        }
+        
+        // Update HUD status dynamically based on active layers
+        const activeCount = document.querySelectorAll('.layer-btn.active').length;
+        walkshedHud.textContent = activeCount === 3 ? '84.2% (ALL LAYERS)' : `${activeCount}/3 LAYERS ACTIVE`;
+      });
+    });
+
+    // 2. Live Cursor Coordinate Telemetry on Blueprint Map
+    const mapViewport = document.getElementById('interactive-map');
+    const hudGridRef = document.getElementById('hud-grid-ref');
+    const topCoords = document.getElementById('cursor-coords');
+
+    mapViewport.addEventListener('mousemove', (e) => {
+      const rect = mapViewport.getBoundingClientRect();
+      const x = Math.round(e.clientX - rect.left);
+      const y = Math.round(e.clientY - rect.top);
+      const sec = Math.min(9, Math.max(1, Math.ceil((x / rect.width) * 4) + Math.floor((y / rect.height) * 2)));
+      hudGridRef.textContent = `SEC-0${sec} // X:${x.toString().padStart(3, '0')} Y:${y.toString().padStart(3, '0')}`;
+      
+      const latSec = (46 + (y % 14)).toString().padStart(2, '0');
+      const lonSec = (22 + (x % 35)).toString().padStart(2, '0');
+      if (topCoords) {
+        topCoords.textContent = `LAT 40°42'${latSec}"N // LON 74°00'${lonSec}"W`;
+      }
+    });
+
+    // 3. Primary Subscription Form "Permit Approved" Stamp
+    const newsletterForm = document.getElementById('newsletter-form');
+    const emailField = document.getElementById('email-field');
+    const permitConfirmation = document.getElementById('permit-confirmation');
+    const confirmedEmail = document.getElementById('confirmed-email');
+    const confirmedSectors = document.getElementById('confirmed-sectors');
+    const permitId = document.getElementById('permit-id');
+
+    newsletterForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const emailVal = emailField.value.trim();
+      if (!emailVal || !emailVal.includes('@')) {
+        emailField.focus();
+        emailField.style.borderColor = '#FF4F00';
+        return;
+      }
+
+      // Collect selected sector checkboxes
+      const checked = Array.from(newsletterForm.querySelectorAll('input[name="sector"]:checked'))
+        .map(cb => cb.value);
+
+      confirmedEmail.textContent = emailVal;
+      confirmedSectors.textContent = checked.length ? checked.join(' • ') : 'General Urbanism & Policy';
+      permitId.textContent = 'PERMIT #UG-' + Math.floor(1000 + Math.random() * 9000);
+
+      newsletterForm.style.display = 'none';
+      permitConfirmation.classList.add('active');
+    });
+
+    // Secondary Footer Form handler
+    const footerForm = document.getElementById('footer-newsletter-form');
+    const footerEmail = document.getElementById('footer-email-input');
+    const footerMsg = document.getElementById('footer-confirm-msg');
+
+    footerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (footerEmail.value.trim().includes('@')) {
+        footerForm.style.display = 'none';
+        footerMsg.style.display = 'block';
+      }
+    });
+
+    // 4. Interactive Specimen Issue Switcher
+    const issuesData = [
+      {
+        kicker: "ISSUE #142 // STREET SECTION ANALYSIS",
+        headline: "The 20-Meter Street Diet: Reclaiming Asphalt for BRT & Bioswales",
+        stamp: "DATE: OCT 2024<br>SCALE: 1:100 METRIC",
+        prose: `
+          <p>For sixty years, municipal traffic manuals treated the 20-meter urban arterial as a throughput pipe: four 3.5-meter travel lanes flanked by two parking lanes and narrow 1.5-meter sidewalks. The result is familiar—high-speed conflicts, zero tree canopy, and buses trapped in single-occupancy congestion.</p>
+          <p>By narrowing general travel lanes to 3.0 meters and consolidating curb parking into alternating loading bays, cities from Utrecht to Bogotá have unlocked 6.5 meters of right-of-way without moving a single building facade. That reclaimed width is enough for physically separated cycle tracks and center-running Bus Rapid Transit.</p>
+        `,
+        svg: `
+          <svg viewBox="0 0 320 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+            <line x1="10" y1="20" x2="310" y2="20" stroke="#181A18" stroke-width="1" />
+            <line x1="10" y1="15" x2="10" y2="25" stroke="#181A18" stroke-width="1" />
+            <line x1="310" y1="15" x2="310" y2="25" stroke="#181A18" stroke-width="1" />
+            <text x="160" y="14" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#181A18">20.0M TOTAL RIGHT-OF-WAY</text>
+            <g font-family="JetBrains Mono" font-size="7" fill="#525652" text-anchor="middle">
+              <text x="32" y="36">3.0m</text><text x="72" y="36">2.2m</text><text x="125" y="36">6.6m BRT</text><text x="205" y="36">6.0m AUTO</text><text x="280" y="36">2.2m</text>
+            </g>
+            <rect x="10" y="125" width="45" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+            <rect x="55" y="128" width="35" height="9" fill="#2A6F4E" stroke="#181A18" stroke-width="1" />
+            <rect x="90" y="130" width="70" height="7" fill="#FF4F00" stroke="#181A18" stroke-width="1" />
+            <rect x="160" y="125" width="12" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+            <rect x="172" y="130" width="78" height="7" fill="#525652" stroke="#181A18" stroke-width="1" />
+            <rect x="250" y="125" width="60" height="12" fill="#D4CFC7" stroke="#181A18" stroke-width="1" />
+            <circle cx="166" cy="82" r="18" fill="#2A6F4E" fill-opacity="0.8" stroke="#181A18" stroke-width="1" />
+            <line x1="166" y1="100" x2="166" y2="125" stroke="#181A18" stroke-width="2" />
+            <rect x="100" y="96" width="50" height="34" rx="2" fill="#FF4F00" stroke="#181A18" stroke-width="1.2" />
+            <rect x="105" y="102" width="40" height="14" fill="#F4F1EA" />
+            <rect x="192" y="110" width="36" height="20" rx="2" fill="#EAE6DF" stroke="#181A18" stroke-width="1.2" />
+            <text x="32" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">WALK</text>
+            <text x="72" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#2A6F4E" font-weight="bold">CYCLE</text>
+            <text x="125" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#FF4F00" font-weight="bold">DEDICATED BRT</text>
+            <text x="210" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">2-LANE LOCAL</text>
+            <text x="280" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#181A18">CAFE ZONE</text>
+          </svg>
+        `,
+        caption: "FIG 142.B — Reallocated 20m cross-section increases hourly person-capacity from 1,400 to 6,800 pphpd.",
+        takeaways: [
+          { label: "THROUGHPUT GAIN", val: "+385% Person Capacity / Hr" },
+          { label: "SAFETY IMPACT", val: "-64% Pedestrian Injury Rate" },
+          { label: "CAPITAL COST", val: "$3.2M / km (Quick-Build Curbs)" }
+        ]
+      },
+      {
+        kicker: "ISSUE #139 // BUILDING CODE REFORM",
+        headline: "Why North American Apartments Have Double-Loaded Corridors (And How to Fix It)",
+        stamp: "DATE: SEP 2024<br>SCALE: FLOORPLATE 1:200",
+        prose: `
+          <p>Walk into almost any new six-story apartment building in the United States or Canada and you will find a windowless, hotel-style central hallway flanked by shallow, single-aspect studio and one-bedroom units. The culprit isn't developer greed—it's dual-egress stair mandates above three stories.</p>
+          <p>In cities like Munich, Zurich, and now Seattle, Point Access Block (single-stair) codes allow compact six-story buildings around a single pressurized stairwell. The result: 92% net-to-gross floorplate efficiency, cross-ventilated corner units for families, and infill housing on narrow 15-meter urban lots.</p>
+        `,
+        svg: `
+          <svg viewBox="0 0 320 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+            <text x="85" y="18" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#525652">DOUBLE-LOADED (US CODE)</text>
+            <text x="238" y="18" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#2A6F4E" font-weight="bold">POINT ACCESS (SINGLE STAIR)</text>
+            <!-- Left: Double Loaded -->
+            <rect x="20" y="30" width="130" height="105" fill="#EAE6DF" stroke="#181A18" stroke-width="1.5" />
+            <rect x="20" y="72" width="130" height="22" fill="#FF4F00" fill-opacity="0.25" stroke="#FF4F00" stroke-width="1" stroke-dasharray="3 2" />
+            <rect x="24" y="74" width="16" height="18" fill="#181A18" />
+            <rect x="130" y="74" width="16" height="18" fill="#181A18" />
+            <text x="85" y="86" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#181A18">DEAD CORRIDOR (22%)</text>
+            <!-- Right: Point Access Block -->
+            <rect x="188" y="30" width="100" height="105" fill="#D5E3E8" stroke="#181A18" stroke-width="1.5" />
+            <line x1="238" y1="30" x2="238" y2="135" stroke="#181A18" stroke-width="1" />
+            <line x1="188" y1="82" x2="288" y2="82" stroke="#181A18" stroke-width="1" />
+            <rect x="224" y="68" width="28" height="28" fill="#2A6F4E" stroke="#181A18" stroke-width="1.5" />
+            <text x="238" y="85" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#FFFFFF" font-weight="bold">CORE</text>
+            <text x="85" y="155" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#525652">1-SIDED LIGHT ONLY</text>
+            <text x="238" y="155" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#2A6F4E" font-weight="bold">4 CORNER CROSS-BREEZE UNITS</text>
+          </svg>
+        `,
+        caption: "FIG 139.A — Single-stair point access blocks eliminate long internal corridors and unlock dual-aspect family apartments.",
+        takeaways: [
+          { label: "FLOORPLATE EFFICIENCY", val: "91% Usable Living Area" },
+          { label: "NATURAL VENTILATION", val: "2-Sided Window Exposure" },
+          { label: "MINIMUM LOT WIDTH", val: "Fits 15m Infill Parcels" }
+        ]
+      },
+      {
+        kicker: "ISSUE #135 // MUNICIPAL TAX GEOMETRY",
+        headline: "The Fiscal Math of Cul-de-Sacs vs. Traditional Gridiron Blocks",
+        stamp: "DATE: AUG 2024<br>SCALE: VALUE / ACRE AUDIT",
+        prose: `
+          <p>When a municipality annexes land for a dendritic cul-de-sac subdivision, it receives a one-time impact fee—and assumes a perpetual liability for water mains, sewer laterals, and asphalt resurfacing. Yet because low-density parcels generate minimal property tax per linear foot of pipe, the math rarely balances at year 30.</p>
+          <p>Using parcel-level GIS assessments across 18 mid-sized cities, we mapped net property tax yield per acre. Traditional mixed-use street grids with 3-to-4 story missing-middle buildings yield 4.8x more municipal revenue per linear meter of infrastructure than auto-centric arterial pods.</p>
+        `,
+        svg: `
+          <svg viewBox="0 0 320 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+            <line x1="25" y1="138" x2="295" y2="138" stroke="#181A18" stroke-width="1.5" />
+            <!-- Bar 1: Cul-de-sac -->
+            <rect x="45" y="108" width="55" height="30" fill="#D4CFC7" stroke="#181A18" stroke-width="1.2" />
+            <text x="72" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#181A18">$4.1K / AC</text>
+            <text x="72" y="154" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#525652">CUL-DE-SAC</text>
+            <!-- Bar 2: Strip Mall -->
+            <rect x="132" y="92" width="55" height="46" fill="#E5A93C" stroke="#181A18" stroke-width="1.2" />
+            <text x="160" y="84" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#181A18">$7.8K / AC</text>
+            <text x="160" y="154" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#525652">BIG BOX + LOT</text>
+            <!-- Bar 3: Traditional Grid -->
+            <rect x="220" y="32" width="55" height="106" fill="#FF4F00" stroke="#181A18" stroke-width="1.2" />
+            <text x="247" y="23" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" font-weight="bold" fill="#FF4F00">$28.4K / AC</text>
+            <text x="247" y="154" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" font-weight="bold" fill="#181A18">3-STORY GRID</text>
+          </svg>
+        `,
+        caption: "FIG 135.C — Annual municipal tax yield per acre net of linear water, sewer, and street maintenance liabilities.",
+        takeaways: [
+          { label: "NET TAX YIELD", val: "4.8x Higher Per Acre" },
+          { label: "PIPE LENGTH / HOUSEHOLD", val: "4.2m vs. 21.5m Suburban" },
+          { label: "INFRASTRUCTURE ROI", val: "Solvent Across 40-Yr Cycle" }
+        ]
+      }
+    ];
+
+    const issueTabs = document.querySelectorAll('.issue-tab');
+    const docKicker = document.getElementById('doc-kicker');
+    const docHeadline = document.getElementById('doc-headline');
+    const docStamp = document.getElementById('doc-stamp');
+    const docProse = document.getElementById('doc-prose');
+    const docSvgContainer = document.getElementById('doc-svg-container');
+    const docCaption = document.getElementById('doc-caption');
+    const docTakeaways = document.getElementById('doc-takeaways');
+
+    issueTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        issueTabs.forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+
+        const idx = parseInt(tab.getAttribute('data-issue'), 10);
+        const data = issuesData[idx];
+
+        docKicker.textContent = data.kicker;
+        docHeadline.textContent = data.headline;
+        docStamp.innerHTML = data.stamp;
+        docProse.innerHTML = data.prose;
+        docSvgContainer.innerHTML = data.svg;
+        docCaption.textContent = data.caption;
+
+        docTakeaways.innerHTML = data.takeaways.map(item => `
+          <div class="takeaway-item">
+            <strong>${item.label}</strong>
+            <span>${item.val}</span>
+          </div>
+        `).join('');
+      });
+    });
+  </script>
+</body>
+</html>

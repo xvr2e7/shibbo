@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account · Flowdeck</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236366f1'/%3E%3Cpath d='M9.5 17.2l4.6 4.6L22.5 12' stroke='white' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+/* Apply persisted theme/accent before first paint */
+(function(){try{
+  var m=localStorage.getItem('fd-theme')||'system';
+  var r=m==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m;
+  document.documentElement.dataset.theme=r;
+  var a=localStorage.getItem('fd-accent'); if(a)document.documentElement.style.setProperty('--accent',a);
+}catch(e){document.documentElement.dataset.theme='light';}})();
+</script>
+<style>
+:root{
+  color-scheme:light;
+  --accent:#6366f1;
+  --accent-strong:color-mix(in srgb, var(--accent) 82%, black);
+  --accent-soft:color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-softer:color-mix(in srgb, var(--accent) 7%, transparent);
+  --accent-ring:color-mix(in srgb, var(--accent) 25%, transparent);
+  --bg:#f5f6f8; --surface:#ffffff; --surface-2:#f1f2f6;
+  --border:#e6e8ee; --border-strong:#d6d9e2;
+  --text:#141824; --text-2:#5b6272; --text-3:#9aa0af;
+  --danger:#dc2626; --danger-strong:#b91c1c; --danger-soft:color-mix(in srgb, var(--danger) 9%, transparent);
+  --success:#059669; --warn:#d97706;
+  --switch-off:#d8dbe4;
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.07);
+  --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22);
+  --sidebar-bg:#0e1016;
+}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0d12; --surface:#12151d; --surface-2:#181c27;
+  --border:#222839; --border-strong:#2e3547;
+  --text:#e8eaf1; --text-2:#a4abbd; --text-3:#6d7488;
+  --danger:#f87171; --danger-strong:#fca5a5; --success:#34d399; --warn:#fbbf24;
+  --switch-off:#333a4b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-lg:0 18px 48px -12px rgba(0,0,0,.6);
+  --sidebar-bg:#0a0c11;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+html.theming, html.theming *{transition:background-color .28s ease,border-color .28s ease,color .28s ease,box-shadow .28s ease!important}
+::selection{background:var(--accent-soft)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+button{font-family:inherit}
+h1,h2,h3,p{margin:0}
+a{color:var(--accent-strong);text-decoration:none}
+img{display:block}
+.icon{width:18px;height:18px;flex:none}
+.icon-sm{width:15px;height:15px}
+body.locked{overflow:hidden}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);height:100vh;height:100dvh;overflow:hidden}
+
+/* ---------- sidebar ---------- */
+.sidebar{background:var(--sidebar-bg);display:flex;flex-direction:column;padding:14px 12px;min-height:0;z-index:60}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px}
+.brand-name{color:#fff;font-weight:800;font-size:16px;letter-spacing:-.02em}
+.workspace{margin-top:12px;display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#e6e8ef;cursor:pointer;text-align:left;transition:background .15s}
+.workspace:hover{background:rgba(255,255,255,.09)}
+.ws-tile{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.ws-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.ws-text strong{font-size:13px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-text span{font-size:11px;color:#8b93a7;white-space:nowrap}
+.ws-chev{color:#6d7488}
+.side-nav{flex:1;min-height:0;overflow-y:auto;margin-top:12px;display:flex;flex-direction:column;gap:2px;padding-right:2px}
+.side-nav::-webkit-scrollbar{width:6px}
+.side-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border:none}
+.nav-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#59606f;font-weight:700;padding:16px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;border:none;background:none;width:100%;text-align:left;color:#9aa1b2;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .13s,color .13s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#e8eaf1}
+.nav-item.active{background:color-mix(in srgb, var(--accent) 24%, transparent);color:#fff}
+.nav-item .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.side-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:10px;display:flex;flex-direction:column;gap:10px}
+.storage{padding:0 8px}
+.storage-top{display:flex;justify-content:space-between;font-size:11.5px;color:#8b93a7;margin-bottom:6px}
+.bar{height:5px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.sidebar .bar{background:rgba(255,255,255,.12)}
+.user-card{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;transition:background .13s}
+.user-card:hover{background:rgba(255,255,255,.06)}
+.user-meta{min-width:0;flex:1}
+.user-meta strong{display:block;font-size:13px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-meta span{display:block;font-size:11px;color:#8b93a7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar .icon-btn{color:#8b93a7}
+.sidebar .icon-btn:hover{background:rgba(255,255,255,.09);color:#fff}
+.avatar{border-radius:50%;object-fit:cover;flex:none}
+.avatar-sm{width:30px;height:30px}
+.avatar-md{width:34px;height:34px}
+.avatar-xl{width:84px;height:84px}
+
+/* ---------- main / topbar ---------- */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{flex:none;height:62px;display:flex;align-items:center;gap:14px;padding:0 28px;border-bottom:1px solid var(--border);background:color-mix(in srgb, var(--surface) 84%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:20}
+.menu-btn{display:none}
+.crumbs{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--text-3)}
+.crumbs b{color:var(--text);font-weight:600}
+.crumbs .icon{width:14px;height:14px}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;width:250px;color:var(--text-3);transition:border-color .15s, box-shadow .15s}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.search input{border:none;outline:none;background:none;font:inherit;font-size:13px;color:var(--text);width:100%}
+.search input::placeholder{color:var(--text-3)}
+kbd{font-family:inherit;font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--text-3);background:var(--surface-2)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:9px 15px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:background .15s,color .15s,border-color .15s,transform .05s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-ghost{background:transparent;border-color:var(--border-strong);color:var(--text)}
+.btn-ghost:hover{background:var(--surface-2)}
+.btn-soft{background:var(--accent-soft);color:var(--accent-strong)}
+.btn-soft:hover{background:color-mix(in srgb, var(--accent) 20%, transparent)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:var(--danger-strong)}
+.btn-danger-soft{background:var(--danger-soft);color:var(--danger)}
+.btn-danger-soft:hover{background:color-mix(in srgb, var(--danger) 16%, transparent)}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:9px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.icon-btn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--text-2);cursor:pointer;transition:background .13s,color .13s;flex:none}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+.btn-save .s-dot,.btn-save .s-spin,.btn-save .s-check{display:none}
+.btn-save[data-state="dirty"] .s-dot{display:block;animation:pulse 1.1s ease-in-out infinite}
+.btn-save[data-state="saving"] .s-spin{display:inline-block}
+.btn-save[data-state="saving"] .s-dot{display:none}
+.btn-save[data-state="saved"] .s-check{display:inline-block}
+.btn-save[data-state="saved"] .s-dot{display:none}
+.s-dot{width:7px;height:7px;border-radius:50%;background:#fff}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ---------- content ---------- */
+.content-scroll{flex:1;overflow-y:auto;padding:30px 38px 70px}
+.content-inner{max-width:920px;margin:0 auto}
+.page{display:none}
+.page.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:24px}
+.page-head h1{font-size:24px;font-weight:800;letter-spacing:-.025em}
+.page-head p{margin-top:6px;color:var(--text-2);font-size:14px;max-width:600px}
+.page .card + .card{margin-top:20px}
+.foot{margin-top:36px;text-align:center;font-size:12px;color:var(--text-3)}
+.foot a{color:var(--text-3);text-decoration:underline;text-underline-offset:2px}
+.foot a:hover{color:var(--accent-strong)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm)}
+.card.danger{border-color:color-mix(in srgb, var(--danger) 32%, var(--border))}
+.card-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.card-head h2{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.card.danger .card-head h2{color:var(--danger)}
+.card-head p{font-size:13px;color:var(--text-2);margin-top:4px}
+.card-body{padding:22px 24px;display:flex;flex-direction:column;gap:18px}
+.card-body.flush{padding:0}
+.row-item{display:flex;align-items:center;gap:14px;padding:16px 24px}
+.row-item + .row-item{border-top:1px solid var(--border)}
+.row-item.removing{opacity:0;transform:translateX(10px);transition:.24s}
+.row-icon{width:36px;height:36px;flex:none;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2)}
+.row-icon.accent{background:var(--accent-soft);border-color:transparent;color:var(--accent-strong)}
+.row-icon.danger{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
+.row-text{flex:1;min-width:0}
+.row-title{font-size:13.5px;font-weight:600}
+.row-sub{font-size:12.5px;color:var(--text-2);margin-top:2px}
+.row-actions{display:flex;align-items:center;gap:8px;flex:none}
+
+/* ---------- forms ---------- */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field > label{font-size:12.5px;font-weight:600}
+.hint{font-size:12px;color:var(--text-3);font-weight:400}
+.input{width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:13.5px;outline:none;transition:border-color .15s, box-shadow .15s}
+.input::placeholder{color:var(--text-3)}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+textarea.input{min-height:88px;resize:vertical}
+.input-sm{width:auto;padding:7px 10px;font-size:12.5px}
+.select-wrap{position:relative}
+.select-wrap .input{appearance:none;-webkit-appearance:none;padding-right:34px;cursor:pointer}
+.sel-chev{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-3)}
+.pass-wrap{position:relative}
+.pass-wrap .input{padding-right:40px}
+.eye-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;background:none;border-radius:8px;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.eye-btn:hover{background:var(--surface-2);color:var(--text)}
+.eye-btn .i-off{display:none}
+.eye-btn.show .i-on{display:none}
+.eye-btn.show .i-off{display:block}
+.pw-meter{display:flex;align-items:center;gap:12px;margin-top:9px}
+.meter{flex:1;height:5px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.fill{display:block;height:100%;width:0;border-radius:999px;transition:width .25s ease,background .25s ease}
+.lv0{background:var(--danger)}.lv1{background:var(--warn)}.lv2{background:var(--accent)}.lv3{background:var(--success)}
+.pw-label{font-size:12px;color:var(--text-2);min-width:64px;text-align:right}
+
+/* segmented */
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+.seg-opt{position:relative}
+.seg-opt input{position:absolute;opacity:0;pointer-events:none}
+.seg-opt span{display:block;padding:6px 13px;font-size:12.5px;font-weight:500;color:var(--text-2);border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg-opt input:checked + span{background:var(--surface);color:var(--text);font-weight:600;box-shadow:var(--shadow-sm)}
+.seg-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:1px}
+
+/* switch */
+.switch{position:relative;width:38px;height:22px;flex:none;display:inline-block}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.track{position:absolute;inset:0;border-radius:999px;background:var(--switch-off);transition:background .18s;pointer-events:none}
+.track::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
+.switch input:checked + .track{background:var(--accent)}
+.switch input:checked + .track::after{transform:translateX(16px)}
+.switch input:focus-visible + .track{box-shadow:0 0 0 3px var(--accent-ring)}
+
+/* ---------- profile ---------- */
+.profile-row{display:flex;gap:24px;align-items:flex-start}
+.avatar-wrap{position:relative;flex:none}
+.avatar-edit{position:absolute;right:-2px;bottom:2px;width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm);transition:.15s}
+.avatar-edit:hover{color:var(--accent-strong);border-color:var(--accent)}
+.grow{flex:1;min-width:0}
+
+/* badges */
+.badge{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.badge-success{background:color-mix(in srgb, var(--success) 13%, transparent);color:var(--success)}
+.badge-neutral{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.badge-accent{background:var(--accent-soft);color:var(--accent-strong)}
+
+/* brand tiles */
+.brand-tile{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;font-weight:700;font-size:15px}
+.bt-google{background:#fff;border:1px solid var(--border)}
+.bt-github{background:#24292f;color:#fff}
+.bt-slack{background:#4a154b;color:#fff}
+
+/* ---------- notifications table ---------- */
+.notif-head,.notif-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 84px 84px;align-items:center;gap:12px;padding:14px 24px}
+.notif-head{padding:12px 24px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)}
+.notif-head span:not(:first-child),.notif-row .cell{display:flex;justify-content:center}
+.notif-row + .notif-row{border-top:1px solid var(--border)}
+.n-title{font-size:13.5px;font-weight:600}
+.n-sub{font-size:12.5px;color:var(--text-2);margin-top:2px}
+.qh-times{display:flex;align-items:center;gap:8px;flex:none}
+.qh-sep{font-size:12px;color:var(--text-3)}
+
+/* ---------- appearance ---------- */
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.theme-opt{border:1.5px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;background:var(--surface);transition:border-color .15s, box-shadow .15s;text-align:left}
+.theme-opt:hover{border-color:var(--border-strong)}
+.theme-opt.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.theme-prev{height:76px;border-radius:9px;border:1px solid var(--border);padding:7px;display:flex;flex-direction:column;gap:6px;overflow:hidden;margin-bottom:10px}
+.tp-light{background:#eceef3}.tp-light .tp-c{background:#fff}
+.tp-dark{background:#0c0f16}.tp-dark .tp-c{background:#1a2030}
+.tp-sys{background:linear-gradient(135deg,#eceef3 50%,#0c0f16 50%)}.tp-sys .tp-c{background:rgba(255,255,255,.85)}
+.tp-top{height:9px;border-radius:5px}
+.tp-body{flex:1;display:flex;gap:6px;min-height:0}
+.tp-side{width:24%;border-radius:5px}
+.tp-main{flex:1;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.tp-main i{display:block;height:6px;border-radius:4px}
+.tp-main i.short{width:58%}
+.tp-c{background:#fff}
+.to-name{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text-2)}
+.theme-opt.active .to-name{color:var(--accent-strong)}
+.swatches{display:flex;gap:11px;flex-wrap:wrap}
+.swatch{width:30px;height:30px;border-radius:50%;border:none;background:var(--sw);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:transform .12s, box-shadow .12s}
+.swatch:hover{transform:scale(1.12)}
+.swatch.active{box-shadow:0 0 0 2px var(--surface),0 0 0 5px var(--sw)}
+.swatch .icon{display:none;width:14px;height:14px}
+.swatch.active .icon{display:block}
+
+/* ---------- billing ---------- */
+.plan-top{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap}
+.plan-info{flex:1;min-width:240px}
+.plan-info h3{font-size:17px;font-weight:700;margin-top:10px;letter-spacing:-.01em}
+.plan-info p{font-size:13px;color:var(--text-2);margin-top:5px;max-width:420px}
+.usage{width:250px;flex:none}
+.usage-top{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-bottom:7px}
+.usage-top b{color:var(--text)}
+.price-line{font-size:12.5px;color:var(--text-2);margin-top:9px}
+.price-line b{color:var(--text);font-size:13.5px}
+.plan-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:22px;padding-top:18px}
+.plan-foot .note{font-size:12.5px;color:var(--text-2);margin-right:auto}
+.pay-tile{width:46px;height:31px;border-radius:6px;background:linear-gradient(135deg,#1a1f71,#3b4cca);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-style:italic;font-size:11px;letter-spacing:.06em;flex:none}
+.inv-head,.inv-row{display:grid;grid-template-columns:1.1fr 1fr .7fr .7fr 44px;align-items:center;gap:12px;padding:13px 24px;font-size:13px}
+.inv-head{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)}
+.inv-row + .inv-row{border-top:1px solid var(--border)}
+.inv-row .muted{color:var(--text-2)}
+
+/* ---------- modals ---------- */
+.overlay{position:fixed;inset:0;background:rgba(9,11,17,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;opacity:0;visibility:hidden;transition:.2s}
+.overlay.open{opacity:1;visibility:visible}
+.modal{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;transform:translateY(12px) scale(.98);transition:.2s}
+.overlay.open .modal{transform:none}
+.modal.wide{max-width:400px}
+.modal-head{display:flex;gap:13px;align-items:flex-start}
+.m-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+.m-icon.danger{background:var(--danger-soft);color:var(--danger)}
+.m-icon.accent{background:var(--accent-soft);color:var(--accent-strong)}
+.modal h3{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.modal .m-text{font-size:13.5px;color:var(--text-2);margin-top:7px;line-height:1.55}
+.m-list{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.m-list li{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-2)}
+.m-list .icon{width:14px;height:14px;color:var(--danger)}
+.modal .field{margin-top:18px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.qr-wrap{display:flex;justify-content:center;margin:18px 0 14px}
+.qr-wrap canvas{width:168px;height:168px;image-rendering:pixelated;border:1px solid var(--border);border-radius:14px;padding:9px;background:#fff}
+.secret{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px dashed var(--border-strong);border-radius:10px;padding:8px 8px 8px 13px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;letter-spacing:.1em;color:var(--text)}
+.secret code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.code-input{text-align:center;font-size:19px;letter-spacing:.45em;font-family:ui-monospace,Menlo,monospace;padding-left:12px}
+
+/* ---------- toasts ---------- */
+.toasts{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:200}
+.toast{display:flex;align-items:center;gap:10px;background:#151a26;color:#f4f6fb;border:1px solid rgba(255,255,255,.09);padding:11px 16px;border-radius:12px;font-size:13px;font-weight:500;box-shadow:0 12px 32px rgba(0,0,0,.35);animation:toastIn .25s ease;max-width:380px}
+.toast.out{animation:toastOut .25s ease forwards}
+.t-icon.success{color:#34d399}.t-icon.danger{color:#f87171}.t-icon.info{color:#93c5fd}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(8px)}}
+
+/* ---------- focus ---------- */
+.btn:focus-visible,.icon-btn:focus-visible,.nav-item:focus-visible,.swatch:focus-visible,.theme-opt:focus-visible,.avatar-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- compact density ---------- */
+body.compact .content-scroll{padding-top:22px}
+body.compact .page-head{margin-bottom:16px}
+body.compact .card-head{padding:15px 20px}
+body.compact .card-body{padding:16px 20px;gap:14px}
+body.compact .row-item{padding:11px 20px}
+body.compact .notif-head,.notif-row{padding:11px 20px}
+body.compact .inv-head,.inv-row{padding:10px 20px}
+body.compact .input{padding:7px 11px}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .app{grid-template-columns:80px minmax(0,1fr)}
+  .sidebar{padding:14px 10px}
+  .brand{justify-content:center;padding:6px 0}
+  .brand-name,.ws-text,.ws-chev,.nav-label,.nav-item .txt,.nav-badge,.storage,.user-meta,.user-card .icon-btn{display:none}
+  .workspace{justify-content:center;padding:7px}
+  .nav-item{justify-content:center;padding:9px}
+  .user-card{justify-content:center;padding:7px 4px}
+  .topbar{padding:0 20px}
+}
+@media (max-width:840px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .menu-btn{display:inline-flex}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:266px;transform:translateX(-105%);transition:transform .25s ease;box-shadow:var(--shadow-lg)}
+  body.sidebar-open .sidebar{transform:none}
+  .brand{justify-content:flex-start}
+  .brand-name{display:inline}
+  .workspace{justify-content:flex-start;padding:8px}
+  .ws-text{display:flex}.ws-chev{display:inline}
+  .nav-item{justify-content:flex-start;padding:8px 10px}
+  .nav-item .txt{display:inline}.nav-label{display:block}.nav-badge{display:inline-block}
+  .storage{display:block}
+  .user-card{justify-content:flex-start}
+  .user-meta{display:block}.user-card .icon-btn{display:inline-flex}
+  .scrim{position:fixed;inset:0;background:rgba(9,11,17,.5);z-index:55;opacity:0;visibility:hidden;transition:.2s}
+  body.sidebar-open .scrim{opacity:1;visibility:visible}
+}
+@media (max-width:700px){
+  .search{display:none}
+  .content-scroll{padding:22px 18px 60px}
+  .grid-2{grid-template-columns:1fr}
+  .theme-grid{grid-template-columns:1fr}
+  .profile-row{flex-direction:column}
+  .notif-head,.notif-row{grid-template-columns:minmax(0,1fr) 62px 62px 62px;padding:12px 16px;gap:8px}
+  .inv-head,.inv-row{grid-template-columns:1fr 1fr .8fr 40px;padding:12px 16px}
+  .inv-head span:nth-child(2),.inv-row .inv-date{display:none}
+  .qh-times{flex-wrap:wrap}
+  .page-head h1{font-size:21px}
+}
+</style>
+</head>
+<body>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></g></symbol>
+    <symbol id="i-tasks" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 6-6"/></g></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></g></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></g></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></g></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></g></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></g></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></g></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></g></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.68-.75 1.68-1.68 0-.44-.17-.83-.44-1.13-.27-.29-.44-.68-.44-1.12a1.68 1.68 0 0 1 1.68-1.68H16a6 6 0 0 0 6-6c0-4.96-4.5-8.39-10-8.39z"/></g></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></g></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></g></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></g></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></g></symbol>
+    <symbol id="i-chev-d" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></g></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></g></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></g></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M12 18h.01"/></g></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></g></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></g></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></g></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></g></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></g></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></g></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></g></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></g></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></g></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></g></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></g></symbol>
+    <symbol id="b-google" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></symbol>
+    <symbol id="b-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+    <symbol id="b-slack" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9.5 3 7.5 21M16.5 3l-2 18M4 8.5h17M3 15.5h17"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#818cf8"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgA)"/><path d="M9.5 17.2l4.6 4.6L22.5 12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="brand-name">Flowdeck</span>
+    </div>
+
+    <button class="workspace" type="button">
+      <span class="ws-tile">A</span>
+      <span class="ws-text"><strong>Acme Inc.</strong><span>Pro workspace</span></span>
+      <svg class="icon icon-sm ws-chev"><use href="#i-chev-d"/></svg>
+    </button>
+
+    <nav class="side-nav">
+      <div class="nav-label">Workspace</div>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-home"/></svg><span class="txt">Overview</span></button>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-tasks"/></svg><span class="txt">My tasks</span><span class="nav-badge">4</span></button>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-inbox"/></svg><span class="txt">Inbox</span><span class="nav-badge">2</span></button>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-calendar"/></svg><span class="txt">Calendar</span></button>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-folder"/></svg><span class="txt">Projects</span></button>
+      <button class="nav-item" type="button" data-demo><svg class="icon"><use href="#i-chart"/></svg><span class="txt">Reports</span></button>
+
+      <div class="nav-label">Projects</div>
+      <button class="nav-item" type="button" data-demo><span class="dot" style="background:#6366f1"></span><span class="txt">Website redesign</span></button>
+      <button class="nav-item" type="button" data-demo><span class="dot" style="background:#10b981"></span><span class="txt">Mobile app 2.0</span></button>
+      <button class="nav-item" type="button" data-demo><span class="dot" style="background:#f59e0b"></span><span class="txt">Brand refresh</span></button>
+
+      <div class="nav-label">Settings</div>
+      <button class="nav-item active" type="button" data-page="account"><svg class="icon"><use href="#i-user"/></svg><span class="txt">Account</span></button>
+      <button class="nav-item" type="button" data-page="notifications"><svg class="icon"><use href="#i-bell"/></svg><span class="txt">Notifications</span></button>
+      <button class="nav-item" type="button" data-page="appearance"><svg class="icon"><use href="#i-palette"/></svg><span class="txt">Appearance</span></button>
+      <button class="nav-item" type="button" data-page="security"><svg class="icon"><use href="#i-shield"/></svg><span class="txt">Security</span></button>
+      <button class="nav-item" type="button" data-page="billing"><svg class="icon"><use href="#i-card"/></svg><span class="txt">Billing</span></button>
+    </nav>
+
+    <div class="side-bottom">
+      <div class="storage">
+        <div class="storage-top"><span>Storage</span><span>6.2 / 10 GB</span></div>
+        <div class="bar"><i style="width:62%"></i></div>
+      </div>
+      <div class="user-card">
+        <img class="avatar avatar-sm js-avatar" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Maya Chen">
+        <div class="user-meta"><strong>Maya Chen</strong><span>maya@acme.com</span></div>
+        <button class="icon-btn" type="button" aria-label="Account menu"><svg class="icon icon-sm"><use href="#i-more"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
+      <div class="crumbs">Settings <svg class="icon"><use href="#i-chev-r"/></svg> <b id="crumbPage">Account</b></div>
+      <div class="top-actions">
+        <label class="search">
+          <svg class="icon icon-sm"><use href="#i-search"/></svg>
+          <input id="searchInput" type="text" placeholder="Search settings…">
+          <kbd>⌘K</kbd>
+        </label>
+        <button type="button" class="btn btn-primary btn-save" id="saveBtn" data-state="idle">
+          <span class="s-dot"></span>
+          <span class="s-spin spin"></span>
+          <svg class="icon icon-sm s-check"><use href="#i-check"/></svg>
+          <span class="s-label">Save changes</span>
+        </button>
+        <img class="avatar avatar-md js-avatar" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Maya Chen">
+      </div>
+    </header>
+
+    <div class="content-scroll" id="scroller">
+      <div class="content-inner">
+        <form id="settingsForm" novalidate>
+
+          <!-- ============ ACCOUNT ============ -->
+          <section class="page active" data-page="account">
+            <div class="page-head">
+              <h1>Account</h1>
+              <p>Manage your profile, work preferences, and the third-party accounts connected to Flowdeck.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Profile</h2><p>This is how you appear to your team across Flowdeck.</p></div>
+              </div>
+              <div class="card-body">
+                <div class="profile-row">
+                  <div class="avatar-wrap">
+                    <img class="avatar avatar-xl js-avatar" id="avatarImg" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Profile photo of Maya Chen">
+                    <button type="button" class="avatar-edit" id="avatarEdit" title="Change photo" aria-label="Change profile photo"><svg class="icon icon-sm"><use href="#i-camera"/></svg></button>
+                    <input type="file" id="avatarInput" accept="image/*" hidden>
+                  </div>
+                  <div class="grid-2 grow">
+                    <div class="field"><label for="fName">First name</label><input class="input" id="fName" value="Maya"></div>
+                    <div class="field"><label for="lName">Last name</label><input class="input" id="lName" value="Chen"></div>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="field"><label for="email">Work email</label><input class="input" id="email" type="email" value="maya@acme.com"></div>
+                  <div class="field"><label for="phone">Phone <span class="hint">(optional)</span></label><input class="input" id="phone" type="tel" value="+1 (415) 555-0132"></div>
+                  <div class="field"><label for="title">Job title</label><input class="input" id="title" value="Product Designer"></div>
+                  <div class="field"><label for="team">Team</label>
+                    <div class="select-wrap">
+                      <select class="input" id="team"><option selected>Design</option><option>Engineering</option><option>Marketing</option><option>Operations</option><option>People</option></select>
+                      <svg class="icon icon-sm sel-chev"><use href="#i-chev-d"/></svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="bio">Bio</label>
+                  <textarea class="input" id="bio">Designing calm, focused workflows at Acme. Previously @Northwind.</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Work preferences</h2><p>Customize how dates, times, and language appear for you.</p></div>
+              </div>
+              <div class="card-body">
+                <div class="grid-2">
+                  <div class="field"><label for="tz">Timezone</label>
+                    <div class="select-wrap">
+                      <select class="input" id="tz">
+                        <option selected>(GMT−08:00) Pacific Time — US &amp; Canada</option>
+                        <option>(GMT−05:00) Eastern Time — US &amp; Canada</option>
+                        <option>(GMT+00:00) UTC — Dublin, London</option>
+                        <option>(GMT+01:00) Central European Time</option>
+                        <option>(GMT+05:30) India Standard Time</option>
+                        <option>(GMT+08:00) China Standard Time</option>
+                        <option>(GMT+09:00) Japan Standard Time</option>
+                      </select>
+                      <svg class="icon icon-sm sel-chev"><use href="#i-chev-d"/></svg>
+                    </div>
+                  </div>
+                  <div class="field"><label for="lang">Language</label>
+                    <div class="select-wrap">
+                      <select class="input" id="lang">
+                        <option selected>English (US)</option><option>English (UK)</option><option>Español</option><option>Français</option><option>Deutsch</option><option>Português (BR)</option><option>日本語</option>
+                      </select>
+                      <svg class="icon icon-sm sel-chev"><use href="#i-chev-d"/></svg>
+                    </div>
+                  </div>
+                  <div class="field"><label for="dfmt">Date format</label>
+                    <div class="select-wrap">
+                      <select class="input" id="dfmt">
+                        <option selected>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option><option>D MMM YYYY (12 Mar 2025)</option>
+                      </select>
+                      <svg class="icon icon-sm sel-chev"><use href="#i-chev-d"/></svg>
+                    </div>
+                  </div>
+                  <div class="field"><label>Time format</label>
+                    <div class="seg" role="radiogroup" aria-label="Time format">
+                      <label class="seg-opt"><input type="radio" name="timefmt" checked><span>12-hour</span></label>
+                      <label class="seg-opt"><input type="radio" name="timefmt"><span>24-hour</span></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="field"><label>Week starts on</label>
+                  <div class="seg" role="radiogroup" aria-label="First day of week">
+                    <label class="seg-opt"><input type="radio" name="weekstart" checked><span>Monday</span></label>
+                    <label class="seg-opt"><input type="radio" name="weekstart"><span>Sunday</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Connected accounts</h2><p>Sign in faster and bring work in from other tools.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="brand-tile bt-google"><svg class="icon" style="width:19px;height:19px"><use href="#b-google"/></svg></span>
+                  <div class="row-text"><div class="row-title">Google</div><div class="row-sub">maya.chen@gmail.com</div></div>
+                  <span class="badge badge-success conn-badge">Connected</span>
+                  <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm conn-btn" data-state="connected">Disconnect</button></div>
+                </div>
+                <div class="row-item">
+                  <span class="brand-tile bt-github"><svg class="icon" style="width:19px;height:19px"><use href="#b-github"/></svg></span>
+                  <div class="row-text"><div class="row-title">GitHub</div><div class="row-sub">@mayachen · 42 repositories linked</div></div>
+                  <span class="badge badge-success conn-badge">Connected</span>
+                  <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm conn-btn" data-state="connected">Disconnect</button></div>
+                </div>
+                <div class="row-item">
+                  <span class="brand-tile bt-slack"><svg class="icon" style="width:18px;height:18px"><use href="#b-slack"/></svg></span>
+                  <div class="row-text"><div class="row-title">Slack</div><div class="row-sub">Get task updates in your channels</div></div>
+                  <span class="badge badge-neutral conn-badge">Not connected</span>
+                  <div class="row-actions"><button type="button" class="btn btn-soft btn-sm conn-btn" data-state="disconnected">Connect</button></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card danger">
+              <div class="card-head">
+                <div><h2>Danger zone</h2><p>Irreversible actions that affect your account and data.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-monitor"/></svg></span>
+                  <div class="row-text"><div class="row-title">Sign out of all devices</div><div class="row-sub">Ends every active session except this one.</div></div>
+                  <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm" id="signoutAll">Sign out everywhere</button></div>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-logout"/></svg></span>
+                  <div class="row-text"><div class="row-title">Deactivate account</div><div class="row-sub">Temporarily hide your profile and pause all notifications.</div></div>
+                  <div class="row-actions"><button type="button" class="btn btn-danger-soft btn-sm" id="deactOpen">Deactivate</button></div>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon danger"><svg class="icon"><use href="#i-trash"/></svg></span>
+                  <div class="row-text"><div class="row-title">Delete account</div><div class="row-sub">Permanently delete your account, projects you own, and all of their data.</div></div>
+                  <div class="row-actions"><button type="button" class="btn btn-danger btn-sm" id="deleteOpen">Delete account</button></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ NOTIFICATIONS ============ -->
+          <section class="page" data-page="notifications">
+            <div class="page-head">
+              <h1>Notifications</h1>
+              <p>Choose what you get notified about, and where each alert is delivered.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Channels</h2><p>Toggle each channel per notification type.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="notif-head"><span></span><span>Email</span><span>Push</span><span>In-app</span></div>
+                <div class="notif-row">
+                  <div><div class="n-title">Mentions</div><div class="n-sub">When someone @mentions you in a comment or task</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                </div>
+                <div class="notif-row">
+                  <div><div class="n-title">Assignments</div><div class="n-sub">When a task is assigned to you or handed over</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                </div>
+                <div class="notif-row">
+                  <div><div class="n-title">Comments</div><div class="n-sub">On tasks you created or follow</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                </div>
+                <div class="notif-row">
+                  <div><div class="n-title">Project updates</div><div class="n-sub">Milestones reached, status changes, new projects</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                </div>
+                <div class="notif-row">
+                  <div><div class="n-title">Due date reminders</div><div class="n-sub">24 hours before a task is due</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+                </div>
+                <div class="notif-row">
+                  <div><div class="n-title">Weekly digest</div><div class="n-sub">Your week in review, every Friday at 4:00 PM</div></div>
+                  <div class="cell"><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+                  <div class="cell"><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Quiet hours</h2><p>Push notifications are paused during these hours. Emails are still delivered.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-clock"/></svg></span>
+                  <div class="row-text"><div class="row-title">Enable quiet hours</div><div class="row-sub">Daily pause for push notifications</div></div>
+                  <div class="qh-times">
+                    <input type="time" class="input input-sm" value="22:00" aria-label="Quiet hours start">
+                    <span class="qh-sep">to</span>
+                    <input type="time" class="input input-sm" value="07:00" aria-label="Quiet hours end">
+                  </div>
+                  <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ APPEARANCE ============ -->
+          <section class="page" data-page="appearance">
+            <div class="page-head">
+              <h1>Appearance</h1>
+              <p>Make Flowdeck look the way you work best. Changes apply instantly.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Theme</h2><p>Choose how Flowdeck looks on this device.</p></div>
+              </div>
+              <div class="card-body">
+                <div class="theme-grid">
+                  <button type="button" class="theme-opt" data-instant>
+                    <input type="radio" name="theme" value="light" hidden>
+                    <div class="theme-prev tp-light"><i class="tp-top tp-c"></i><div class="tp-body"><i class="tp-side tp-c"></i><div class="tp-main"><i class="tp-c"></i><i class="tp-c short"></i></div></div></div>
+                    <div class="to-name"><svg class="icon icon-sm"><use href="#i-sun"/></svg>Light</div>
+                  </button>
+                  <button type="button" class="theme-opt" data-instant>
+                    <input type="radio" name="theme" value="dark" hidden>
+                    <div class="theme-prev tp-dark"><i class="tp-top tp-c"></i><div class="tp-body"><i class="tp-side tp-c"></i><div class="tp-main"><i class="tp-c"></i><i class="tp-c short"></i></div></div></div>
+                    <div class="to-name"><svg class="icon icon-sm"><use href="#i-moon"/></svg>Dark</div>
+                  </button>
+                  <button type="button" class="theme-opt active" data-instant>
+                    <input type="radio" name="theme" value="system" checked hidden>
+                    <div class="theme-prev tp-sys"><i class="tp-top tp-c"></i><div class="tp-body"><i class="tp-side tp-c"></i><div class="tp-main"><i class="tp-c"></i><i class="tp-c short"></i></div></div></div>
+                    <div class="to-name"><svg class="icon icon-sm"><use href="#i-monitor"/></svg>System</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Accent color</h2><p>Used for buttons, links, highlights, and the active sidebar item.</p></div>
+              </div>
+              <div class="card-body">
+                <div class="swatches">
+                  <button type="button" class="swatch active" style="--sw:#6366f1" data-accent="#6366f1" aria-label="Indigo"><svg class="icon"><use href="#i-check"/></svg></button>
+                  <button type="button" class="swatch" style="--sw:#7c3aed" data-accent="#7c3aed" aria-label="Violet"><svg class="icon"><use href="#i-check"/></svg></button>
+                  <button type="button" class="swatch" style="--sw:#2563eb" data-accent="#2563eb" aria-label="Blue"><svg class="icon"><use href="#i-check"/></svg></button>
+                  <button type="button" class="swatch" style="--sw:#0891b2" data-accent="#0891b2" aria-label="Cyan"><svg class="icon"><use href="#i-check"/></svg></button>
+                  <button type="button" class="swatch" style="--sw:#059669" data-accent="#059669" aria-label="Emerald"><svg class="icon"><use href="#i-check"/></svg></button>
+                  <button type="button" class="swatch" style="--sw:#e11d48" data-accent="#e11d48" aria-label="Rose"><svg class="icon"><use href="#i-check"/></svg></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Interface</h2><p>Fine-tune the density and motion of the app.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-sliders"/></svg></span>
+                  <div class="row-text"><div class="row-title">Density</div><div class="row-sub">Choose how compact the interface feels</div></div>
+                  <div class="seg" role="radiogroup" aria-label="Density" data-instant>
+                    <label class="seg-opt"><input type="radio" name="density" value="comfortable" checked><span>Comfortable</span></label>
+                    <label class="seg-opt"><input type="radio" name="density" value="compact"><span>Compact</span></label>
+                  </div>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-zap"/></svg></span>
+                  <div class="row-text"><div class="row-title">Reduce motion</div><div class="row-sub">Minimize animations and transitions across the app</div></div>
+                  <label class="switch"><input type="checkbox"><span class="track"></span></label>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-image"/></svg></span>
+                  <div class="row-text"><div class="row-title">Task cover images</div><div class="row-sub">Show cover thumbnails on task cards and boards</div></div>
+                  <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECURITY ============ -->
+          <section class="page" data-page="security">
+            <div class="page-head">
+              <h1>Security</h1>
+              <p>Protect your account and review recent sign-in activity.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Password</h2><p>Use a unique password you don't use anywhere else.</p></div>
+                <button type="button" class="btn btn-ghost btn-sm" id="pwBtn">Update password</button>
+              </div>
+              <div class="card-body" style="max-width:460px">
+                <div class="field"><label for="pwCur">Current password</label><input class="input" id="pwCur" type="password" autocomplete="current-password" placeholder="••••••••••"></div>
+                <div class="field"><label for="pwNew">New password</label>
+                  <div class="pass-wrap">
+                    <input class="input" id="pwNew" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+                    <button type="button" class="eye-btn" id="pwEye" aria-label="Show password"><svg class="icon icon-sm i-on"><use href="#i-eye"/></svg><svg class="icon icon-sm i-off"><use href="#i-eye-off"/></svg></button>
+                  </div>
+                  <div class="pw-meter"><div class="meter"><i id="pwFill" class="fill"></i></div><span id="pwLabel" class="pw-label"></span></div>
+                </div>
+                <div class="field"><label for="pwConf">Confirm new password</label><input class="input" id="pwConf" type="password" autocomplete="new-password" placeholder="Repeat new password"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Two-factor authentication</h2><p>Add an extra layer of security at sign-in.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon accent"><svg class="icon"><use href="#i-shield"/></svg></span>
+                  <div class="row-text"><div class="row-title">Authenticator app</div><div class="row-sub">Require a 6-digit code from your authenticator app when signing in</div></div>
+                  <span class="badge badge-neutral" id="2faBadge">Off</span>
+                  <button type="button" class="btn btn-soft btn-sm" id="2faSetup">Set up</button>
+                  <label class="switch"><input type="checkbox" id="2faToggle"><span class="track"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Active sessions</h2><p>Devices currently signed in to your account.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-monitor"/></svg></span>
+                  <div class="row-text"><div class="row-title">Chrome on macOS</div><div class="row-sub">San Francisco, CA · Last active 2 minutes ago</div></div>
+                  <span class="badge badge-accent">Current session</span>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-phone"/></svg></span>
+                  <div class="row-text"><div class="row-title">Safari on iPhone 15</div><div class="row-sub">San Francisco, CA · Yesterday at 6:42 PM</div></div>
+                  <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm revoke-btn">Revoke</button></div>
+                </div>
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-monitor"/></svg></span>
+                  <div class="row-text"><div class="row-title">Chrome on Windows</div><div class="row-sub">Austin, TX · March 2, 2025</div></div>
+                  <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm revoke-btn">Revoke</button></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="row-icon"><svg class="icon"><use href="#i-bell"/></svg></span>
+                  <div class="row-text"><div class="row-title">Login alerts</div><div class="row-sub">Get an email whenever someone signs in from a new device</div></div>
+                  <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ BILLING ============ -->
+          <section class="page" data-page="billing">
+            <div class="page-head">
+              <h1>Billing</h1>
+              <p>Manage your plan, payment method, and invoices for the Acme Inc. workspace.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Plan</h2><p>You're on the Pro plan, billed monthly.</p></div>
+                <span class="badge badge-accent">Pro</span>
+              </div>
+              <div class="card-body">
+                <div class="plan-top">
+                  <div class="plan-info">
+                    <h3>Pro plan</h3>
+                    <p>Unlimited projects, timeline &amp; workload views, custom fields, advanced integrations, and priority support.</p>
+                  </div>
+                  <div class="usage">
+                    <div class="usage-top"><span>Seats</span><b>8 of 10 used</b></div>
+                    <div class="bar"><i style="width:80%"></i></div>
+                    <div class="price-line"><b>$12</b> per seat / month · <b>$96.00</b> total</div>
+                  </div>
+                </div>
+                <div class="plan-foot">
+                  <span class="note">Renews April 12, 2025 · $96.00 / month</span>
+                  <button type="button" class="btn btn-primary btn-sm">Manage plan</button>
+                  <button type="button" class="btn btn-ghost btn-sm">Compare plans</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Payment method</h2><p>Charged automatically on each renewal.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="row-item">
+                  <span class="pay-tile">VISA</span>
+                  <div class="row-text"><div class="row-title">Visa ending in 4242</div><div class="row-sub">Expires 08 / 2027</div></div>
+                  <div class="row-actions">
+                    <button type="button" class="btn btn-ghost btn-sm">Edit</button>
+                    <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger)">Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Billing details</h2><p>Used for invoices and receipts.</p></div>
+              </div>
+              <div class="card-body">
+                <div class="grid-2">
+                  <div class="field"><label for="bemail">Billing email</label><input class="input" id="bemail" type="email" value="billing@acme.com"></div>
+                  <div class="field"><label for="bcompany">Company</label><input class="input" id="bcompany" value="Acme Inc."></div>
+                  <div class="field"><label for="btax">Tax ID</label><input class="input" id="btax" value="US 12-3456789"></div>
+                  <div class="field"><label for="bcountry">Country</label>
+                    <div class="select-wrap">
+                      <select class="input" id="bcountry"><option selected>United States</option><option>United Kingdom</option><option>Germany</option><option>Canada</option><option>Japan</option><option>Australia</option></select>
+                      <svg class="icon icon-sm sel-chev"><use href="#i-chev-d"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div><h2>Invoices</h2><p>Download past receipts for your records.</p></div>
+              </div>
+              <div class="card-body flush">
+                <div class="inv-head"><span>Invoice</span><span>Date</span><span>Amount</span><span>Status</span><span></span></div>
+                <div class="inv-row"><span>INV-0142</span><span class="muted inv-date">Mar 1, 2025</span><span>$96.00</span><span class="badge badge-success">Paid</span><button type="button" class="icon-btn dl-btn" data-inv="INV-0142" aria-label="Download invoice"><svg class="icon icon-sm"><use href="#i-download"/></svg></button></div>
+                <div class="inv-row"><span>INV-0141</span><span class="muted inv-date">Feb 1, 2025</span><span>$96.00</span><span class="badge badge-success">Paid</span><button type="button" class="icon-btn dl-btn" data-inv="INV-0141" aria-label="Download invoice"><svg class="icon icon-sm"><use href="#i-download"/></svg></button></div>
+                <div class="inv-row"><span>INV-0140</span><span class="muted inv-date">Jan 1, 2025</span><span>$96.00</span><span class="badge badge-success">Paid</span><button type="button" class="icon-btn dl-btn" data-inv="INV-0140" aria-label="Download invoice"><svg class="icon icon-sm"><use href="#i-download"/></svg></button></div>
+                <div class="inv-row"><span>INV-0139</span><span class="muted inv-date">Dec 1, 2024</span><span>$96.00</span><span class="badge badge-success">Paid</span><button type="button" class="icon-btn dl-btn" data-inv="INV-0139" aria-label="Download invoice"><svg class="icon icon-sm"><use href="#i-download"/></svg></button></div>
+              </div>
+            </div>
+          </section>
+
+        </form>
+        <p class="foot">Flowdeck · <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Security</a> · v2.4.1</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="overlay" id="ovDelete" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="m-icon danger"><svg class="icon"><use href="#i-alert"/></svg></span>
+      <div>
+        <h3 id="delTitle">Delete your account?</h3>
+        <p class="m-text">This permanently removes your profile and everything you own in Acme Inc. After 30 days it can't be recovered.</p>
+      </div>
+    </div>
+    <ul class="m-list">
+      <li><svg class="icon"><use href="#i-x"/></svg>12 projects you own will be deleted</li>
+      <li><svg class="icon"><use href="#i-x"/></svg>348 tasks and 1,204 files</li>
+      <li><svg class="icon"><use href="#i-x"/></svg>Your comments, mentions, and activity history</li>
+    </ul>
+    <div class="field">
+      <label for="deleteConfirm">Type <b>DELETE</b> to confirm</label>
+      <input class="input" id="deleteConfirm" placeholder="DELETE" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirmDelete" disabled>Delete account</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovDeactivate" role="dialog" aria-modal="true" aria-labelledby="deactTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="m-icon accent"><svg class="icon"><use href="#i-logout"/></svg></span>
+      <div>
+        <h3 id="deactTitle">Deactivate your account?</h3>
+        <p class="m-text">Your profile will be hidden, you'll be signed out everywhere, and all notifications will pause. You can reactivate within 30 days just by signing back in.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="button" class="btn btn-danger" id="deactConfirm">Deactivate account</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov2fa" role="dialog" aria-modal="true" aria-labelledby="tfaTitle">
+  <div class="modal wide">
+    <div class="modal-head">
+      <span class="m-icon accent"><svg class="icon"><use href="#i-shield"/></svg></span>
+      <div>
+        <h3 id="tfaTitle">Set up two-factor authentication</h3>
+        <p class="m-text">Scan the QR code with your authenticator app, then enter the 6-digit code it generates.</p>
+      </div>
+    </div>
+    <div class="qr-wrap"><canvas id="qrCanvas" width="200" height="200"></canvas></div>
+    <div class="secret"><code id="secretCode">JBSW Y3DP EHPK 3PXP</code><button type="button" class="icon-btn" id="copySecret" aria-label="Copy secret key" style="width:30px;height:30px"><svg class="icon icon-sm"><use href="#i-copy"/></svg></button></div>
+    <div class="field">
+      <label for="codeInput">Verification code</label>
+      <input class="input code-input" id="codeInput" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="verify2fa" disabled>Verify &amp; enable</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
+  const store={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+
+  /* ---------- toasts ---------- */
+  const toasts=$('#toasts');
+  function toast(msg,type='success'){
+    const t=document.createElement('div'); t.className='toast';
+    const icon=type==='success'?'i-check':type==='danger'?'i-alert':'i-info';
+    t.innerHTML=`<svg class="icon icon-sm t-icon ${type}"><use href="#${icon}"/></svg><span></span>`;
+    t.querySelector('span').textContent=msg;
+    toasts.appendChild(t);
+    setTimeout(()=>{t.classList.add('out'); setTimeout(()=>t.remove(),260);},3400);
+  }
+
+  /* ---------- dirty state + save ---------- */
+  const form=$('#settingsForm'), saveBtn=$('#saveBtn'), sLabel=$('#saveBtn .s-label');
+  let dirty=false;
+  function markDirty(){ if(dirty)return; dirty=true; saveBtn.dataset.state='dirty'; sLabel.textContent='Save changes'; }
+  ['input','change'].forEach(ev=>form.addEventListener(ev,e=>{
+    if(e.target.closest('[data-instant]'))return;
+    if(e.target.matches('input,select,textarea')) markDirty();
+  }));
+  form.addEventListener('submit',e=>{e.preventDefault(); saveBtn.click();});
+  saveBtn.addEventListener('click',()=>{
+    if(saveBtn.dataset.state==='saving')return;
+    if(!dirty){toast('No changes to save','info');return;}
+    saveBtn.dataset.state='saving'; sLabel.textContent='Saving…';
+    setTimeout(()=>{
+      dirty=false; saveBtn.dataset.state='saved'; sLabel.textContent='Saved';
+      toast('All changes saved','success');
+      setTimeout(()=>{ if(!dirty){saveBtn.dataset.state='idle'; sLabel.textContent='Save changes';} },1700);
+    },900);
+  });
+  window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault(); e.returnValue='';} });
+
+  /* ---------- avatar upload ---------- */
+  const avInput=$('#avatarInput');
+  $('#avatarEdit').addEventListener('click',()=>avInput.click());
+  avInput.addEventListener('change',()=>{
+    const f=avInput.files[0]; if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{ $$('.js-avatar').forEach(i=>i.src=r.result); markDirty(); toast('Photo updated — press “Save changes” to apply','info'); };
+    r.readAsDataURL(f);
+  });
+
+  /* ---------- theme ---------- */
+  const root=document.documentElement, mediaDark=matchMedia('(prefers-color-scheme: dark)');
+  let themePref=store.get('fd-theme')||'system';
+  function applyTheme(v,skipStore){
+    themePref=v; if(!skipStore) store.set('fd-theme',v);
+    const r=v==='system'?(mediaDark.matches?'dark':'light'):v;
+    root.classList.add('theming'); root.dataset.theme=r;
+    setTimeout(()=>root.classList.remove('theming'),320);
+    $$('.theme-opt').forEach(o=>o.classList.toggle('active',o.querySelector('input').value===v));
+    $$('input[name="theme"]').forEach(i=>i.checked=i.value===v);
+  }
+  $$('.theme-opt').forEach(opt=>opt.addEventListener('click',()=>applyTheme(opt.querySelector('input').value)));
+  if(mediaDark.addEventListener) mediaDark.addEventListener('change',()=>{ if(themePref==='system') applyTheme('system',true); });
+  applyTheme(themePref,true);
+
+  /* ---------- accent ---------- */
+  const swatches=$$('.swatch');
+  function setAccent(c,skipStore){
+    root.style.setProperty('--accent',c);
+    if(!skipStore) store.set('fd-accent',c);
+    swatches.forEach(s=>s.classList.toggle('active',s.dataset.accent===c));
+  }
+  swatches.forEach(s=>s.addEventListener('click',()=>setAccent(s.dataset.accent)));
+  const savedAccent=store.get('fd-accent'); if(savedAccent) setAccent(savedAccent,true);
+
+  /* ---------- density ---------- */
+  const dens=$$('input[name="density"]');
+  function applyDensity(v){
+    document.body.classList.toggle('compact',v==='compact');
+    dens.forEach(i=>i.checked=i.value===v);
+  }
+  dens.forEach(i=>i.addEventListener('change',()=>{applyDensity(i.value); store.set('fd-density',i.value);}));
+  applyDensity(store.get('fd-density')||'comfortable');
+
+  /* ---------- page switching ---------- */
+  const pages=$$('.page'), crumb=$('#crumbPage'), scroller=$('#scroller');
+  $$('.nav-item[data-page]').forEach(btn=>btn.addEventListener('click',()=>{
+    $$('.nav-item[data-page]').forEach(b=>b.classList.toggle('active',b===btn));
+    pages.forEach(p=>p.classList.toggle('active',p.dataset.page===btn.dataset.page));
+    crumb.textContent=btn.querySelector('.txt').textContent;
+    scroller.scrollTo({top:0,behavior:'smooth'});
+    document.body.classList.remove('sidebar-open');
+  }));
+  $$('.nav-item[data-demo]').forEach(b=>b.addEventListener('click',()=>toast('This preview focuses on the Settings area','info')));
+
+  /* ---------- mobile sidebar ---------- */
+  $('#menuBtn').addEventListener('click',()=>document.body.classList.toggle('sidebar-open'));
+  $('#scrim').addEventListener('click',()=>document.body.classList.remove('sidebar-open'));
+
+  /* ---------- search shortcut ---------- */
+  const search=$('#searchInput');
+  window.addEventListener('keydown',e=>{
+    if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault(); search.focus();}
+    if(e.key==='Escape'){ $$('.overlay.open').forEach(closeOv); document.body.classList.remove('sidebar-open'); }
+  });
+
+  /* ---------- overlays ---------- */
+  function openOv(ov){ ov.classList.add('open'); document.body.classList.add('locked'); }
+  function closeOv(ov){
+    ov.classList.remove('open');
+    if(!$('.overlay.open')) document.body.classList.remove('locked');
+    if(ov.id==='ov2fa'&&!twofaOn){ $('#2faToggle').checked=false; }
+  }
+  $$('.overlay').forEach(ov=>{
+    ov.addEventListener('click',e=>{ if(e.target===ov) closeOv(ov); });
+    $$('[data-close]',ov).forEach(b=>b.addEventListener('click',()=>closeOv(ov)));
+  });
+  $('#deleteOpen').addEventListener('click',()=>openOv($('#ovDelete')));
+  $('#deactOpen').addEventListener('click',()=>openOv($('#ovDeactivate')));
+  $('#deactConfirm').addEventListener('click',()=>{ closeOv($('#ovDeactivate')); toast('Account deactivated — sign in again within 30 days to reactivate','info'); });
+  const delInput=$('#deleteConfirm'), delBtn=$('#confirmDelete');
+  delInput.addEventListener('input',()=>{ delBtn.disabled=delInput.value.trim().toUpperCase()!=='DELETE'; });
+  delBtn.addEventListener('click',()=>{
+    closeOv($('#ovDelete'));
+    toast('Account deletion scheduled — you have 30 days to recover it','danger');
+    delInput.value=''; delBtn.disabled=true;
+  });
+  $('#signoutAll').addEventListener('click',()=>toast('Signed out of 4 other devices','success'));
+
+  /* ---------- connected accounts ---------- */
+  $$('.conn-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const row=btn.closest('.row-item'), badge=$('.conn-badge',row), name=$('.row-title',row).textContent;
+    if(btn.dataset.state==='connected'){
+      btn.dataset.state='disconnected'; btn.textContent='Connect'; btn.className='btn btn-soft btn-sm conn-btn';
+      badge.textContent='Not connected'; badge.className='badge badge-neutral conn-badge';
+      toast(name+' disconnected','info');
+    }else{
+      btn.dataset.state='connected'; btn.textContent='Disconnect'; btn.className='btn btn-ghost btn-sm conn-btn';
+      badge.textContent='Connected'; badge.className='badge badge-success conn-badge';
+      toast(name+' connected','success');
+    }
+  }));
+
+  /* ---------- sessions ---------- */
+  $$('.revoke-btn').forEach(b=>b.addEventListener('click',()=>{
+    const row=b.closest('.row-item');
+    row.classList.add('removing'); setTimeout(()=>row.remove(),240);
+    toast('Session revoked','success');
+  }));
+
+  /* ---------- password ---------- */
+  const pwCur=$('#pwCur'), pwNew=$('#pwNew'), pwConf=$('#pwConf'), fill=$('#pwFill'), lab=$('#pwLabel');
+  pwNew.addEventListener('input',()=>{
+    const v=pwNew.value; let s=0;
+    if(v.length>=8)s++; if(v.length>=12)s++;
+    if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;
+    if(/\d/.test(v))s++; if(/[^A-Za-z0-9]/.test(v))s++;
+    const lvl=s<=2?0:s===3?1:s===4?2:3;
+    fill.style.width=[15,40,70,100][lvl]+'%';
+    fill.className='fill lv'+lvl;
+    lab.textContent=v?['Too weak','Fair','Good','Strong'][lvl]:'';
+  });
+  $('#pwEye').addEventListener('click',function(){
+    const show=pwNew.type==='password';
+    pwNew.type=show?'text':'password';
+    this.classList.toggle('show',show);
+  });
+  $('#pwBtn').addEventListener('click',()=>{
+    if(!pwCur.value){toast('Enter your current password','danger');return;}
+    if(pwNew.value.length<8){toast('New password must be at least 8 characters','danger');return;}
+    if(pwNew.value!==pwConf.value){toast('New passwords do not match','danger');return;}
+    toast('Password updated','success');
+    [pwCur,pwNew,pwConf].forEach(i=>i.value='');
+    fill.style.width='0%'; fill.className='fill'; lab.textContent='';
+  });
+
+  /* ---------- 2FA ---------- */
+  let twofaOn=false;
+  const tw=$('#2faToggle'), badge=$('#2faBadge'), ov2fa=$('#ov2fa'), code=$('#codeInput'), vbtn=$('#verify2fa');
+  function set2fa(on){
+    twofaOn=on; tw.checked=on;
+    badge.textContent=on?'On':'Off';
+    badge.className='badge '+(on?'badge-success':'badge-neutral');
+    $('#2faSetup').style.display=on?'none':'';
+  }
+  tw.addEventListener('change',()=>{ if(tw.checked){ openOv(ov2fa); drawQR(); } else { set2fa(false); toast('Two-factor authentication disabled','info'); } });
+  $('#2faSetup').addEventListener('click',()=>{ openOv(ov2fa); drawQR(); });
+  code.addEventListener('input',()=>{ vbtn.disabled=code.value.trim().length!==6; });
+  vbtn.addEventListener('click',()=>{
+    set2fa(true); closeOv(ov2fa);
+    toast('Two-factor authentication enabled','success');
+    code.value=''; vbtn.disabled=true;
+  });
+  $('#copySecret').addEventListener('click',()=>{
+    const s=$('#secretCode').textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(s).then(()=>toast('Secret key copied','success')).catch(()=>toast('Secret key: '+s,'info'));
+    else toast('Secret key: '+s,'info');
+  });
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function drawQR(){
+    const c=$('#qrCanvas'), x=c.getContext('2d'), n=25, sz=200, cell=sz/n;
+    c.width=c.height=sz;
+    x.fillStyle='#fff'; x.fillRect(0,0,sz,sz);
+    x.fillStyle='#101322';
+    const rnd=mulberry32(20250314);
+    const inF=(px,py)=>(px<8&&py<8)||(px>=n-8&&py<8)||(px<8&&py>=n-8);
+    for(let py=0;py<n;py++)for(let px=0;px<n;px++){
+      if(inF(px,py))continue;
+      if(py===6||px===6){ if((px+py)%2===0) x.fillRect(px*cell,py*cell,cell,cell); }
+      else if(rnd()>0.5) x.fillRect(px*cell,py*cell,cell,cell);
+    }
+    function finder(fx,fy){
+      x.fillStyle='#101322'; x.fillRect(fx*cell,fy*cell,7*cell,7*cell);
+      x.fillStyle='#fff'; x.fillRect((fx+1)*cell,(fy+1)*cell,5*cell,5*cell);
+      x.fillStyle='#101322'; x.fillRect((fx+2)*cell,(fy+2)*cell,3*cell,3*cell);
+    }
+    finder(0,0); finder(n-7,0); finder(0,n-7);
+  }
+
+  /* ---------- downloads / dead links ---------- */
+  $$('.dl-btn').forEach(b=>b.addEventListener('click',()=>toast('Invoice '+b.dataset.inv+' downloaded','info')));
+  $$('a[href="#"]').forEach(a=>a.addEventListener('click',e=>e.preventDefault()));
+})();
+</script>
+</body>
+</html>

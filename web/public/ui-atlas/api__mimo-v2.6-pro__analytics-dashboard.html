@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Supply — Sales Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2EEE7;
+    --paper-2:#EAE4D9;
+    --card:#FFFFFF;
+    --ink:#17140F;
+    --ink-2:#40382D;
+    --muted:#8B8173;
+    --muted-2:#A79C8C;
+    --line:#E5DED1;
+    --line-2:#D6CCB9;
+    --accent:#E2542C;
+    --accent-2:#C8421E;
+    --accent-soft:#FBE6DD;
+    --teal:#166B5C;
+    --teal-soft:#DCEBE5;
+    --ochre:#D2952B;
+    --ochre-soft:#F8EDD6;
+    --plum:#7B3D55;
+    --slate:#4A6272;
+    --dark:#16130F;
+    --dark-2:#241E17;
+    --shadow:0 1px 2px rgba(30,22,12,.05), 0 12px 30px -18px rgba(30,22,12,.22);
+    --shadow-lg:0 2px 4px rgba(30,22,12,.05), 0 30px 60px -30px rgba(30,22,12,.35);
+    --r:15px;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(226,84,44,.07), transparent 60%),
+      radial-gradient(900px 500px at 5% 105%, rgba(22,107,92,.07), transparent 62%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.32;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  }
+
+  .mono{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .serif{font-family:'Fraunces',Georgia,serif;font-variant-numeric:tabular-nums}
+  .micro{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);font-weight:500;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:60;
+    background:rgba(242,238,231,.86);
+    backdrop-filter:saturate(1.4) blur(14px);
+    -webkit-backdrop-filter:saturate(1.4) blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1500px;margin:0 auto;padding:14px 28px;
+    display:flex;align-items:center;gap:26px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .mark{
+    width:38px;height:38px;border-radius:11px;flex-shrink:0;
+    background:linear-gradient(150deg,var(--accent) 0%,#B93E1B 55%,#8E2C12 100%);
+    display:grid;place-items:center;box-shadow:0 6px 16px -8px rgba(226,84,44,.9), inset 0 1px 0 rgba(255,255,255,.28);
+  }
+  .brand-name{font-family:'Fraunces',serif;font-weight:700;font-size:16px;letter-spacing:-.02em;line-height:1.1}
+  .brand-sub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-top:2px}
+
+  .nav{display:flex;align-items:center;gap:4px;margin-left:8px}
+  .nav a{
+    position:relative;text-decoration:none;color:var(--ink-2);font-size:13px;font-weight:500;
+    padding:8px 13px;border-radius:9px;transition:background .18s ease,color .18s ease;
+  }
+  .nav a:hover{background:rgba(226,84,44,.09);color:var(--accent-2)}
+  .nav a.active{background:var(--ink);color:#F7F3EC}
+  .nav a.active:hover{background:var(--ink);color:#fff}
+
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .search{
+    display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);
+    border:1px solid var(--line);border-radius:11px;padding:8px 12px;min-width:212px;
+    transition:border-color .2s,box-shadow .2s,background .2s;
+  }
+  .search:focus-within{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(226,84,44,.14)}
+  .search input{border:0;background:transparent;outline:0;font:inherit;font-size:12.5px;width:100%;color:var(--ink)}
+  .search input::placeholder{color:var(--muted-2)}
+  .icon-btn{
+    width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.7);
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-2);transition:.2s;position:relative;
+  }
+  .icon-btn:hover{background:#fff;border-color:var(--line-2);transform:translateY(-1px)}
+  .icon-btn .dot{position:absolute;top:8px;right:9px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--paper)}
+  .avatar{
+    width:38px;height:38px;border-radius:11px;background:linear-gradient(150deg,#2E5D52,#123C34);
+    color:#EFEAE1;display:grid;place-items:center;font-size:12px;font-weight:600;letter-spacing:.03em;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+  }
+
+  .stripe{height:3px;background:linear-gradient(90deg,var(--accent) 0%,var(--ochre) 32%,var(--teal) 66%,var(--plum) 100%);opacity:.85}
+
+  /* ---------- ticker ---------- */
+  .ticker{border-bottom:1px solid var(--line);background:rgba(255,255,255,.42)}
+  .ticker-inner{
+    max-width:1500px;margin:0 auto;padding:9px 28px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  }
+  .tick{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-2)}
+  .tick b{font-weight:600;color:var(--ink)}
+  .tick .sep{width:4px;height:4px;border-radius:50%;background:var(--line-2)}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);position:relative;flex-shrink:0}
+  .live-dot::after{
+    content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--teal);opacity:.55;
+    animation:pulse 2.2s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.6);opacity:.7}80%,100%{transform:scale(1.7);opacity:0}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1500px;margin:0 auto;padding:26px 28px 46px}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+  .page-title{
+    font-family:'Fraunces',serif;font-size:clamp(26px,3.2vw,38px);font-weight:600;letter-spacing:-.032em;
+    line-height:1.02;margin:6px 0 0;
+  }
+  .page-title em{font-style:italic;color:var(--accent)}
+  .page-sub{color:var(--muted);font-size:13px;margin-top:7px;max-width:52ch}
+
+  .seg{display:inline-flex;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:12px;padding:4px;gap:3px;box-shadow:var(--shadow)}
+  .seg button{
+    border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;color:var(--muted);
+    padding:8px 14px;border-radius:9px;cursor:pointer;transition:.18s;letter-spacing:.01em;white-space:nowrap;
+  }
+  .seg button:hover{color:var(--ink);background:rgba(22,19,15,.05)}
+  .seg button.on{background:var(--ink);color:#F8F4ED;box-shadow:0 4px 12px -6px rgba(22,19,15,.6)}
+
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+  .col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+  .col-7{grid-column:span 7}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .panel-pad{padding:20px 22px}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px 14px}
+  .panel-head h3{
+    font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;letter-spacing:-.022em;margin:3px 0 0;
+  }
+  .rule{height:1px;background:var(--line);margin:0 22px}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+    padding:3px 8px;border-radius:7px;letter-spacing:.01em;white-space:nowrap;
+  }
+  .chip.up{background:var(--teal-soft);color:var(--teal)}
+  .chip.down{background:var(--accent-soft);color:var(--accent-2)}
+  .chip.flat{background:#EFEAE1;color:var(--muted)}
+
+  /* ---------- hero chart ---------- */
+  .hero-panel{position:relative}
+  .hero-top{padding:22px 24px 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+  .hero-figure{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .hero-num{
+    font-family:'Fraunces',serif;font-size:clamp(38px,5.6vw,62px);font-weight:600;letter-spacing:-.045em;
+    line-height:.94;font-variant-numeric:tabular-nums;
+  }
+  .hero-unit{font-family:'Fraunces',serif;font-size:22px;color:var(--muted-2);letter-spacing:-.02em}
+  .hero-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .hero-meta .txt{font-size:12.5px;color:var(--muted)}
+  .hero-meta .txt b{color:var(--ink-2);font-weight:600}
+
+  .compare-toggle{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:11.5px;color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase;user-select:none;
+  }
+  .switch{width:34px;height:19px;border-radius:20px;background:var(--line-2);position:relative;transition:.22s;flex-shrink:0}
+  .switch::after{content:"";position:absolute;top:2.5px;left:2.5px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.22s;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+  .compare-toggle.on .switch{background:var(--teal)}
+  .compare-toggle.on .switch::after{left:17.5px}
+
+  .chart-area{position:relative;padding:6px 8px 0 8px;margin-top:6px}
+  .chart-host{position:relative;height:308px;cursor:crosshair}
+  .chart-host svg{width:100%;height:100%;display:block;overflow:visible}
+  .y-labels{position:absolute;inset:0;pointer-events:none}
+  .y-labels span{
+    position:absolute;left:24px;transform:translateY(-50%);font-family:'IBM Plex Mono',monospace;
+    font-size:10px;color:var(--muted-2);letter-spacing:.03em;
+  }
+  .crosshair{
+    position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(to bottom,var(--accent) 0 3px,transparent 3px 7px);
+    opacity:0;transition:opacity .16s ease;pointer-events:none;
+  }
+  .marker{
+    position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;border:2.5px solid var(--accent);
+    transform:translate(-50%,-50%);opacity:0;transition:opacity .16s ease;pointer-events:none;
+    box-shadow:0 3px 10px -2px rgba(226,84,44,.55);
+  }
+  .marker.pulse-ring{animation:ring .5s ease-out}
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(226,84,44,.4)}100%{box-shadow:0 0 0 14px rgba(226,84,44,0)}}
+  .tooltip{
+    position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-118%);transition:opacity .16s ease;
+    background:var(--dark);color:#F5F0E7;border-radius:11px;padding:10px 13px;min-width:132px;
+    box-shadow:0 18px 36px -16px rgba(22,19,15,.7);z-index:5;
+  }
+  .tooltip .tt-label{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#A99C89}
+  .tooltip .tt-val{font-family:'Fraunces',serif;font-size:21px;letter-spacing:-.03em;margin-top:2px;line-height:1.1}
+  .tooltip .tt-row{display:flex;justify-content:space-between;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;margin-top:5px;color:#BDB09C}
+  .tooltip .tt-row b{color:#F5F0E7;font-weight:500}
+  .tooltip::after{
+    content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);
+    width:10px;height:10px;background:var(--dark);border-radius:2px;
+  }
+
+  .x-labels{display:flex;justify-content:space-between;padding:10px 24px 0;}
+  .x-labels span{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted-2);letter-spacing:.04em}
+
+  .bars-strip{display:flex;align-items:flex-end;gap:2px;height:36px;padding:12px 24px 0;}
+  .bars-strip i{flex:1;background:var(--paper-2);border-radius:2px 2px 0 0;display:block;transition:height .6s cubic-bezier(.22,1,.36,1),background .3s}
+  .bars-strip i.hot{background:var(--accent)}
+  .bars-legend{display:flex;justify-content:space-between;padding:8px 24px 0;align-items:center}
+
+  .hero-foot{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+    margin-top:20px;border-top:1px solid var(--line);
+  }
+  .hero-foot > div{background:#FCFAF6;padding:15px 20px}
+  .hero-foot .v{font-family:'Fraunces',serif;font-size:19px;letter-spacing:-.03em;margin-top:3px}
+  .hero-foot .s{font-size:11px;color:var(--muted);margin-top:1px}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;height:100%}
+  .kpi{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:17px 18px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between;gap:12px;
+    transition:transform .25s cubic-bezier(.22,1,.36,1),box-shadow .25s,border-color .25s;
+  }
+  .kpi:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--line-2)}
+  .kpi .k-val{font-family:'Fraunces',serif;font-size:29px;letter-spacing:-.042em;line-height:1;margin-top:8px}
+  .kpi .k-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .spark{width:64px;height:24px;display:block;overflow:visible}
+
+  .live-card{
+    background:linear-gradient(160deg,var(--dark) 0%,var(--dark-2) 62%,#33271B 100%);
+    border-radius:var(--r);padding:18px 20px;color:#F2ECE2;box-shadow:var(--shadow-lg);
+    display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;
+  }
+  .live-card::before{
+    content:"";position:absolute;right:-40px;top:-60px;width:210px;height:210px;border-radius:50%;
+    background:radial-gradient(circle,rgba(226,84,44,.42),transparent 68%);
+  }
+  .live-card .micro{color:#9C8E7B}
+  .live-row{display:flex;align-items:baseline;gap:9px}
+  .live-row .n{font-family:'Fraunces',serif;font-size:30px;letter-spacing:-.04em;line-height:1}
+  .live-row .u{font-size:11.5px;color:#B0A18D}
+  .live-stats{display:flex;gap:22px;flex-wrap:wrap}
+  .live-stats .lv{font-family:'IBM Plex Mono',monospace;font-size:15px;color:#fff;margin-top:2px}
+  .live-bar{height:5px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+  .live-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--ochre));transition:width .9s cubic-bezier(.22,1,.36,1)}
+
+  /* ---------- channel bars ---------- */
+  .ch-row{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:11px 0;border-bottom:1px dashed var(--line)}
+  .ch-row:last-child{border-bottom:0}
+  .ch-name{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:9px}
+  .ch-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+  .ch-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-variant-numeric:tabular-nums}
+  .ch-track{grid-column:1 / -1;height:7px;border-radius:6px;background:#F1ECE3;overflow:hidden}
+  .ch-track i{display:block;height:100%;border-radius:6px;transition:width 1s cubic-bezier(.22,1,.36,1)}
+  .ch-pct{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.05em}
+
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse}
+  thead th{
+    text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--muted-2);font-weight:500;padding:0 12px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  thead th:first-child{padding-left:22px}
+  thead th:last-child{padding-right:22px;text-align:right}
+  tbody td{padding:12px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle}
+  tbody td:first-child{padding-left:22px}
+  tbody td:last-child{padding-right:22px;text-align:right}
+  tbody tr{transition:background .18s}
+  tbody tr:hover{background:#FBF8F2}
+  tbody tr:last-child td{border-bottom:0}
+  .thumb{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.04em;color:#fff;
+  }
+  .prod{display:flex;align-items:center;gap:11px}
+  .prod .nm{font-weight:500;letter-spacing:-.011em;line-height:1.25}
+  .prod .ct{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted-2);margin-top:2px}
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12px}
+  .share-bar{width:78px;height:6px;border-radius:5px;background:#F1ECE3;overflow:hidden;display:inline-block;vertical-align:middle}
+  .share-bar i{display:block;height:100%;border-radius:5px}
+  .status{
+    display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;
+    letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:20px;white-space:nowrap;
+  }
+  .status .sd{width:5px;height:5px;border-radius:50%}
+  .st-ok{background:var(--teal-soft);color:var(--teal)}.st-ok .sd{background:var(--teal)}
+  .st-proc{background:var(--ochre-soft);color:#8B6412}.st-proc .sd{background:var(--ochre)}
+  .st-ref{background:var(--accent-soft);color:var(--accent-2)}.st-ref .sd{background:var(--accent)}
+  .st-pend{background:#EFEAE1;color:#736A5C}.st-pend .sd{background:#8B8173}
+
+  /* ---------- donut ---------- */
+  .donut-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0 12px}
+  .donut{position:relative;width:186px;height:186px}
+  .donut svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .donut .center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  }
+  .donut .center .v{font-family:'Fraunces',serif;font-size:27px;letter-spacing:-.042em;line-height:1}
+  .donut .center .l{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+  .legend{width:100%}
+  .lg-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .lg-row:last-child{border-bottom:0}
+  .lg-row .nm{font-size:12px;flex:1}
+  .lg-row .vv{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+  .lg-row .pp{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:38px;text-align:right}
+
+  /* ---------- funnel / traffic ---------- */
+  .fn-row{padding:9px 0}
+  .fn-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .fn-top .nm{font-size:12.5px;font-weight:500}
+  .fn-top .vl{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+  .fn-track{height:22px;border-radius:7px;background:#F3EEE5;overflow:hidden;position:relative}
+  .fn-track i{
+    display:block;height:100%;border-radius:7px;transition:width 1.1s cubic-bezier(.22,1,.36,1);
+    background:linear-gradient(90deg,rgba(226,84,44,.92),rgba(226,84,44,.62));
+  }
+  .fn-drop{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:5px}
+
+  .src-row{display:flex;align-items:center;gap:11px;padding:8px 0}
+  .src-row .nm{font-size:12px;width:104px;flex-shrink:0}
+  .src-track{flex:1;height:6px;border-radius:5px;background:#F1ECE3;overflow:hidden}
+  .src-track i{display:block;height:100%;border-radius:5px;transition:width 1s cubic-bezier(.22,1,.36,1)}
+  .src-row .vv{font-family:'IBM Plex Mono',monospace;font-size:11px;width:34px;text-align:right}
+
+  /* ---------- footer ---------- */
+  .foot{
+    max-width:1500px;margin:0 auto;padding:0 28px 40px;display:flex;justify-content:space-between;
+    align-items:center;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:11.5px;
+  }
+  .foot .left{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line);background:rgba(255,255,255,.7);border-radius:10px;padding:8px 14px;
+    font:inherit;font-size:11.5px;font-weight:500;cursor:pointer;color:var(--ink-2);display:inline-flex;
+    align-items:center;gap:8px;transition:.2s;
+  }
+  .btn:hover{background:#fff;border-color:var(--line-2);transform:translateY(-1px)}
+  .btn.primary{background:var(--ink);color:#F7F2E9;border-color:var(--ink)}
+  .btn.primary:hover{background:#2A231A}
+
+  .fade-up{opacity:0;transform:translateY(14px);animation:fadeUp .72s cubic-bezier(.22,1,.36,1) forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1180px){
+    .col-8,.col-7{grid-column:span 12}
+    .col-5,.col-4,.col-3{grid-column:span 6}
+    .nav{display:none}
+  }
+  @media (max-width:820px){
+    .topbar-inner{padding:12px 18px;gap:14px}
+    .search{display:none}
+    .wrap{padding:20px 18px 36px}
+    .grid{gap:14px}
+    .col-5,.col-4,.col-3{grid-column:span 12}
+    .hero-foot{grid-template-columns:1fr 1fr}
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .chart-host{height:240px}
+    .foot{padding:0 18px 32px}
+    .ticker-inner{padding:9px 18px;gap:14px}
+  }
+  @media (max-width:520px){
+    .kpi-grid{grid-template-columns:1fr}
+    .hero-foot{grid-template-columns:1fr}
+    .top-actions .icon-btn:first-of-type{display:none}
+    .page-title{font-size:27px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="mark">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18.5V9.2L12 4l8 5.2v9.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8.6 18.5v-5.1h6.8v5.1" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="9.4" r="1.5" fill="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Northwind Supply</div>
+        <div class="brand-sub">Commerce Intelligence</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="#" class="active">Overview</a>
+      <a href="#">Orders</a>
+      <a href="#">Catalog</a>
+      <a href="#">Customers</a>
+      <a href="#">Fulfillment</a>
+      <a href="#">Reports</a>
+    </nav>
+
+    <div class="top-actions">
+      <label class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.4" stroke="#A79C8C" stroke-width="1.8"/>
+          <path d="M15.8 15.8 20 20" stroke="#A79C8C" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="Search orders, SKUs, customers…">
+      </label>
+      <button class="icon-btn" title="Notifications">
+        <span class="dot"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.4 5.2 1.4 5.2H5.1S6.5 14 6.5 10Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M10 18.2a2.1 2.1 0 0 0 4 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="icon-btn" title="Export report" id="exportBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.8v10.4M12 14.2 8.4 10.6M12 14.2l3.6-3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4.8 16.4v2.1a1.7 1.7 0 0 0 1.7 1.7h11a1.7 1.7 0 0 0 1.7-1.7v-2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="avatar" title="Mira Kellner">MK</div>
+    </div>
+  </div>
+  <div class="stripe"></div>
+</header>
+
+<div class="ticker">
+  <div class="ticker-inner">
+    <div class="tick"><span class="live-dot"></span><b>LIVE</b></div>
+    <div class="tick"><span class="sep"></span>Shoppers online <b id="tOnline">1,284</b></div>
+    <div class="tick"><span class="sep"></span>Active carts <b id="tCarts">128</b></div>
+    <div class="tick"><span class="sep"></span>Orders today <b id="tOrders">412</b></div>
+    <div class="tick"><span class="sep"></span>Revenue today <b id="tRev">$38,204</b></div>
+    <div class="tick"><span class="sep"></span>Fulfillment SLA <b>96.4%</b></div>
+    <div class="tick"><span class="sep"></span>Storefront status <b style="color:var(--teal)">All systems nominal</b></div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <div class="page-head fade-up">
+    <div>
+      <div class="micro">Dashboard / Sales performance</div>
+      <h1 class="page-title">Revenue is up <em>12.4%</em><br>and momentum is holding.</h1>
+      <p class="page-sub">A consolidated read on storefront revenue, order economics and catalogue performance — refreshed continuously from the order pipeline.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="seg" id="rangeSeg" role="tablist" aria-label="Date range">
+        <button data-range="7D">7 days</button>
+        <button data-range="30D" class="on">30 days</button>
+        <button data-range="90D">90 days</button>
+        <button data-range="12M">12 months</button>
+      </div>
+      <button class="btn primary" id="refreshBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          <path d="M20 4.2V10h-5.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Refresh data
+      </button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ HERO CHART ============ -->
+    <section class="panel hero-panel col-8 fade-up" style="animation-delay:.05s">
+      <div class="hero-top">
+        <div>
+          <div class="micro">Gross revenue · <span id="rangeLabel">last 30 days</span></div>
+          <div class="hero-figure">
+            <div class="hero-num" id="heroNum">$0</div>
+            <div class="hero-unit" id="heroUnit">USD</div>
+            <div id="heroChip"></div>
+          </div>
+          <div class="hero-meta">
+            <div class="txt">Compared with <b id="prevLabel">previous 30 days</b></div>
+            <div class="txt" style="color:var(--muted-2)">·</div>
+            <div class="txt">Net of refunds &amp; discounts</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+          <div class="compare-toggle on" id="compareToggle" role="switch" aria-checked="true" tabindex="0">
+            <span class="switch"></span><span>vs previous period</span>
+          </div>
+          <div class="seg" id="chartModeSeg">
+            <button data-mode="revenue" class="on">Revenue</button>
+            <button data-mode="orders">Orders</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <div class="chart-host" id="chartHost">
+          <div id="chartSvg"></div>
+          <div class="y-labels" id="yLabels"></div>
+          <div class="crosshair" id="crosshair"></div>
+          <div class="marker" id="marker"></div>
+          <div class="tooltip" id="tooltip">
+            <div class="tt-label" id="ttLabel">Mar 14</div>
+            <div class="tt-val" id="ttVal">$0</div>
+            <div class="tt-row"><span>Orders</span><b id="ttOrders">0</b></div>
+            <div class="tt-row"><span>Prev. period</span><b id="ttPrev">$0</b></div>
+          </div>
+        </div>
+        <div class="x-labels" id="xLabels"></div>
+        <div class="bars-strip" id="barsStrip"></div>
+        <div class="bars-legend">
+          <div class="micro">Order volume per interval</div>
+          <div class="micro" id="barsNote">Peak interval highlighted</div>
+        </div>
+      </div>
+
+      <div class="hero-foot">
+        <div>
+          <div class="micro">Best interval</div>
+          <div class="v" id="mBest">—</div>
+          <div class="s" id="mBestSub">—</div>
+        </div>
+        <div>
+          <div class="micro">Average per day</div>
+          <div class="v" id="mAvg">—</div>
+          <div class="s">Rolling storefront average</div>
+        </div>
+        <div>
+          <div class="micro">Repeat purchase rate</div>
+          <div class="v">34.8%</div>
+          <div class="s">+2.1 pts vs prior period</div>
+        </div>
+        <div>
+          <div class="micro">Peak shopping hour</div>
+          <div class="v">20:00</div>
+          <div class="s">Local time · 18–22h drives 41%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ KPI STACK ============ -->
+    <section class="col-4 fade-up" style="animation-delay:.12s">
+      <div style="display:flex;flex-direction:column;gap:18px;height:100%">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="live-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+            <div class="micro">Live storefront</div>
+            <div class="chip up" style="background:rgba(255,255,255,.1);color:#F0C9A6">
+              <span class="live-dot"></span> Streaming
+            </div>
+          </div>
+          <div style="position:relative">
+            <div class="live-row">
+              <div class="n" id="liveOnline">1,284</div>
+              <div class="u">shoppers on site right now</div>
+            </div>
+          </div>
+          <div class="live-bar"><i id="liveBar" style="width:68%"></i></div>
+          <div class="live-stats">
+            <div>
+              <div class="micro">Carts open</div>
+              <div class="lv" id="liveCarts">128</div>
+            </div>
+            <div>
+              <div class="micro">Checkouts</div>
+              <div class="lv" id="liveCheckout">37</div>
+            </div>
+            <div>
+              <div class="micro">Conv. now</div>
+              <div class="lv" id="liveConv">3.42%</div>
+            </div>
+          </div>
+          <div style="position:relative;display:flex;gap:10px;align-items:center">
+            <div class="micro" style="color:#8E8171">Updated</div>
+            <div class="mono" style="font-size:11px;color:#C9B9A3" id="updatedAgo">just now</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CHANNELS ============ -->
+    <section class="panel col-4 fade-up" style="animation-delay:.16s">
+      <div class="panel-head">
+        <div>
+          <div class="micro">Attribution</div>
+          <h3>Revenue by channel</h3>
+        </div>
+        <div class="chip flat">5 sources</div>
+      </div>
+      <div class="rule"></div>
+      <div class="panel-pad" id="channelList" style="padding-top:6px"></div>
+    </section>
+
+    <!-- ============ PRODUCTS ============ -->
+    <section class="panel col-5 fade-up" style="animation-delay:.2s">
+      <div class="panel-head">
+        <div>
+          <div class="micro">Catalogue</div>
+          <h3>Top performing products</h3>
+        </div>
+        <div class="seg" id="prodSeg" style="padding:3px">
+          <button data-sort="revenue" class="on" style="padding:6px 11px;font-size:11px">Revenue</button>
+          <button data-sort="units" style="padding:6px 11px;font-size:11px">Units</button>
+          <button data-sort="trend" style="padding:6px 11px;font-size:11px">Growth</button>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:38px">#</th>
+            <th>Product</th>
+            <th>Units</th>
+            <th>Revenue</th>
+            <th>Share</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody id="prodBody"></tbody>
+      </table>
+    </section>
+
+    <!-- ============ CATEGORIES ============ -->
+    <section class="panel col-3 fade-up" style="animation-delay:.24s">
+      <div class="panel-head">
+        <div>
+          <div class="micro">Mix</div>
+          <h3>Sales by category</h3>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <div class="panel-pad">
+        <div class="donut-wrap">
+          <div class="donut">
+            <svg viewBox="0 0 200 200" id="donutSvg" aria-hidden="true"></svg>
+            <div class="center">
+              <div class="v" id="donutVal">$0</div>
+              <div class="l">Total mix</div>
+            </div>
+          </div>
+        </div>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+    </section>
+
+    <!-- ============ ORDERS ============ -->
+    <section class="panel col-8 fade-up" style="animation-delay:.28s">
+      <div class="panel-head">
+        <div>
+          <div class="micro">Order pipeline</div>
+          <h3>Recent orders</h3>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="chip up"><span class="live-dot"></span> Auto-syncing</div>
+          <button class="btn" style="padding:7px 12px">View all</button>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Channel</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Placed</th>
+          </tr>
+        </thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </section>
+
+    <!-- ============ FUNNEL + SOURCES ============ -->
+    <section class="panel col-4 fade-up" style="animation-delay:.32s">
+      <div class="panel-head">
+        <div>
+          <div class="micro">Conversion</div>
+          <h3>Purchase funnel</h3>
+        </div>
+        <div class="chip up">3.0% end-to-end</div>
+      </div>
+      <div class="rule"></div>
+      <div class="panel-pad" style="padding-top:12px">
+        <div id="funnelList"></div>
+        <div class="rule" style="margin:16px 0 14px"></div>
+        <div class="micro" style="margin-bottom:8px">Traffic sources</div>
+        <div id="sourceList"></div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="left">
+    <div class="micro">Northwind Supply · Commerce Intelligence v4.2</div>
+    <div>·</div>
+    <div>Data refreshed <span id="footAgo">moments ago</span></div>
+    <div>·</div>
+    <div>Timezone: America/New_York</div>
+  </div>
+  <div class="left">
+    <button class="btn">Download CSV</button>
+    <button class="btn">Schedule report</button>
+    <button class="btn primary">Share dashboard</button>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- utilities ---------------- */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  const fmtUSD = n => '$' + Math.round(n).toLocaleString('en-US');
+  const fmtCompact = n => {
+    const a = Math.abs(n);
+    if (a >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+    if (a >= 1e4) return '$' + (n / 1e3).toFixed(1) + 'k';
+    return '$' + Math.round(n).toLocaleString('en-US');
+  };
+  const fmtNum = n => Math.round(n).toLocaleString('en-US');
+
+  function rng(seed) {
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return function () { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; };
+  }
+
+  function chip(delta, inverse) {
+    const up = delta >= 0;
+    const good = inverse ? !up : up;
+    const cls = Math.abs(delta) < 0.05 ? 'flat' : (good ? 'up' : 'down');
+    const arrow = Math.abs(delta) < 0.05 ? '→' : (up ? '▲' : '▼');
+    return '<span class="chip ' + cls + '">' + arrow + ' ' + Math.abs(delta).toFixed(1) + '%</span>';
+  }
+
+  function animateValue(el, to, fmt, dur) {
+    dur = dur || 850;
+    const from = parseFloat(el.dataset.v || '0');
+    el.dataset.v = to;
+    const t0 = performance.now();
+    function step(t) {
+      const p = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------------- data model ---------------- */
+  const RANGE_CFG = {
+    '7D':  { n: 7,  base: 47000,   vol: .22, trend: .05, seed: 91111, kind: 'day',   label: 'last 7 days',   prev: 'previous 7 days' },
+    '30D': { n: 30, base: 42500,   vol: .17, trend: .13, seed: 23011, kind: 'day',   label: 'last 30 days',  prev: 'previous 30 days' },
+    '90D': { n: 45, base: 21200,   vol: .15, trend: .21, seed: 77023, kind: 'day2',  label: 'last 90 days',  prev: 'previous 90 days' },
+    '12M': { n: 12, base: 1160000, vol: .11, trend: .33, seed: 44107, kind: 'month', label: 'last 12 months',prev: 'previous 12 months' }
+  };
+
+  function makeSeries(n, base, vol, trend, seed, weekly) {
+    const r = rng(seed), out = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0 : i / (n - 1);
+      let v = base * (1 + trend * t);
+      v *= 1 + (r() - 0.5) * vol;
+      if (weekly) v *= 1 + 0.17 * Math.sin((i % 7) / 7 * Math.PI * 2 - 1.15);
+      out.push(Math.max(base * 0.38, v));
+    }
+    return out;
+  }
+
+  function makeLabels(cfg) {
+    const now = new Date(), out = [];
+    if (cfg.kind === 'month') {
+      for (let i = cfg.n - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        out.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      }
+    } else {
+      const step = cfg.kind === 'day2' ? 2 : 1;
+      for (let i = cfg.n - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i * step);
+        out.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      }
+    }
+    return out;
+  }
+
+  const DATA = {};
+  function buildData(bump) {
+    Object.keys(RANGE_CFG).forEach(function (key) {
+      const c = RANGE_CFG[key];
+      const seed = c.seed + (bump || 0) * 137;
+      const values = makeSeries(c.n, c.base, c.vol, c.trend, seed, c.kind !== 'month');
+      const r = rng(seed + 501);
+      const prev = values.map(v => v * (0.855 + (r() - 0.5) * 0.11));
+      const aovBase = 84 + (r() - 0.5) * 12;
+      const orders = values.map((v, i) => Math.round(v / (aovBase * (0.94 + (r() - 0.5) * 0.12))));
+      const prevOrders = prev.map((v, i) => Math.round(v / (aovBase * (0.95 + (r() - 0.5) * 0.12))));
+      DATA[key] = {
+        labels: makeLabels(c),
+        values: values,
+        prev: prev,
+        orders: orders,
+        prevOrders: prevOrders,
+        cfg: c
+      };
+    });
+  }
+  buildData(0);
+
+  /* ---------------- chart rendering ---------------- */
+  const chartHost = $('#chartHost');
+  const chartSvg = $('#chartSvg');
+  const yLabels = $('#yLabels');
+  const xLabels = $('#xLabels');
+  const barsStrip = $('#barsStrip');
+  const crosshair = $('#crosshair');
+  const marker = $('#marker');
+  const tooltip = $('#tooltip');
+
+  const state = { range: '30D', mode: 'revenue', compare: true };
+  let current = null;   // {values, prev, labels, max, yPct}
+
+  function smoothPath(pts) {
+    if (pts.length === 1) return 'M ' + pts[0].x + ' ' + pts[0].y;
+    let d = 'M ' + pts[0].x.toFixed(2) + ' ' + pts[0].y.toFixed(2);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ' C ' + c1x.toFixed(2) + ' ' + c1y.toFixed(2) + ', ' + c2x.toFixed(2) + ' ' + c2y.toFixed(2) + ', ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2);
+    }
+    return d;
+  }
+
+  function renderChart() {
+    const d = DATA[state.range];
+    const isRev = state.mode === 'revenue';
+    const values = isRev ? d.values : d.orders;
+    const prev = isRev ? d.prev : d.prevOrders;
+    const n = values.length;
+
+    const W = 1000, H = 300;
+    const max = Math.max.apply(null, values.concat(prev)) * 1.14;
+    const xOf = i => (n === 1 ? W / 2 : (i / (n - 1)) * W);
+    const yOf = v => H - (v / max) * H;
+
+    const pts = values.map((v, i) => ({ x: xOf(i), y: yOf(v) }));
+    const pPts = prev.map((v, i) => ({ x: xOf(i), y: yOf(v) }));
+
+    const line = smoothPath(pts);
+    const area = line + ' L ' + pts[pts.length - 1].x.toFixed(2) + ' ' + H + ' L ' + pts[0].x.toFixed(2) + ' ' + H + ' Z';
+    const prevLine = smoothPath(pPts);
+
+    let grid = '';
+    for (let g = 0; g <= 4; g++) {
+      const y = (H / 4) * g;
+      grid += '<line x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '" stroke="' + (g === 4 ? '#D6CCB9' : '#EDE6DA') + '" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    }
+
+    const svg = '' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Sales trend chart">' +
+        '<defs>' +
+          '<linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0%" stop-color="#E2542C" stop-opacity="0.30"/>' +
+            '<stop offset="55%" stop-color="#E2542C" stop-opacity="0.10"/>' +
+            '<stop offset="100%" stop-color="#E2542C" stop-opacity="0"/>' +
+          '</linearGradient>' +
+          '<linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">' +
+            '<stop offset="0%" stop-color="#E2542C"/>' +
+            '<stop offset="100%" stop-color="#C8421E"/>' +
+          '</linearGradient>' +
+        '</defs>' +
+        grid +
+        '<path id="areaPath" d="' + area + '" fill="url(#areaGrad)" opacity="0"/>' +
+        '<path id="prevPath" d="' + prevLine + '" fill="none" stroke="#166B5C" stroke-width="1.6" stroke-dasharray="5 5" vector-effect="non-scaling-stroke" opacity="' + (state.compare ? '0.72' : '0') + '"/>' +
+        '<path id="linePath" d="' + line + '" fill="none" stroke="url(#lineGrad)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '</svg>';
+
+    chartSvg.innerHTML = svg;
+
+    const linePath = $('#linePath', chartSvg);
+    const areaPath = $('#areaPath', chartSvg);
+    try {
+      const len = linePath.getTotalLength();
+      linePath.style.strokeDasharray = len + ' ' + len;
+      linePath.style.strokeDashoffset = len;
+      requestAnimationFrame(function () {
+        linePath.style.transition = 'stroke-dashoffset 1.05s cubic-bezier(.32,.86,.36,1)';
+        linePath.style.strokeDashoffset = '0';
+      });
+    } catch (e) { /* no-op */ }
+    areaPath.style.transition = 'opacity .85s ease .18s';
+    requestAnimationFrame(function () { areaPath.style.opacity = '1'; });
+
+    // y labels
+    const fmtY = v => isRev ? fmtCompact(v) : (v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v));
+    let yl = '';
+    for (let g = 0; g <= 4; g++) {
+      const frac = g / 4;
+      yl += '<span style="top:' + (frac * 100).toFixed(3) + '%">' + fmtY(max * (1 - frac)) + '</span>';
+    }
+    yLabels.innerHTML = yl;
+
+    // x labels (max 7 shown)
+    const showEvery = Math.max(1, Math.ceil(n / 7));
+    let xl = '';
+    for (let i = 0; i < n; i++) {
+      if (i % showEvery === 0 || i === n - 1) xl += '<span>' + d.labels[i] + '</span>';
+    }
+    xLabels.innerHTML = xl;
+
+    // bars strip
+    const bmax = Math.max.apply(null, d.orders);
+    let bs = '';
+    d.orders.forEach(function (o, i) {
+      const h = 16 + (o / bmax) * 84;
+      const hot = o === bmax;
+      bs += '<i class="' + (hot ? 'hot' : '') + '" style="height:' + h.toFixed(1) + '%" title="' + d.labels[i] + '"></i>';
+    });
+    barsStrip.innerHTML = bs;
+
+    // meta
+    current = {
+      values: values, prev: prev, labels: d.labels, max: max, n: n,
+      orders: d.orders, isRev: isRev,
+      yPct: values.map(v => ((H - (v / max) * H) / H) * 100)
+    };
+
+    const bestIdx = d.values.indexOf(Math.max.apply(null, d.values));
+    $('#mBest').textContent = isRev ? fmtCompact(d.values[bestIdx]) : fmtNum(d.values[bestIdx]);
+    $('#mBestSub').textContent = d.labels[bestIdx] + ' · ' + fmtNum(d.orders[bestIdx]) + ' orders';
+    const totalDays = state.range === '7D' ? 7 : state.range === '30D' ? 30 : state.range === '90D' ? 90 : 365;
+    $('#mAvg').textContent = fmtCompact(d.values.reduce((a, b) => a + b, 0) / totalDays);
+
+    $('#barsNote').textContent = 'Peak: ' + d.labels[bestIdx];
+    hideMarker();
+  }
+
+  /* -------- chart hover -------- */
+  function showMarker(idx) {
+    if (!current || idx < 0 || idx >= current.n) return;
+    const r = chartHost.getBoundingClientRect();
+    const px = (idx / (current.n - 1 || 1)) * r.width;
+    const py = (current.yPct[idx] / 100) * r.height;
+
+    crosshair.style.left = px + 'px';
+    crosshair.style.opacity = '1';
+    marker.style.left = px + 'px';
+    marker.style.top = py + 'px';
+    marker.style.opacity = '1';
+
+    const val = current.values[idx];
+    $('#ttLabel').textContent = current.labels[idx];
+    $('#ttVal').textContent = current.isRev ? fmtUSD(val) : fmtNum(val) + ' orders';
+    $('#ttOrders').textContent = fmtNum(current.orders[idx]);
+    $('#ttPrev').textContent = current.isRev ? fmtUSD(current.prev[idx]) : fmtNum(current.prev[idx]);
+
+    const tw = tooltip.offsetWidth || 140;
+    let left = px;
+    left = Math.max(tw / 2 + 4, Math.min(r.width - tw / 2 - 4, left));
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = Math.max(py - 6, 74) + 'px';
+    tooltip.style.opacity = '1';
+  }
+  function hideMarker() {
+    crosshair.style.opacity = '0';
+    marker.style.opacity = '0';
+    tooltip.style.opacity = '0';
+  }
+  chartHost.addEventListener('mousemove', function (e) {
+    const r = chartHost.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    showMarker(Math.round(frac * (current.n - 1)));
+  });
+  chartHost.addEventListener('mouseleave', hideMarker);
+  chartHost.addEventListener('touchmove', function (e) {
+    if (!e.touches.length) return;
+    const r = chartHost.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.touches[0].clientX - r.left) / r.width));
+    showMarker(Math.round(frac * (current.n - 1)));
+  }, { passive: true });
+
+  /* ---------------- hero + KPIs ---------------- */
+  function renderHero() {
+    const d = DATA[state.range];
+    const total = d.values.reduce((a, b) => a + b, 0);
+    const prevTotal = d.prev.reduce((a, b) => a + b, 0);
+    const delta = ((total - prevTotal) / prevTotal) * 100;
+
+    animateValue($('#heroNum'), total, v => fmtUSD(v), 950);
+    $('#heroChip').innerHTML = chip(delta);
+    $('#rangeLabel').textContent = d.cfg.label;
+    $('#prevLabel').textContent = d.cfg.prev;
+
+    const ordersTotal = d.orders.reduce((a, b) => a + b, 0);
+    const prevOrdersTotal = d.prevOrders.reduce((a, b) => a + b, 0);
+    const aov = total / ordersTotal;
+    const prevAov = prevTotal / prevOrdersTotal;
+
+    const conv = 2.94 + (rng(state.range.length * 31 + 7)() - 0.5) * 0.6;
+    const prevConv = conv - 0.16;
+    const refund = 1.86 + (rng(state.range.length * 17 + 3)() - 0.5) * 0.5;
+    const prevRefund = refund + 0.22;
+
+    const kpis = [
+      {
+        label: 'Orders', val: ordersTotal, fmt: v => fmtNum(v),
+        delta: ((ordersTotal - prevOrdersTotal) / prevOrdersTotal) * 100,
+        inv: false, sub: 'vs ' + d.cfg.prev,
+        color: '#E2542C', series: d.orders
+      },
+      {
+        label: 'Avg. order value', val: aov, fmt: v => '$' + v.toFixed(2),
+        delta: ((aov - prevAov) / prevAov) * 100,
+        inv: false, sub: 'basket economics',
+        color: '#166B5C', series: d.values.map((v, i) => v / d.orders[i])
+      },
+      {
+        label: 'Conversion rate', val: conv, fmt: v => v.toFixed(2) + '%',
+        delta: ((conv - prevConv) / prevConv) * 100,
+        inv: false, sub: 'sessions → orders',
+        color: '#D2952B', series: d.values.map((v, i) => conv + Math.sin(i * 0.7) * 0.22)
+      },
+      {
+        label: 'Refund rate', val: refund, fmt: v => v.toFixed(2) + '%',
+        delta: ((refund - prevRefund) / prevRefund) * 100,
+        inv: true, sub: 'lower is better',
+        color: '#7B3D55', series: d.values.map((v, i) => refund + Math.cos(i * 0.55) * 0.18)
+      }
+    ];
+
+    const grid = $('#kpiGrid');
+    grid.innerHTML = kpis.map(function (k, i) {
+      const spark = buildSpark(k.series, k.color);
+      return '' +
+        '<div class="kpi">' +
+          '<div>' +
+            '<div class="micro">' + k.label + '</div>' +
+            '<div class="k-val" data-kpi="' + i + '">0</div>' +
+          '</div>' +
+          '<div class="k-foot">' +
+            chip(k.delta, k.inv) +
+            spark +
+          '</div>' +
+          '<div class="micro" style="letter-spacing:.1em;color:var(--muted-2);font-size:9px">' + k.sub + '</div>' +
+        '</div>';
+    }).join('');
+
+    kpis.forEach(function (k, i) {
+      const el = grid.querySelector('[data-kpi="' + i + '"]');
+      animateValue(el, k.val, k.fmt, 800 + i * 60);
+    });
+  }
+
+  function buildSpark(series, color) {
+    const n = series.length;
+    const max = Math.max.apply(null, series), min = Math.min.apply(null, series);
+    const span = (max - min) || 1;
+    const step = n > 1 ? 100 / (n - 1) : 100;
+    let pts = series.map((v, i) => (i * step).toFixed(1) + ',' + (22 - ((v - min) / span) * 19 + 1).toFixed(1)).join(' ');
+    return '' +
+      '<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none">' +
+        '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+        '<circle cx="' + (100).toFixed(1) + '" cy="' + (22 - ((series[n - 1] - min) / span) * 19 + 1).toFixed(1) + '" r="2.1" fill="' + color + '"/>' +
+      '</svg>';
+  }
+
+  /* ---------------- channels ---------------- */
+  const CHANNELS = [
+    { name: 'Direct storefront', pct: 34.2, color: '#E2542C' },
+    { name: 'Paid social', pct: 23.6, color: '#D2952B' },
+    { name: 'Organic search', pct: 19.4, color: '#166B5C' },
+    { name: 'Email & lifecycle', pct: 13.1, color: '#7B3D55' },
+    { name: 'Marketplace', pct: 9.7, color: '#4A6272' }
+  ];
+
+  function renderChannels() {
+    const total = DATA[state.range].values.reduce((a, b) => a + b, 0);
+    $('#channelList').innerHTML = CHANNELS.map(function (c, i) {
+      const val = total * (c.pct / 100);
+      return '' +
+        '<div class="ch-row">' +
+          '<div class="ch-name"><span class="ch-dot" style="background:' + c.color + '"></span>' + c.name + '</div>' +
+          '<div style="text-align:right"><div class="ch-val">' + fmtCompact(val) + '</div><div class="ch-pct">' + c.pct.toFixed(1) + '%</div></div>' +
+          '<div class="ch-track"><i data-w="' + c.pct * 2.6 + '" style="width:0;background:' + c.color + '"></i></div>' +
+        '</div>';
+    }).join('');
+    requestAnimationFrame(function () {
+      $$('#channelList .ch-track i').forEach(function (el, i) {
+        setTimeout(function () { el.style.width = Math.min(100, parseFloat(el.dataset.w)) + '%'; }, 60 + i * 70);
+      });
+    });
+  }
+
+  /* ---------------- products ---------------- */
+  const PRODUCTS = [
+    { name: 'Merino Crew Sweater', cat: 'Apparel', units: 1284, rev: 128400, trend: 12.4, ini: 'MC', g: ['#E2542C', '#A8351A'] },
+    { name: 'Ceramic Pour-Over Set', cat: 'Home & Living', units: 964, rev: 72300, trend: 8.1, ini: 'CP', g: ['#D2952B', '#9A6614'] },
+    { name: 'Trailhead Daypack 22L', cat: 'Outdoor', units: 812, rev: 68200, trend: -3.2, ini: 'TD', g: ['#166B5C', '#0C3F35'] },
+    { name: 'Studio Wireless Headphones', cat: 'Electronics', units: 640, rev: 115200, trend: 21.7, ini: 'SW', g: ['#4A6272', '#2C3D48'] },
+    { name: 'Botanical Hand Balm', cat: 'Beauty', units: 2210, rev: 41990, trend: 4.6, ini: 'BH', g: ['#7B3D55', '#4E2435'] },
+    { name: 'Waxed Canvas Tote', cat: 'Accessories', units: 1096, rev: 52600, trend: 6.9, ini: 'WT', g: ['#8E6A43', '#5B4229'] }
+  ];
+  let prodSort = 'revenue';
+
+  function renderProducts() {
+    const list = PRODUCTS.slice().sort(function (a, b) {
+      return prodSort === 'revenue' ? b.rev - a.rev : prodSort === 'units' ? b.units - a.units : b.trend - a.trend;
+    });
+    const maxRev = Math.max.apply(null, PRODUCTS.map(p => p.rev));
+    $('#prodBody').innerHTML = list.map(function (p, i) {
+      const series = [];
+      const r = rng(p.name.length * 977 + p.units);
+      for (let k = 0; k < 14; k++) series.push(40 + r() * 60 + k * (p.trend > 0 ? 1.6 : -1.1));
+      const min = Math.min.apply(null, series), max = Math.max.apply(null, series), span = (max - min) || 1;
+      const pts = series.map((v, k) => (k * (100 / (series.length - 1))).toFixed(1) + ',' + (22 - ((v - min) / span) * 18 + 1).toFixed(1)).join(' ');
+      const up = p.trend >= 0;
+      return '' +
+        '<tr>' +
+          '<td class="num" style="color:var(--muted-2)">' + String(i + 1).padStart(2, '0') + '</td>' +
+          '<td><div class="prod">' +
+            '<div class="thumb" style="background:linear-gradient(150deg,' + p.g[0] + ',' + p.g[1] + ')">' + p.ini + '</div>' +
+            '<div><div class="nm">' + p.name + '</div><div class="ct">' + p.cat + '</div></div>' +
+          '</div></td>' +
+          '<td class="num">' + fmtNum(p.units) + '</td>' +
+          '<td class="num">' + fmtUSD(p.rev) + '</td>' +
+          '<td><span class="share-bar"><i style="width:' + ((p.rev / maxRev) * 100).toFixed(1) + '%;background:' + p.g[0] + '"></i></span></td>' +
+          '<td><div style="display:flex;align-items:center;gap:9px;justify-content:flex-end">' +
+            '<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" style="width:52px">' +
+              '<polyline points="' + pts + '" fill="none" stroke="' + (up ? '#166B5C' : '#E2542C') + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+            '</svg>' +
+            chip(p.trend) +
+          '</div></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ---------------- donut ---------------- */
+  const CATS = [
+    { name: 'Apparel', pct: 31.4, color: '#E2542C' },
+    { name: 'Home & Living', pct: 24.1, color: '#D2952B' },
+    { name: 'Electronics', pct: 18.7, color: '#166B5C' },
+    { name: 'Outdoor', pct: 15.2, color: '#4A6272' },
+    { name: 'Beauty & Care', pct: 10.6, color: '#7B3D55' }
+  ];
+
+  function renderDonut() {
+    const total = DATA[state.range].values.reduce((a, b) => a + b, 0);
+    const R = 68, C = 2 * Math.PI * R;
+    let offset = 0;
+    let svg = '<circle cx="100" cy="100" r="' + R + '" fill="none" stroke="#F2EDE4" stroke-width="26"/>';
+    CATS.forEach(function (c, i) {
+      const len = (c.pct / 100) * C - 3;
+      svg += '<circle class="seg-arc" data-i="' + i + '" cx="100" cy="100" r="' + R + '" fill="none" stroke="' + c.color + '" stroke-width="26" ' +
+             'stroke-dasharray="0 ' + C + '" stroke-dashoffset="' + (-offset) + '" stroke-linecap="butt" style="transition:stroke-dasharray 1s cubic-bezier(.22,1,.36,1) ' + (i * 90) + 'ms"/>';
+      offset += (c.pct / 100) * C;
+    });
+    $('#donutSvg').innerHTML = svg;
+    requestAnimationFrame(function () {
+      $$('#donutSvg .seg-arc').forEach(function (el, i) {
+        const len = (CATS[i].pct / 100) * C - 3;
+        el.setAttribute('stroke-dasharray', len + ' ' + (C - len));
+      });
+    });
+
+    animateValue($('#donutVal'), total, v => fmtCompact(v), 900);
+
+    $('#donutLegend').innerHTML = CATS.map(function (c) {
+      return '' +
+        '<div class="lg-row">' +
+          '<span class="ch-dot" style="background:' + c.color + '"></span>' +
+          '<span class="nm">' + c.name + '</span>' +
+          '<span class="vv">' + fmtCompact(total * c.pct / 100) + '</span>' +
+          '<span class="pp">' + c.pct.toFixed(1) + '%</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ---------------- orders ---------------- */
+  const ORDERS = [
+    { id: 'NW-84213', cust: 'Amara Osei', email: 'a.osei@mail.com', ch: 'Web', items: 3, total: 284.00, st: 'ok', stl: 'Fulfilled', t: '2 min ago' },
+    { id: 'NW-84212', cust: 'Jonas Lindqvist', email: 'jonas.l@mail.com', ch: 'Paid social', items: 1, total: 118.50, st: 'proc', stl: 'Processing', t: '6 min ago' },
+    { id: 'NW-84211', cust: 'Priya Raghavan', email: 'priya.r@mail.com', ch: 'Email', items: 5, total: 612.40, st: 'ok', stl: 'Fulfilled', t: '11 min ago' },
+    { id: 'NW-84210', cust: 'Marcus Bell', email: 'm.bell@mail.com', ch: 'Marketplace', items: 2, total: 196.00, st: 'pend', stl: 'Pending', t: '18 min ago' },
+    { id: 'NW-84209', cust: 'Sofia Marchetti', email: 'sofia.m@mail.com', ch: 'Web', items: 4, total: 428.75, st: 'ref', stl: 'Refunded', t: '24 min ago' },
+    { id: 'NW-84208', cust: 'Elliot Nakamura', email: 'e.naka@mail.com', ch: 'Organic', items: 2, total: 152.90, st: 'ok', stl: 'Fulfilled', t: '31 min ago' },
+    { id: 'NW-84207', cust: 'Hannah Weiss', email: 'h.weiss@mail.com', ch: 'Web', items: 6, total: 847.20, st: 'proc', stl: 'Processing', t: '38 min ago' }
+  ];
+
+  function renderOrders() {
+    $('#orderBody').innerHTML = ORDERS.map(function (o) {
+      return '' +
+        '<tr>' +
+          '<td class="num" style="font-weight:500">#' + o.id + '</td>' +
+          '<td><div class="nm" style="font-weight:500">' + o.cust + '</div><div class="ct" style="font-family:\'IBM Plex Mono\',monospace;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted-2);margin-top:2px">' + o.email + '</div></td>' +
+          '<td class="num" style="color:var(--muted)">' + o.ch + '</td>' +
+          '<td class="num">' + o.items + '</td>' +
+          '<td class="num" style="font-weight:500">' + fmtUSD(o.total) + '</td>' +
+          '<td><span class="status st-' + o.st + '"><span class="sd"></span>' + o.stl + '</span></td>' +
+          '<td class="num" style="color:var(--muted)">' + o.t + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ---------------- funnel & sources ---------------- */
+  const FUNNEL = [
+    { name: 'Sessions', val: 428300 },
+    { name: 'Product views', val: 214150 },
+    { name: 'Add to cart', val: 51420 },
+    { name: 'Checkout started', val: 22180 },
+    { name: 'Orders placed', val: 12842 }
+  ];
+  const SOURCES = [
+    { name: 'Organic search', pct: 38, color: '#166B5C' },
+    { name: 'Direct', pct: 22, color: '#E2542C' },
+    { name: 'Paid social', pct: 16, color: '#D2952B' },
+    { name: 'Email', pct: 13, color: '#7B3D55' },
+    { name: 'Referral', pct: 7, color: '#4A6272' },
+    { name: 'Other', pct: 4, color: '#A79C8C' }
+  ];
+
+  function renderFunnel() {
+    const top = FUNNEL[0].val;
+    $('#funnelList').innerHTML = FUNNEL.map(function (f, i) {
+      const drop = i === 0 ? 'Entry point · 100% of traffic' :
+        '▼ ' + (100 - (f.val / FUNNEL[i - 1].val) * 100).toFixed(1) + '% drop from previous step';
+      return '' +
+        '<div class="fn-row">' +
+          '<div class="fn-top"><span class="nm">' + f.name + '</span><span class="vl">' + fmtNum(f.val) + '</span></div>' +
+          '<div class="fn-track"><i data-w="' + ((f.val / top) * 100).toFixed(1) + '" style="width:0"></i></div>' +
+          '<div class="fn-drop">' + drop + '</div>' +
+        '</div>';
+    }).join('');
+    requestAnimationFrame(function () {
+      $$('#funnelList .fn-track i').forEach(function (el, i) {
+        setTimeout(function () { el.style.width = el.dataset.w + '%'; }, 80 + i * 110);
+      });
+    });
+
+    $('#sourceList').innerHTML = SOURCES.map(function (s) {
+      return '' +
+        '<div class="src-row">' +
+          '<span class="nm">' + s.name + '</span>' +
+          '<span class="src-track"><i data-w="' + (s.pct * 2.4).toFixed(1) + '" style="width:0;background:' + s.color + '"></i></span>' +
+          '<span class="vv">' + s.pct + '%</span>' +
+        '</div>';
+    }).join('');
+    requestAnimationFrame(function () {
+      $$('#sourceList .src-track i').forEach(function (el, i) {
+        setTimeout(function () { el.style.width = Math.min(100, parseFloat(el.dataset.w)) + '%'; }, 100 + i * 80);
+      });
+    });
+  }
+
+  /* ---------------- controls ---------------- */
+  $('#rangeSeg').addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    $$('#rangeSeg button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    state.range = btn.dataset.range;
+    renderChart();
+    renderHero();
+    renderChannels();
+    renderDonut();
+  });
+
+  $('#chartModeSeg').addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    $$('#chartModeSeg button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    state.mode = btn.dataset.mode;
+    renderChart();
+  });
+
+  $('#prodSeg').addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    $$('#prodSeg button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    prodSort = btn.dataset.sort;
+    renderProducts();
+  });
+
+  const compareToggle = $('#compareToggle');
+  function toggleCompare() {
+    state.compare = !state.compare;
+    compareToggle.classList.toggle('on', state.compare);
+    compareToggle.setAttribute('aria-checked', String(state.compare));
+    const p = $('#prevPath', chartSvg);
+    if (p) {
+      p.style.transition = 'opacity .35s ease';
+      p.style.opacity = state.compare ? '0.72' : '0';
+    }
+  }
+  compareToggle.addEventListener('click', toggleCompare);
+  compareToggle.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCompare(); }
+  });
+
+  let bump = 0;
+  $('#refreshBtn').addEventListener('click', function () {
+    bump++;
+    buildData(bump);
+    renderChart();
+    renderHero();
+    renderChannels();
+    renderDonut();
+    renderProducts();
+    updatedAt = Date.now();
+  });
+
+  $('#exportBtn').addEventListener('click', function () {
+    const btn = this;
+    btn.style.transform = 'scale(.92)';
+    setTimeout(function () { btn.style.transform = ''; }, 160);
+  });
+
+  /* ---------------- live ticker ---------------- */
+  const liveState = { online: 1284, carts: 128, checkout: 37, orders: 412, rev: 38204 };
+  function pad(n) { return Math.round(n).toLocaleString('en-US'); }
+  function tickLive() {
+    liveState.online = Math.max(720, liveState.online + Math.round((Math.random() - 0.47) * 46));
+    liveState.carts = Math.max(40, liveState.carts + Math.round((Math.random() - 0.5) * 9));
+    liveState.checkout = Math.max(8, liveState.checkout + Math.round((Math.random() - 0.5) * 5));
+    if (Math.random() > 0.62) liveState.orders += 1;
+    if (Math.random() > 0.5) liveState.rev += Math.round(40 + Math.random() * 320);
+
+    $('#tOnline').textContent = pad(liveState.online);
+    $('#tCarts').textContent = pad(liveState.carts);
+    $('#tOrders').textContent = pad(liveState.orders);
+    $('#tRev').textContent = '$' + pad(liveState.rev);
+    $('#liveOnline').textContent = pad(liveState.online);
+    $('#liveCarts').textContent = pad(liveState.carts);
+    $('#liveCheckout').textContent = pad(liveState.checkout);
+    $('#liveConv').textContent = (3.1 + Math.random() * 0.7).toFixed(2) + '%';
+    $('#liveBar').style.width = Math.min(98, 42 + (liveState.online / 2200) * 56).toFixed(1) + '%';
+  }
+  setInterval(tickLive, 2800);
+
+  let updatedAt = Date.now();
+  setInterval(function () {
+    const s = Math.round((Date.now() - updatedAt) / 1000);
+    const txt = s < 5 ? 'just now' : s < 60 ? s + ' seconds ago' : Math.round(s / 60) + ' min ago';
+    $('#updatedAgo').textContent = txt;
+    $('#footAgo').textContent = txt;
+  }, 1000);
+
+  /* ---------------- boot ---------------- */
+  renderChart();
+  renderHero();
+  renderChannels();
+  renderProducts();
+  renderDonut();
+  renderOrders();
+  renderFunnel();
+  tickLive();
+
+  window.addEventListener('resize', function () { hideMarker(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Team — Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f0f2f5;
+    --col-bg: #e4e7ec;
+    --card-bg: #ffffff;
+    --text: #1d2939;
+    --text-secondary: #667085;
+    --accent: #6941c6;
+    --accent-light: #ece5fb;
+    --border: #d0d5dd;
+    --shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.06);
+    --shadow-lg: 0 4px 12px rgba(16,24,40,.12);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ───────────────────────────── */
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .left { display: flex; align-items: center; gap: 14px; }
+  header .logo {
+    width: 34px; height: 34px; background: var(--accent); border-radius: 8px;
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 15px;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header h1 span { color: var(--text-secondary); font-weight: 400; }
+
+  .avatars { display: flex; align-items: center; gap: 0; }
+  .avatars .avatar {
+    width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff;
+    display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff;
+    margin-left: -8px; cursor: default; position: relative;
+  }
+  .avatars .avatar:first-child { margin-left: 0; }
+
+  /* ── Board ─────────────────────────────── */
+  .board {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    padding: 24px 32px;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+
+  /* ── Column ────────────────────────────── */
+  .column {
+    flex: 0 0 300px;
+    min-width: 300px;
+    background: var(--col-bg);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 100px);
+  }
+  .column-header {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+  }
+  .column-header .left-group { display: flex; align-items: center; gap: 8px; }
+  .column-header h2 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .column-header .count {
+    background: var(--border);
+    font-size: 11px; font-weight: 600;
+    padding: 1px 7px; border-radius: 99px;
+  }
+  .column-header .add-btn {
+    width: 26px; height: 26px; border-radius: var(--radius-sm);
+    border: none; background: transparent; cursor: pointer;
+    font-size: 18px; color: var(--text-secondary);
+    display: grid; place-items: center; transition: background .15s;
+  }
+  .column-header .add-btn:hover { background: var(--border); }
+
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .card-list {
+    padding: 0 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 40px;
+  }
+  .card-list.drag-over {
+    background: rgba(105,65,198,.06);
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  /* ── Card ──────────────────────────────── */
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    cursor: grab;
+    transition: box-shadow .15s, transform .15s;
+    user-select: none;
+    position: relative;
+  }
+  .card:active { cursor: grabbing; }
+  .card:hover { box-shadow: var(--shadow-lg); }
+  .card.dragging { opacity: .45; transform: scale(.97); }
+
+  .card .tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 99px;
+    margin-bottom: 8px;
+  }
+  .tag.ui       { background: #ecfdf3; color: #027a48; }
+  .tag.ux       { background: #eff8ff; color: #175cd3; }
+  .tag.brand    { background: #fff4ed; color: #c4320a; }
+  .tag.icon     { background: #fdf2fa; color: #c11574; }
+  .tag.motion   { background: #f9f5ff; color: #6941c6; }
+  .tag.research { background: #fef3f2; color: #b42318; }
+
+  .card h3 {
+    font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 6px;
+  }
+  .card p {
+    font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px;
+  }
+  .card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-footer .avatar-sm {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 600; color: #fff;
+  }
+  .card-footer .meta {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .card-footer .meta span { display: flex; align-items: center; gap: 3px; }
+
+  .priority-bar {
+    position: absolute; top: 0; left: 16px; right: 16px;
+    height: 3px; border-radius: 0 0 3px 3px;
+  }
+  .priority-bar.high   { background: #f04438; }
+  .priority-bar.medium { background: #f79009; }
+
+  /* ── New-card form ─────────────────────── */
+  .new-card-form {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .new-card-form input,
+  .new-card-form select {
+    font-family: inherit;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    outline: none;
+  }
+  .new-card-form input:focus,
+  .new-card-form select:focus { border-color: var(--accent); }
+  .new-card-form .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .new-card-form .btn {
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: none; cursor: pointer;
+  }
+  .new-card-form .btn.primary { background: var(--accent); color: #fff; }
+  .new-card-form .btn.secondary { background: var(--col-bg); color: var(--text); }
+
+  /* ── Scrollbar ─────────────────────────── */
+  .card-list::-webkit-scrollbar { width: 5px; }
+  .card-list::-webkit-scrollbar-track { background: transparent; }
+  .card-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  @media (max-width: 900px) {
+    header { padding: 14px 16px; }
+    .board { padding: 16px; gap: 14px; }
+    .column { flex: 0 0 270px; min-width: 270px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="left">
+    <div class="logo">Ds</div>
+    <h1>Design Board <span>· Q4 Sprint</span></h1>
+  </div>
+  <div class="avatars">
+    <div class="avatar" style="background:#6941c6" title="Avery">AW</div>
+    <div class="avatar" style="background:#c11574" title="Jess">JL</div>
+    <div class="avatar" style="background:#175cd3" title="Sami">SK</div>
+    <div class="avatar" style="background:#027a48" title="Morgan">MR</div>
+  </div>
+</header>
+
+<div class="board" id="board">
+
+  <!-- ── Backlog ──────────────────────── -->
+  <div class="column" data-col="backlog">
+    <div class="column-header">
+      <div class="left-group">
+        <div class="dot" style="background:#98a2b3"></div>
+        <h2>Backlog</h2>
+        <span class="count" data-count>3</span>
+      </div>
+      <button class="add-btn" title="Add card" onclick="showForm(this)">+</button>
+    </div>
+    <div class="card-list" data-list>
+      <div class="card" draggable="true">
+        <span class="tag research">Research</span>
+        <h3>Competitive audit — onboarding flows</h3>
+        <p>Screenshot & annotate onboarding from 5 competitors.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#175cd3">SK</div>
+          <div class="meta"><span>📎 2</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true">
+        <span class="tag icon">Iconography</span>
+        <h3>Refresh navigation icon set</h3>
+        <p>Align to new 2px stroke style; export SVG + PNG @2×.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#c11574">JL</div>
+          <div class="meta"><span>💬 4</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true">
+        <span class="tag brand">Brand</span>
+        <h3>Updated color token palette</h3>
+        <p>Extend semantic palette with success/warning/info variants.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#6941c6">AW</div>
+          <div class="meta"><span>📎 1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── In Progress ──────────────────── -->
+  <div class="column" data-col="progress">
+    <div class="column-header">
+      <div class="left-group">
+        <div class="dot" style="background:#6941c6"></div>
+        <h2>In Progress</h2>
+        <span class="count" data-count>3</span>
+      </div>
+      <button class="add-btn" title="Add card" onclick="showForm(this)">+</button>
+    </div>
+    <div class="card-list" data-list>
+      <div class="card" draggable="true">
+        <div class="priority-bar high"></div>
+        <span class="tag ui">UI Design</span>
+        <h3>Settings page — dark mode</h3>
+        <p>Adapt all settings panels to dark theme tokens.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#6941c6">AW</div>
+          <div class="meta"><span>💬 7</span><span>📎 3</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true">
+        <div class="priority-bar medium"></div>
+        <span class="tag ux">UX</span>
+        <h3>Checkout flow — reduce steps</h3>
+        <p>Consolidate address + payment into single step with validation.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#175cd3">SK</div>
+          <div class="meta"><span>💬 12</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true">
+        <span class="tag motion">Motion</span>
+        <h3>Page-transition micro-interactions</h3>
+        <p>Prototype shared-element transitions between list → detail.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#027a48">MR</div>
+          <div class="meta"><span>📎 1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Review ───────────────────────── -->
+  <div class="column" data-col="review">
+    <div class="column-header">
+      <div class="left-group">
+        <div class="dot" style="background:#f79009"></div>
+        <h2>Review</h2>
+        <span class="count" data-count>2</span>
+      </div>
+      <button class="add-btn" title="Add card" onclick="showForm(this)">+</button>
+    </div>
+    <div class="card-list" data-list>
+      <div class="card" draggable="true">
+        <span class="tag ui">UI Design</span>
+        <h3>Mobile nav — bottom sheet</h3>
+        <p>Final specs for eng hand-off; awaiting stakeholder sign-off.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#c11574">JL</div>
+          <div class="meta"><span>💬 9</span><span>📎 5</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true">
+        <span class="tag brand">Brand</span>
+        <h3>Marketing landing page v2</h3>
+        <p>Hero, features grid, and CTA sections — review copy placement.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#027a48">MR</div>
+          <div class="meta"><span>💬 3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Done ─────────────────────────── -->
+  <div class="column" data-col="done">
+    <div class="column-header">
+      <div class="left-group">
+        <div class="dot" style="background:#12b76a"></div>
+        <h2>Done</h2>
+        <span class="count" data-count>2</span>
+      </div>
+      <button class="add-btn" title="Add card" onclick="showForm(this)">+</button>
+    </div>
+    <div class="card-list" data-list>
+      <div class="card" draggable="true" style="opacity:.75">
+        <span class="tag ux">UX</span>
+        <h3>User interview synthesis</h3>
+        <p>Affinity map + 8 insight cards shared in Figjam.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#175cd3">SK</div>
+          <div class="meta"><span>📎 6</span></div>
+        </div>
+      </div>
+      <div class="card" draggable="true" style="opacity:.75">
+        <span class="tag icon">Iconography</span>
+        <h3>Status icon set — 24px grid</h3>
+        <p>18 icons exported; Figma library published.</p>
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:#c11574">JL</div>
+          <div class="meta"><span>💬 2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  let dragged = null;
+
+  document.addEventListener('dragstart', e => {
+    if (!e.target.classList.contains('card')) return;
+    dragged = e.target;
+    requestAnimationFrame(() => dragged.classList.add('dragging'));
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  document.addEventListener('dragend', () => {
+    if (!dragged) return;
+    dragged.classList.remove('dragging');
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    dragged = null;
+    updateCounts();
+  });
+
+  document.addEventListener('dragover', e => {
+    const list = e.target.closest('[data-list]');
+    if (!list) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    list.classList.add('drag-over');
+
+    const afterEl = getDragAfterElement(list, e.clientY);
+    if (afterEl == null) {
+      list.appendChild(dragged);
+    } else {
+      list.insertBefore(dragged, afterEl);
+    }
+  });
+
+  document.addEventListener('dragleave', e => {
+    const list = e.target.closest('[data-list]');
+    if (list && !list.contains(e.relatedTarget)) {
+      list.classList.remove('drag-over');
+    }
+  });
+
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    updateCounts();
+  });
+
+  function getDragAfterElement(list, y) {
+    const els = [...list.querySelectorAll('.card:not(.dragging)')];
+    return els.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      }
+      return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  function updateCounts() {
+    document.querySelectorAll('.column').forEach(col => {
+      const n = col.querySelectorAll('.card').length;
+      col.querySelector('[data-count]').textContent = n;
+    });
+  }
+
+  const tags = ['ui','ux','brand','icon','motion','research'];
+  const tagLabels = { ui:'UI Design', ux:'UX', brand:'Brand', icon:'Iconography', motion:'Motion', research:'Research' };
+  const people = [
+    { initials:'AW', color:'#6941c6' },
+    { initials:'JL', color:'#c11574' },
+    { initials:'SK', color:'#175cd3' },
+    { initials:'MR', color:'#027a48' },
+  ];
+
+  window.showForm = function (btn) {
+    const col = btn.closest('.column');
+    const list = col.querySelector('[data-list]');
+    if (list.querySelector('.new-card-form')) return;
+
+    const form = document.createElement('div');
+    form.className = 'new-card-form';
+    form.innerHTML = `
+      <input type="text" placeholder="Card title…" data-title autofocus>
+      <input type="text" placeholder="Short description (optional)" data-desc>
+      <select data-tag>${tags.map(t => `<option value="${t}">${tagLabels[t]}</option>`).join('')}</select>
+      <select data-person>${people.map(p => `<option value="${p.initials}">${p.initials}</option>`).join('')}</select>
+      <div class="actions">
+        <button class="btn secondary" data-cancel>Cancel</button>
+        <button class="btn primary" data-save>Add</button>
+      </div>
+    `;
+    list.prepend(form);
+    form.querySelector('[data-title]').focus();
+
+    form.querySelector('[data-cancel]').onclick = () => form.remove();
+    form.querySelector('[data-save]').onclick = () => {
+      const title = form.querySelector('[data-title]').value.trim();
+      if (!title) { form.querySelector('[data-title]').focus(); return; }
+      const desc = form.querySelector('[data-desc]').value.trim();
+      const tag = form.querySelector('[data-tag]').value;
+      const person = people.find(p => p.initials === form.querySelector('[data-person]').value);
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.draggable = true;
+      card.innerHTML = `
+        <span class="tag ${tag}">${tagLabels[tag]}</span>
+        <h3>${esc(title)}</h3>
+        ${desc ? `<p>${esc(desc)}</p>` : ''}
+        <div class="card-footer">
+          <div class="avatar-sm" style="background:${person.color}">${person.initials}</div>
+          <div class="meta"><span>💬 0</span></div>
+        </div>
+      `;
+      form.replaceWith(card);
+      updateCounts();
+    };
+    form.querySelector('[data-title]').addEventListener('keydown', e => {
+      if (e.key === 'Enter') form.querySelector('[data-save]').click();
+      if (e.key === 'Escape') form.remove();
+    });
+  };
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+})();
+</script>
+</body>
+</html>

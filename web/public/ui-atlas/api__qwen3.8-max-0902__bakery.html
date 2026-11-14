@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odd Loaf — Neighbourhood Sourdough · Baked at dawn, gone by noon</title>
+<meta name="description" content="Odd Loaf is a one-oven neighbourhood sourdough bakery. 248 loaves baked at sunrise, usually sold out before noon.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%8D%9E%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Karla:ital,wght@0,400..800;1,400..700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --flour:#f5edde;
+    --paper:#eee2cb;
+    --cream:#faf4e6;
+    --ink:#241711;
+    --rye:#221510;
+    --crust:#c05a1e;
+    --crust-deep:#96430f;
+    --butter:#e6b34a;
+    --line:rgba(36,23,17,.18);
+    --line-lt:rgba(245,237,222,.22);
+    --display:'Fraunces',Georgia,serif;
+    --body:'Karla',system-ui,sans-serif;
+    --mono:'Space Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:92px}
+  @media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth} }
+  body{
+    background:var(--flour);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--crust);color:var(--cream)}
+  img{display:block;max-width:100%}
+  a{color:inherit}
+  h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.02}
+  .display{font-variation-settings:'WONK' 1,'SOFT' 60}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
+  .mono{font-family:var(--mono)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--crust-deep);
+    display:flex;align-items:center;gap:.8rem;
+  }
+  .eyebrow::before{content:"";width:34px;height:2px;background:var(--crust)}
+  section{scroll-margin-top:92px}
+
+  /* ---------- grain overlay ---------- */
+  .grain{
+    position:fixed;inset:-40px;z-index:999;pointer-events:none;opacity:.07;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+    animation:grain 9s steps(6) infinite;
+  }
+  @keyframes grain{
+    0%,100%{transform:translate(0,0)}20%{transform:translate(-14px,8px)}
+    40%{transform:translate(10px,-12px)}60%{transform:translate(-8px,-10px)}80%{transform:translate(12px,10px)}
+  }
+
+  /* ---------- ticker ---------- */
+  .ticker{
+    background:var(--ink);color:var(--flour);overflow:hidden;white-space:nowrap;
+    border-bottom:2px solid var(--ink);position:relative;
+  }
+  .ticker-track{display:inline-flex;width:max-content;animation:tick 30s linear infinite}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  .tick-group{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;padding:.55rem 0}
+  .tick-group span{padding:0 1.4rem}
+  .tick-group b{color:var(--butter);font-weight:400}
+  @keyframes tick{to{transform:translateX(-50%)}}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:60;background:var(--flour);
+    border-bottom:2px solid var(--ink);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem clamp(20px,4vw,48px);max-width:1320px;margin:0 auto}
+  .wordmark{font-family:var(--display);font-weight:700;font-size:1.45rem;letter-spacing:-.01em;text-decoration:none;display:flex;align-items:baseline;gap:.4rem;font-variation-settings:'WONK' 1,'SOFT' 80}
+  .wordmark em{font-style:italic;color:var(--crust);font-weight:500}
+  .wordmark small{font-family:var(--mono);font-size:.55rem;letter-spacing:.2em;color:var(--crust-deep);transform:translateY(-6px)}
+  .nav-links{display:flex;gap:1.6rem;list-style:none}
+  .nav-links a{
+    text-decoration:none;font-size:.85rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    background:linear-gradient(var(--crust),var(--crust)) left bottom / 0% 2px no-repeat;
+    transition:background-size .35s ease,color .2s;padding-bottom:3px;
+  }
+  .nav-links a:hover{background-size:100% 2px;color:var(--crust-deep)}
+  .status-chip{
+    display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.68rem;
+    letter-spacing:.14em;border:2px solid var(--ink);padding:.4rem .8rem;border-radius:99px;
+    background:var(--paper);white-space:nowrap;
+  }
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--crust);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.55);opacity:.55}}
+
+  /* ---------- opening board ---------- */
+  .board{padding:clamp(44px,7vh,80px) 0 0}
+  .board-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:clamp(32px,5vw,72px);align-items:start}
+  .board-meta{display:flex;flex-wrap:wrap;gap:.7rem 1.6rem;align-items:center;font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--crust-deep);margin-bottom:1.6rem}
+  .board-meta .clock{color:var(--ink);background:var(--paper);border:1.5px solid var(--ink);padding:.25rem .6rem}
+  h1.big{font-size:clamp(2.9rem,7.2vw,6.4rem);letter-spacing:-.02em;line-height:.94}
+  h1.big .l2{display:block;font-style:italic;color:var(--crust);font-weight:500;font-variation-settings:'WONK' 1,'SOFT' 100}
+  .standfirst{max-width:52ch;margin:1.6rem 0 2rem;font-size:1.05rem;color:#3d2b1f}
+  .standfirst b{color:var(--crust-deep)}
+
+  .ticket{
+    border:2px dashed var(--ink);background:var(--paper);padding:1.2rem 1.4rem 1.3rem;
+    transform:rotate(-.6deg);max-width:520px;position:relative;
+  }
+  .ticket::before,.ticket::after{
+    content:"";position:absolute;top:50%;width:22px;height:22px;border-radius:50%;
+    background:var(--flour);border:2px dashed var(--ink);
+  }
+  .ticket::before{left:-13px;transform:translateY(-50%)}
+  .ticket::after{right:-13px;transform:translateY(-50%)}
+  .ticket .t-state{font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.6rem}
+  .ticket .t-count{font-family:var(--mono);font-size:clamp(1.9rem,4vw,2.7rem);font-weight:700;letter-spacing:.02em;margin:.35rem 0 .2rem;font-variant-numeric:tabular-nums}
+  .ticket .t-note{font-size:.86rem;color:#4a3423;font-style:italic;font-family:var(--display)}
+  .ticket .t-perf{border-top:2px dashed var(--line);margin:.9rem 0 .7rem}
+  .ticket .t-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:#5a4230}
+
+  .cta-row{display:flex;flex-wrap:wrap;gap:1.1rem;align-items:center;margin-top:2rem}
+  .btn{
+    display:inline-block;background:var(--ink);color:var(--cream);text-decoration:none;
+    font-weight:800;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;
+    padding:.95rem 1.6rem;border:2px solid var(--ink);box-shadow:0 0 0 var(--crust);
+    transition:transform .18s ease,box-shadow .18s ease,background .18s;
+  }
+  .btn:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--crust);background:var(--rye)}
+  .btn:active{transform:translate(0,0);box-shadow:0 0 0 var(--crust)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--paper)}
+  .link-arrow{font-weight:700;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-decoration-color:var(--crust);transition:color .2s}
+  .link-arrow:hover{color:var(--crust-deep)}
+  .queue-note{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:#6a5138;margin-top:1.1rem;text-transform:uppercase}
+
+  /* board right stack */
+  .stack{position:relative;min-height:560px}
+  .frame{background:var(--cream);border:2px solid var(--ink);padding:12px 12px 44px;box-shadow:8px 10px 0 rgba(36,23,17,.14);position:absolute}
+  .frame figcaption{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:10px;color:#5a4230}
+  .frame .ph{overflow:hidden}
+  .frame img{width:100%;height:auto}
+  .f-main{width:76%;top:0;right:0;transform:rotate(-2.4deg);z-index:2}
+  .f-small{width:48%;bottom:2%;left:0;transform:rotate(3deg);z-index:3}
+  .f-main:hover,.f-small:hover{transform:rotate(0) translateY(-6px);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .f-main,.f-small{transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .kb img{animation:kenburns 16s ease-in-out infinite alternate}
+  @keyframes kenburns{from{transform:scale(1) translate(0,0)}to{transform:scale(1.09) translate(-1.5%,1.5%)}}
+  .stamp{
+    position:absolute;z-index:5;top:-18px;right:-6px;transform:rotate(9deg);
+    border:4px solid var(--crust-deep);color:var(--crust-deep);background:rgba(250,244,230,.82);
+    font-family:var(--display);font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    font-size:clamp(1rem,2vw,1.5rem);padding:.45rem 1.1rem;border-radius:8px;
+    opacity:0;scale:1.7;
+  }
+  .stamp.in{animation:stampIn .5s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes stampIn{to{opacity:.94;scale:1;transform:rotate(-7deg)}}
+  .facts{
+    display:flex;flex-wrap:wrap;gap:.6rem 2.4rem;justify-content:center;
+    border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+    margin-top:clamp(48px,8vh,88px);padding:.85rem 0;
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#4a3423;
+  }
+  .facts span::before{content:"✦";color:var(--crust);margin-right:.9rem}
+
+  /* ---------- section headers ---------- */
+  .sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1.2rem;margin-bottom:2.6rem}
+  .sec-head h2{font-size:clamp(2rem,4.4vw,3.4rem);letter-spacing:-.015em}
+  .sec-head h2 em{font-style:italic;color:var(--crust);font-weight:500}
+  .lm{overflow:hidden}
+  .lm>span{display:inline-block;transform:translateY(115%);transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+  .lm.in>span{transform:translateY(0)}
+  [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+  [data-reveal].in{opacity:1;transform:none}
+
+  /* ---------- bake menu ---------- */
+  #bake{padding:clamp(70px,11vh,120px) 0}
+  .bake-status{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;text-align:right;color:#4a3423}
+  .bake-status b{color:var(--crust-deep);font-size:1rem}
+  .claimed-bar{width:220px;height:7px;background:var(--paper);border:1.5px solid var(--ink);margin:.6rem 0 0 auto}
+  .claimed-bar i{display:block;height:100%;background:var(--crust);width:0%;transition:width .8s ease}
+  .loaves{list-style:none;border:2px solid var(--ink);background:var(--cream);box-shadow:10px 12px 0 rgba(36,23,17,.1)}
+  .bread-row{position:relative;border-bottom:2px dashed var(--line);transition:background .25s}
+  .bread-row:last-child{border-bottom:none}
+  .bread-row:hover{background:#f3e6c8}
+  .br-main{display:grid;grid-template-columns:3rem 1fr auto;gap:1.2rem;align-items:center;padding:1.15rem 1.5rem .8rem}
+  .br-idx{font-family:var(--mono);font-size:.72rem;color:var(--crust-deep)}
+  .br-name h3{font-size:clamp(1.2rem,2.4vw,1.65rem);font-variation-settings:'WONK' 1,'SOFT' 40;transition:color .2s}
+  .bread-row:hover .br-name h3{color:var(--crust-deep)}
+  .br-name p{font-size:.88rem;color:#5a4230;font-style:italic;font-family:var(--display)}
+  .br-meta{display:flex;gap:1.4rem;align-items:baseline;font-family:var(--mono);font-size:.78rem;text-align:right}
+  .br-w{color:#6a5138}
+  .br-price{font-weight:700;font-size:1rem}
+  .br-left{min-width:86px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .55rem;border:1.5px solid var(--ink);background:var(--paper);text-align:center}
+  .br-bar{height:6px;margin:0 1.5rem 1.1rem;background:var(--paper);border:1px solid var(--line)}
+  .br-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--butter),var(--crust));width:100%;transition:width .7s ease}
+  .br-stamp{
+    position:absolute;top:50%;left:52%;transform:translate(-50%,-50%) rotate(-8deg) scale(1.6);
+    border:3px solid var(--crust-deep);color:var(--crust-deep);background:rgba(250,244,230,.85);
+    font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    padding:.2rem 1rem;border-radius:6px;opacity:0;pointer-events:none;font-size:1.1rem;
+    transition:opacity .4s,transform .4s cubic-bezier(.2,1.6,.4,1);
+  }
+  .bread-row.sold .br-stamp{opacity:.92;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
+  .bread-row.sold .br-name h3,.bread-row.sold .br-price{text-decoration:line-through;text-decoration-color:var(--crust);text-decoration-thickness:2px;opacity:.55}
+  .menu-foot{display:flex;flex-wrap:wrap;gap:.8rem 2.4rem;justify-content:space-between;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#6a5138;margin-top:1.2rem}
+
+  /* ---------- dark chapter: process + postcards ---------- */
+  .dark{background:var(--rye);color:var(--flour)}
+  #process{padding:clamp(70px,11vh,130px) 0 40px}
+  .dark .eyebrow{color:var(--butter)}
+  .dark .eyebrow::before{background:var(--butter)}
+  .process-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(36px,5vw,80px);align-items:start}
+  .process-sticky{position:sticky;top:110px}
+  .process-sticky h2{font-size:clamp(2.1rem,4.2vw,3.6rem);margin:1rem 0 1.3rem}
+  .process-sticky h2 em{font-style:italic;color:var(--butter);font-weight:500}
+  .process-sticky p{color:#d9c8ad;max-width:38ch}
+  .process-hint{font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--butter);margin-top:2rem;display:inline-block;animation:nudge 2.4s ease-in-out infinite}
+  @keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+  .steps{list-style:none;border-left:2px dashed var(--line-lt)}
+  .step{padding:0 0 2.8rem 2rem;position:relative}
+  .step:last-child{padding-bottom:.5rem}
+  .step::before{content:"";position:absolute;left:-7px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--butter);border:3px solid var(--rye)}
+  .step-time{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;color:var(--butter);text-transform:uppercase}
+  .step h3{font-size:clamp(1.35rem,2.6vw,1.85rem);margin:.45rem 0 .5rem;font-variation-settings:'WONK' 1,'SOFT' 40}
+  .step p{color:#cdbb9e;font-size:.95rem;max-width:52ch}
+
+  /* postcards */
+  #postcards{padding:40px 0 clamp(80px,12vh,130px)}
+  .cards{position:relative;height:600px}
+  .card{
+    position:absolute;background:var(--cream);color:var(--ink);border:2px solid var(--ink);
+    padding:10px 10px 12px;box-shadow:10px 12px 0 rgba(0,0,0,.3);width:var(--w,280px);
+    transition:transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .5s,z-index 0s;
+  }
+  .card .ph{overflow:hidden}
+  .card figcaption{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;margin-top:9px;color:#5a4230;display:flex;justify-content:space-between;gap:.5rem}
+  .card:hover{transform:rotate(0deg) translateY(-10px) scale(1.03)!important;z-index:20;box-shadow:14px 18px 0 rgba(0,0,0,.35)}
+  .c1{left:2%;top:30px;--w:300px;transform:rotate(-5deg)}
+  .c2{left:26%;top:150px;--w:250px;transform:rotate(3.5deg);z-index:2}
+  .c3{left:48%;top:10px;--w:300px;transform:rotate(-2deg)}
+  .c4{left:71%;top:120px;--w:250px;transform:rotate(5deg);z-index:3}
+  .c5{left:38%;top:360px;--w:330px;transform:rotate(-3deg);z-index:4}
+  .cards-note{position:absolute;right:0;bottom:-8px;font-family:var(--display);font-style:italic;font-size:1.15rem;color:var(--butter);transform:rotate(-2deg)}
+
+  /* ---------- club ---------- */
+  #club{padding:clamp(70px,11vh,130px) 0;background:var(--flour);
+    background-image:radial-gradient(rgba(36,23,17,.07) 1px,transparent 1.5px);background-size:26px 26px}
+  .club-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,5vw,80px);align-items:start}
+  .club-copy h2{font-size:clamp(2rem,4.2vw,3.4rem);margin:1rem 0 1.2rem}
+  .club-copy h2 em{font-style:italic;color:var(--crust);font-weight:500}
+  .club-copy>p{color:#3d2b1f;max-width:48ch;margin-bottom:1.8rem}
+  .perks{list-style:none}
+  .perks li{padding:.95rem 0 .95rem 2.1rem;border-top:2px dashed var(--line);position:relative;font-size:.98rem}
+  .perks li:last-child{border-bottom:2px dashed var(--line)}
+  .perks li::before{content:"✳";position:absolute;left:.2rem;color:var(--crust);font-size:1.1rem}
+  .perks b{color:var(--crust-deep)}
+  .club-price{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#6a5138;margin-top:1.4rem}
+
+  .slip{border:2px solid var(--ink);background:var(--cream);box-shadow:10px 12px 0 rgba(36,23,17,.12);transform:rotate(.7deg);position:relative}
+  .slip-head{border-bottom:2px dashed var(--ink);padding:1.1rem 1.6rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase}
+  .slip-head b{color:var(--crust-deep)}
+  .slip-body{padding:1.6rem}
+  .field{margin-bottom:1.2rem}
+  .field label{display:block;font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;color:#5a4230;margin-bottom:.45rem}
+  .field input,.field select{
+    width:100%;background:var(--flour);border:2px solid var(--ink);padding:.8rem .9rem;
+    font-family:var(--body);font-size:.95rem;color:var(--ink);appearance:none;border-radius:0;
+    transition:box-shadow .2s,transform .2s;
+  }
+  .field select{background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 18px) 55%,calc(100% - 13px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+  .field input:focus,.field select:focus{outline:none;box-shadow:4px 4px 0 var(--butter);transform:translate(-2px,-2px)}
+  .field.err input{border-color:var(--crust-deep);animation:shake .4s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .slip-note{font-size:.8rem;font-style:italic;color:#6a5138;margin-top:.9rem;font-family:var(--display)}
+  .club-done{display:none;padding:3rem 1.6rem;text-align:center}
+  .slip.sent .slip-body form,.slip.sent .slip-body .slip-note{display:none}
+  .slip.sent .club-done{display:block}
+  .club-done .big-no{font-family:var(--mono);font-size:2.6rem;font-weight:700;color:var(--crust-deep);letter-spacing:.05em}
+  .club-done h3{font-size:1.6rem;margin:.6rem 0 .4rem}
+  .club-done p{font-size:.92rem;color:#5a4230;max-width:34ch;margin:0 auto}
+  .club-done .stamp2{display:inline-block;margin-top:1.4rem;border:3px solid var(--crust);color:var(--crust);padding:.3rem 1rem;font-family:var(--display);font-weight:700;text-transform:uppercase;transform:rotate(-5deg);border-radius:6px}
+
+  /* ---------- visit ---------- */
+  #visit{padding:clamp(70px,11vh,130px) 0;border-top:2px solid var(--ink)}
+  .visit-grid{display:grid;grid-template-columns:1.1fr .9fr 1fr;gap:clamp(20px,3vw,36px);align-items:stretch}
+  .vcard{border:2px solid var(--ink);background:var(--cream);padding:1.7rem;position:relative;box-shadow:8px 10px 0 rgba(36,23,17,.1)}
+  .vcard h3{font-size:1.5rem;margin-bottom:1.2rem;font-variation-settings:'WONK' 1,'SOFT' 40}
+  .vcard h3 span{font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;color:var(--crust-deep);display:block;margin-bottom:.4rem;font-weight:400}
+  .hours{list-style:none}
+  .hours li{display:flex;align-items:baseline;gap:.8rem;padding:.5rem 0;font-size:.92rem;border-bottom:1px dashed var(--line)}
+  .hours li:last-child{border-bottom:none}
+  .hours .d{font-weight:700;min-width:100px}
+  .hours .dots{flex:1;border-bottom:2px dotted var(--line);transform:translateY(-4px)}
+  .hours .t{font-family:var(--mono);font-size:.75rem}
+  .hours li.rest .t{color:var(--crust-deep)}
+  .hours li.today{background:var(--paper);margin:0 -.7rem;padding-left:.7rem;padding-right:.7rem}
+  .hours li.today .d::after{content:"· today";color:var(--crust);font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;margin-left:.4rem}
+  .rules{list-style:none}
+  .rules li{padding:.6rem 0 .6rem 1.6rem;position:relative;font-size:.92rem;border-bottom:1px dashed var(--line)}
+  .rules li:last-child{border-bottom:none}
+  .rules li::before{content:"✳";position:absolute;left:0;color:var(--crust)}
+  .find p{font-size:.94rem;color:#3d2b1f;margin-bottom:.8rem}
+  .find address{font-style:normal;font-family:var(--display);font-size:1.2rem;font-weight:600;line-height:1.35;margin:.4rem 0 1rem}
+  .find .mono-line{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:#5a4230;display:block;margin-bottom:.35rem}
+  .find .ph{border:2px solid var(--ink);margin-top:1.1rem;overflow:hidden}
+  .find a{color:var(--crust-deep);font-weight:700}
+
+  /* ---------- faq ---------- */
+  #faq{padding:clamp(70px,11vh,120px) 0;background:var(--paper);border-top:2px solid var(--ink)}
+  .faq-list{max-width:820px;border-top:2px solid var(--ink)}
+  .faq-item{border-bottom:2px solid var(--ink)}
+  .faq-q{
+    width:100%;background:none;border:none;text-align:left;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;gap:1.5rem;
+    padding:1.35rem .4rem;font-family:var(--display);font-size:clamp(1.1rem,2.2vw,1.45rem);color:var(--ink);
+    font-variation-settings:'WONK' 1,'SOFT' 30;transition:color .2s,padding-left .25s;
+  }
+  .faq-q:hover{color:var(--crust-deep);padding-left:.9rem}
+  .faq-q .plus{font-family:var(--mono);font-size:1.4rem;color:var(--crust);transition:transform .4s cubic-bezier(.2,.8,.2,1);flex:none}
+  .faq-item.open .plus{transform:rotate(45deg)}
+  .faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)}
+  .faq-item.open .faq-a{grid-template-rows:1fr}
+  .faq-a>div{overflow:hidden}
+  .faq-a p{padding:0 .4rem 1.5rem;color:#4a3423;max-width:60ch;font-size:.97rem}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--rye);color:var(--flour);border-top:4px solid var(--crust);overflow:hidden}
+  .foot-giant{
+    font-family:var(--display);font-weight:800;font-variation-settings:'WONK' 1,'SOFT' 20;
+    font-size:clamp(4rem,14.5vw,13.5rem);line-height:.85;text-align:center;
+    color:transparent;-webkit-text-stroke:1.5px rgba(245,237,222,.4);letter-spacing:-.02em;
+    padding:clamp(40px,7vh,80px) 0 0;user-select:none;white-space:nowrap;
+    transition:color .6s ease;
+  }
+  .foot-giant:hover{color:rgba(230,179,74,.16)}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:2.5rem 4rem;justify-content:space-between;padding:3rem 0 2.5rem;font-size:.88rem}
+  .foot-grid h4{font-family:var(--mono);font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--butter);margin-bottom:.9rem;font-weight:400}
+  .foot-grid p,.foot-grid a{color:#cdbb9e;text-decoration:none;line-height:1.9}
+  .foot-grid a:hover{color:var(--butter)}
+  .foot-bottom{border-top:1px dashed var(--line-lt);padding:1.2rem 0 1.6rem;display:flex;flex-wrap:wrap;gap:.6rem 2rem;justify-content:space-between;font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:#9b8465}
+  .foot-bottom .f-clock{color:var(--butter)}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1020px){
+    .visit-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:900px){
+    .board-grid,.process-grid,.club-grid{grid-template-columns:1fr}
+    .stack{min-height:0;margin-top:1rem;padding-bottom:30px}
+    .f-main{position:relative;width:88%;margin-left:auto}
+    .f-small{position:absolute;width:52%}
+    .process-sticky{position:static}
+    .nav-links{display:none}
+    .cards{height:auto;display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+    .card{position:static;width:auto}
+    .cards-note{position:static;display:block;margin-top:1rem}
+  }
+  @media (max-width:620px){
+    .visit-grid{grid-template-columns:1fr}
+    .br-main{grid-template-columns:2rem 1fr;gap:.6rem 1rem}
+    .br-meta{grid-column:1/-1;justify-content:flex-end;gap:1rem}
+    .field-row{grid-template-columns:1fr}
+    .cards{grid-template-columns:1fr}
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+    .ticker-track{animation:none;transform:none}
+    .kb img{animation:none}
+    .lm>span{transform:none}
+    [data-reveal]{opacity:1;transform:none}
+    .stamp{opacity:.94;scale:1;transform:rotate(-7deg)}
+  }
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ticker -->
+<div class="ticker" aria-label="Bakery status ticker">
+  <div class="ticker-track" id="tickerTrack">
+    <span class="tick-group" id="tickA"></span>
+    <span class="tick-group" id="tickB" aria-hidden="true"></span>
+  </div>
+</div>
+
+<!-- header -->
+<header>
+  <nav class="nav" aria-label="Main">
+    <a class="wordmark" href="#top">Odd <em>Loaf</em> <small>EST. 2019</small></a>
+    <ul class="nav-links">
+      <li><a href="#bake">The Bake</a></li>
+      <li><a href="#process">Process</a></li>
+      <li><a href="#club">Bread Club</a></li>
+      <li><a href="#visit">Visit</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <span class="status-chip"><span class="dot" id="chipDot"></span><span id="chipText">…</span></span>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- opening board -->
+  <section class="board">
+    <div class="wrap">
+      <div class="board-grid">
+        <div>
+          <div class="board-meta">
+            <span id="todayDate">—</span>
+            <span>Foundry Lane · One Oven</span>
+            <span class="clock mono" id="heroClock">00:00:00</span>
+          </div>
+          <h1 class="big display">
+            <span class="lm in"><span id="line1">Baked at dawn.</span></span>
+            <span class="l2" id="line2" data-final="Gone by noon.">Gone by noon.</span>
+          </h1>
+          <p class="standfirst">
+            Odd Loaf is a one-oven sourdough bakery wedged into Foundry Lane. We bake
+            <b>248 loaves</b> at sunrise and they're usually gone before lunch — no wholesale,
+            no holds, no freezer. Bring a bag, join the queue, say hi to <b>Gerald</b>.
+          </p>
+
+          <div class="ticket" role="status" aria-live="polite">
+            <div class="t-state"><span class="dot"></span><span id="ticketState">CHECKING THE OVEN…</span></div>
+            <div class="t-count" id="countdown">--:--:--</div>
+            <div class="t-note" id="ticketNote">…</div>
+            <div class="t-perf"></div>
+            <div class="t-row"><span id="ticketLeft">TICKET Nº OL-248</span><span>DOORS 07:00 · TIL SOLD OUT</span></div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn" href="#bake">See today's bake ↓</a>
+            <a class="link-arrow" href="#club">Join the Bread Club →</a>
+          </div>
+          <p class="queue-note" id="queueNote">Average Saturday queue: 14 minutes. Worth it.</p>
+        </div>
+
+        <div class="stack" aria-hidden="false">
+          <figure class="frame f-main">
+            <div class="ph kb">
+              <img src="https://picsum.photos/seed/oddloaf-hero-sourdough/760/920" alt="A crusty sourdough loaf fresh from the oven" width="760" height="920">
+            </div>
+            <figcaption>This morning's Odd Country · 06:52</figcaption>
+          </figure>
+          <figure class="frame f-small">
+            <div class="ph">
+              <img src="https://picsum.photos/seed/sourdough-crumb-open/460/380" alt="Open crumb of a sliced sourdough" width="460" height="380">
+            </div>
+            <figcaption>Crumb check</figcaption>
+          </figure>
+          <span class="stamp" id="heroStamp">SOLD OUT</span>
+        </div>
+      </div>
+    </div>
+    <div class="facts" aria-label="Bakery facts">
+      <span>260°C stone deck</span>
+      <span>248 loaves a day</span>
+      <span>Gerald, starter, age 9</span>
+      <span>Sold out daily since 2021</span>
+    </div>
+  </section>
+
+  <!-- today's bake -->
+  <section id="bake">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">01 — The board</p>
+          <h2 class="lm display"><span>Today's bake, <em>live</em></span></h2>
+        </div>
+        <div class="bake-status">
+          <span id="bakeStatusLine">—</span><br>
+          <b id="claimedCount">0</b> / 248 claimed
+          <div class="claimed-bar"><i id="claimedFill"></i></div>
+        </div>
+      </div>
+
+      <ul class="loaves" data-reveal>
+        <li class="bread-row" data-id="country" data-total="70" data-rate="1.05">
+          <div class="br-main">
+            <span class="br-idx">01</span>
+            <div class="br-name"><h3>The Odd Country</h3><p>white, wholewheat &amp; a whisper of rye — the one that made the queue</p></div>
+            <div class="br-meta"><span class="br-w">850g</span><span class="br-price">£6.50</span><span class="br-left">70 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+        <li class="bread-row" data-id="sesame" data-total="40" data-rate="0.95">
+          <div class="br-main">
+            <span class="br-idx">02</span>
+            <div class="br-name"><h3>Sesame &amp; Polenta</h3><p>toasted crust, sunshine crumb — goes suspiciously fast</p></div>
+            <div class="br-meta"><span class="br-w">800g</span><span class="br-price">£7.00</span><span class="br-left">40 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+        <li class="bread-row" data-id="rye" data-total="36" data-rate="0.80">
+          <div class="br-main">
+            <span class="br-idx">03</span>
+            <div class="br-name"><h3>Dark Rye &amp; Caraway</h3><p>dense, moody, keeps for a week — if you're strong</p></div>
+            <div class="br-meta"><span class="br-w">750g</span><span class="br-price">£6.50</span><span class="br-left">36 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+        <li class="bread-row" data-id="olive" data-total="30" data-rate="0.85">
+          <div class="br-main">
+            <span class="br-idx">04</span>
+            <div class="br-name"><h3>Olive &amp; Rosemary</h3><p>glossy green olives, torn rosemary, dangerous with butter</p></div>
+            <div class="br-meta"><span class="br-w">700g</span><span class="br-price">£7.00</span><span class="br-left">30 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+        <li class="bread-row" data-id="knot" data-total="48" data-rate="0.90">
+          <div class="br-main">
+            <span class="br-idx">05</span>
+            <div class="br-name"><h3>Cardamom Knot</h3><p>sourdough-brioche swirl, black cardamom sugar — one per person, sorry</p></div>
+            <div class="br-meta"><span class="br-w">each</span><span class="br-price">£3.20</span><span class="br-left">48 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+        <li class="bread-row" data-id="misfits" data-total="24" data-rate="1.15">
+          <div class="br-main">
+            <span class="br-idx">06</span>
+            <div class="br-name"><h3>Bag of Misfits</h3><p>yesterday's odd shapes, heels &amp; over-provers — half price, full flavour</p></div>
+            <div class="br-meta"><span class="br-w">~500g</span><span class="br-price">£4.00</span><span class="br-left">24 baked</span></div>
+          </div>
+          <div class="br-bar"><i></i></div>
+          <span class="br-stamp">Sold out</span>
+        </li>
+      </ul>
+
+      <div class="menu-foot">
+        <span>All loaves: flour · water · salt · Gerald. Nothing else, ever.</span>
+        <span>Whole loaves only before 8am · slicing from 8am</span>
+        <span id="menuToday">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- process (dark) -->
+  <section id="process" class="dark">
+    <div class="wrap">
+      <div class="process-grid">
+        <div class="process-sticky">
+          <p class="eyebrow">02 — The process</p>
+          <h2 class="lm display"><span>Two days, four hands,<br>one very <em>old jar.</em></span></h2>
+          <p>Every loaf on the board started life 48 hours before you ate it. Long, cold and slow is the whole trick — there is no shortcut we haven't tried and regretted.</p>
+          <span class="process-hint">Scroll — the dough rises as you do ↓</span>
+        </div>
+        <ol class="steps">
+          <li class="step" data-reveal>
+            <span class="step-time">Thu · 17:00</span>
+            <h3>Gerald gets fed</h3>
+            <p>Our nine-year-old starter takes rye, water and breakfast. He doubles by evening and smells faintly of green apples.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step-time">Thu · 21:30</span>
+            <h3>The mix</h3>
+            <p>Stoneground flour from Fell Hollow Mill, water, salt, Gerald. That's the whole ingredient list, for every loaf, forever.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step-time">Thu · 22:15</span>
+            <h3>Folds, then bed</h3>
+            <p>Four sets of folds over two hours, then the trays head to the cold room at 4°C for a long, slow, flavour-building night.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step-time">Fri · 05:40</span>
+            <h3>Shape &amp; score</h3>
+            <p>Cold dough out, bench flour down, lames at the ready. Every loaf gets the same crooked slash — our signature, our scar.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step-time">Fri · 06:10</span>
+            <h3>Into the oven</h3>
+            <p>260°C, steam, stone. The bake smells of toast and honey and drifts roughly halfway down the lane by 6:40.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step-time">Fri · 07:00</span>
+            <h3>Doors open</h3>
+            <p>First come, first loaf. This is the bit that goes fast — and the reason this page exists. See you in the queue.</p>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- postcards -->
+  <section id="postcards" class="dark" aria-label="Photos from the bakery">
+    <div class="wrap">
+      <p class="eyebrow" style="margin-bottom:2.4rem">03 — Postcards from the lane</p>
+      <div class="cards">
+        <figure class="card c1"><div class="ph kb"><img src="https://picsum.photos/seed/bakery-stone-oven-fire/600/430" alt="The stone deck oven mid-bake" loading="lazy"></div><figcaption><span>Steam off the stone</span><span>06:14</span></figcaption></figure>
+        <figure class="card c2"><div class="ph"><img src="https://picsum.photos/seed/dough-hands-flour-bench/500/600" alt="Hands shaping cold dough on a floured bench" loading="lazy"></div><figcaption><span>Shape № 214</span><span>05:52</span></figcaption></figure>
+        <figure class="card c3"><div class="ph kb"><img src="https://picsum.photos/seed/morning-bakery-queue-lane/620/420" alt="The Saturday morning queue along the lane" loading="lazy"></div><figcaption><span>The Saturday queue</span><span>07:31</span></figcaption></figure>
+        <figure class="card c4"><div class="ph"><img src="https://picsum.photos/seed/sourdough-starter-jar/480/560" alt="Gerald the starter, bubbling in his jar" loading="lazy"></div><figcaption><span>Gerald, mid-rise</span><span>17:40</span></figcaption></figure>
+        <figure class="card c5"><div class="ph"><img src="https://picsum.photos/seed/bread-crust-score-close/660/400" alt="Close crop of the signature crooked score" loading="lazy"></div><figcaption><span>The crooked slash</span><span>06:58</span></figcaption></figure>
+        <p class="cards-note">— shot on the baker's very floury phone</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- bread club -->
+  <section id="club">
+    <div class="wrap">
+      <div class="club-grid">
+        <div class="club-copy">
+          <p class="eyebrow">04 — The Bread Club</p>
+          <h2 class="lm display"><span>Never queue again.<br><em>(Well. Barely.)</em></span></h2>
+          <p>The club is how the neighbours cheat the noon sell-out. A loaf with your name on it, kept behind the counter while the queue does its thing outside.</p>
+          <ul class="perks">
+            <li><b>A loaf held with your name on it</b>, until 9:00 sharp</li>
+            <li>The <b>6:15 pre-open window</b> — warm bread, zero queue</li>
+            <li>First taste of <b>odd experiments</b>: miso honey, seeded porridge, fig &amp; fennel</li>
+            <li><b>£1 off Misfit bags</b> every Friday, no questions asked</li>
+          </ul>
+          <p class="club-price">£24 / month · pause anytime · cancel without guilt · Gerald approves</p>
+        </div>
+
+        <div class="slip" id="clubSlip" data-reveal>
+          <div class="slip-head"><span>Bread Club · Order slip</span><b>Nº OL-<span id="slipNo">···</span></b></div>
+          <div class="slip-body">
+            <form id="clubForm" novalidate>
+              <div class="field" id="fName">
+                <label for="name">Your name</label>
+                <input type="text" id="name" name="name" placeholder="e.g. Sam on Foundry Lane" autocomplete="name">
+              </div>
+              <div class="field" id="fEmail">
+                <label for="email">Email (we confirm by 5pm)</label>
+                <input type="email" id="email" name="email" placeholder="you@somewhere.com" autocomplete="email">
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="day">Pickup day</label>
+                  <select id="day" name="day">
+                    <option value="">Choose…</option>
+                    <option>Tuesday</option><option>Wednesday</option><option>Thursday</option>
+                    <option>Friday</option><option>Saturday</option><option>Sunday</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="loaf">Your usual</label>
+                  <select id="loaf" name="loaf">
+                    <option value="">Choose…</option>
+                    <option>The Odd Country</option><option>Sesame &amp; Polenta</option>
+                    <option>Dark Rye &amp; Caraway</option><option>Olive &amp; Rosemary</option>
+                    <option>Surprise me</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn" type="submit" style="width:100%;cursor:pointer">Reserve my loaf</button>
+              <p class="slip-note">Members' shelf is behind the counter — ask for your name, grab your loaf, wave at Gerald on your way out.</p>
+            </form>
+            <div class="club-done" aria-live="polite">
+              <div class="big-no" id="doneNo">OL-0000</div>
+              <h3>You're in the book.</h3>
+              <p id="doneMsg">We'll confirm by email before 5pm. First pickup starts at 6:15 — bring a bag.</p>
+              <span class="stamp2">Reserved</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- visit -->
+  <section id="visit">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">05 — Visit</p>
+          <h2 class="lm display"><span>Find the <em>blue arch</em></span></h2>
+        </div>
+        <p style="max-width:34ch;font-style:italic;font-family:var(--display);color:#4a3423">Early bird gets the Odd Country. Second bird gets the rye. Third bird gets crumbs and our sympathy.</p>
+      </div>
+      <div class="visit-grid">
+        <div class="vcard" data-reveal>
+          <h3><span>Opening hours</span>Sold out ≈ noon</h3>
+          <ul class="hours" id="hoursList">
+            <li data-day="2"><span class="d">Tuesday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li data-day="3"><span class="d">Wednesday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li data-day="4"><span class="d">Thursday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li data-day="5"><span class="d">Friday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li data-day="6"><span class="d">Saturday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li data-day="0"><span class="d">Sunday</span><span class="dots"></span><span class="t">07:00 – gone</span></li>
+            <li class="rest" data-day="1"><span class="d">Monday</span><span class="dots"></span><span class="t">the oven rests</span></li>
+          </ul>
+        </div>
+        <div class="vcard" data-reveal>
+          <h3><span>House rules</span>Short &amp; kind</h3>
+          <ul class="rules">
+            <li>One queue, one order — the queue is sacred, like Gerald.</li>
+            <li>Club loaves held until 9:00 sharp, then released to the wild.</li>
+            <li>Bring your own bread bag, take 20p off. The planet thanks you.</li>
+            <li>The final loaf is raffled at noon — everyone still in the queue is in it.</li>
+            <li>Dogs welcome. Crumbs fed to dogs at owner's peril.</li>
+          </ul>
+        </div>
+        <div class="vcard find" data-reveal>
+          <h3><span>Where we are</span>Under the blue arch</h3>
+          <address>14 Foundry Lane<br>off Marchmont Street<br>Marchmont</address>
+          <p>Two minutes uphill from Marchmont Road station. Follow your nose from about 06:30 — that's not a metaphor.</p>
+          <span class="mono-line">☎ 020 7946 0148</span>
+          <span class="mono-line">✉ hello@oddloaf.bakery</span>
+          <span class="mono-line">◉ @odd.loaf for misfit bat-signals</span>
+          <div class="ph"><img src="https://picsum.photos/seed/foundry-lane-blue-arch/560/300" alt="Foundry Lane under the blue arch" loading="lazy"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- faq -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">06 — Fair questions</p>
+          <h2 class="lm display"><span>Asked at the <em>counter</em></span></h2>
+        </div>
+      </div>
+      <div class="faq-list" data-reveal>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Why do you sell out every single day?<span class="plus">+</span></button>
+          <div class="faq-a"><div><p>One oven, four pairs of hands, zero freezer. We bake exactly what we can do brilliantly — 248 loaves is that number. Bake more and we'd bake worse, and you'd know, because you always know.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Is there any chance after noon?<span class="plus">+</span></button>
+          <div class="faq-a"><div><p>Honestly: no. The shelves are bare, the till is counted, and somebody is eating toast on the step. Occasionally a bag of Misfits appears around 4pm — follow <b>@odd.loaf</b> for the bat-signal.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Do you supply cafés or restaurants?<span class="plus">+</span></button>
+          <div class="faq-a"><div><p>Flattered, but no. Every gram of our flour goes to the lane, not to a van. If a café near you serves Odd Loaf, someone is reselling it and we would very much like a word.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Is it proper sourdough?<span class="plus">+</span></button>
+          <div class="faq-a"><div><p>Wild-fermented for around 24 hours with Gerald as the only leaven — no commercial yeast, no improvers, no ascorbic acid tricks. Long fermentation is also why most of us find it gentler on the stomach.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Who is Gerald?<span class="plus">+</span></button>
+          <div class="faq-a"><div><p>The starter. Nine years old, fed twice daily, bubblier than most of us before coffee. Gerald has outlived two bakers' phones, one flour supplier and the great fridge failure of 2022. Long may he rise.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="foot-giant display" aria-hidden="true">ODD LOAF</div>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <h4>The short version</h4>
+        <p>Sourdough, baked at dawn,<br>gone by noon, missed by all.</p>
+      </div>
+      <div>
+        <h4>Hours</h4>
+        <p>Tue–Sun · 07:00 until sold out<br>Mon · the oven rests</p>
+      </div>
+      <div>
+        <h4>Find us</h4>
+        <p>14 Foundry Lane, Marchmont<br><a href="mailto:hello@oddloaf.bakery">hello@oddloaf.bakery</a></p>
+      </div>
+      <div>
+        <h4>Elsewhere</h4>
+        <p><a href="#top">Instagram — @odd.loaf</a><br><a href="#club">The Bread Club</a></p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year">2025</span> Odd Loaf · Flour, water, salt &amp; Gerald</span>
+      <span>Lane time · <span class="f-clock" id="footClock">00:00:00</span></span>
+      <span>Built by hand, like everything here</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (s, r) => (r||document).querySelector(s);
+  const $$ = (s, r) => Array.from((r||document).querySelectorAll(s));
+  const pad = n => String(n).padStart(2,"0");
+
+  /* ---------- deterministic daily numbers ---------- */
+  const now0 = new Date();
+  const dateKey = now0.getFullYear()+"-"+now0.getMonth()+"-"+now0.getDate();
+  function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; } return Math.abs(h); }
+  const sellMinutes = 11*60 + 32 + hash(dateKey)%26;           // sell-out between 11:32 and 11:57
+  function at(day, mins){ const d=new Date(day); d.setHours(0,0,0,0); d.setMinutes(mins); return d; }
+  const openTime = at(new Date(), 7*60);
+  const sellTime = at(new Date(), sellMinutes);
+  const fmtHM = d => d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+
+  function nextOpen(from){
+    const t = new Date(from); t.setHours(7,0,0,0); t.setDate(t.getDate()+1);
+    while(t.getDay()===1) t.setDate(t.getDate()+1);            // oven rests Mondays
+    return t;
+  }
+  function getState(d){
+    if(d.getDay()===1) return { key:"rest", target: nextOpen(d) };
+    if(d < openTime)   return { key:"pre",  target: openTime };
+    if(d < sellTime)   return { key:"open", target: sellTime };
+    return { key:"sold", target: nextOpen(d) };
+  }
+
+  /* ---------- breads ---------- */
+  const rows = $$(".bread-row").map(el => ({
+    el, total: +el.dataset.total, rate: +el.dataset.rate,
+    left: $(".br-left", el), fill: $(".br-bar i", el), id: el.dataset.id
+  }));
+  const TOTAL = rows.reduce((a,b)=>a+b.total,0);
+
+  function claimedFor(b, state, f){
+    if(state.key==="sold" || state.key==="rest") return b.total;
+    if(state.key==="pre") return 0;
+    const eased = Math.pow(f, .85);
+    const p = Math.min(1, eased * b.rate * .78 + f * .44);
+    return Math.min(b.total, Math.round(b.total * p));
+  }
+
+  /* ---------- dom refs ---------- */
+  const el = {
+    clock: $("#heroClock"), fClock: $("#footClock"), date: $("#todayDate"),
+    chip: $("#chipText"), tState: $("#ticketState"), tCount: $("#countdown"),
+    tNote: $("#ticketNote"), tLeft: $("#ticketLeft"), stamp: $("#heroStamp"),
+    bakeLine: $("#bakeStatusLine"), claimed: $("#claimedCount"), claimedFill: $("#claimedFill"),
+    menuToday: $("#menuToday"), tickA: $("#tickA"), tickB: $("#tickB"), queueNote: $("#queueNote")
+  };
+
+  el.date.textContent = now0.toLocaleDateString("en-GB",{weekday:"long", day:"numeric", month:"long"});
+  el.menuToday.textContent = "Board dated " + now0.toLocaleDateString("en-GB",{day:"numeric", month:"short"});
+  $("#year").textContent = new Date().getFullYear();
+  $("#slipNo").textContent = String(100 + hash(dateKey+"slip")%400);
+
+  /* today's row in hours list */
+  $$("#hoursList li").forEach(li => { if(+li.dataset.day === new Date().getDay()) li.classList.add("today"); });
+
+  /* ---------- ticker ---------- */
+  let tickerBuilt = "";
+  function buildTicker(state){
+    let lead;
+    if(state.key==="sold") lead = "TODAY SOLD OUT AT <b>"+fmtHM(sellTime)+"</b>";
+    else if(state.key==="open") lead = "ON THE SHELF <b>RIGHT NOW</b>";
+    else if(state.key==="pre") lead = "IN THE OVEN — <b>DOORS 07:00</b>";
+    else lead = "THE OVEN RESTS TODAY — <b>BACK TOMORROW 07:00</b>";
+    const items = [lead, "TOMORROW'S BAKE DROPS 07:00", "BREAD CLUB PRE-OPENS 06:15",
+      "BYO BREAD BAG = 20P OFF", "LAST LOAF RAFFLED AT NOON", "GERALD, STARTER, AGE 9, <b>DOING FINE</b>", "OVEN RESTS MONDAYS"];
+    const html = items.map(t => "<span>"+t+" &nbsp;✦</span>").join("");
+    if(html !== tickerBuilt){ el.tickA.innerHTML = html; el.tickB.innerHTML = html; tickerBuilt = html; }
+  }
+
+  /* ---------- main tick ---------- */
+  let lastMinute = -1;
+  function tick(){
+    const d = new Date();
+    const clock = pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+    el.clock.textContent = clock; el.fClock.textContent = clock;
+
+    const state = getState(d);
+    const ms = Math.max(0, state.target - d);
+    const h = Math.floor(ms/3600000), m = Math.floor(ms/60000)%60, s = Math.floor(ms/1000)%60;
+    el.tCount.textContent = pad(h)+":"+pad(m)+":"+pad(s);
+
+    if(d.getMinutes() !== lastMinute){
+      lastMinute = d.getMinutes();
+
+      const labels = { pre:"IN THE OVEN", open:"ON THE SHELF", sold:"SOLD OUT", rest:"OVEN RESTS" };
+      const notes = {
+        pre: "Today's bake is colouring up. Doors at 07:00 — queue forms from about 06:45.",
+        open: "Loaves moving fast. When the shelf's bare, that's it till tomorrow.",
+        sold: "Bare shelves. " + (state.target.getDay()===d.getDay() ? "Tomorrow's" : "Next") + " bake drops at 07:00 — set an alarm, bring a bag.",
+        rest: "Gerald gets fed, the deck gets swept, the bakers sleep in (till 5). Back tomorrow, 07:00."
+      };
+      const stamps = { pre:"STILL WARM", open:"SELLING NOW", sold:"SOLD OUT "+fmtHM(sellTime), rest:"RESTING" };
+
+      el.chip.textContent = labels[state.key];
+      el.tState.textContent = labels[state.key] + (state.key==="sold" ? " AT "+fmtHM(sellTime) : "");
+      el.tNote.textContent = notes[state.key];
+      el.stamp.textContent = stamps[state.key];
+      if(state.key==="sold"){ el.tLeft.textContent = "COME BACK 07:00"; el.queueNote.textContent = "Today's queue: gone. Tomorrow's queue: forming in spirit."; }
+      else if(state.key==="open"){ el.tLeft.textContent = "TICKET Nº OL-"+(100+hash(dateKey)%148); el.queueNote.textContent = "Current queue: about 6 deep. Lovely people."; }
+      else if(state.key==="pre"){ el.queueNote.textContent = "The oven is at 260°C. We can smell it from here."; }
+
+      if(state.key==="open") el.bakeLine.innerHTML = "SELLING NOW — est. gone by <b>"+fmtHM(sellTime)+"</b>";
+      else if(state.key==="sold" || state.key==="rest") el.bakeLine.innerHTML = "SOLD OUT AT <b>"+fmtHM(sellTime)+"</b>";
+      else el.bakeLine.innerHTML = "DOORS OPEN <b>07:00</b> — board is set";
+
+      buildTicker(state);
+    }
+
+    /* stock */
+    const f = state.key==="open" ? Math.min(1, Math.max(0,(d - openTime)/(sellTime - openTime))) : (state.key==="pre"?0:1);
+    let totalClaimed = 0;
+    rows.forEach(b => {
+      const claimed = claimedFor(b, state, f);
+      const left = b.total - claimed;
+      totalClaimed += claimed;
+      b.fill.style.width = (left / b.total * 100) + "%";
+      if(state.key==="sold" || state.key==="rest"){ b.el.classList.add("sold"); b.left.textContent = "0 left"; }
+      else { b.el.classList.toggle("sold", left<=0); b.left.textContent = left<=0 ? "0 left" : left + " left"; }
+    });
+    el.claimed.textContent = totalClaimed;
+    el.claimedFill.style.width = (totalClaimed/TOTAL*100) + "%";
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* ---------- scramble-decode headline ---------- */
+  function scramble(node, delay){
+    const final = node.dataset.final || node.textContent;
+    if(RM){ node.textContent = final; return; }
+    const glyphs = "ODLAF#*%&£!?—";
+    let frame = 0;
+    node.textContent = "";
+    setTimeout(() => {
+      const iv = setInterval(() => {
+        const locked = Math.floor(frame/2.2);
+        let out = final.slice(0, locked);
+        for(let i=locked;i<final.length;i++){
+          out += final[i]===" " ? " " : glyphs[Math.floor(Math.random()*glyphs.length)];
+        }
+        node.textContent = out; frame++;
+        if(locked >= final.length){ clearInterval(iv); node.textContent = final; }
+      }, 38);
+    }, delay);
+  }
+  scramble($("#line2"), 350);
+
+  /* ---------- reveal on scroll ---------- */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, { threshold:.15 });
+  $$("[data-reveal], .lm").forEach(n => io.observe(n));
+  setTimeout(() => el.stamp.classList.add("in"), RM ? 0 : 900);
+
+  /* ---------- faq ---------- */
+  $$(".faq-q").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const item = btn.parentElement;
+      const open = item.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open);
+    });
+  });
+
+  /* ---------- club slip ---------- */
+  const form = $("#clubForm"), slip = $("#clubSlip");
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    let ok = true;
+    const name = $("#name"), email = $("#email"), day = $("#day");
+    [["#fName",name.value.trim().length>1],["#fEmail",/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)]].forEach(([sel,valid])=>{
+      const f=$(sel); f.classList.remove("err"); if(!valid){ void f.offsetWidth; f.classList.add("err"); ok=false; }
+    });
+    if(!day.value){ ok=false; const f=$("#day").closest(".field"); f.classList.remove("err"); void f.offsetWidth; f.classList.add("err"); }
+    if(!ok) return;
+    const no = "OL-" + (1000 + Math.floor(Math.random()*9000));
+    $("#doneNo").textContent = no;
+    $("#doneMsg").textContent = "Thanks " + name.value.trim().split(" ")[0] + " — we'll confirm " + ( $("#loaf").value || "a loaf" ) +
+      " for " + day.value + " by 5pm. First pickup starts at 6:15. Bring a bag.";
+    slip.classList.add("sent");
+  });
+})();
+</script>
+</body>
+</html>

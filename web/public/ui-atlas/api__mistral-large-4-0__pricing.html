@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ripple — Pricing for teams that talk a lot</title>
+<meta name="description" content="Simple, per-seat pricing for Ripple team chat. Start free, upgrade when you need more.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231B1611'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23FAF6EE' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23FF4B26'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF6EE;
+    --paper-2:#F1EADB;
+    --card:#FFFDF7;
+    --ink:#1B1611;
+    --ink-60:rgba(27,22,17,.62);
+    --ink-40:rgba(27,22,17,.4);
+    --accent:#FF4B26;
+    --accent-deep:#E23A17;
+    --accent-bright:#FF7A52;
+    --accent-tint:#FFE7DE;
+    --dark:#1B1611;
+    --radius:22px;
+    --font-display:"Fraunces",Georgia,serif;
+    --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+    --font-mono:"Space Mono",ui-monospace,SFMono-Regular,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{overflow-x:hidden;overflow-x:clip}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* faint paper grain over everything */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:2000;pointer-events:none;opacity:.045;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--accent);color:#fff}
+  :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:6px}
+  [hidden]{display:none!important}
+  body.locked{overflow:hidden}
+  .mono{font-family:var(--font-mono)}
+  .container{max-width:1160px;margin:0 auto;padding:0 24px}
+  .ic{width:18px;height:18px;display:inline-block;vertical-align:middle;flex-shrink:0}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+  .dot-green{background:#2E9E6B}
+  section{scroll-margin-top:86px}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    padding:13px 22px;border:1.5px solid var(--ink);border-radius:999px;
+    background:var(--card);color:var(--ink);
+    font:600 15px var(--font-body);cursor:pointer;text-decoration:none;user-select:none;
+    box-shadow:4px 4px 0 var(--ink);
+    transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+  }
+  .btn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .btn .ic{width:17px;height:17px;transition:transform .15s ease}
+  .btn:hover .ic{transform:translateX(3px)}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-accent:hover{background:var(--accent-deep)}
+  .btn-ink{background:var(--ink);color:var(--paper)}
+  .btn-ink:hover{background:#000}
+  .btn-ghost-dark{background:transparent;color:var(--paper);border-color:var(--paper)}
+  .btn-sm{padding:9px 17px;font-size:13.5px}
+  .btn-block{width:100%}
+
+  /* ---------- nav ---------- */
+  .nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(250,246,238,.9);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1.5px solid transparent;transition:border-color .25s ease;
+  }
+  .nav.scrolled{border-bottom-color:var(--ink)}
+  .nav-in{display:flex;align-items:center;height:66px;gap:28px}
+  .brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+  .brand .logo-mark{width:30px;height:30px}
+  .brand b{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em}
+  .brand b i{color:var(--accent);font-style:normal}
+  .nav-links{display:flex;gap:26px;margin-left:auto}
+  .nav-links a{font-size:14.5px;font-weight:600;color:var(--ink);text-decoration:none;transition:color .15s}
+  .nav-links a:hover{color:var(--accent-deep);text-decoration:underline;text-underline-offset:4px}
+  .nav-cta{display:flex;align-items:center;gap:10px}
+  .menu-btn{display:none;width:40px;height:40px;border:1.5px solid var(--ink);border-radius:12px;background:var(--card);cursor:pointer;place-items:center;color:var(--ink)}
+  .mobile-menu{display:none}
+
+  /* ---------- hero ---------- */
+  .hero{padding:76px 0 64px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center;position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-60)}
+  .hero h1{
+    font-family:var(--font-display);font-weight:600;
+    font-size:clamp(42px,5.6vw,72px);line-height:1.02;letter-spacing:-.025em;
+    margin:18px 0 20px;
+  }
+  .hero h1 em{
+    font-style:italic;color:var(--accent);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M2 9c16-7 26-7 38-2s26 5 40-1 26-4 38 2' fill='none' stroke='%231B1611' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:bottom;background-size:100% .16em;
+    padding-bottom:.14em;
+  }
+  .hero-sub{font-size:17.5px;line-height:1.6;color:var(--ink-60);max-width:50ch;margin-bottom:28px}
+  .hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+  .stats{display:flex;gap:10px 24px;flex-wrap:wrap;margin-top:30px;font-family:var(--font-mono);font-size:12px;color:var(--ink-60)}
+  .stats span{display:inline-flex;align-items:center;gap:8px}
+  .hero-side{position:relative}
+  .hero-deco{position:absolute;width:440px;height:440px;right:-90px;top:-110px;color:var(--ink);opacity:.1;pointer-events:none}
+
+  /* ripple rings */
+  .ripple circle{transform-origin:center;transform-box:fill-box;animation:ring 6s cubic-bezier(.2,.6,.4,1) infinite}
+  .ripple circle:nth-child(2){animation-delay:1.5s}
+  .ripple circle:nth-child(3){animation-delay:3s}
+  .ripple circle:nth-child(4){animation-delay:4.5s}
+  @keyframes ring{0%{transform:scale(.35);opacity:0}25%{opacity:.9}100%{transform:scale(1.15);opacity:0}}
+
+  /* ---------- calculator ---------- */
+  .calc{
+    position:relative;z-index:1;
+    background:var(--card);border:1.5px solid var(--ink);border-radius:var(--radius);
+    box-shadow:8px 8px 0 var(--ink);padding:24px 24px 20px;
+  }
+  .calc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .label{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-60)}
+  .seg{position:relative;display:flex;background:var(--paper-2);border:1.5px solid var(--ink);border-radius:999px;padding:4px}
+  .seg-ind{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:999px;background:var(--ink);transition:transform .3s cubic-bezier(.3,.9,.3,1)}
+  .seg.annual .seg-ind{transform:translateX(100%)}
+  .seg.monthly .seg-ind{transform:translateX(0)}
+  .seg-btn{
+    position:relative;z-index:1;flex:1;border:0;background:transparent;border-radius:999px;
+    padding:8px 14px;font:600 13px var(--font-body);color:var(--ink);cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+    transition:color .25s ease;
+  }
+  .seg-btn.active{color:var(--paper)}
+  .save{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+  .calc-slider{margin-top:20px}
+  .calc-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+  .seats-read{font-family:var(--font-display);line-height:1}
+  .seats-num{font-size:42px;font-weight:600;letter-spacing:-.02em}
+  .seats-word{font-size:15px;font-style:italic;color:var(--ink-60);margin-left:5px}
+  input[type=range]{
+    --fill:58%;
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:28px;display:block;margin:12px 0 4px;
+    background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:12px;border-radius:999px;border:1.5px solid var(--ink);
+    background:linear-gradient(90deg,var(--accent) var(--fill),#E9E0CE var(--fill));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-9px;border-radius:50%;
+    background:var(--card);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);transition:transform .15s ease;
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(.95)}
+  input[type=range]::-moz-range-track{height:12px;border-radius:999px;border:1.5px solid var(--ink);background:#E9E0CE}
+  input[type=range]::-moz-range-progress{height:12px;border-radius:999px;background:var(--accent)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--card);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .scale{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-40);margin-top:2px}
+  .calc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1.5px dashed rgba(27,22,17,.25)}
+  .rec-chip{
+    display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:var(--paper);
+    border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;
+  }
+  .rec-chip .ic{width:14px;height:14px;color:var(--accent-bright)}
+  .rec-chip b{color:var(--accent-bright)}
+  .calc-note{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink-40)}
+
+  /* ---------- logos band ---------- */
+  .logos{border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);background:var(--paper-2)}
+  .logos-in{display:flex;align-items:center;gap:16px 40px;flex-wrap:wrap;padding:17px 0}
+  .logos-label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-60);margin-right:auto}
+  .wm{opacity:.5;transition:opacity .2s;white-space:nowrap;cursor:default;color:var(--ink)}
+  .wm:hover{opacity:1}
+  .wm-1{font-family:var(--font-mono);font-weight:700;letter-spacing:.22em;font-size:15px}
+  .wm-2{font-family:var(--font-display);font-style:italic;font-weight:600;font-size:19px}
+  .wm-3{font-weight:800;letter-spacing:.18em;font-size:14px}
+  .wm-4{font-family:var(--font-mono);font-size:16px}
+  .wm-5{font-family:var(--font-display);font-weight:600;font-size:18px}
+  .wm-6{font-weight:700;font-size:17px}
+  .wm-6 i{color:var(--accent);font-style:normal}
+
+  /* ---------- sections ---------- */
+  .section{padding:96px 0 30px}
+  .sec-head{max-width:660px;margin-bottom:44px}
+  .sec-head h2,.faq-left h2{
+    font-family:var(--font-display);font-weight:600;letter-spacing:-.02em;line-height:1.05;
+    font-size:clamp(32px,4.4vw,48px);margin:14px 0 12px;
+  }
+  h2 em{font-style:italic;color:var(--accent)}
+  .sec-sub{font-size:16.5px;color:var(--ink-60);line-height:1.6;max-width:58ch}
+
+  /* ---------- plan rows ---------- */
+  .plans{display:flex;flex-direction:column;gap:22px}
+  .plan{
+    position:relative;display:grid;
+    grid-template-columns:240px 200px 1fr 190px;
+    grid-template-areas:"name price feats cta";
+    gap:14px 30px;align-items:center;
+    background:var(--card);border:1.5px solid var(--ink);border-radius:var(--radius);
+    padding:30px 32px;box-shadow:6px 6px 0 var(--ink);
+    transition:transform .18s ease,box-shadow .18s ease;
+  }
+  .plan:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--ink)}
+  .plan.dark{background:var(--dark);color:var(--paper);box-shadow:8px 8px 0 var(--accent)}
+  .plan.dark:hover{box-shadow:11px 11px 0 var(--accent)}
+  .plan.recommended{outline:2.5px solid var(--accent);outline-offset:3px}
+  .pop-tag{
+    position:absolute;top:-13px;right:28px;transform:rotate(2deg);
+    background:var(--accent);color:#fff;border:1.5px solid var(--ink);border-radius:999px;
+    padding:4px 13px;font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;box-shadow:3px 3px 0 var(--ink);
+  }
+  .p-name{grid-area:name}
+  .p-name h3{font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.02em}
+  .p-tag{font-size:14px;color:var(--ink-60);margin-top:6px;max-width:26ch;line-height:1.45}
+  .rec-badge{
+    display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;
+    margin-top:14px;padding:7px 12px;border-radius:999px;
+    background:var(--ink);color:var(--paper);font-size:12px;font-weight:600;
+    opacity:0;transform:translateY(6px) scale(.95);transition:opacity .25s ease,transform .25s ease;
+    pointer-events:none;
+  }
+  .rec-badge .ic{width:14px;height:14px;color:var(--accent-bright)}
+  .plan.recommended .rec-badge{opacity:1;transform:none}
+  .plan.dark .rec-badge{background:var(--accent);color:#fff}
+  .plan.dark .rec-badge .ic{color:#fff}
+
+  .p-price{grid-area:price}
+  .price{display:flex;align-items:baseline;font-family:var(--font-display)}
+  .cur{font-size:22px;font-weight:600;align-self:flex-start;margin-top:10px}
+  .amt{font-size:56px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .amt-custom{font-size:44px;font-style:italic;letter-spacing:-.02em}
+  .per{font-family:var(--font-mono);font-size:12px;color:var(--ink-60);margin-left:7px}
+  .was{font-family:var(--font-mono);font-size:13px;color:var(--ink-40);text-decoration:line-through;margin-left:9px;transition:opacity .2s}
+  .bill-note{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-60);margin-top:7px}
+  .total{
+    display:flex;align-items:center;gap:6px;margin-top:12px;padding-top:12px;
+    border-top:1.5px dashed rgba(27,22,17,.25);
+    font-family:var(--font-mono);font-size:12px;color:var(--ink-60);
+  }
+  .total b{color:var(--ink)}
+  .tot-warn{display:none;align-items:center;gap:6px;color:var(--accent-deep);font-weight:700}
+  .tot-warn .ic{width:13px;height:13px}
+  .total.too-small .tot-ok{display:none}
+  .total.too-small .tot-warn{display:inline-flex}
+
+  .p-feats{grid-area:feats;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:9px 20px}
+  .p-feats li{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.35}
+  .ic-check{color:var(--accent);width:17px;height:17px;margin-top:1px}
+  .ic-minus{color:var(--ink-40);width:16px;height:16px}
+
+  .p-cta{grid-area:cta;display:flex;flex-direction:column;gap:9px;align-items:stretch}
+  .cta-note{text-align:center;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;color:var(--ink-40)}
+
+  .plan.dark .p-tag{color:rgba(250,246,238,.6)}
+  .plan.dark .per,.plan.dark .bill-note{color:rgba(250,246,238,.55)}
+  .plan.dark .was{color:rgba(250,246,238,.4)}
+  .plan.dark .total{color:rgba(250,246,238,.6);border-top-color:rgba(250,246,238,.25)}
+  .plan.dark .total b{color:var(--paper)}
+  .plan.dark .p-feats li{color:rgba(250,246,238,.88)}
+  .plan.dark .ic-check{color:var(--accent-bright)}
+  .plan.dark .cta-note{color:rgba(250,246,238,.45)}
+  .plan.dark .btn{box-shadow:4px 4px 0 rgba(250,246,238,.85)}
+  .plan.dark .btn:hover{box-shadow:7px 7px 0 rgba(250,246,238,.85)}
+  .plan.dark .btn:active{box-shadow:1px 1px 0 rgba(250,246,238,.85)}
+
+  .plans-note{margin-top:28px;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--ink-60)}
+  .plans-note a{color:var(--accent-deep);font-weight:700}
+
+  /* ---------- comparison table ---------- */
+  .table-frame{border:1.5px solid var(--ink);border-radius:var(--radius);background:var(--card);box-shadow:7px 7px 0 var(--ink)}
+  .cmp{width:100%;border-collapse:separate;border-spacing:0}
+  .cmp thead th{
+    position:sticky;top:66px;z-index:5;text-align:left;
+    background:var(--card);padding:18px 22px;border-bottom:1.5px solid var(--ink);
+  }
+  .cmp thead th:first-child{border-top-left-radius:21px}
+  .cmp thead th:last-child{border-top-right-radius:21px}
+  .cmp th+th,.cmp td+td{border-left:1.5px solid rgba(27,22,17,.1)}
+  .th-label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-40);font-weight:700}
+  .th-plan{font-family:var(--font-display);font-size:20px;font-weight:600;display:flex;align-items:center;gap:9px}
+  .th-price{font-family:var(--font-mono);font-size:11px;color:var(--ink-60);margin-top:4px}
+  .th-pop{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .cmp tbody td{padding:13px 22px;border-bottom:1.5px solid rgba(27,22,17,.12);font-size:14.5px;vertical-align:middle}
+  .cmp tbody tr:last-child td{border-bottom:0}
+  .cmp tbody tr:last-child td:first-child{border-bottom-left-radius:21px}
+  .cmp tbody tr:last-child td:last-child{border-bottom-right-radius:21px}
+  .cmp .grp td{
+    background:var(--paper-2);font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--ink-60);
+    padding:10px 22px;border-bottom:1.5px solid rgba(27,22,17,.2);
+  }
+  .c-feat{font-weight:500}
+  .cell-val{font-weight:600}
+  td.c-team,th.c-team{background:rgba(255,75,38,.07);border-left:1.5px solid rgba(255,75,38,.45);border-right:1.5px solid rgba(255,75,38,.45)}
+  th.c-team{background:var(--dark);color:var(--paper)}
+  th.c-team .th-price{color:rgba(250,246,238,.6)}
+  .cmp-row:hover td{background:rgba(27,22,17,.035)}
+  .cmp-row:hover td.c-team{background:rgba(255,75,38,.13)}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:16px;font-family:var(--font-mono);font-size:12px;color:var(--ink-60)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+
+  /* ---------- FAQ ---------- */
+  .faq-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:64px;align-items:start}
+  .faq-left p{color:var(--ink-60);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:40ch}
+  .acc-item{border-bottom:1.5px solid rgba(27,22,17,.2)}
+  .acc-item:first-child{border-top:1.5px solid rgba(27,22,17,.2)}
+  .acc-btn{
+    width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;
+    padding:21px 2px;background:none;border:0;cursor:pointer;text-align:left;
+    font-family:var(--font-display);font-size:19.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink);
+  }
+  .acc-ic{width:20px;height:20px;color:var(--accent-deep);transition:transform .3s ease}
+  .acc-item.open .acc-ic{transform:rotate(45deg)}
+  .acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+  .acc-item.open .acc-panel{grid-template-rows:1fr}
+  .acc-inner{overflow:hidden}
+  .acc-inner p{margin:0;padding:0 44px 22px 2px;font-size:15px;line-height:1.65;color:var(--ink-60);max-width:62ch}
+
+  /* ---------- CTA band ---------- */
+  .cta-band{position:relative;background:var(--dark);color:var(--paper);margin-top:96px;padding:104px 0;overflow:hidden}
+  .cta-deco{position:absolute;width:540px;height:540px;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--paper);opacity:.12;pointer-events:none}
+  .cta-in{position:relative;text-align:center;max-width:640px;margin:0 auto}
+  .cta-in h2{font-family:var(--font-display);font-weight:600;font-size:clamp(36px,5vw,58px);letter-spacing:-.02em;line-height:1.05;margin-bottom:16px}
+  .cta-in h2 em{font-style:italic;color:var(--accent-bright)}
+  .cta-in>p{color:rgba(250,246,238,.65);font-size:16.5px;line-height:1.6;margin-bottom:30px}
+  .cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .cta-note{margin-top:24px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(250,246,238,.45)}
+  .cta-band .btn{box-shadow:4px 4px 0 rgba(250,246,238,.85)}
+  .cta-band .btn:hover{box-shadow:7px 7px 0 rgba(250,246,238,.85)}
+  .cta-band .btn:active{box-shadow:1px 1px 0 rgba(250,246,238,.85)}
+
+  /* ---------- footer ---------- */
+  .footer{border-top:1.5px solid var(--ink);padding:60px 0 30px}
+  .foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:36px}
+  .foot-brand p{font-size:14px;color:var(--ink-60);line-height:1.55;margin-top:14px;max-width:26ch}
+  .foot-col h4{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-40);margin:4px 0 12px}
+  .foot-col a{display:block;padding:4.5px 0;font-size:14px;color:var(--ink-60);text-decoration:none;transition:color .15s}
+  .foot-col a:hover{color:var(--accent-deep);text-decoration:underline;text-underline-offset:4px}
+  .foot-bottom{
+    display:flex;justify-content:space-between;gap:10px 24px;flex-wrap:wrap;
+    border-top:1.5px solid rgba(27,22,17,.15);margin-top:48px;padding-top:20px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--ink-60);
+  }
+  .foot-status{display:inline-flex;align-items:center;gap:8px}
+
+  /* ---------- modal ---------- */
+  .overlay{
+    position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+    background:rgba(27,22,17,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;
+  }
+  .overlay.open{opacity:1;visibility:visible}
+  .modal{
+    position:relative;width:min(440px,100%);background:var(--card);color:var(--ink);
+    border:1.5px solid var(--ink);border-radius:var(--radius);box-shadow:8px 8px 0 var(--ink);
+    padding:30px;transform:translateY(16px) scale(.97);transition:transform .3s cubic-bezier(.2,.9,.3,1.15);
+  }
+  .overlay.open .modal{transform:none}
+  .m-close{
+    position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
+    border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);
+    display:grid;place-items:center;cursor:pointer;transition:all .18s ease;
+  }
+  .m-close:hover{background:var(--accent);color:#fff;transform:rotate(90deg)}
+  .m-close .ic{width:16px;height:16px}
+  .modal h3{font-family:var(--font-display);font-size:27px;font-weight:600;letter-spacing:-.02em;margin:10px 0 6px}
+  .m-sub{font-size:14.5px;color:var(--ink-60);margin-bottom:20px;line-height:1.5}
+  .modal label{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-60);margin-bottom:7px}
+  .modal input{
+    width:100%;padding:13px 15px;font:inherit;font-size:15px;
+    border:1.5px solid var(--ink);border-radius:12px;background:var(--paper);outline:none;transition:all .15s ease;
+  }
+  .modal input:focus{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent-tint)}
+  .modal input.shake{animation:shake .4s ease}
+  @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+  .m-err{display:none;font-family:var(--font-mono);font-size:11.5px;color:var(--accent-deep);margin-top:8px}
+  .m-err.show{display:block}
+  .modal form .btn{width:100%;margin-top:16px}
+  .m-fine{text-align:center;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-40);margin-top:12px}
+  .m-done{text-align:center;padding:14px 4px 4px}
+  .m-check{
+    width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;
+    border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink);
+    display:grid;place-items:center;margin:0 auto 18px;
+  }
+  .m-check .ic{width:30px;height:30px}
+  .m-done .btn{width:100%;margin-top:20px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:22px;bottom:22px;z-index:120;max-width:min(440px,calc(100vw - 44px));
+    background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:999px;
+    font-size:13.5px;box-shadow:5px 5px 0 rgba(27,22,17,.25);
+    opacity:0;transform:translateY(70px);transition:all .3s ease;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:none}
+
+  /* ---------- reveal ---------- */
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .65s ease,transform .65s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:1020px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-deco{right:-150px;top:-70px;width:360px;height:360px}
+    .plan{grid-template-columns:1fr auto;grid-template-areas:"name price" "feats feats" "cta cta"}
+    .p-price{justify-self:end;text-align:right}
+    .p-cta{flex-direction:row;align-items:center}
+    .p-cta .btn{flex:1}
+    .faq-grid{grid-template-columns:1fr;gap:36px}
+    .foot-grid{grid-template-columns:1fr 1fr}
+    .foot-brand{grid-column:1/-1}
+  }
+  @media(max-width:880px){
+    .nav-links{display:none}
+    .nav-cta .btn{display:none}
+    .menu-btn{display:grid}
+    .mobile-menu{display:block;overflow:hidden;max-height:0;transition:max-height .3s ease;background:var(--paper)}
+    .mobile-menu.open{max-height:360px;border-top:1.5px solid var(--ink)}
+    .mobile-menu a{display:block;padding:14px 24px;font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(27,22,17,.1)}
+    .mm-cta{padding:16px 24px 20px}
+    .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .cmp{min-width:760px}
+    .cmp thead th{position:static}
+  }
+  @media(max-width:640px){
+    .hero{padding:56px 0 48px}
+    .section{padding:70px 0 20px}
+    .plan{grid-template-columns:1fr;grid-template-areas:"name" "price" "feats" "cta";padding:24px 22px}
+    .p-price{justify-self:start;text-align:left}
+    .p-feats{grid-template-columns:1fr}
+    .amt{font-size:46px}
+    .seats-num{font-size:34px}
+    .calc{padding:20px 18px 16px}
+    .cta-band{padding:80px 0;margin-top:70px}
+    .hero-actions .btn{flex:1}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- icon symbols -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 5.5L19.5 12 13 18.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+</svg>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <div class="container nav-in">
+    <a class="brand" href="#top" aria-label="Ripple home">
+      <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/>
+        <circle cx="16" cy="16" r="7.5" fill="none" stroke="#FF4B26" stroke-width="2.4"/>
+        <circle cx="16" cy="16" r="2.6" fill="#FF4B26"/>
+      </svg>
+      <b>Ripple<i>.</i></b>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#plans">Plans</a>
+      <a href="#compare">Compare</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <button class="btn btn-ink btn-sm" data-open-modal data-plan="generic">Get started</button>
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">
+        <svg class="ic"><use href="#i-menu"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#plans">Plans</a>
+    <a href="#compare">Compare</a>
+    <a href="#faq">FAQ</a>
+    <div class="mm-cta"><button class="btn btn-accent btn-block" data-open-modal data-plan="generic">Get started</button></div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow"><i class="dot"></i>Pricing</span>
+      <h1>Simple pricing for teams that <em>talk&nbsp;a&nbsp;lot</em>.</h1>
+      <p class="hero-sub">Start free with up to 10 seats. Upgrade only when you need unlimited history, huddles and 1,000+ integrations — every paid plan is priced per seat, and you can cancel anytime.</p>
+      <div class="hero-actions">
+        <a class="btn btn-accent" href="#plans">See plans <svg class="ic"><use href="#i-arrow"/></svg></a>
+        <button class="btn" data-open-modal data-plan="enterprise">Talk to sales</button>
+      </div>
+      <div class="stats">
+        <span><i class="dot"></i>12,000+ teams</span>
+        <span><i class="dot"></i>99.99% uptime SLA</span>
+        <span><i class="dot"></i>SOC 2 Type II</span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <svg class="ripple hero-deco" viewBox="0 0 400 400" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="200" cy="200" r="60"/><circle cx="200" cy="200" r="110"/>
+        <circle cx="200" cy="200" r="160"/><circle cx="200" cy="200" r="195"/>
+      </svg>
+      <aside class="calc" aria-label="Plan calculator">
+        <div class="calc-top">
+          <span class="label">Plan calculator</span>
+          <div class="seg annual" id="seg" role="group" aria-label="Billing period">
+            <span class="seg-ind" aria-hidden="true"></span>
+            <button type="button" class="seg-btn" data-bill="monthly" aria-pressed="false">Monthly</button>
+            <button type="button" class="seg-btn active" data-bill="annual" aria-pressed="true">Annual <span class="save">−20%</span></button>
+          </div>
+        </div>
+        <div class="calc-slider">
+          <div class="calc-row">
+            <span class="label">Team size</span>
+            <span class="seats-read" aria-live="polite"><span class="seats-num" id="seatsNum">42</span><span class="seats-word">people</span></span>
+          </div>
+          <input type="range" id="seatRange" min="0" max="1000" value="577" aria-label="Number of teammates">
+          <div class="scale"><span>5</span><span>200+</span></div>
+        </div>
+        <div class="calc-foot">
+          <span class="rec-chip" aria-live="polite"><svg class="ic"><use href="#i-check"/></svg>Recommended: <b id="recName">Team</b></span>
+          <span class="calc-note">USD · excl. tax</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOGOS ============ -->
+<div class="logos">
+  <div class="container logos-in">
+    <span class="logos-label">Trusted by 12,000+ teams</span>
+    <span class="wm wm-1">FJORÐ</span>
+    <span class="wm wm-2">Mesa Labs</span>
+    <span class="wm wm-3">ARCADIA</span>
+    <span class="wm wm-4">northwind*</span>
+    <span class="wm wm-5">Pilot &amp; Co.</span>
+    <span class="wm wm-6">klarheit<i>.</i></span>
+  </div>
+</div>
+
+<!-- ============ PLANS ============ -->
+<section class="section" id="plans">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="dot"></i>Plans</span>
+      <h2>Three ways in. <em>Zero</em> fine print.</h2>
+      <p class="sec-sub">Every plan includes unlimited channels, threads, search and file sharing. Paid plans are priced per seat — and guests are free on Team and Enterprise.</p>
+    </div>
+
+    <div class="plans">
+      <!-- Starter -->
+      <article class="plan reveal" data-plan="starter">
+        <div class="p-name">
+          <h3>Starter</h3>
+          <p class="p-tag">For small crews finding their rhythm.</p>
+          <div class="rec-badge"><svg class="ic"><use href="#i-check"/></svg><span>Recommended for <b class="rec-seats">42</b> seats</span></div>
+        </div>
+        <div class="p-price">
+          <div class="price"><span class="cur">$</span><span class="amt">0</span><span class="per">/seat/mo</span></div>
+          <div class="bill-note">free forever</div>
+          <div class="total" id="starterTotal">
+            <span class="tot-ok">$0/mo · covers <b class="rec-seats">42</b> seats</span>
+            <span class="tot-warn"><svg class="ic"><use href="#i-minus"/></svg>too small for <b class="rec-seats">42</b> — see Team</span>
+          </div>
+        </div>
+        <ul class="p-feats">
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Up to 10 members</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>90-day message history</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>10 app integrations</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>1:1 audio &amp; video calls</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Community support</span></li>
+        </ul>
+        <div class="p-cta">
+          <button class="btn" data-open-modal data-plan="starter">Start for free <svg class="ic"><use href="#i-arrow"/></svg></button>
+          <span class="cta-note">no card required</span>
+        </div>
+      </article>
+
+      <!-- Team -->
+      <article class="plan dark reveal" data-plan="team" style="transition-delay:.08s">
+        <span class="pop-tag">most popular</span>
+        <div class="p-name">
+          <h3>Team</h3>
+          <p class="p-tag">For teams that practically live in chat.</p>
+          <div class="rec-badge"><svg class="ic"><use href="#i-check"/></svg><span>Recommended for <b class="rec-seats">42</b> seats</span></div>
+        </div>
+        <div class="p-price">
+          <div class="price">
+            <span class="cur">$</span><span class="amt" id="teamAmt" data-m="10" data-a="8">8</span>
+            <span class="per">/seat/mo</span><span class="was" id="teamWas">$10</span>
+          </div>
+          <div class="bill-note" id="teamNote">per seat, billed annually</div>
+          <div class="total">≈ $<span id="teamTotal">336</span>/mo · <b class="rec-seats">42</b> seats</div>
+        </div>
+        <ul class="p-feats">
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Unlimited message history</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>1,000+ integrations</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>5 guest seats included</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Huddles up to 50 people</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>10 GB storage per member</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Priority support</span></li>
+        </ul>
+        <div class="p-cta">
+          <button class="btn btn-accent" data-open-modal data-plan="team">Start free trial <svg class="ic"><use href="#i-arrow"/></svg></button>
+          <span class="cta-note">30 days · no card</span>
+        </div>
+      </article>
+
+      <!-- Enterprise -->
+      <article class="plan reveal" data-plan="enterprise" style="transition-delay:.16s">
+        <div class="p-name">
+          <h3>Enterprise</h3>
+          <p class="p-tag">For orgs with scale, security &amp; compliance needs.</p>
+          <div class="rec-badge"><svg class="ic"><use href="#i-check"/></svg><span>Recommended for <b class="rec-seats">42</b> seats</span></div>
+        </div>
+        <div class="p-price">
+          <div class="price"><span class="amt amt-custom">Custom</span></div>
+          <div class="bill-note">annual agreements</div>
+          <div class="total">volume discounts · invoiced</div>
+        </div>
+        <ul class="p-feats">
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>SSO / SAML &amp; SCIM</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Audit logs &amp; data residency</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Custom retention &amp; DLP</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>99.99% uptime SLA</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>Dedicated success manager</span></li>
+          <li><svg class="ic ic-check"><use href="#i-check"/></svg><span>White-glove onboarding</span></li>
+        </ul>
+        <div class="p-cta">
+          <button class="btn btn-ink" data-open-modal data-plan="enterprise">Talk to sales <svg class="ic"><use href="#i-arrow"/></svg></button>
+          <span class="cta-note">reply within 1 business day</span>
+        </div>
+      </article>
+    </div>
+
+    <p class="plans-note reveal">All prices in USD, excl. tax · Switch or cancel anytime · <a href="#" data-stub="Nonprofit discounts">Nonprofits &amp; schools get 50% off</a></p>
+  </div>
+</section>
+
+<!-- ============ COMPARE ============ -->
+<section class="section" id="compare">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="dot"></i>Compare</span>
+      <h2>Every detail, <em>side by side</em>.</h2>
+      <p class="sec-sub">The full rundown across all three plans — no asterisks, no surprises.</p>
+    </div>
+    <div class="table-frame reveal">
+      <div class="table-scroll">
+        <table class="cmp">
+          <thead>
+            <tr>
+              <th><span class="th-label">Compare plans</span></th>
+              <th><div class="th-plan">Starter</div><div class="th-price">$0</div></th>
+              <th class="c-team"><div class="th-plan">Team <span class="th-pop">popular</span></div><div class="th-price" id="thTeamPrice">$8/seat/mo</div></th>
+              <th><div class="th-plan">Enterprise</div><div class="th-price">Custom</div></th>
+            </tr>
+          </thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="legend reveal">
+      <span><svg class="ic ic-check"><use href="#i-check"/></svg>Included</span>
+      <span><svg class="ic ic-minus"><use href="#i-minus"/></svg>Not included</span>
+      <span>Text = specific limit</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="faq">
+  <div class="container faq-grid">
+    <div class="faq-left reveal">
+      <span class="eyebrow"><i class="dot"></i>FAQ</span>
+      <h2>Fair questions, <em>straight</em> answers.</h2>
+      <p>Can’t find what you’re looking for? Our team answers in under two hours on business days.</p>
+      <a class="btn" href="mailto:hello@ripple.chat">Email hello@ripple.chat <svg class="ic"><use href="#i-up-right"/></svg></a>
+    </div>
+    <div class="faq-list reveal">
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>What counts as a member?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Anyone with their own login in your workspace. Guests on Team and Enterprise are free up to your plan’s guest limit, and when someone leaves, their seat frees up immediately — we prorate the difference on your next invoice.</p></div></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>Can I switch plans or cancel anytime?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Yes. Upgrades take effect instantly and we only charge the prorated difference. Downgrades and cancellations apply at the end of your current billing cycle, and you can export all of your data at any time — no lock-in.</p></div></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>What happens when we hit Starter’s 10-seat limit?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Nothing breaks. We’ll nudge you at 8 seats, and at 10 you can keep chatting as long as you like — you just can’t invite more members until you upgrade. Your 90-day history is never deleted.</p></div></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>How does the 20% annual discount work?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Pay for a year up front and the per-seat price drops from $10 to $8 per month. Add seats mid-year and they’re prorated at the same discounted rate; remove them and you get credit on your next invoice.</p></div></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>Is there a free trial of Team?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Every new workspace gets 30 days of Team for free — no credit card required. When the trial ends, pick a plan or slide back to Starter. Nothing is deleted either way.</p></div></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false"><span>Do you offer discounts for nonprofits or schools?</span><svg class="ic acc-ic"><use href="#i-plus"/></svg></button>
+        <div class="acc-panel"><div class="acc-inner"><p>Yes — registered nonprofits, educators and student clubs get 50% off Team, and open-source projects get Team free. Write to hello@ripple.chat from your official address and we’ll set it up.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA BAND ============ -->
+<section class="cta-band">
+  <svg class="ripple cta-deco" viewBox="0 0 400 400" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <circle cx="200" cy="200" r="60"/><circle cx="200" cy="200" r="110"/>
+    <circle cx="200" cy="200" r="160"/><circle cx="200" cy="200" r="195"/>
+  </svg>
+  <div class="container">
+    <div class="cta-in reveal">
+      <h2>Bring your team into the <em>flow</em>.</h2>
+      <p>Spin up a workspace in under two minutes — import from Slack, Teams or email in one click and keep every message.</p>
+      <div class="cta-actions">
+        <button class="btn btn-accent" data-open-modal data-plan="starter">Start free <svg class="ic"><use href="#i-arrow"/></svg></button>
+        <button class="btn btn-ghost-dark" data-open-modal data-plan="enterprise">Talk to sales</button>
+      </div>
+      <p class="cta-note">Free up to 10 seats · 30-day Team trial · No credit card</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">
+          <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/>
+            <circle cx="16" cy="16" r="7.5" fill="none" stroke="#FF4B26" stroke-width="2.4"/>
+            <circle cx="16" cy="16" r="2.6" fill="#FF4B26"/>
+          </svg>
+          <b>Ripple<i>.</i></b>
+        </a>
+        <p>Team chat that feels like a room, not a feed.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#" data-stub="Features">Features</a>
+        <a href="#" data-stub="Integrations">Integrations</a>
+        <a href="#" data-stub="Huddles">Huddles</a>
+        <a href="#" data-stub="Changelog">Changelog</a>
+        <a href="#" data-stub="Roadmap">Roadmap</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#" data-stub="About">About</a>
+        <a href="#" data-stub="Blog">Blog</a>
+        <a href="#" data-stub="Careers">Careers</a>
+        <a href="#" data-stub="Press kit">Press kit</a>
+        <a href="#" data-stub="Contact">Contact</a>
+      </div>
+      <div class="foot-col">
+        <h4>Resources</h4>
+        <a href="#" data-stub="Documentation">Documentation</a>
+        <a href="#" data-stub="API reference">API reference</a>
+        <a href="#" data-stub="Community">Community</a>
+        <a href="#" data-stub="Templates">Templates</a>
+        <a href="#" data-stub="Status">Status</a>
+      </div>
+      <div class="foot-col">
+        <h4>Legal</h4>
+        <a href="#" data-stub="Privacy">Privacy</a>
+        <a href="#" data-stub="Terms">Terms</a>
+        <a href="#" data-stub="DPA">DPA</a>
+        <a href="#" data-stub="Security">Security</a>
+        <a href="#" data-stub="Cookies">Cookies</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr">2025</span> Ripple Labs, Inc.</span>
+      <span>Made for teams who talk a lot.</span>
+      <span class="foot-status"><i class="dot dot-green"></i>All systems operational</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ MODAL ============ -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal">
+    <button class="m-close" id="mClose" aria-label="Close dialog"><svg class="ic"><use href="#i-x"/></svg></button>
+    <div id="mForm">
+      <span class="label" id="mKicker">30-day free trial</span>
+      <h3 id="mTitle">Start with Team</h3>
+      <p class="m-sub" id="mSub">No credit card required. Cancel anytime.</p>
+      <form id="signupForm" novalidate>
+        <label for="mEmail">Work email</label>
+        <input type="email" id="mEmail" placeholder="you@company.com" autocomplete="email">
+        <p class="m-err" id="mErr">That doesn’t look like an email — mind checking it?</p>
+        <button type="submit" class="btn btn-accent">Create my workspace <svg class="ic"><use href="#i-arrow"/></svg></button>
+      </form>
+      <p class="m-fine">We’ll email you a magic sign-in link. No spam, ever.</p>
+    </div>
+    <div class="m-done" id="mDone" hidden>
+      <span class="m-check"><svg class="ic"><use href="#i-check"/></svg></span>
+      <h3>You’re in!</h3>
+      <p class="m-sub">We sent a magic sign-in link to <b id="mEcho">you@company.com</b>. It expires in 15 minutes.</p>
+      <button class="btn" id="mDoneClose">Back to pricing</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  const $  = (s,c=document)=>c.querySelector(s);
+  const $$ = (s,c=document)=>[...c.querySelectorAll(s)];
+  const state = { annual:true, seats:42 };
+
+  /* ---------- comparison table ---------- */
+  const TABLE = [
+    {group:'Messaging', rows:[
+      ['Message history','90 days','Unlimited','Unlimited'],
+      ['Threads, mentions & reactions',1,1,1],
+      ['Scheduled messages',0,1,1],
+      ['Guest access',0,'Up to 5 guests','Unlimited guests'],
+      ['Message translation',0,1,1]
+    ]},
+    {group:'Files & storage', rows:[
+      ['Total storage','5 GB','10 GB per member','Unlimited'],
+      ['Max file size','250 MB','1 GB','10 GB'],
+      ['File version history','30 days','1 year','Unlimited']
+    ]},
+    {group:'Apps & automation', rows:[
+      ['Prebuilt integrations','10','1,000+','1,000+ & custom API'],
+      ['Workflow automations',0,'500 runs/mo','Unlimited'],
+      ['API & webhooks',0,1,1],
+      ['SSO (Google / Okta / Entra)',0,1,'SAML + SCIM'],
+      ['Audit log export',0,0,1],
+      ['Data residency (EU / US)',0,0,1]
+    ]},
+    {group:'Calls & huddles', rows:[
+      ['1:1 video calls',1,1,1],
+      ['Group huddles',0,'Up to 50 people','Up to 200 people'],
+      ['Screen share & recording',0,1,1]
+    ]},
+    {group:'Security & compliance', rows:[
+      ['Two-factor authentication',1,1,1],
+      ['Encryption at rest & in transit',1,1,1],
+      ['Custom retention policies',0,0,1],
+      ['DLP & e-discovery',0,0,1],
+      ['99.99% uptime SLA',0,0,1]
+    ]},
+    {group:'Support', rows:[
+      ['Community forum',1,1,1],
+      ['In-app & email support',0,'Priority','24/7 dedicated'],
+      ['Migration & onboarding help',0,1,'White-glove'],
+      ['Dedicated success manager',0,0,1]
+    ]}
+  ];
+  function cellHTML(v, team){
+    const cls = team ? ' class="c-team"' : '';
+    let inner;
+    if(v === 1)      inner = '<svg class="ic ic-check" aria-label="Included"><use href="#i-check"/></svg>';
+    else if(v === 0) inner = '<svg class="ic ic-minus" aria-label="Not included"><use href="#i-minus"/></svg>';
+    else             inner = '<span class="cell-val">'+v+'</span>';
+    return '<td'+cls+'>'+inner+'</td>';
+  }
+  let tHTML = '';
+  for(const g of TABLE){
+    tHTML += '<tr class="grp"><td colspan="4">'+g.group+'</td></tr>';
+    for(const r of g.rows){
+      tHTML += '<tr class="cmp-row"><td class="c-feat">'+r[0]+'</td>'+cellHTML(r[1])+cellHTML(r[2],true)+cellHTML(r[3])+'</tr>';
+    }
+  }
+  $('#cmpBody').innerHTML = tHTML;
+
+  /* ---------- elements ---------- */
+  const range      = $('#seatRange');
+  const seatsNum   = $('#seatsNum');
+  const teamAmt    = $('#teamAmt');
+  const teamTotal  = $('#teamTotal');
+  const teamNote   = $('#teamNote');
+  const teamWas    = $('#teamWas');
+  const thTeam     = $('#thTeamPrice');
+  const starterTot = $('#starterTotal');
+  const recName    = $('#recName');
+  const seg        = $('#seg');
+
+  const seatsFrom = v => Math.round(5 * Math.pow(40, v/1000));   // 5 → 200, log scale
+  const disp      = s => s >= 200 ? '200+' : String(s);
+
+  function tween(el, to, fmt){
+    const from = parseInt((el.dataset.val ?? el.textContent).replace(/[^\d]/g,''),10) || 0;
+    el.dataset.val = to;
+    if(from === to){ el.textContent = fmt(to); return; }
+    if(el._raf) cancelAnimationFrame(el._raf);
+    const t0 = performance.now(), dur = 420;
+    const step = t => {
+      const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+      el.textContent = fmt(Math.round(from+(to-from)*e));
+      if(p < 1) el._raf = requestAnimationFrame(step);
+    };
+    el._raf = requestAnimationFrame(step);
+  }
+
+  function render(animate){
+    const s = state.seats, d = disp(s);
+    const rate = state.annual ? +teamAmt.dataset.a : +teamAmt.dataset.m;
+    if(animate){
+      tween(seatsNum,  s,      v => disp(v));
+      tween(teamAmt,   rate,   v => String(v));
+      tween(teamTotal, s*rate, v => v.toLocaleString('en-US'));
+    } else {
+      seatsNum.textContent = d; seatsNum.dataset.val = s;
+      teamAmt.textContent = rate; teamAmt.dataset.val = rate;
+      teamTotal.textContent = (s*rate).toLocaleString('en-US'); teamTotal.dataset.val = s*rate;
+    }
+    $$('.rec-seats').forEach(e => e.textContent = d);
+    thTeam.textContent  = '$'+rate+'/seat/mo';
+    teamNote.textContent = state.annual ? 'per seat, billed annually' : 'per seat, billed monthly';
+    teamWas.style.opacity = state.annual ? 1 : 0;
+    starterTot.classList.toggle('too-small', s > 10);
+    const plan = s <= 10 ? 'starter' : s <= 75 ? 'team' : 'enterprise';
+    $$('.plan').forEach(p => p.classList.toggle('recommended', p.dataset.plan === plan));
+    recName.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+    range.style.setProperty('--fill', (range.value/10)+'%');
+  }
+
+  range.addEventListener('input', () => { state.seats = seatsFrom(+range.value); render(true); });
+
+  $$('.seg-btn').forEach(b => b.addEventListener('click', () => {
+    const annual = b.dataset.bill === 'annual';
+    if(annual === state.annual) return;
+    state.annual = annual;
+    seg.classList.toggle('annual', annual);
+    seg.classList.toggle('monthly', !annual);
+    $$('.seg-btn').forEach(x => {
+      const on = (x.dataset.bill === 'annual') === annual;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', on);
+    });
+    render(true);
+  }));
+
+  /* ---------- modal ---------- */
+  const COPY = {
+    starter:   {k:'Free forever',        t:'Start with Starter', s:'Up to 10 seats, every core feature, no credit card and no expiry.'},
+    team:      {k:'30-day free trial',   t:'Start with Team',    s:'Every feature for every seat, free for 30 days. No credit card required.'},
+    enterprise:{k:'Let’s talk',          t:'Talk to sales',      s:'Leave your work email and we’ll get back to you within one business day.'},
+    generic:   {k:'Get started',         t:'Create your workspace', s:'Start free on Starter — upgrade whenever you’re ready.'}
+  };
+  const overlay = $('#overlay'), mForm = $('#mForm'), mDone = $('#mDone'),
+        mTitle = $('#mTitle'), mKicker = $('#mKicker'), mSub = $('#mSub'),
+        email = $('#mEmail'), err = $('#mErr'), form = $('#signupForm'), echo = $('#mEcho');
+
+  function openModal(plan){
+    const c = COPY[plan] || COPY.generic;
+    mKicker.textContent = c.k; mTitle.textContent = c.t; mSub.textContent = c.s;
+    mForm.hidden = false; mDone.hidden = true;
+    err.classList.remove('show'); email.value = ''; email.classList.remove('shake');
+    overlay.classList.add('open');
+    document.body.classList.add('locked');
+    setTimeout(() => email.focus(), 260);
+  }
+  function closeModal(){
+    overlay.classList.remove('open');
+    document.body.classList.remove('locked');
+  }
+  $$('[data-open-modal]').forEach(b => b.addEventListener('click', () => openModal(b.dataset.plan)));
+  $('#mClose').addEventListener('click', closeModal);
+  $('#mDoneClose').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = email.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){
+      err.classList.add('show');
+      email.classList.remove('shake'); void email.offsetWidth; email.classList.add('shake');
+      email.focus();
+      return;
+    }
+    err.classList.remove('show');
+    echo.textContent = v;
+    mForm.hidden = true; mDone.hidden = false;
+  });
+
+  /* ---------- toast + stub links ---------- */
+  const toastEl = $('#toast'); let toastT;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+  $$('[data-stub]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    toast('Just a demo — “' + (a.dataset.stub || a.textContent.trim()) + '” isn’t wired up in this preview.');
+  }));
+
+  /* ---------- FAQ accordion ---------- */
+  $$('.acc-btn').forEach(b => b.addEventListener('click', () => {
+    const item = b.parentElement, wasOpen = item.classList.contains('open');
+    $$('.acc-item').forEach(i => {
+      i.classList.remove('open');
+      i.querySelector('.acc-btn').setAttribute('aria-expanded','false');
+    });
+    if(!wasOpen){ item.classList.add('open'); b.setAttribute('aria-expanded','true'); }
+  }));
+
+  /* ---------- nav ---------- */
+  const nav = $('#nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 10), {passive:true});
+  const menuBtn = $('#menuBtn'), mMenu = $('#mobileMenu');
+  menuBtn.addEventListener('click', () => {
+    const open = mMenu.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded', open);
+  });
+  $$('#mobileMenu a, #mobileMenu button').forEach(el =>
+    el.addEventListener('click', () => mMenu.classList.remove('open'))
+  );
+
+  /* ---------- reveal on scroll ---------- */
+  const io = new IntersectionObserver(entries => entries.forEach(en => {
+    if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+  }), {threshold:.12});
+  $$('.reveal').forEach(el => io.observe(el));
+
+  /* ---------- init ---------- */
+  range.value = Math.round(1000 * Math.log(42/5) / Math.log(40)); // ≈ 42 seats
+  state.seats = seatsFrom(+range.value);
+  render(false);
+  $('#yr').textContent = new Date().getFullYear();
+})();
+</script>
+</body>
+</html>

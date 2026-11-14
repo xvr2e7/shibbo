@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #f4f5f7;
+            --bg-header: #ffffff;
+            --bg-column: #f1f2f4;
+            --bg-card: #ffffff;
+            --bg-card-hover: #fcfcfc;
+            
+            --text-main: #172b4d;
+            --text-muted: #5e6c84;
+            --border-color: #dfe1e6;
+            
+            --accent-blue: #0052cc;
+            
+            --tag-ux-bg: #e1e9ff;
+            --tag-ux-text: #0052cc;
+            --tag-ui-bg: #e3fcef;
+            --tag-ui-text: #006644;
+            --tag-brand-bg: #fffae6;
+            --tag-brand-text: #ff8b00;
+            --tag-res-bg: #eae6ff;
+            --tag-res-text: #403294;
+
+            --shadow-sm: 0 1px 2px rgba(9, 30, 66, 0.25);
+            --shadow-drag: 0 12px 24px -6px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-header);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .board-meta {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            background: var(--bg-body);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .avatar-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-header);
+            margin-left: -8px;
+            object-fit: cover;
+            background: #ddd;
+        }
+        .avatar-group .avatar:first-child { margin-left: 0; }
+
+        .btn {
+            background: var(--bg-column);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover { background: #e4e6ea; }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-primary:hover { background: #0043a6; }
+
+        /* Board */
+        .board-container {
+            display: flex;
+            padding: 24px 32px;
+            gap: 24px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+            align-items: flex-start;
+        }
+
+        /* Webkit Scrollbar Styling */
+        .board-container::-webkit-scrollbar { height: 12px; }
+        .board-container::-webkit-scrollbar-track { background: transparent; }
+        .board-container::-webkit-scrollbar-thumb { background-color: rgba(9, 30, 66, 0.15); border-radius: 10px; border: 3px solid var(--bg-body); }
+
+        .kanban-column {
+            background-color: var(--bg-column);
+            border-radius: 10px;
+            width: 320px;
+            min-width: 320px;
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .column-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .column-title h2 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .task-count {
+            background: #dfe1e6;
+            color: var(--text-main);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .column-options {
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .column-options:hover { background: rgba(9, 30, 66, 0.08); }
+
+        .card-list {
+            padding: 0 12px 12px 12px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 50px; /* Crucial for dropping into empty columns */
+        }
+
+        .card-list::-webkit-scrollbar { width: 8px; }
+        .card-list::-webkit-scrollbar-track { background: transparent; }
+        .card-list::-webkit-scrollbar-thumb { background-color: rgba(9, 30, 66, 0.15); border-radius: 10px; }
+
+        .add-card-btn {
+            margin: 0 12px 12px 12px;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-align: left;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .add-card-btn:hover {
+            background: rgba(9,30,66,0.08);
+            color: var(--text-main);
+        }
+
+        /* Cards */
+        .kanban-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            cursor: grab;
+            border: 1px solid transparent;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+
+        .kanban-card:hover {
+            border-color: rgba(9,30,66,0.2);
+        }
+
+        .kanban-card:active {
+            cursor: grabbing;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        
+        .tag.ui { background: var(--tag-ui-bg); color: var(--tag-ui-text); }
+        .tag.ux { background: var(--tag-ux-bg); color: var(--tag-ux-text); }
+        .tag.brand { background: var(--tag-brand-bg); color: var(--tag-brand-text); }
+        .tag.research { background: var(--tag-res-bg); color: var(--tag-res-text); }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-indicators {
+            display: flex;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .indicator svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* SortableJS States */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #e2e4e9;
+            border: 1px dashed #b3bac5;
+            box-shadow: none;
+        }
+        
+        .sortable-ghost * {
+            opacity: 0;
+        }
+
+        .sortable-drag {
+            cursor: grabbing !important;
+            box-shadow: var(--shadow-drag) !important;
+            transform: rotate(2deg);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>Web App Redesign</h1>
+            <span class="board-meta">Sprint 12</span>
+        </div>
+        <div class="header-actions">
+            <div class="avatar-group">
+                <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="Team member" class="avatar">
+                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Team member" class="avatar">
+                <img src="https://i.pravatar.cc/150?u=a04258114e29026302d" alt="Team member" class="avatar">
+            </div>
+            <button class="btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Settings
+            </button>
+            <button class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Create
+            </button>
+        </div>
+    </header>
+
+    <main class="board-container" id="board">
+        
+        <!-- Backlog Column -->
+        <div class="kanban-column">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2>Ideas / Backlog</h2>
+                    <span class="task-count">3</span>
+                </div>
+                <div class="column-options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </div>
+            </div>
+            <div class="card-list" id="col-backlog">
+                
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag research">Research</span>
+                    </div>
+                    <p class="card-title">Competitor analysis for onboarding flow</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> 2
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Assignee" class="card-avatar">
+                    </div>
+                </div>
+
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag brand">Brand</span>
+                    </div>
+                    <p class="card-title">Explore new typography pairings for marketing site</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ui">UI</span>
+                    </div>
+                    <p class="card-title">Audit existing icon set for consistency</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg> 1
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a04258114e29026302d" alt="Assignee" class="card-avatar">
+                    </div>
+                </div>
+
+            </div>
+            <button class="add-card-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add a card
+            </button>
+        </div>
+
+        <!-- To Do Column -->
+        <div class="kanban-column">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2>To Do</h2>
+                    <span class="task-count">2</span>
+                </div>
+                <div class="column-options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </div>
+            </div>
+            <div class="card-list" id="col-todo">
+                
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ux">UX</span>
+                    </div>
+                    <p class="card-title">Wireframe new user dashboard layout</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Oct 12
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="Assignee" class="card-avatar">
+                    </div>
+                </div>
+
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ui">UI</span>
+                        <span class="tag brand">Brand</span>
+                    </div>
+                    <p class="card-title">Design homepage hero variations (A/B Test)</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg> 4
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Assignee" class="card-avatar">
+                    </div>
+                </div>
+
+            </div>
+            <button class="add-card-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add a card
+            </button>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="kanban-column">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2>In Progress</h2>
+                    <span class="task-count">1</span>
+                </div>
+                <div class="column-options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </div>
+            </div>
+            <div class="card-list" id="col-inprogress">
+                
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ui">UI</span>
+                    </div>
+                    <p class="card-title">Update design system components (Buttons & Inputs)</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> 5
+                            </div>
+                            <div class="indicator" style="color: #0052cc;">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> In Review
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a04258114e29026302d" alt="Assignee" class="card-avatar">
+                    </div>
+                </div>
+
+            </div>
+            <button class="add-card-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add a card
+            </button>
+        </div>
+
+        <!-- Done Column -->
+        <div class="kanban-column">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2>Done</h2>
+                    <span class="task-count">2</span>
+                </div>
+                <div class="column-options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </div>
+            </div>
+            <div class="card-list" id="col-done">
+                
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ux">UX</span>
+                    </div>
+                    <p class="card-title" style="text-decoration: line-through; color: var(--text-muted);">User journey map for checkout process</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="Assignee" class="card-avatar" style="opacity: 0.6;">
+                    </div>
+                </div>
+
+                <div class="kanban-card">
+                    <div class="card-tags">
+                        <span class="tag ui">UI</span>
+                    </div>
+                    <p class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Dark mode color palette definitions</p>
+                    <div class="card-footer">
+                        <div class="card-indicators">
+                            <div class="indicator">
+                                <svg viewBox="0 0 24 24" style="stroke: #36B37E;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?u=a04258114e29026302d" alt="Assignee" class="card-avatar" style="opacity: 0.6;">
+                    </div>
+                </div>
+
+            </div>
+            <button class="add-card-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add a card
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Function to update the count in column headers
+            function updateColumnCounts() {
+                const columns = document.querySelectorAll('.kanban-column');
+                columns.forEach(column => {
+                    const cardCount = column.querySelectorAll('.kanban-card').length;
+                    column.querySelector('.task-count').textContent = cardCount;
+                });
+            }
+
+            // Initialize SortableJS for each column body
+            const cardLists = document.querySelectorAll('.card-list');
+            
+            cardLists.forEach(list => {
+                new Sortable(list, {
+                    group: 'kanban', // set both lists to same group
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    easing: "cubic-bezier(0.2, 0, 0, 1)",
+                    onEnd: function (evt) {
+                        updateColumnCounts();
+                        
+                        // Optional: Add visual logic if moved to 'Done'
+                        const item = evt.item;
+                        const toListId = evt.to.id;
+                        const title = item.querySelector('.card-title');
+                        const avatar = item.querySelector('.card-avatar');
+                        
+                        if (toListId === 'col-done') {
+                            if(title) { title.style.textDecoration = 'line-through'; title.style.color = 'var(--text-muted)'; }
+                            if(avatar) { avatar.style.opacity = '0.6'; }
+                        } else {
+                            if(title) { title.style.textDecoration = 'none'; title.style.color = 'var(--text-main)'; }
+                            if(avatar) { avatar.style.opacity = '1'; }
+                        }
+                    }
+                });
+            });
+
+            // Initialize SortableJS for columns themselves (Rearranging columns)
+            const board = document.getElementById('board');
+            new Sortable(board, {
+                animation: 150,
+                handle: '.column-header', // drag handle
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                direction: 'horizontal',
+                easing: "cubic-bezier(0.2, 0, 0, 1)"
+            });
+        });
+    </script>
+</body>
+</html>

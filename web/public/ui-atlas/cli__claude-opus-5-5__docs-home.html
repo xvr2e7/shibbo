@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcplot — Expressive, fast charts for the web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfbfd; --bg2:#f3f4f8; --card:#ffffff; --text:#14161f; --muted:#5c6275;
+    --border:#e4e6ee; --accent:#5b5bf6; --accent2:#13c2a3; --accent3:#f5a524; --accent4:#ef4f6b;
+    --code-bg:#0f1220; --code-text:#d8dcf0; --shadow:0 1px 2px rgba(20,22,31,.04),0 8px 30px rgba(20,22,31,.06);
+    --grid:#eceef4;
+  }
+  [data-theme="dark"]{
+    --bg:#0b0d16; --bg2:#121524; --card:#151929; --text:#eef0f8; --muted:#9aa0b8;
+    --border:#252a3f; --code-bg:#0a0c15; --grid:#22273a; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;transition:background .25s,color .25s}
+  a{color:inherit;text-decoration:none}
+  code,pre{font-family:"JetBrains Mono",ui-monospace,monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* NAV */
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--border)}
+  nav{display:flex;align-items:center;gap:28px;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+  .logo svg{width:28px;height:28px}
+  .ver{font:500 11px "JetBrains Mono";color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:2px 8px}
+  .links{display:flex;gap:22px;font-size:14.5px;color:var(--muted);font-weight:500}
+  .links a:hover{color:var(--text)}
+  .spacer{flex:1}
+  .search{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;color:var(--muted);font-size:13.5px;width:220px;cursor:text}
+  .search kbd{margin-left:auto;font:500 11px "JetBrains Mono";border:1px solid var(--border);border-radius:5px;padding:1px 6px;background:var(--card)}
+  .icon-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer}
+  .icon-btn:hover{border-color:var(--accent)}
+
+  /* HERO */
+  .hero{padding:88px 0 72px;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-200px -100px auto auto;width:700px;height:700px;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 18%,transparent),transparent 65%);pointer-events:none}
+  .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center;position:relative}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);border-radius:99px;padding:5px 12px 5px 6px;color:var(--muted);margin-bottom:22px}
+  .pill b{background:var(--accent);color:#fff;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:600}
+  h1{font-size:clamp(40px,5.4vw,62px);line-height:1.04;letter-spacing:-.035em;font-weight:800}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:18.5px;color:var(--muted);margin:22px 0 32px;max-width:520px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--border);background:var(--card);transition:transform .15s,box-shadow .15s}
+  .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .install{margin-top:28px;display:inline-flex;align-items:center;gap:14px;font:14px "JetBrains Mono";background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 10px 10px 16px}
+  .install span{color:var(--muted)}
+  .copy{border:none;background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 10px;font:500 12px Inter;cursor:pointer}
+  .copy:hover{color:var(--text)}
+  .stats{display:flex;gap:28px;margin-top:36px;font-size:13.5px;color:var(--muted)}
+  .stats strong{display:block;font-size:22px;color:var(--text);letter-spacing:-.02em}
+
+  .demo{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:22px;position:relative}
+  .demo-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+  .demo-head h3{font-size:15px;font-weight:600}
+  .demo-head p{font-size:12.5px;color:var(--muted)}
+  .seg{display:flex;background:var(--bg2);border-radius:8px;padding:3px;border:1px solid var(--border)}
+  .seg button{border:none;background:none;font:500 12px Inter;color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
+  .seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  #hero-chart{width:100%;height:280px;display:block}
+  #hero-chart path.line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  .tip{position:absolute;pointer-events:none;background:var(--code-bg);color:#fff;font-size:12px;border-radius:8px;padding:8px 10px;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+  .tip div{display:flex;align-items:center;gap:6px}
+  .tip i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .floating-code{position:absolute;left:-40px;bottom:-34px;background:var(--code-bg);color:var(--code-text);border-radius:12px;padding:14px 18px;font-size:12.5px;line-height:1.7;box-shadow:0 20px 40px rgba(0,0,0,.25);border:1px solid #232842}
+
+  /* SECTIONS */
+  section{padding:84px 0}
+  .eyebrow{font:600 12.5px Inter;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+  h2{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.03em;line-height:1.12;font-weight:800}
+  .sub{color:var(--muted);font-size:17px;margin-top:12px;max-width:620px}
+  .alt{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+  .feat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px}
+  .feat .ic{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;margin-bottom:16px;color:#fff}
+  .feat h3{font-size:16.5px;margin-bottom:6px;letter-spacing:-.01em}
+  .feat p{font-size:14.5px;color:var(--muted)}
+
+  .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+  .g-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .18s,border-color .18s}
+  .g-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+  .g-card svg{width:100%;height:140px;display:block;background:linear-gradient(var(--card),var(--bg2))}
+  .g-card .meta{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .g-card .meta b{font-size:14px;font-weight:600}
+  .g-card .meta span{font:12px "JetBrains Mono";color:var(--muted)}
+
+  .qs{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:start;margin-top:8px}
+  .steps{margin-top:30px;display:flex;flex-direction:column;gap:22px}
+  .step{display:flex;gap:16px}
+  .step .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--accent)}
+  .step h4{font-size:15.5px}
+  .step p{font-size:14.5px;color:var(--muted)}
+  .code{background:var(--code-bg);border-radius:14px;border:1px solid #232842;overflow:hidden;box-shadow:var(--shadow)}
+  .tabs{display:flex;border-bottom:1px solid #232842;padding:0 8px;align-items:center}
+  .tabs button{background:none;border:none;color:#8a90ad;font:500 13px Inter;padding:12px 12px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:#fff;border-color:var(--accent)}
+  .tabs .copy{margin-left:auto;background:#1a1f33;border-color:#2a3050;color:#9aa0c0}
+  pre{padding:20px 22px;font-size:13.5px;line-height:1.75;color:var(--code-text);overflow-x:auto}
+  .k{color:#c792ea}.s{color:#a5e3a0}.f{color:#82aaff}.c{color:#636a8a;font-style:italic}.p{color:#f7b267}.n2{color:#f78c6c}
+
+  .docs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+  .doc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;transition:border-color .18s}
+  .doc:hover{border-color:var(--accent)}
+  .doc h3{font-size:17px;display:flex;justify-content:space-between;align-items:center}
+  .doc h3 span{color:var(--muted);transition:transform .18s}
+  .doc:hover h3 span{transform:translateX(3px);color:var(--accent)}
+  .doc p{font-size:14.5px;color:var(--muted);margin:6px 0 16px}
+  .doc ul{list-style:none;font-size:14px;display:flex;flex-direction:column;gap:7px;margin-top:auto}
+  .doc li::before{content:"→ ";color:var(--accent)}
+
+  .community{display:flex;justify-content:space-between;align-items:center;gap:32px;background:linear-gradient(120deg,var(--accent),#7c4dff 60%,var(--accent2));color:#fff;border-radius:20px;padding:48px}
+  .community h2{color:#fff}
+  .community p{opacity:.88;margin-top:10px;max-width:520px}
+  .community .btn{background:#fff;color:#14161f;border-color:#fff}
+  .community .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+
+  footer{border-top:1px solid var(--border);padding:48px 0 36px;font-size:14px;color:var(--muted)}
+  .foot{display:grid;grid-template-columns:1.5fr repeat(4,1fr);gap:32px}
+  .foot h5{color:var(--text);font-size:13.5px;margin-bottom:12px}
+  .foot ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .foot a:hover{color:var(--text)}
+  .bottom{margin-top:40px;padding-top:22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px}
+
+  @media (max-width:960px){
+    .hero-grid,.qs{grid-template-columns:1fr}
+    .features,.docs{grid-template-columns:1fr 1fr}
+    .gallery{grid-template-columns:1fr 1fr}
+    .links,.search{display:none}
+    .floating-code{display:none}
+    .foot{grid-template-columns:1fr 1fr}
+    .community{flex-direction:column;align-items:flex-start}
+  }
+  @media (max-width:600px){.features,.docs,.gallery{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a href="#" class="logo">
+        <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5b5bf6"/><path d="M7 23 L13 14 L18 18 L25 8" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25" cy="8" r="2.4" fill="#13c2a3"/></svg>
+        Arcplot <span class="ver">v4.2</span>
+      </a>
+      <div class="links">
+        <a href="#start">Docs</a><a href="#gallery">Examples</a><a href="#docs">API</a><a href="#">Playground</a><a href="#">Blog</a>
+      </div>
+      <div class="spacer"></div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        Search docs…<kbd>⌘K</kbd>
+      </div>
+      <button class="icon-btn" id="theme" aria-label="Toggle theme">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a class="icon-btn" href="#" aria-label="GitHub">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.6 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <a href="#" class="pill"><b>New</b> 4.2 — streaming data &amp; WebGPU renderer →</a>
+        <h1>Charts that feel <span class="grad">alive</span>, in a few lines of code.</h1>
+        <p class="lead">Arcplot is a lightweight, declarative charting library for JavaScript. Composable primitives, buttery animations, and accessibility built in — at just 28&nbsp;kB gzipped.</p>
+        <div class="cta">
+          <a href="#start" class="btn primary">Get started
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a href="#gallery" class="btn">Browse examples</a>
+        </div>
+        <div class="install"><span>$</span> npm install arcplot <button class="copy" data-copy="npm install arcplot">Copy</button></div>
+        <div class="stats">
+          <div><strong>24.8k</strong>GitHub stars</div>
+          <div><strong>1.3M</strong>weekly downloads</div>
+          <div><strong>MIT</strong>licensed</div>
+        </div>
+      </div>
+
+      <div class="demo" id="demo">
+        <div class="demo-head">
+          <div><h3>Monthly active users</h3><p>Hover the chart · data regenerates live</p></div>
+          <div class="seg" id="seg">
+            <button class="on" data-mode="line">Line</button>
+            <button data-mode="area">Area</button>
+            <button data-mode="bar">Bar</button>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Web</span>
+          <span><i style="background:var(--accent2)"></i>Mobile</span>
+        </div>
+        <svg id="hero-chart" viewBox="0 0 520 280" preserveAspectRatio="none"></svg>
+        <div class="tip" id="tip"></div>
+        <div class="floating-code"><span class="k">new</span> <span class="f">Chart</span>(<span class="s">'#el'</span>, {<br>&nbsp;&nbsp;type: <span class="s">'line'</span>,<br>&nbsp;&nbsp;data, animate: <span class="n2">true</span><br>})</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="eyebrow">Why Arcplot</div>
+      <h2>Everything you need. Nothing you don't.</h2>
+      <p class="sub">Designed for dashboards, data journalism, and product analytics — scaling from a single sparkline to millions of points.</p>
+      <div class="features">
+        <div class="feat"><div class="ic" style="background:var(--accent)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div><h3>Blazing fast</h3><p>Canvas, SVG, and WebGPU renderers. Render 1M+ points at 60fps with automatic decimation.</p></div>
+        <div class="feat"><div class="ic" style="background:var(--accent2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><h3>Composable</h3><p>Mix marks, scales, and axes like building blocks. Layer a line over bars over annotations.</p></div>
+        <div class="feat"><div class="ic" style="background:var(--accent3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div><h3>Smooth animation</h3><p>Spring-based transitions that interpolate data, not pixels. Updates feel natural by default.</p></div>
+        <div class="feat"><div class="ic" style="background:var(--accent4)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M5 9h14M12 9v12M8 21l4-6 4 6"/></svg></div><h3>Accessible</h3><p>Keyboard navigation, ARIA descriptions, and screen-reader data tables generated automatically.</p></div>
+        <div class="feat"><div class="ic" style="background:#7c4dff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></div><h3>TypeScript first</h3><p>Strict, inferred types for every option. Your editor knows your config better than you do.</p></div>
+        <div class="feat"><div class="ic" style="background:#0ea5e9"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></div><h3>Framework agnostic</h3><p>Use it vanilla, or with official React, Vue, Svelte, and Solid bindings.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="wrap">
+      <div class="eyebrow">Gallery</div>
+      <h2>Over 30 chart types, out of the box.</h2>
+      <p class="sub">Every example is live, editable, and ships with copy-paste source.</p>
+      <div class="gallery" id="gal"></div>
+    </div>
+  </section>
+
+  <section class="alt" id="start">
+    <div class="wrap qs">
+      <div>
+        <div class="eyebrow">Quick start</div>
+        <h2>Your first chart in under a minute.</h2>
+        <div class="steps">
+          <div class="step"><div class="n">1</div><div><h4>Install the package</h4><p>Via npm, pnpm, yarn — or drop in a single script tag from the CDN.</p></div></div>
+          <div class="step"><div class="n">2</div><div><h4>Add a container</h4><p>Any element with a size works. Charts are responsive by default.</p></div></div>
+          <div class="step"><div class="n">3</div><div><h4>Describe your chart</h4><p>Pass data and a type. Arcplot infers scales, axes, and colors.</p></div></div>
+        </div>
+        <a href="#docs" class="btn" style="margin-top:30px">Read the full guide →</a>
+      </div>
+      <div class="code">
+        <div class="tabs" id="tabs">
+          <button class="on" data-tab="js">main.js</button>
+          <button data-tab="react">React</button>
+          <button data-tab="cdn">CDN</button>
+          <button class="copy" id="code-copy">Copy</button>
+        </div>
+<pre id="code-js"><span class="k">import</span> { <span class="f">Chart</span> } <span class="k">from</span> <span class="s">'arcplot'</span>;
+
+<span class="k">const</span> data = [
+  { month: <span class="s">'Jan'</span>, users: <span class="n2">1240</span> },
+  { month: <span class="s">'Feb'</span>, users: <span class="n2">1890</span> },
+  { month: <span class="s">'Mar'</span>, users: <span class="n2">2410</span> },
+];
+
+<span class="k">new</span> <span class="f">Chart</span>(<span class="s">'#chart'</span>, {
+  <span class="p">type</span>: <span class="s">'line'</span>,
+  <span class="p">data</span>,
+  <span class="p">x</span>: <span class="s">'month'</span>,
+  <span class="p">y</span>: <span class="s">'users'</span>,
+  <span class="p">curve</span>: <span class="s">'smooth'</span>,
+  <span class="p">tooltip</span>: <span class="n2">true</span>,
+}); <span class="c">// that's it ✨</span></pre>
+<pre id="code-react" hidden><span class="k">import</span> { <span class="f">LineChart</span> } <span class="k">from</span> <span class="s">'@arcplot/react'</span>;
+
+<span class="k">export default function</span> <span class="f">Users</span>({ data }) {
+  <span class="k">return</span> (
+    &lt;<span class="f">LineChart</span>
+      <span class="p">data</span>={data}
+      <span class="p">x</span>=<span class="s">"month"</span>
+      <span class="p">y</span>=<span class="s">"users"</span>
+      <span class="p">curve</span>=<span class="s">"smooth"</span>
+      <span class="p">tooltip</span>
+    /&gt;
+  );
+}</pre>
+<pre id="code-cdn" hidden><span class="c">&lt;!-- Load from the CDN --&gt;</span>
+&lt;<span class="f">script</span> <span class="p">src</span>=<span class="s">"https://cdn.example.com/arcplot@4"</span>&gt;&lt;/<span class="f">script</span>&gt;
+
+&lt;<span class="f">div</span> <span class="p">id</span>=<span class="s">"chart"</span>&gt;&lt;/<span class="f">div</span>&gt;
+
+&lt;<span class="f">script</span>&gt;
+  <span class="k">new</span> Arcplot.<span class="f">Chart</span>(<span class="s">'#chart'</span>, {
+    <span class="p">type</span>: <span class="s">'bar'</span>,
+    <span class="p">data</span>: [<span class="n2">4</span>, <span class="n2">8</span>, <span class="n2">15</span>, <span class="n2">16</span>, <span class="n2">23</span>, <span class="n2">42</span>],
+  });
+&lt;/<span class="f">script</span>&gt;</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="docs">
+    <div class="wrap">
+      <div class="eyebrow">Documentation</div>
+      <h2>Find what you need.</h2>
+      <div class="docs">
+        <a href="#" class="doc"><h3>Getting Started <span>→</span></h3><p>Installation, core concepts, and your first chart.</p><ul><li>Installation</li><li>Core concepts</li><li>Configuration</li></ul></a>
+        <a href="#" class="doc"><h3>Guides <span>→</span></h3><p>Deep dives into common patterns and techniques.</p><ul><li>Responsive layouts</li><li>Real-time streaming</li><li>Theming &amp; styling</li></ul></a>
+        <a href="#" class="doc"><h3>API Reference <span>→</span></h3><p>Every class, method, and option, fully typed.</p><ul><li>Chart</li><li>Scales &amp; axes</li><li>Marks &amp; layers</li></ul></a>
+        <a href="#" class="doc"><h3>Plugins <span>→</span></h3><p>Extend Arcplot with zoom, annotations, export and more.</p><ul><li>Zoom &amp; pan</li><li>Annotations</li><li>Writing a plugin</li></ul></a>
+        <a href="#" class="doc"><h3>Integrations <span>→</span></h3><p>Official bindings for your favorite framework.</p><ul><li>React</li><li>Vue &amp; Svelte</li><li>Server-side rendering</li></ul></a>
+        <a href="#" class="doc"><h3>Migration <span>→</span></h3><p>Upgrading from v3? We've got a codemod for that.</p><ul><li>v3 → v4 guide</li><li>Breaking changes</li><li>Changelog</li></ul></a>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="community">
+        <div>
+          <h2>Built in the open, by 600+ contributors.</h2>
+          <p>Join the community on GitHub and Discord. Ask questions, share what you've built, and help shape the roadmap.</p>
+        </div>
+        <div class="cta">
+          <a href="#" class="btn">Star on GitHub</a>
+          <a href="#" class="btn ghost">Join Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a href="#" class="logo" style="margin-bottom:12px">
+          <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5b5bf6"/><path d="M7 23 L13 14 L18 18 L25 8" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25" cy="8" r="2.4" fill="#13c2a3"/></svg>Arcplot</a>
+        <p style="max-width:260px">Expressive, fast, accessible charts for the open web.</p>
+      </div>
+      <div><h5>Docs</h5><ul><li><a href="#">Getting started</a></li><li><a href="#">Guides</a></li><li><a href="#">API reference</a></li></ul></div>
+      <div><h5>Resources</h5><ul><li><a href="#">Examples</a></li><li><a href="#">Playground</a></li><li><a href="#">Showcase</a></li></ul></div>
+      <div><h5>Community</h5><ul><li><a href="#">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Contributing</a></li></ul></div>
+      <div><h5>Project</h5><ul><li><a href="#">Blog</a></li><li><a href="#">Changelog</a></li><li><a href="#">Sponsors</a></li></ul></div>
+    </div>
+    <div class="bottom"><span>Released under the MIT License.</span><span>© 2026 Arcplot contributors</span></div>
+  </div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// Theme
+const themeBtn = $('#theme');
+if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+themeBtn.onclick = () => {
+  const d = document.documentElement;
+  d.dataset.theme = d.dataset.theme === 'dark' ? 'light' : 'dark';
+  drawHero(false); drawGallery();
+};
+
+// Copy buttons
+document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => flash(b, b.dataset.copy));
+function flash(btn, text){
+  navigator.clipboard?.writeText(text);
+  const t = btn.textContent; btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = t, 1200);
+}
+
+// Tabs
+let curTab = 'js';
+document.querySelectorAll('#tabs [data-tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
+  ['js','react','cdn'].forEach(t => $('#code-' + t).hidden = t !== b.dataset.tab);
+  curTab = b.dataset.tab;
+});
+$('#code-copy').onclick = e => flash(e.target, $('#code-' + curTab).innerText);
+
+// Smooth path helper (monotone-ish cardinal)
+function smooth(pts){
+  if (pts.length < 2) return '';
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++){
+    const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2, t = .18;
+    d += ` C${p1[0]+(p2[0]-p0[0])*t},${p1[1]+(p2[1]-p0[1])*t} ${p2[0]-(p3[0]-p1[0])*t},${p2[1]-(p3[1]-p1[1])*t} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+// Hero chart
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const svg = $('#hero-chart'), tip = $('#tip'), demo = $('#demo');
+const W = 520, H = 280, pad = {l:38, r:10, t:10, b:26};
+let mode = 'line', series = gen(), shown = series.map(s => s.map(() => 0));
+
+function gen(){
+  const mk = (base, g) => { let v = base; return months.map(() => (v = Math.max(8, v + (Math.random()-.35) * g))); };
+  return [mk(30, 14), mk(18, 11)];
+}
+
+function drawHero(){
+  const max = Math.ceil(Math.max(...series.flat(), 40) / 20) * 20;
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const x = i => pad.l + (iw / (months.length - 1)) * i;
+  const y = v => pad.t + ih - (v / max) * ih;
+  const cols = [css('--accent'), css('--accent2')];
+  let out = `<defs>${cols.map((c,k)=>`<linearGradient id="hg${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".35"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient>`).join('')}</defs>`;
+  for (let i = 0; i <= 4; i++){
+    const v = max / 4 * i, yy = y(v);
+    out += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-dasharray="${i?'3 4':''}"/>`;
+    out += `<text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="10.5" fill="${css('--muted')}">${Math.round(v)}k</text>`;
+  }
+  months.forEach((m,i) => { if (i % 2 === 0) out += `<text x="${x(i)}" y="${H-6}" text-anchor="middle" font-size="10.5" fill="${css('--muted')}">${m}</text>`; });
+
+  if (mode === 'bar'){
+    const bw = iw / months.length / 3.2;
+    shown.forEach((s,k) => s.forEach((v,i) => {
+      out += `<rect x="${x(i) - bw + k*bw - (k?0:1)}" y="${y(v)}" width="${bw-1}" height="${Math.max(0, y(0)-y(v))}" rx="2.5" fill="${cols[k]}"/>`;
+    }));
+  } else {
+    shown.forEach((s,k) => {
+      const pts = s.map((v,i) => [x(i), y(v)]);
+      const d = smooth(pts);
+      if (mode === 'area') out += `<path d="${d} L${x(s.length-1)},${y(0)} L${x(0)},${y(0)} Z" fill="url(#hg${k})"/>`;
+      out += `<path class="line" d="${d}" stroke="${cols[k]}"/>`;
+    });
+  }
+  out += `<line id="hl" y1="${pad.t}" y2="${H-pad.b}" stroke="${css('--muted')}" stroke-dasharray="3 3" opacity="0"/>`;
+  out += shown.map((_,k)=>`<circle id="hd${k}" r="4.5" fill="${css('--card')}" stroke="${cols[k]}" stroke-width="2.5" opacity="0"/>`).join('');
+  out += `<rect id="hov" x="${pad.l}" y="0" width="${iw}" height="${H}" fill="transparent"/>`;
+  svg.innerHTML = out;
+
+  const hov = svg.querySelector('#hov');
+  hov.onmousemove = e => {
+    const r = svg.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (W / r.width);
+    const i = Math.max(0, Math.min(months.length - 1, Math.round((sx - pad.l) / (iw / (months.length - 1)))));
+    const hl = svg.querySelector('#hl');
+    hl.setAttribute('x1', x(i)); hl.setAttribute('x2', x(i)); hl.setAttribute('opacity', mode === 'bar' ? 0 : .6);
+    series.forEach((s,k) => {
+      const c = svg.querySelector('#hd'+k);
+      c.setAttribute('cx', x(i)); c.setAttribute('cy', y(s[i])); c.setAttribute('opacity', mode === 'bar' ? 0 : 1);
+    });
+    tip.innerHTML = `<b>${months[i]} 2026</b><div><i style="background:${cols[0]}"></i>Web: ${series[0][i].toFixed(1)}k</div><div><i style="background:${cols[1]}"></i>Mobile: ${series[1][i].toFixed(1)}k</div>`;
+    const dr = demo.getBoundingClientRect();
+    let left = e.clientX - dr.left + 14;
+    if (left > dr.width - 150) left -= 170;
+    tip.style.left = left + 'px'; tip.style.top = (e.clientY - dr.top - 20) + 'px'; tip.style.opacity = 1;
+  };
+  hov.onmouseleave = () => {
+    tip.style.opacity = 0;
+    svg.querySelectorAll('#hl,[id^=hd]').forEach(n => n.setAttribute('opacity', 0));
+  };
+}
+
+let animId, hovering = false;
+svg.addEventListener('mouseenter', () => hovering = true);
+svg.addEventListener('mouseleave', () => hovering = false);
+function animateTo(){
+  const from = shown.map(s => s.slice()), t0 = performance.now(), dur = 900;
+  cancelAnimationFrame(animId);
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    shown = from.map((s,k) => s.map((v,i) => v + (series[k][i] - v) * e));
+    drawHero();
+    if (p < 1) animId = requestAnimationFrame(step);
+  };
+  animId = requestAnimationFrame(step);
+}
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x === b));
+  mode = b.dataset.mode; drawHero();
+});
+animateTo();
+setInterval(() => { if (!hovering) { series = gen(); animateTo(); } }, 4000);
+
+// Gallery
+const rnd = (n, a, b) => Array.from({length:n}, () => a + Math.random() * (b - a));
+const galleryData = {
+  bar: rnd(9, 20, 100), line: rnd(14, 20, 100), area: rnd(14, 30, 90),
+  scatter: rnd(40, 0, 1).map(() => [Math.random(), Math.random()]),
+  donut: [38, 24, 18, 12, 8], heat: rnd(7*12, 0, 1),
+  radar: rnd(6, .4, 1), candle: (() => { let v = 50; return Array.from({length:16}, () => { const o = v; v += (Math.random() - .48) * 16; v = Math.max(15, Math.min(85, v)); return [o, v, Math.max(o,v) + Math.random()*8, Math.min(o,v) - Math.random()*8]; }); })()
+};
+function drawGallery(){
+  const A = css('--accent'), B = css('--accent2'), C = css('--accent3'), D = css('--accent4'), G = css('--grid');
+  const pal = [A, B, C, D, '#7c4dff'];
+  const W = 260, H = 140, P = 18;
+  const charts = [
+    ['Bar', 'BarChart', () => { const d = galleryData.bar, bw = (W - P*2) / d.length; return d.map((v,i) => `<rect x="${P + i*bw + 3}" y="${H - P - v}" width="${bw - 6}" height="${v}" rx="3" fill="${i===5?B:A}" opacity="${i===5?1:.85}"/>`).join(''); }],
+    ['Line', 'LineChart', () => { const d = galleryData.line, pts = d.map((v,i) => [P + i*(W-P*2)/(d.length-1), H - P - v]); return `<path d="${smooth(pts)}" fill="none" stroke="${A}" stroke-width="2.5"/>` + pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="${A}"/>`).join(''); }],
+    ['Area', 'AreaChart', () => { const d = galleryData.area, pts = d.map((v,i) => [P + i*(W-P*2)/(d.length-1), H - P - v]); return `<defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${B}" stop-opacity=".5"/><stop offset="1" stop-color="${B}" stop-opacity="0"/></linearGradient></defs><path d="${smooth(pts)} L${W-P},${H-P} L${P},${H-P}Z" fill="url(#ga)"/><path d="${smooth(pts)}" fill="none" stroke="${B}" stroke-width="2.5"/>`; }],
+    ['Scatter', 'ScatterPlot', () => galleryData.scatter.map(([a,b],i) => `<circle cx="${P + a*(W-P*2)}" cy="${P + b*(H-P*2)}" r="${3 + (i%4)*1.5}" fill="${pal[i%3]}" opacity=".7"/>`).join('')],
+    ['Donut', 'PieChart', () => { const cx = W/2, cy = H/2, r = 48, sw = 18, C2 = 2*Math.PI*r; let off = 0; return galleryData.donut.map((v,i) => { const len = v/100*C2; const s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${pal[i]}" stroke-width="${sw}" stroke-dasharray="${len-2} ${C2}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`; off += len; return s; }).join('') + `<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="15" font-weight="700" fill="${css('--text')}">38%</text>`; }],
+    ['Heatmap', 'Heatmap', () => { const cw = (W - P*2) / 12, ch = (H - P*2) / 7; return galleryData.heat.map((v,i) => `<rect x="${P + (i%12)*cw + 1}" y="${P + Math.floor(i/12)*ch + 1}" width="${cw-2}" height="${ch-2}" rx="2" fill="${A}" opacity="${.12 + v*.88}"/>`).join(''); }],
+    ['Radar', 'RadarChart', () => { const cx = W/2, cy = H/2, R = 52, n = 6; const pt = (k, s) => [cx + Math.sin(k/n*2*Math.PI)*R*s, cy - Math.cos(k/n*2*Math.PI)*R*s]; let o = ''; [.33,.66,1].forEach(s => o += `<polygon points="${Array.from({length:n},(_,k)=>pt(k,s).join(',')).join(' ')}" fill="none" stroke="${G}"/>`); o += `<polygon points="${galleryData.radar.map((v,k)=>pt(k,v).join(',')).join(' ')}" fill="${D}" fill-opacity=".25" stroke="${D}" stroke-width="2"/>`; return o; }],
+    ['Candlestick', 'Financial', () => { const d = galleryData.candle, bw = (W - P*2) / d.length, sc = v => H - P - (v/100)*(H - P*2); return d.map(([o,c,h,l],i) => { const x = P + i*bw + bw/2, col = c >= o ? B : D; return `<line x1="${x}" x2="${x}" y1="${sc(h)}" y2="${sc(l)}" stroke="${col}" stroke-width="1.5"/><rect x="${x - bw*.3}" y="${sc(Math.max(o,c))}" width="${bw*.6}" height="${Math.max(2, Math.abs(sc(o)-sc(c)))}" rx="1.5" fill="${col}"/>`; }).join(''); }],
+  ];
+  $('#gal').innerHTML = charts.map(([name, api, fn]) => `<a href="#" class="g-card"><svg viewBox="0 0 ${W} ${H}">${fn()}</svg><div class="meta"><b>${name}</b><span>${api}</span></div></a>`).join('');
+}
+drawGallery();
+</script>
+</body>
+</html>

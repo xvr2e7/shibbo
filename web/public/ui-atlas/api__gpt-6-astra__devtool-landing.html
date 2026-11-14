@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f5ee">
+  <meta name="description" content="Tern finds the database queries slowing you down. A lightweight, read-only command-line tool for faster databases.">
+  <title>Tern — Less waiting. Better queries.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;450;500;550;600;650;700;750&display=swap" rel="stylesheet">
+  <style>
+    :root{--paper:#f4f5ee;--ink:#202d29;--muted:#737c70;--line:#d9ddd1;--green:#d6f399;--orange:#f59162;--mono:"DM Mono",monospace;--sans:"DM Sans",sans-serif}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:30px}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+    button,a,input{ -webkit-tap-highlight-color:transparent}
+    button,a{touch-action:manipulation}
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+    button:focus-visible,a:focus-visible{outline:3px solid #8ab34d;outline-offset:5px}
+    .container{width:min(1216px,calc(100% - 96px));margin:auto}
+    header{height:102px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:11px;font-size:32px;font-weight:750;letter-spacing:-1.8px}
+    .bird{width:35px;height:32px;fill:var(--ink)}
+    .nav{display:flex;align-items:center;gap:34px;font-size:13px;font-weight:550}
+    .nav a{transition:color .2s}.nav a:hover{color:#799348}
+    .nav .nav-cta{border:1px solid #b9c1b2;border-radius:6px;padding:11px 16px;display:flex;align-items:center;gap:14px}
+    .tiny-arrow{font-size:17px;font-weight:400}
+    .hero{display:grid;grid-template-columns:1fr 1.08fr;gap:58px;padding:88px 0 78px;align-items:center}
+    .eyebrow{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:9px}
+    .release{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:50px;padding:7px 11px 7px 8px;font-size:11px;color:#606c5d;margin-bottom:27px}
+    .release span:first-child{font:9px var(--mono);background:#e1e8d5;color:#425436;padding:3px 6px;border-radius:10px}
+    h1{font-weight:550;font-size:clamp(48px,5.6vw,76px);line-height:1.04;letter-spacing:-4.5px;margin:0 0 26px}
+    h1 .highlight{display:inline-block;position:relative;z-index:0}
+    h1 .highlight:after{content:"";position:absolute;bottom:3px;left:-3px;right:-5px;height:19px;background:var(--green);z-index:-1;transform:rotate(-1deg)}
+    .hero-description{max-width:390px;color:#6a7569;font-size:16px;line-height:1.75;margin:0 0 30px}
+    .install-command{display:flex;background:var(--ink);color:#f4f5ee;align-items:center;border-radius:6px;max-width:380px;padding:17px 15px;gap:12px;box-shadow:0 3px 0 #d8ddce}
+    .prompt{color:#a2bb89;font-family:var(--mono)}
+    .install-command code{font:12px var(--mono);flex:1}
+    .copy{border:0;background:none;color:#bbc5b6;cursor:pointer;padding:2px;display:grid;place-items:center;min-width:25px;min-height:25px}
+    .copy:hover{color:var(--green)}
+    .copy svg{width:17px;height:17px}
+    .install-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);margin-top:15px}
+    .install-meta .dot{width:3px;height:3px;background:#9aa38f;border-radius:50%;margin:0 3px}
+    .demo-wrap{position:relative;min-width:0}
+    .demo-wrap:before{content:"";position:absolute;inset:25px -24px -24px 24px;background-image:radial-gradient(#a6b298 1px,transparent 1px);background-size:9px 9px;z-index:-1;opacity:.55}
+    .terminal{background:#202b28;color:#e1e9dc;border:1px solid #35433c;border-radius:10px;box-shadow:0 20px 45px -25px #344b3870;overflow:hidden}
+    .terminal-top{height:43px;background:#28332f;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #3c463c;position:relative}
+    .lights{display:flex;gap:6px}.lights i{width:7px;height:7px;background:#677166;border-radius:100%}.lights i:first-child{background:#ac7863}.lights i:nth-child(2){background:#b6a46f}.lights i:nth-child(3){background:#849a6a}
+    .terminal-title{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;font:9px var(--mono);color:#9da998}
+    .terminal-top .live{margin-left:auto;display:flex;align-items:center;gap:5px;font:8px var(--mono);color:#8e9d87}
+    .live:before{content:"";width:4px;height:4px;background:#c7e891;border-radius:50%}
+    .terminal-body{padding:25px 24px 22px;font:10px/1.85 var(--mono)}
+    .terminal-line{white-space:nowrap}
+    .terminal-command{font-size:11px;margin-bottom:20px}
+    .terminal-command .prompt{margin-right:9px;color:var(--green)}
+    .terminal-command .flag{color:#a9b79e}
+    .connection{color:#8c9c84;font-size:9px;line-height:1.9}
+    .check{color:var(--green);margin-right:7px}
+    .scan-label{margin:22px 0 13px;display:flex;align-items:center;justify-content:space-between;font-size:10px}
+    .scan-label small{font:8px var(--mono);color:#8c9c84}
+    .query-row{display:grid;grid-template-columns:23px 1fr 64px;align-items:center;padding:10px 0;border-top:1px solid #3b473c;gap:8px}
+    .query-number{font-size:9px;color:#778773}
+    .query-name{font-size:9px;color:#c4cebc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .query-name .keyword{color:#a1b88c}
+    .duration{text-align:right;font-size:10px;color:#e8ab81}
+    .query-row.active{margin:0 -10px;padding:11px 10px;background:#354033;border:1px solid #526045;border-radius:4px}
+    .query-row.active .duration{color:#fac193}
+    .query-bar{height:3px;background:#404e3a;margin-top:6px;max-width:235px;border-radius:2px}
+    .query-bar span{display:block;height:100%;background:#d39b6b;border-radius:2px}
+    .query-row:nth-of-type(2) .query-bar span{background:#a8b887}
+    .insight{margin-top:17px;border-left:2px solid var(--green);background:#2a372d;padding:10px 12px}
+    .insight-title{color:#d6edaf;font-size:9px;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+    .insight p{margin:0;font-size:8px;line-height:1.8;color:#a0b090}
+    .insight code{color:#cedcbe;font-family:var(--mono)}
+    .terminal-bottom{padding:10px 23px;border-top:1px solid #3b473c;display:flex;align-items:center;justify-content:space-between;font:8px var(--mono);color:#93a186}
+    .terminal-bottom span b{color:var(--green);font-weight:400}
+    .demo-caption{display:flex;align-items:center;justify-content:space-between;margin-top:16px;font:9px var(--mono);color:#7e8877}
+    .replay{border:0;background:none;padding:4px 0;color:#57634e;font:9px var(--mono);cursor:pointer;display:flex;gap:6px;align-items:center}
+    .replay:hover{color:#1d3020}
+    .compatibility{border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-height:100px;display:flex;align-items:center;justify-content:space-between;gap:25px}
+    .compatibility>p{font-size:11px;line-height:1.6;color:#7a8473}
+    .database-list{display:flex;gap:43px;align-items:center}
+    .db{display:flex;align-items:center;gap:9px;color:#63705e;font-weight:650;font-size:17px;letter-spacing:-.5px}
+    .db svg{width:24px;height:27px;stroke:currentColor;fill:none;stroke-width:1.4}
+    .db small{font:8px var(--mono);letter-spacing:0;color:#919a88;margin-top:4px}
+    .read-only{font:9px var(--mono);display:flex;align-items:center;gap:7px;color:#6a7761}
+    .read-only svg{width:15px;height:17px}
+    .workflow{padding:77px 0 71px}
+    .section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:36px;gap:25px}
+    .section-head .eyebrow{color:#738066;margin-bottom:13px}
+    h2{font-size:36px;line-height:1.2;letter-spacing:-1.4px;font-weight:550;margin:0}
+    .section-head>p{font-size:13px;color:#7a8472;line-height:1.7;max-width:275px;margin:0 0 3px}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .step{border:1px solid var(--line);border-radius:7px;padding:24px 24px 0;overflow:hidden;position:relative;min-height:273px}
+    .step-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+    .step-number{font:10px var(--mono);color:#89947e}
+    .step-icon{width:21px;height:21px;stroke:#60754d;fill:none;stroke-width:1.3}
+    h3{font-size:17px;letter-spacing:-.4px;font-weight:600;margin:0 0 9px}
+    .step p{font-size:12px;line-height:1.7;color:#798371;margin:0;max-width:280px}
+    .mini-command{margin-top:26px;background:#e9ece1;padding:15px 12px;border:1px solid #dde2d1;border-radius:5px 5px 0 0;font:9px var(--mono);white-space:nowrap;color:#657456}
+    .mini-command span{color:#99a28e;margin-right:7px}
+    .mini-bars{margin:22px 0 0;display:grid;gap:9px}
+    .mini-bar-row{display:flex;align-items:center;gap:10px;font:8px var(--mono);color:#8a927f}
+    .mini-bar-row .track{height:6px;border-radius:1px;background:#e6e9de;flex:1}
+    .mini-bar-row .track i{display:block;height:100%;background:#bdcd9e}
+    .mini-bar-row:first-child .track i{background:#dc9e78}
+    .mini-bar-row span:last-child{width:39px;text-align:right}
+    .improvement{margin:23px 0 0;border-top:1px solid var(--line);padding:14px 0;display:flex;align-items:center;gap:11px}
+    .improvement .before{font:12px var(--mono);color:#89927f;text-decoration:line-through}
+    .improvement .after{font:19px var(--mono);color:#526842;letter-spacing:-1px}
+    .improvement .badge{margin-left:auto;font:8px var(--mono);background:#dce9c6;color:#5f7549;padding:5px 6px;border-radius:3px}
+    .principles{display:flex;gap:30px;justify-content:center;margin-top:27px;flex-wrap:wrap}
+    .principles span{font:9px var(--mono);color:#738168;display:flex;align-items:center;gap:7px}
+    .principles b{font-weight:400;color:#5e7c42}
+    .bottom-cta{padding:34px 38px;background:#e9eddf;border:1px solid #d8dfcb;border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:30px;margin-bottom:62px;position:relative;overflow:hidden}
+    .bottom-cta h2{font-size:27px;letter-spacing:-.9px;margin-bottom:9px}
+    .bottom-cta p{font-size:12px;color:#78846d;margin:0}
+    .cta-link{background:var(--ink);color:var(--paper);padding:13px 19px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:28px;font-size:12px;white-space:nowrap;transition:background .2s}
+    .cta-link:hover{background:#3f5439}
+    footer{border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:26px 0 32px;gap:25px}
+    footer .brand{font-size:23px;gap:7px;letter-spacing:-1px}
+    footer .bird{width:24px;height:24px}
+    .footer-left{display:flex;align-items:center;gap:24px}
+    .footer-left p{font-size:10px;color:#85907c}
+    .footer-links{display:flex;gap:23px;font:9px var(--mono);color:#7b8772}
+    .status{display:flex;align-items:center;gap:6px}.status:before{content:"";width:5px;height:5px;background:#8aa867;border-radius:50%}
+    .toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,15px);padding:12px 20px;background:var(--ink);color:var(--green);border:1px solid #647453;border-radius:6px;font:11px var(--mono);opacity:0;transition:.2s;pointer-events:none;z-index:5;white-space:nowrap}
+    .toast.visible{opacity:1;transform:translate(-50%,0)}
+    .scanning .query-row,.scanning .insight{animation:reveal .6s both}
+    .scanning .query-row:nth-child(2){animation-delay:.3s}
+    .scanning .query-row:nth-child(3){animation-delay:.6s}
+    .scanning .insight{animation-delay:1s}
+    @keyframes reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    @media(min-width:1400px){.hero{padding-top:102px;padding-bottom:92px}}
+    @media(max-width:1080px){.container{width:calc(100% - 64px)}.hero{gap:32px}h1{font-size:61px;letter-spacing:-3px}.terminal-body{padding:22px 17px}.database-list{gap:25px}.db{font-size:15px}.step{padding:20px 18px 0}.mini-command{font-size:8px}.read-only{font-size:8px}}
+    @media(max-width:820px){header{height:83px}.nav{gap:23px}.hero{grid-template-columns:1fr;gap:48px;padding:55px 0}.hero-copy{max-width:550px}h1{font-size:76px;letter-spacing:-4px}.hero-description{max-width:440px}.demo-wrap{max-width:600px;width:100%}.terminal-body{padding:25px}.terminal-command{font-size:12px}.query-name{font-size:11px}.query-bar{max-width:350px}.connection{font-size:10px}.insight p{font-size:10px}.insight-title{font-size:11px}.terminal-bottom{font-size:9px}.compatibility{flex-wrap:wrap;padding:23px 0;gap:18px}.compatibility>p{margin:0;width:100%}.compatibility>p br{display:none}.database-list{gap:32px}.read-only{margin-left:auto}.section-head{align-items:start}.section-head>p{max-width:215px}.steps{gap:12px}.step{padding:19px 15px 0}.step p{font-size:11px}.mini-command{font-size:7px;padding:15px 7px}.improvement{gap:6px}.improvement .after{font-size:16px}.improvement .badge{font-size:7px;padding:4px}.footer-left{gap:15px}}
+    @media(max-width:600px){.container{width:calc(100% - 40px)}.brand{font-size:29px}.bird{width:30px}.nav{gap:18px;font-size:11px}.nav .desktop-link{display:none}.nav .nav-cta{padding:9px 12px}.hero{padding:40px 0 44px;gap:36px}.release{margin-bottom:23px;font-size:10px}h1{font-size:58px;letter-spacing:-3px}h1 .highlight:after{height:14px}.hero-description{font-size:14px;max-width:340px;margin-bottom:24px}.install-command{max-width:none}.install-command code{font-size:11px}.install-meta{font-size:9px}.demo-wrap:before{inset:15px -10px -12px 12px}.terminal-body{padding:21px 15px}.terminal-command{font-size:9px}.connection{font-size:8px}.query-name{font-size:8px}.query-row{grid-template-columns:18px 1fr 48px;gap:6px}.duration{font-size:9px}.scan-label{font-size:9px}.scan-label small{font-size:7px}.insight p{font-size:8px}.insight-title{font-size:9px}.terminal-bottom{padding:10px 15px;font-size:7px}.demo-caption{font-size:8px}.database-list{gap:23px}.db{font-size:14px;gap:6px}.db svg{width:20px}.db small{display:none}.read-only{margin:0;font-size:8px}.workflow{padding:47px 0}.section-head{display:block;margin-bottom:25px}h2{font-size:31px}.section-head>p{max-width:100%;margin-top:15px;font-size:12px}.steps{grid-template-columns:1fr;gap:14px}.step{min-height:235px;padding:22px 23px 0}.step-top{margin-bottom:19px}.step p{font-size:12px;max-width:100%}.mini-command{font-size:11px;padding:16px}.mini-bars{padding-bottom:22px}.improvement{padding:18px 0;gap:14px}.improvement .after{font-size:21px}.improvement .badge{font-size:9px;padding:6px 8px}.principles{gap:13px 20px;margin-top:23px}.principles span{font-size:8px}.bottom-cta{padding:26px;display:block;margin-bottom:38px}.bottom-cta h2{font-size:25px}.bottom-cta p{line-height:1.7}.cta-link{margin-top:22px;width:fit-content}footer{align-items:start;gap:20px;padding:23px 0}.footer-left{display:block}.footer-left p{font-size:9px;max-width:160px;line-height:1.6;margin:9px 0 0}.footer-links{flex-wrap:wrap;justify-content:end;gap:15px;font-size:8px;max-width:140px}.status{width:100%;justify-content:end}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="#" class="brand" aria-label="Tern home">
+        <svg class="bird" viewBox="0 0 40 36" aria-hidden="true"><path d="M2 6 20 13 37 2 26 20 19 34 16 20 2 6Z"/><path d="m25 20 13 3-10-8Z"/></svg>
+        tern
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="desktop-link" href="#workflow">How it works</a>
+        <a href="#guide" id="docs-link">Docs <span aria-hidden="true">↗</span></a>
+        <a href="#install" class="nav-cta">Get Tern <span class="tiny-arrow" aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <a href="#workflow" class="release"><span>v0.4.0</span> Small tool. Big performance gains. <span aria-hidden="true">↗</span></a>
+          <h1 id="hero-title">Your database.<br>Just <span class="highlight">faster.</span></h1>
+          <p class="hero-description">Find the queries slowing you down.<br>Tern turns database noise into clear, actionable insights. Right from your terminal.</p>
+          <div class="install-command" id="install">
+            <span class="prompt" aria-hidden="true">$</span>
+            <code>brew install tern</code>
+            <button class="copy" aria-label="Copy install command" data-copy="brew install tern">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
+          <div class="install-meta"><span>Open source</span><i class="dot"></i><span>Free forever</span><i class="dot"></i><span>No agents. No dashboards.</span></div>
+        </div>
+
+        <div class="demo-wrap">
+          <div class="terminal" aria-label="Example Tern query analysis">
+            <div class="terminal-top">
+              <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="terminal-title">tern — ~/your-next-big-thing</span>
+              <span class="live">CLI</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line terminal-command"><span class="prompt">❯</span>tern analyze <span class="flag">--db</span> postgres://localhost/app</div>
+              <div class="connection"><span class="check">✓</span>Connected to app · PostgreSQL 16.2</div>
+              <div class="connection"><span class="check">✓</span>Analyzed 1,284 queries in 2.1s</div>
+              <div class="scan-label"><span>3 queries worth your attention</span><small>sorted by impact ↓</small></div>
+              <div id="query-results">
+                <div class="query-row active">
+                  <span class="query-number">01</span>
+                  <div><div class="query-name"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> user_id = $1</div><div class="query-bar"><span style="width:94%"></span></div></div>
+                  <span class="duration">842 ms</span>
+                </div>
+                <div class="query-row">
+                  <span class="query-number">02</span>
+                  <div><div class="query-name"><span class="keyword">SELECT</span> count(*) <span class="keyword">FROM</span> events ...</div><div class="query-bar"><span style="width:57%;background:#a8b887"></span></div></div>
+                  <span class="duration">391 ms</span>
+                </div>
+                <div class="query-row">
+                  <span class="query-number">03</span>
+                  <div><div class="query-name"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">ORDER BY</span> ...</div><div class="query-bar"><span style="width:29%;background:#849b73"></span></div></div>
+                  <span class="duration">156 ms</span>
+                </div>
+                <div class="insight">
+                  <div class="insight-title"><span aria-hidden="true">↳</span> Missing index on orders.user_id</div>
+                  <p>A sequential scan is reading 248,912 rows.<br>Try: <code>CREATE INDEX ON orders (user_id);</code></p>
+                </div>
+              </div>
+            </div>
+            <div class="terminal-bottom"><span><b>↑ 94%</b> potential speedup on your slowest query</span><span>read-only. always.</span></div>
+          </div>
+          <div class="demo-caption"><span>A little clarity for your command line.</span><button class="replay" id="replay"><span aria-hidden="true">↻</span> Replay demo</button></div>
+        </div>
+      </section>
+
+      <section class="compatibility" aria-label="Database compatibility">
+        <p>Fits your stack.<br>Stays out of your way.</p>
+        <div class="database-list">
+          <div class="db">
+            <svg viewBox="0 0 28 30" aria-hidden="true"><path d="M7 21c-3-2-5-8-4-13 1-5 6-6 11-4 5-2 10 0 11 4 1 5-2 11-5 13l-2-5M8 8c3-3 10-3 13 0l-2 12c0 5-1 7-4 7-2 0-3-2-2-4l1-9M7 9l2 11c1 2 4 1 5-1M19 10h.1M11 10h.1"/></svg>
+            PostgreSQL
+          </div>
+          <div class="db">
+            <svg viewBox="0 0 30 28" aria-hidden="true"><path d="M2 20c5-8 12-13 22-12-2-3-6-5-9-5 4 3 4 5 2 7-4 1-6 4-8 7l-7 3Zm15-10 6 6 5 2-3-4M9 17l3 5 2-6"/></svg>
+            MySQL
+          </div>
+          <div class="db">
+            <svg viewBox="0 0 25 28" aria-hidden="true"><rect x="3" y="4" width="15" height="21" rx="2"/><path d="M8 21c2-9 7-15 15-19-2 8-6 13-12 17M10 17l5-1M13 12l5-1"/></svg>
+            SQLite <small>soon</small>
+          </div>
+        </div>
+        <div class="read-only"><svg viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m10 2 7 3v6c0 4-7 8-7 8s-7-4-7-8V5l7-3Z"/><path d="m6 10 3 3 5-6"/></svg>Safe by default</div>
+      </section>
+
+      <section class="workflow" id="workflow" aria-labelledby="workflow-title">
+        <div class="section-head">
+          <div><div class="eyebrow">Less guesswork. More shipping.</div><h2 id="workflow-title">From slow to solved.</h2></div>
+          <p>No setup marathon. No observability stack.<br>Just three steps to a happier database.</p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <div class="step-top"><span class="step-number">01 / CONNECT</span><svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3 5 5M3 8l5 5m1-8-4 4 7 7 4-4-7-7Zm6 10 4 4m0-6 3 3-6 6-3-3"/></svg></div>
+            <h3>Point it at your database.</h3>
+            <p>One connection string. That’s it. Tern works with the database you already have.</p>
+            <div class="mini-command"><span>❯</span> tern connect postgres://localhost/app</div>
+          </article>
+          <article class="step">
+            <div class="step-top"><span class="step-number">02 / UNCOVER</span><svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V6m0 12h18M7 14V9m5 5V4m5 10V7m4 7v-3"/></svg></div>
+            <h3>Find the real bottlenecks.</h3>
+            <p>Surface expensive queries, missing indexes, and the patterns costing you time.</p>
+            <div class="mini-bars" aria-label="Query durations">
+              <div class="mini-bar-row"><span>01</span><div class="track"><i style="width:90%"></i></div><span>842 ms</span></div>
+              <div class="mini-bar-row"><span>02</span><div class="track"><i style="width:49%"></i></div><span>391 ms</span></div>
+              <div class="mini-bar-row"><span>03</span><div class="track"><i style="width:24%"></i></div><span>156 ms</span></div>
+            </div>
+          </article>
+          <article class="step">
+            <div class="step-top"><span class="step-number">03 / IMPROVE</span><svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 2-9 12h6l-1 8 9-13h-6l1-7Z"/></svg></div>
+            <h3>Know what to do next.</h3>
+            <p>Get practical suggestions, not another chart. Make a change. See the difference.</p>
+            <div class="improvement"><span class="before">842ms</span><span style="color:#9aa48e">→</span><span class="after">48ms</span><span class="badge">17× faster</span></div>
+          </article>
+        </div>
+        <div class="principles"><span><b>✓</b> Read-only access</span><span><b>✓</b> Your data stays yours</span><span><b>✓</b> No background agents</span><span><b>✓</b> Built for developers</span></div>
+      </section>
+
+      <section class="bottom-cta">
+        <div><h2>Good things come to those who don’t wait.</h2><p>Your next performance win is one command away.</p></div>
+        <a href="#install" class="cta-link">Make it faster <span class="tiny-arrow" aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-left">
+        <a href="#" class="brand" aria-label="Tern home"><svg class="bird" viewBox="0 0 40 36" aria-hidden="true"><path d="M2 6 20 13 37 2 26 20 19 34 16 20 2 6Z"/><path d="m25 20 13 3-10-8Z"/></svg>tern</a>
+        <p>A small tool for a faster world.</p>
+      </div>
+      <div class="footer-links"><a href="#guide" class="open-docs">Documentation ↗</a><a href="#install">Install ↗</a><span class="status">Less latency. More life.</span></div>
+    </footer>
+  </div>
+
+  <dialog id="guide" style="width:min(570px,calc(100% - 32px));border:1px solid #b9c5aa;border-radius:10px;padding:30px;background:#f4f5ee;color:#202d29;box-shadow:0 20px 90px #202d2940">
+    <form method="dialog" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px"><span class="eyebrow">TERN / QUICK START</span><button aria-label="Close documentation" style="border:0;background:none;font-size:24px;color:#63705e;cursor:pointer">×</button></form>
+    <h2 style="font-size:30px">Meet your faster database.</h2>
+    <p style="font-size:14px;line-height:1.8;color:#737c70">Install Tern, then analyze your database using a connection string. Use a read-only database account and keep credentials out of your shell history.</p>
+    <h3 style="margin-top:25px">1. Install</h3>
+    <div class="install-command" style="max-width:none"><code>brew install tern</code><button class="copy" data-copy="brew install tern" aria-label="Copy install command">⧉</button></div>
+    <h3 style="margin-top:25px">2. Analyze</h3>
+    <div class="install-command" style="max-width:none"><code style="overflow-wrap:anywhere">tern analyze --db "$DATABASE_URL"</code><button class="copy" data-copy='tern analyze --db "$DATABASE_URL"' aria-label="Copy analysis command">⧉</button></div>
+    <p style="font-size:12px;line-height:1.8;color:#737c70;margin-top:20px">Set <code>DATABASE_URL</code> to your PostgreSQL or MySQL connection string. Review Tern’s recommendations before applying changes. Tern never modifies your database.</p>
+  </dialog>
+  <style>dialog::backdrop{background:#202d2970;backdrop-filter:blur(4px)}</style>
+  <div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
+  <script>
+    const toast = document.getElementById('toast');
+    let toastTimer;
+    function notify(message) {
+      toast.textContent = message;
+      toast.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
+    }
+    document.querySelectorAll('[data-copy]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const text = button.dataset.copy;
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const field = document.createElement('textarea');
+            field.value = text;
+            field.style.position = 'fixed';
+            field.style.opacity = '0';
+            (document.querySelector('dialog[open]') || document.body).appendChild(field);
+            field.select();
+            const copied = document.execCommand('copy');
+            field.remove();
+            if (!copied) throw new Error('Copy unavailable');
+          }
+          notify('✓ Command copied. Your terminal awaits.');
+        } catch (error) {
+          notify('Select the command to copy it manually.');
+        }
+      });
+    });
+    const replay = document.getElementById('replay');
+    const results = document.getElementById('query-results');
+    replay.addEventListener('click', () => {
+      results.classList.remove('scanning');
+      void results.offsetWidth;
+      results.classList.add('scanning');
+      replay.disabled = true;
+      replay.innerHTML = '<span aria-hidden="true">↻</span> Analyzing…';
+      setTimeout(() => {
+        replay.disabled = false;
+        replay.innerHTML = '<span aria-hidden="true">↻</span> Replay demo';
+      }, 1700);
+    });
+    const guide = document.getElementById('guide');
+    document.querySelectorAll('#docs-link, .open-docs').forEach(link => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        guide.showModal();
+      });
+    });
+    guide.addEventListener('click', event => {
+      const rect = guide.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) guide.close();
+    });
+  </script>
+</body>
+</html>

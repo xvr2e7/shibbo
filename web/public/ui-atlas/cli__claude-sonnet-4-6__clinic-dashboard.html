@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedCare — Reception Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --blue: #2563eb;
+      --blue-lt: #eff6ff;
+      --green: #16a34a;
+      --green-lt: #f0fdf4;
+      --amber: #d97706;
+      --amber-lt: #fffbeb;
+      --red: #dc2626;
+      --red-lt: #fef2f2;
+      --purple: #7c3aed;
+      --purple-lt: #f5f3ff;
+      --r: 12px;
+      --rs: 8px;
+      --sh: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--sh);
+    }
+    .h-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 17px; flex-shrink: 0;
+    }
+    .clinic-name { font-weight: 700; font-size: 15px; }
+    .clinic-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .h-right { display: flex; align-items: center; gap: 24px; }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: var(--green);
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .clock-block { text-align: right; }
+    .clock-block .c-date { font-size: 12px; color: var(--muted); }
+    .clock-block .c-time {
+      font-size: 22px; font-weight: 700; color: var(--blue);
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+
+    /* ── Layout ── */
+    .main { padding: 24px; max-width: 1480px; margin: 0 auto; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px 18px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: var(--sh);
+    }
+    .stat-icon {
+      width: 46px; height: 46px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .si-blue   { background: var(--blue-lt);   color: var(--blue);   }
+    .si-green  { background: var(--green-lt);  color: var(--green);  }
+    .si-amber  { background: var(--amber-lt);  color: var(--amber);  }
+    .si-red    { background: var(--red-lt);    color: var(--red);    }
+    .si-purple { background: var(--purple-lt); color: var(--purple); }
+    .stat-val   { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Dashboard 2-col ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      align-items: start;
+    }
+    .left-col, .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Card shell ── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--sh);
+      overflow: hidden;
+    }
+    .card-hd {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title {
+      font-weight: 600; font-size: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title i { color: var(--blue); }
+    .chip {
+      display: inline-flex; align-items: center;
+      padding: 2px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .chip-blue   { background: var(--blue-lt);   color: var(--blue);   }
+    .chip-red    { background: var(--red-lt);     color: var(--red);    }
+    .chip-purple { background: var(--purple-lt);  color: var(--purple); }
+
+    /* ── Filter tabs ── */
+    .filter-tabs { display: flex; gap: 3px; }
+    .ftab {
+      padding: 4px 11px; border-radius: 6px;
+      font-size: 12px; font-weight: 500;
+      cursor: pointer; border: none; background: none;
+      color: var(--muted); transition: all .15s;
+    }
+    .ftab:hover:not(.active) { background: var(--bg); color: var(--text); }
+    .ftab.active { background: var(--blue); color: #fff; }
+
+    /* ── Schedule ── */
+    .sch-thead {
+      display: grid;
+      grid-template-columns: 82px 1fr 148px 108px 90px 118px;
+      padding: 9px 20px;
+      background: #f8fafc;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sch-body { max-height: 540px; overflow-y: auto; }
+    .sch-row {
+      display: grid;
+      grid-template-columns: 82px 1fr 148px 108px 90px 118px;
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background .12s;
+      border-left: 3px solid transparent;
+    }
+    .sch-row:last-child { border-bottom: none; }
+    .sch-row:hover { background: #f8fafc; }
+    .sch-row.in-progress {
+      background: #fffcf0;
+      border-left-color: var(--amber);
+    }
+    .sch-row.in-progress:hover { background: #fffbeb; }
+    .sch-row.no-show { background: #fff9f9; border-left-color: var(--red); }
+    .sch-row.completed { opacity: .58; }
+
+    .s-time { font-weight: 600; font-size: 13px; }
+    .s-name { font-weight: 500; font-size: 13px; }
+    .s-type { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .s-dr   { font-size: 13px; color: var(--muted); }
+    .s-dur  { font-size: 12px; color: var(--muted); }
+
+    .room-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--blue-lt); color: var(--blue);
+      padding: 2px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 500;
+    }
+
+    /* status badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .b-done      { background: var(--green-lt);  color: var(--green); }
+    .b-progress  { background: var(--amber-lt);  color: var(--amber); }
+    .b-upcoming  { background: var(--blue-lt);   color: var(--blue); }
+    .b-noshow    { background: var(--red-lt);    color: var(--red); }
+
+    /* ── Rooms ── */
+    .rooms-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; padding: 16px;
+    }
+    .room-card {
+      border-radius: var(--rs);
+      padding: 13px 14px;
+      border: 1px solid var(--border);
+    }
+    .room-card.occupied  { background: #fffcf0; border-color: #fcd34d; }
+    .room-card.available { background: var(--green-lt); border-color: #86efac; }
+    .room-card.procedure { background: var(--purple-lt); border-color: #c4b5fd; }
+    .room-card.blocked   { background: #f8fafc; border-color: var(--border); }
+
+    .rm-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+    .rm-name { font-weight: 600; font-size: 13px; }
+    .rm-dot  { width: 9px; height: 9px; border-radius: 50%; }
+    .rd-occ  { background: var(--amber); }
+    .rd-free { background: var(--green); }
+    .rd-proc { background: var(--purple); }
+    .rd-blk  { background: #94a3b8; }
+
+    .rm-patient { font-weight: 500; font-size: 12px; color: var(--text); }
+    .rm-detail  { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.6; }
+    .rm-free-label { font-weight: 500; font-size: 12px; }
+    .rm-free-label.green { color: #15803d; }
+    .rm-free-label.gray  { color: #94a3b8; }
+
+    /* ── No-shows ── */
+    .ns-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .ns-item:last-child { border-bottom: none; }
+    .ns-item:hover { background: #f8fafc; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 12px; flex-shrink: 0;
+      background: var(--red-lt); color: var(--red);
+    }
+
+    .ns-info { flex: 1; min-width: 0; }
+    .ns-name { font-weight: 500; font-size: 13px; }
+    .ns-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .ns-right { text-align: right; flex-shrink: 0; }
+    .ns-time { font-size: 12px; font-weight: 600; color: var(--red); }
+    .contact-btn {
+      margin-top: 4px;
+      display: block;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-size: 11px; font-weight: 500;
+      cursor: pointer; color: var(--blue);
+      transition: all .15s; white-space: nowrap;
+      font-family: inherit;
+    }
+    .contact-btn:hover { background: var(--blue-lt); border-color: var(--blue); }
+
+    /* ── Up Next ── */
+    .un-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .un-item:last-child { border-bottom: none; }
+    .un-time { font-weight: 600; font-size: 12px; width: 56px; flex-shrink: 0; color: var(--text); }
+    .un-dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .un-dot.soon { background: var(--amber); }
+    .un-name { font-weight: 500; font-size: 13px; }
+    .un-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      background: #1e293b; color: #f1f5f9;
+      padding: 12px 18px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      display: flex; align-items: center; gap: 10px;
+      transform: translateY(80px); opacity: 0;
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast i { color: #60a5fa; }
+
+    /* ── Scrollbar ── */
+    .sch-body::-webkit-scrollbar { width: 5px; }
+    .sch-body::-webkit-scrollbar-track { background: transparent; }
+    .sch-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1120px) {
+      .dash-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .sch-thead, .sch-row { grid-template-columns: 80px 1fr 130px 90px 110px; }
+      .col-dur { display: none; }
+    }
+    @media (max-width: 680px) {
+      .header { padding: 0 16px; }
+      .main { padding: 14px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .sch-thead, .sch-row { grid-template-columns: 72px 1fr 100px; }
+      .col-dr, .col-dur { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="h-left">
+    <div class="logo"><i class="fa-solid fa-stethoscope"></i></div>
+    <div>
+      <div class="clinic-name">MedCare Family Practice</div>
+      <div class="clinic-sub">Reception Dashboard</div>
+    </div>
+  </div>
+  <div class="h-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live
+    </div>
+    <div class="clock-block">
+      <div class="c-date" id="js-date">Monday, November 10, 2026</div>
+      <div class="c-time" id="js-clock">9:45 AM</div>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon si-blue"><i class="fa-solid fa-calendar-day"></i></div>
+      <div>
+        <div class="stat-val">24</div>
+        <div class="stat-label">Scheduled Today</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-green"><i class="fa-solid fa-circle-check"></i></div>
+      <div>
+        <div class="stat-val">3</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-amber"><i class="fa-solid fa-user-clock"></i></div>
+      <div>
+        <div class="stat-val">4</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-red"><i class="fa-solid fa-person-walking-arrow-right"></i></div>
+      <div>
+        <div class="stat-val">3</div>
+        <div class="stat-label">No-Shows</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-purple"><i class="fa-solid fa-door-open"></i></div>
+      <div>
+        <div class="stat-val">4 / 6</div>
+        <div class="stat-label">Rooms in Use</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="dash-grid">
+
+    <!-- Schedule -->
+    <div class="left-col">
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">
+            <i class="fa-solid fa-calendar-check"></i>
+            Today's Schedule
+          </div>
+          <div class="filter-tabs">
+            <button class="ftab active" onclick="filterSch('all',this)">All</button>
+            <button class="ftab" onclick="filterSch('in-progress',this)">Active</button>
+            <button class="ftab" onclick="filterSch('upcoming',this)">Upcoming</button>
+            <button class="ftab" onclick="filterSch('completed',this)">Done</button>
+            <button class="ftab" onclick="filterSch('no-show',this)">No-Show</button>
+          </div>
+        </div>
+        <div class="sch-thead">
+          <div>Time</div>
+          <div>Patient</div>
+          <div class="col-dr">Provider</div>
+          <div>Room</div>
+          <div class="col-dur">Duration</div>
+          <div>Status</div>
+        </div>
+        <div class="sch-body" id="sch-body"></div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- Rooms -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">
+            <i class="fa-solid fa-door-open"></i>
+            Exam Rooms
+          </div>
+          <span class="chip chip-purple">4 Occupied</span>
+        </div>
+        <div class="rooms-grid">
+
+          <div class="room-card occupied">
+            <div class="rm-hd">
+              <div class="rm-name">Room 1</div>
+              <div class="rm-dot rd-occ"></div>
+            </div>
+            <div class="rm-patient">David Park</div>
+            <div class="rm-detail">
+              Dr. Chen<br>
+              Routine Check<br>
+              Since 10:00 AM
+            </div>
+          </div>
+
+          <div class="room-card occupied">
+            <div class="rm-hd">
+              <div class="rm-name">Room 2</div>
+              <div class="rm-dot rd-occ"></div>
+            </div>
+            <div class="rm-patient">Robert Thompson</div>
+            <div class="rm-detail">
+              Dr. Williams<br>
+              Consultation<br>
+              Since 9:15 AM
+            </div>
+          </div>
+
+          <div class="room-card occupied">
+            <div class="rm-hd">
+              <div class="rm-name">Room 3</div>
+              <div class="rm-dot rd-occ"></div>
+            </div>
+            <div class="rm-patient">Lisa Chen</div>
+            <div class="rm-detail">
+              Dr. Patel<br>
+              Flu Symptoms<br>
+              Since 9:30 AM
+            </div>
+          </div>
+
+          <div class="room-card available">
+            <div class="rm-hd">
+              <div class="rm-name">Room 4</div>
+              <div class="rm-dot rd-free"></div>
+            </div>
+            <div class="rm-free-label green">Available</div>
+            <div class="rm-detail">General Exam<br>Ready for use</div>
+          </div>
+
+          <div class="room-card procedure">
+            <div class="rm-hd">
+              <div class="rm-name">Procedure</div>
+              <div class="rm-dot rd-proc"></div>
+            </div>
+            <div class="rm-patient">Anna Reyes</div>
+            <div class="rm-detail">
+              Dr. Nguyen<br>
+              ECG<br>
+              Since 9:00 AM
+            </div>
+          </div>
+
+          <div class="room-card available">
+            <div class="rm-hd">
+              <div class="rm-name">Lab Room</div>
+              <div class="rm-dot rd-free"></div>
+            </div>
+            <div class="rm-free-label green">Available</div>
+            <div class="rm-detail">Blood draws<br>Ready for use</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- No-shows -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">
+            <i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i>
+            No-Shows
+          </div>
+          <span class="chip chip-red">3 Today</span>
+        </div>
+        <div>
+          <div class="ns-item">
+            <div class="avatar">MK</div>
+            <div class="ns-info">
+              <div class="ns-name">Maria Kim</div>
+              <div class="ns-sub">Dr. Williams · Diabetes Follow-up</div>
+            </div>
+            <div class="ns-right">
+              <div class="ns-time">8:30 AM</div>
+              <button class="contact-btn" onclick="showToast('Contacting Maria Kim…')">Contact</button>
+            </div>
+          </div>
+          <div class="ns-item">
+            <div class="avatar">CM</div>
+            <div class="ns-info">
+              <div class="ns-name">Carlos Mendez</div>
+              <div class="ns-sub">Dr. Chen · Routine Check</div>
+            </div>
+            <div class="ns-right">
+              <div class="ns-time">9:00 AM</div>
+              <button class="contact-btn" onclick="showToast('Contacting Carlos Mendez…')">Contact</button>
+            </div>
+          </div>
+          <div class="ns-item">
+            <div class="avatar">HP</div>
+            <div class="ns-info">
+              <div class="ns-name">Helen Park</div>
+              <div class="ns-sub">Dr. Patel · Blood Test Review</div>
+            </div>
+            <div class="ns-right">
+              <div class="ns-time">9:30 AM</div>
+              <button class="contact-btn" onclick="showToast('Contacting Helen Park…')">Contact</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Up next -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">
+            <i class="fa-solid fa-forward"></i>
+            Up Next
+          </div>
+          <span class="chip chip-blue">5 Remaining</span>
+        </div>
+        <div>
+          <div class="un-item">
+            <div class="un-time">10:30</div>
+            <div class="un-dot soon"></div>
+            <div>
+              <div class="un-name">James Wilson</div>
+              <div class="un-sub">Dr. Patel · Back Pain · Room 3</div>
+            </div>
+          </div>
+          <div class="un-item">
+            <div class="un-time">11:00</div>
+            <div class="un-dot"></div>
+            <div>
+              <div class="un-name">Amanda Foster</div>
+              <div class="un-sub">Dr. Chen · Vaccination · Room 1</div>
+            </div>
+          </div>
+          <div class="un-item">
+            <div class="un-time">11:00</div>
+            <div class="un-dot"></div>
+            <div>
+              <div class="un-name">Kevin Lee</div>
+              <div class="un-sub">Dr. Williams · Annual Physical · Room 2</div>
+            </div>
+          </div>
+          <div class="un-item">
+            <div class="un-time">11:30</div>
+            <div class="un-dot"></div>
+            <div>
+              <div class="un-name">Patricia Moore</div>
+              <div class="un-sub">Dr. Patel · Headache · Room 3</div>
+            </div>
+          </div>
+          <div class="un-item">
+            <div class="un-time">12:00 PM</div>
+            <div class="un-dot"></div>
+            <div>
+              <div class="un-name">Daniel Wright</div>
+              <div class="un-sub">Dr. Nguyen · Post-surgery · Procedure</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+  </div><!-- /dash-grid -->
+</main>
+
+<!-- Toast -->
+<div id="toast"><i class="fa-solid fa-phone-flip"></i><span id="toast-msg"></span></div>
+
+<script>
+  /* ── Clock ── */
+  function tick() {
+    const now = new Date();
+    document.getElementById('js-clock').textContent =
+      now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    document.getElementById('js-date').textContent =
+      now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* ── Schedule data ── */
+  const appts = [
+    { time: '8:00 AM',  patient: 'John Martinez',   type: 'Annual Physical',      dr: 'Dr. Chen',     room: 'Room 1',    dur: '30 min', status: 'completed'   },
+    { time: '8:30 AM',  patient: 'Sarah Kim',        type: 'Follow-up',            dr: 'Dr. Patel',    room: 'Room 3',    dur: '20 min', status: 'completed'   },
+    { time: '8:30 AM',  patient: 'Maria Kim',        type: 'Diabetes Follow-up',   dr: 'Dr. Williams', room: 'Room 2',    dur: '30 min', status: 'no-show'     },
+    { time: '9:00 AM',  patient: 'Emily Rodriguez',  type: 'Blood Pressure Check', dr: 'Dr. Chen',     room: 'Room 1',    dur: '20 min', status: 'completed'   },
+    { time: '9:00 AM',  patient: 'Carlos Mendez',    type: 'Routine Check',        dr: 'Dr. Chen',     room: 'Room 1',    dur: '30 min', status: 'no-show'     },
+    { time: '9:00 AM',  patient: 'Anna Reyes',       type: 'ECG',                  dr: 'Dr. Nguyen',   room: 'Procedure', dur: '45 min', status: 'in-progress' },
+    { time: '9:15 AM',  patient: 'Robert Thompson',  type: 'Consultation',         dr: 'Dr. Williams', room: 'Room 2',    dur: '45 min', status: 'in-progress' },
+    { time: '9:30 AM',  patient: 'Helen Park',       type: 'Blood Test Review',    dr: 'Dr. Patel',    room: 'Room 3',    dur: '20 min', status: 'no-show'     },
+    { time: '9:30 AM',  patient: 'Lisa Chen',        type: 'Flu Symptoms',         dr: 'Dr. Patel',    room: 'Room 3',    dur: '20 min', status: 'in-progress' },
+    { time: '10:00 AM', patient: 'David Park',       type: 'Routine Check',        dr: 'Dr. Chen',     room: 'Room 1',    dur: '30 min', status: 'in-progress' },
+    { time: '10:30 AM', patient: 'James Wilson',     type: 'Back Pain',            dr: 'Dr. Patel',    room: 'Room 3',    dur: '30 min', status: 'upcoming'    },
+    { time: '11:00 AM', patient: 'Amanda Foster',    type: 'Vaccination',          dr: 'Dr. Chen',     room: 'Room 1',    dur: '15 min', status: 'upcoming'    },
+    { time: '11:00 AM', patient: 'Kevin Lee',        type: 'Annual Physical',      dr: 'Dr. Williams', room: 'Room 2',    dur: '45 min', status: 'upcoming'    },
+    { time: '11:30 AM', patient: 'Patricia Moore',   type: 'Headache',             dr: 'Dr. Patel',    room: 'Room 3',    dur: '20 min', status: 'upcoming'    },
+    { time: '12:00 PM', patient: 'Daniel Wright',    type: 'Post-surgery Check',   dr: 'Dr. Nguyen',   room: 'Procedure', dur: '30 min', status: 'upcoming'    },
+    { time: '1:00 PM',  patient: 'Sandra Harris',    type: 'Annual Physical',      dr: 'Dr. Chen',     room: 'Room 1',    dur: '45 min', status: 'upcoming'    },
+    { time: '1:30 PM',  patient: 'Michael Torres',   type: 'Blood Pressure',       dr: 'Dr. Williams', room: 'Room 2',    dur: '20 min', status: 'upcoming'    },
+    { time: '2:00 PM',  patient: 'Thomas Brown',     type: 'Follow-up',            dr: 'Dr. Chen',     room: 'Room 1',    dur: '20 min', status: 'upcoming'    },
+    { time: '2:00 PM',  patient: 'Grace Liu',        type: 'Prenatal Visit',       dr: 'Dr. Patel',    room: 'Room 3',    dur: '30 min', status: 'upcoming'    },
+    { time: '2:30 PM',  patient: 'Jennifer Davis',   type: 'Skin Rash',            dr: 'Dr. Williams', room: 'Room 2',    dur: '20 min', status: 'upcoming'    },
+    { time: '3:00 PM',  patient: 'Paul Martinez',    type: 'Flu Symptoms',         dr: 'Dr. Chen',     room: 'Room 1',    dur: '20 min', status: 'upcoming'    },
+    { time: '3:30 PM',  patient: 'Rachel Green',     type: 'Allergy Consult',      dr: 'Dr. Patel',    room: 'Room 3',    dur: '30 min', status: 'upcoming'    },
+    { time: '4:00 PM',  patient: 'Steven Clark',     type: 'Routine Check',        dr: 'Dr. Williams', room: 'Room 2',    dur: '30 min', status: 'upcoming'    },
+    { time: '4:30 PM',  patient: 'Nancy White',      type: 'Annual Physical',      dr: 'Dr. Chen',     room: 'Room 1',    dur: '45 min', status: 'upcoming'    },
+  ];
+
+  const badgeMap = {
+    completed:   '<span class="badge b-done"><i class="fa-solid fa-check"></i> Done</span>',
+    'in-progress':'<span class="badge b-progress"><i class="fa-solid fa-rotate fa-spin"></i> In Progress</span>',
+    upcoming:    '<span class="badge b-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span>',
+    'no-show':   '<span class="badge b-noshow"><i class="fa-solid fa-xmark"></i> No-Show</span>',
+  };
+
+  function renderSch(filter) {
+    const rows = filter === 'all' ? appts : appts.filter(a => a.status === filter);
+    document.getElementById('sch-body').innerHTML = rows.map(a => `
+      <div class="sch-row ${a.status}">
+        <div class="s-time">${a.time}</div>
+        <div>
+          <div class="s-name">${a.patient}</div>
+          <div class="s-type">${a.type}</div>
+        </div>
+        <div class="s-dr col-dr">${a.dr}</div>
+        <div><span class="room-tag"><i class="fa-solid fa-door-open" style="font-size:9px"></i>${a.room}</span></div>
+        <div class="s-dur col-dur">${a.dur}</div>
+        <div>${badgeMap[a.status]}</div>
+      </div>
+    `).join('');
+  }
+
+  function filterSch(f, btn) {
+    document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSch(f);
+  }
+
+  renderSch('all');
+
+  /* ── Toast ── */
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

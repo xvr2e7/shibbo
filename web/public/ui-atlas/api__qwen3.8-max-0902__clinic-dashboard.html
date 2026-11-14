@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cedar Grove Family Clinic — Front Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3f7f4; --panel:#ffffff; --ink:#122a22; --sub:#5c6f66; --faint:#93a39a;
+    --line:rgba(18,42,34,.13); --line2:rgba(18,42,34,.07);
+    --pine:#0c6b52; --pine-deep:#0a4d3c; --mint:#e2efe8; --mint2:#d3e7dd;
+    --blue:#2f7fd1; --blue-t:#e7f0fb;
+    --amber:#c97a0a; --amber-t:#fbf0df;
+    --coral:#d24b3f; --coral-t:#fbeae7;
+    --disp:'Bricolage Grotesque',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(18,42,34,.05), 0 14px 34px -18px rgba(18,42,34,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--body); color:var(--ink); background:var(--paper);
+    background-image:
+      radial-gradient(900px 480px at 6% -8%, rgba(12,107,82,.10), transparent 60%),
+      radial-gradient(820px 460px at 102% -4%, rgba(201,122,10,.09), transparent 55%),
+      radial-gradient(700px 500px at 50% 118%, rgba(47,127,209,.06), transparent 60%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{ /* faint clinic dot-grid */
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:radial-gradient(rgba(18,42,34,.055) 1px, transparent 1.3px);
+    background-size:26px 26px;
+  }
+  .app{position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:0 26px 48px}
+  .mono{font-family:var(--mono)}
+  @keyframes rise{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}}
+  @keyframes rowIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  @keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(2.1);opacity:0}100%{transform:scale(2.1);opacity:0}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.16)}100%{transform:scale(1)}}
+  .bump{animation:bump .4s ease}
+
+  /* ───────── top bar ───────── */
+  header.top{
+    position:sticky; top:0; z-index:50; margin:0 -26px; padding:14px 26px;
+    background:rgba(255,255,255,.92); backdrop-filter:blur(8px);
+    border-bottom:1.5px solid var(--line);
+    display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+    animation:rise .5s both;
+  }
+  .brand{display:flex; align-items:center; gap:13px}
+  .mark{position:relative; width:42px; height:42px; border-radius:12px; flex:none;
+    background:linear-gradient(145deg,var(--pine),var(--pine-deep));
+    box-shadow:0 6px 14px -6px rgba(12,107,82,.55);}
+  .mark::before,.mark::after{content:""; position:absolute; background:#fff; border-radius:2px; top:50%; left:50%}
+  .mark::before{width:20px;height:5px;transform:translate(-50%,-50%)}
+  .mark::after{width:5px;height:20px;transform:translate(-50%,-50%)}
+  .mark i{position:absolute; right:-3px; bottom:-3px; width:11px; height:11px; border-radius:50%;
+    background:var(--coral); border:2px solid #fff}
+  .brand h1{font-family:var(--disp); font-weight:800; font-size:19px; letter-spacing:-.01em}
+  .brand small{display:block; font-size:12px; color:var(--sub); font-weight:500; margin-top:1px}
+  .top-meta{margin-left:auto; display:flex; align-items:center; gap:20px; flex-wrap:wrap}
+  .clockbox{text-align:right}
+  .clockbox .date{font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--sub); font-weight:600}
+  .clockbox .clock{font-family:var(--mono); font-weight:600; font-size:27px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1}
+  .livechip{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; font-weight:600;
+    letter-spacing:.14em; color:var(--coral); border:1px solid rgba(210,75,63,.35); background:var(--coral-t);
+    padding:4px 9px; border-radius:999px}
+  .livechip b{width:6px;height:6px;border-radius:50%;background:var(--coral);animation:blink 1.6s infinite}
+  .sync{font-size:11px; color:var(--faint); display:flex; align-items:center; gap:6px}
+  .sync b{width:7px;height:7px;border-radius:50%;background:var(--pine);position:relative}
+  .sync b::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--pine);animation:pulse 2.4s infinite}
+  .btn{font-family:var(--body); font-weight:600; font-size:13px; border-radius:10px; padding:9px 15px; cursor:pointer;
+    border:1.5px solid transparent; transition:transform .15s ease, box-shadow .15s ease, background .15s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn-pine{background:var(--pine); color:#fff; box-shadow:0 8px 18px -8px rgba(12,107,82,.6)}
+  .btn-pine:hover{background:var(--pine-deep); transform:translateY(-1px)}
+  .btn-ghost{background:#fff; border-color:var(--line); color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--pine); color:var(--pine); transform:translateY(-1px)}
+
+  /* ───────── stat strip ───────── */
+  .statrail{margin-top:20px; background:var(--panel); border:1.5px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); display:grid; grid-template-columns:repeat(5,1fr); overflow:hidden;
+    animation:rise .5s .06s both}
+  .stat{padding:18px 24px 16px; position:relative}
+  .stat + .stat{border-left:1px solid var(--line2)}
+  .stat .lb{font-size:10.5px; letter-spacing:.15em; text-transform:uppercase; font-weight:700; color:var(--sub)}
+  .stat .nm{font-family:var(--disp); font-weight:800; font-size:36px; letter-spacing:-.02em; line-height:1.15;
+    font-variant-numeric:tabular-nums; margin-top:3px}
+  .stat .sb{font-size:12px; color:var(--faint); margin-top:1px}
+  .stat.warn .nm{color:var(--coral)}
+  .rdots{display:flex; gap:4px; margin-top:7px}
+  .rdot{width:9px;height:9px;border-radius:50%;background:var(--line);transition:background .3s}
+  .rdot.on{background:var(--pine)}
+
+  /* ───────── layout ───────── */
+  .grid{margin-top:18px; display:grid; grid-template-columns:minmax(0,1fr) 384px; gap:18px; align-items:start}
+  .colR{display:flex; flex-direction:column; gap:18px}
+  .panel{background:var(--panel); border:1.5px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
+  .panel.sched{animation:rise .5s .12s both}
+  .panel.nspanel{animation:rise .5s .2s both}
+  .panel.roompanel{animation:rise .5s .28s both}
+  .phead{padding:18px 20px 14px; display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .phead h2{font-family:var(--disp); font-weight:800; font-size:20px; letter-spacing:-.01em}
+  .phead .sub{font-size:12px; color:var(--sub); margin-top:2px}
+  .phead .meta{font-family:var(--mono); font-size:11px; color:var(--faint)}
+
+  .count{display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 7px;
+    border-radius:999px; font-family:var(--mono); font-size:12px; font-weight:600; vertical-align:3px; margin-left:8px}
+  .count.coral{background:var(--coral-t); color:var(--coral); border:1px solid rgba(210,75,63,.3)}
+  .count.pine{background:var(--mint); color:var(--pine); border:1px solid rgba(12,107,82,.25)}
+
+  /* tabs + providers */
+  .controls{padding:0 20px 14px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border-bottom:1px solid var(--line2)}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap}
+  .tab{font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; border:1.5px solid var(--line);
+    background:#fff; color:var(--sub); cursor:pointer; transition:all .15s ease}
+  .tab span{font-family:var(--mono); font-size:10.5px; opacity:.75; margin-left:3px}
+  .tab:hover{border-color:var(--pine); color:var(--pine); transform:translateY(-1px)}
+  .tab.on{background:var(--pine); border-color:var(--pine); color:#fff}
+  .provs{display:flex; align-items:center; gap:8px}
+  .provs .plabel{font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--faint); margin-right:2px}
+  .prov{display:flex; align-items:center; gap:7px; border:1.5px solid var(--line); background:#fff; border-radius:999px;
+    padding:4px 10px 4px 4px; cursor:pointer; transition:all .15s ease}
+  .prov:hover{transform:translateY(-1px); border-color:var(--pc)}
+  .prov.on{border-color:var(--pc); box-shadow:0 0 0 3px color-mix(in srgb, var(--pc) 18%, transparent)}
+  .prov i{width:26px;height:26px;border-radius:50%; background:var(--pc); color:#fff; font-style:normal;
+    font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center}
+  .prov span{font-size:12px; font-weight:600}
+
+  /* ───────── schedule ───────── */
+  .sched-scroll{max-height:calc(100vh - 322px); min-height:430px; overflow-y:auto; position:relative}
+  .sched-scroll::-webkit-scrollbar{width:10px}
+  .sched-scroll::-webkit-scrollbar-thumb{background:rgba(18,42,34,.16); border-radius:99px; border:3px solid #fff}
+  .hour{position:sticky; top:0; z-index:5; background:rgba(255,255,255,.94); backdrop-filter:blur(5px);
+    padding:7px 20px 6px; font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.14em;
+    color:var(--faint); border-bottom:1px dashed var(--line); text-transform:uppercase}
+  .tl{position:relative; padding-bottom:26px}
+  .appt{display:grid; grid-template-columns:86px 1fr auto; gap:14px; align-items:center;
+    padding:12px 18px 12px 16px; border-bottom:1px solid var(--line2); position:relative; cursor:pointer;
+    transition:background .15s, transform .15s, box-shadow .15s; animation:rowIn .35s both}
+  .appt::before{content:""; position:absolute; left:0; top:10px; bottom:10px; width:3px; border-radius:0 3px 3px 0; background:var(--sc,transparent)}
+  .appt:hover{background:#fff; transform:translateY(-1px); box-shadow:0 8px 20px -14px rgba(18,42,34,.35); z-index:2}
+  .appt .at{font-family:var(--mono); font-weight:600; font-size:13px; font-variant-numeric:tabular-nums}
+  .appt .at small{display:block; font-weight:400; font-size:10.5px; color:var(--faint); margin-top:2px}
+  .arow{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
+  .pname{font-weight:650; font-size:14.5px; letter-spacing:-.01em}
+  .rchip{font-family:var(--mono); font-size:10.5px; font-weight:500; padding:2.5px 7px; border-radius:6px;
+    border:1px solid var(--line); background:#fafcfb; color:var(--sub)}
+  .asub{font-size:12px; color:var(--sub); margin-top:3px}
+  .prog{height:4px; background:var(--line2); border-radius:99px; margin-top:8px; overflow:hidden}
+  .prog i{display:block; height:100%; width:0%; background:var(--pine); border-radius:99px; transition:width 1s linear}
+  .ast{display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+  .pill{display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:700; letter-spacing:.09em;
+    text-transform:uppercase; padding:4.5px 10px; border-radius:999px; white-space:nowrap}
+  .pill b{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+  .pill.progress b{animation:blink 1.4s infinite}
+  .livetime{font-family:var(--mono); font-size:10.5px; color:var(--pine); font-weight:500}
+  .st-next{--sc:var(--line)}            .st-next .pill{background:#eef1ef;color:#6b7a72}
+  .st-wait{--sc:var(--blue)}            .st-wait .pill{background:var(--blue-t);color:var(--blue)}
+  .st-progress{--sc:var(--pine); background:linear-gradient(90deg, rgba(12,107,82,.05), transparent 55%)}
+                                        .st-progress .pill{background:var(--mint);color:var(--pine)}
+  .st-done{--sc:#c3ccc7; opacity:.55}   .st-done .pill{background:#eef1ef;color:#7c8a82}
+  .st-noshow{--sc:var(--coral); background:linear-gradient(90deg, rgba(210,75,63,.06), transparent 60%)}
+                                        .st-noshow .pill{background:var(--coral-t);color:var(--coral)}
+  .appt.dim{opacity:.3}
+  .appt.huddle{cursor:default; background:repeating-linear-gradient(-45deg,#fbfcfb,#fbfcfb 8px,#f5f8f6 8px,#f5f8f6 16px)}
+  .appt.huddle:hover{transform:none;box-shadow:none}
+  .appt.huddle .pname{color:var(--sub); font-weight:600}
+  .mini{font-size:11px; font-weight:600; padding:5px 10px; border-radius:8px; cursor:pointer; border:1.5px solid; transition:all .15s ease}
+  .mini.re{background:var(--coral); border-color:var(--coral); color:#fff}
+  .mini.re:hover{background:#b93d32; transform:translateY(-1px)}
+  .mini.call{background:#fff; border-color:rgba(210,75,63,.4); color:var(--coral)}
+  .mini.call:hover{background:var(--coral-t)}
+
+  .nowline{position:absolute; left:10px; right:14px; height:0; border-top:2px solid var(--coral); z-index:6; pointer-events:none; transition:transform 1s linear}
+  .nowline::before{content:""; position:absolute; left:-5px; top:-5.5px; width:9px; height:9px; border-radius:50%; background:var(--coral)}
+  .nowline::after{content:""; position:absolute; left:-5px; top:-5.5px; width:9px; height:9px; border-radius:50%; background:var(--coral); animation:pulse 2s infinite}
+  .nowline em{position:absolute; right:0; top:0; transform:translateY(-50%); font-style:normal;
+    font-family:var(--mono); font-size:10.5px; font-weight:600; color:#fff; background:var(--coral);
+    padding:2.5px 8px; border-radius:6px; box-shadow:0 4px 10px -4px rgba(210,75,63,.7)}
+
+  /* ───────── rooms ───────── */
+  .rooms{display:grid; grid-template-columns:1fr 1fr; gap:11px; padding:0 16px 16px}
+  .roomcard{border:1.4px solid var(--line); border-radius:12px; padding:12px 13px 11px; background:#fff; cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; animation:rowIn .35s both}
+  .roomcard:hover{transform:translateY(-2px); box-shadow:0 10px 22px -14px rgba(18,42,34,.4)}
+  .roomcard.inuse{border-color:rgba(12,107,82,.45); box-shadow:0 6px 16px -12px rgba(12,107,82,.55)}
+  .roomcard.turn{border-color:rgba(201,122,10,.5); background:#fffdf9}
+  .rhead{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+  .rname{font-family:var(--disp); font-weight:700; font-size:13.5px}
+  .rdot2{width:8px;height:8px;border-radius:50%;background:var(--line)}
+  .inuse .rdot2{background:var(--pine); position:relative}
+  .inuse .rdot2::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--pine);animation:pulse 2.2s infinite}
+  .turn .rdot2{background:var(--amber)}
+  .rbody{display:flex; align-items:center; gap:10px; min-height:40px}
+  .rinfo{flex:1; min-width:0}
+  .rinfo b{display:block; font-size:13px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .rinfo span{display:block; font-size:11px; color:var(--sub); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ringwrap{position:relative; width:44px; height:44px; flex:none}
+  .ring{transform:rotate(-90deg)}
+  .rbg{fill:none; stroke:var(--line2); stroke-width:4}
+  .rfg{fill:none; stroke:var(--pine); stroke-width:4; stroke-linecap:round; stroke-dasharray:106.8; stroke-dashoffset:106.8; transition:stroke-dashoffset 1s linear, stroke .3s}
+  .ringwrap.soon .rfg{stroke:var(--amber)}
+  .rt{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; font-weight:600}
+  .rfoot{margin-top:8px; font-family:var(--mono); font-size:10.5px; color:var(--faint)}
+  .inuse .rfoot{color:var(--pine)} .turn .rfoot{color:var(--amber)}
+  .occ{margin:0 16px 16px; padding:12px 14px; background:#f8faf9; border:1px dashed var(--line); border-radius:10px}
+  .occ .obar{height:6px; background:var(--line2); border-radius:99px; overflow:hidden; margin-top:8px}
+  .occ .obar i{display:block; height:100%; background:linear-gradient(90deg,var(--pine),#189a76); border-radius:99px; transition:width .6s ease}
+  .occ .ot{display:flex; justify-content:space-between; font-size:11px; color:var(--sub)}
+  .occ .ot b{font-family:var(--mono); color:var(--pine)}
+
+  /* ───────── no-shows ───────── */
+  .nslist{padding:0 16px 16px; display:flex; flex-direction:column; gap:10px}
+  .ns{display:grid; grid-template-columns:52px 1fr; gap:4px 12px; padding:12px 14px; border-radius:12px;
+    border:1.4px solid rgba(210,75,63,.35); background:linear-gradient(90deg, rgba(210,75,63,.05), #fff 70%);
+    transition:opacity .3s, transform .3s; animation:rowIn .35s both}
+  .ns.leaving{opacity:0; transform:translateX(18px)}
+  .ns .nst{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--coral); grid-row:1/3; padding-top:2px}
+  .ns b{font-size:14px; font-weight:650}
+  .ns small{display:block; font-size:11.5px; color:var(--sub); margin-top:1px}
+  .ns .nsa{grid-column:2; display:flex; gap:7px; margin-top:9px}
+  .empty{margin:0 16px 16px; padding:20px; border-radius:12px; background:var(--mint); border:1.5px dashed rgba(12,107,82,.35);
+    text-align:center}
+  .empty .ck{width:34px;height:34px;border-radius:50%;background:var(--pine);color:#fff;display:inline-flex;
+    align-items:center;justify-content:center;font-size:16px;margin-bottom:8px}
+  .empty p{font-size:13px; font-weight:600; color:var(--pine-deep)}
+  .empty small{font-size:11.5px; color:var(--sub)}
+
+  /* ───────── drawer ───────── */
+  .scrim{position:fixed; inset:0; background:rgba(18,42,34,.32); opacity:0; pointer-events:none; transition:opacity .3s; z-index:70}
+  .scrim.show{opacity:1; pointer-events:auto}
+  .drawer{position:fixed; top:0; right:0; bottom:0; width:min(430px,100%); background:var(--panel); z-index:80;
+    border-left:1.5px solid var(--line); box-shadow:-24px 0 60px -30px rgba(18,42,34,.45);
+    transform:translateX(103%); transition:transform .38s cubic-bezier(.22,.9,.3,1); overflow-y:auto}
+  .drawer.open{transform:none}
+  .dhead{padding:24px 24px 18px; border-bottom:1px solid var(--line2); position:relative}
+  .dhead .x{position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:9px; border:1.5px solid var(--line);
+    background:#fff; cursor:pointer; font-size:14px; color:var(--sub); transition:all .15s}
+  .dhead .x:hover{border-color:var(--coral); color:var(--coral); transform:rotate(90deg)}
+  .dhead h3{font-family:var(--disp); font-weight:800; font-size:24px; letter-spacing:-.02em}
+  .dhead .dage{font-size:13px; color:var(--sub); margin-top:3px}
+  .dhead .pill{margin-top:12px}
+  .dgrid{padding:8px 24px; display:grid; grid-template-columns:112px 1fr; row-gap:0}
+  .dgrid dt{font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; font-weight:700; color:var(--faint);
+    padding:12px 0; border-bottom:1px dashed var(--line2); align-self:center}
+  .dgrid dd{font-size:13.5px; font-weight:550; padding:12px 0; border-bottom:1px dashed var(--line2)}
+  .dnote{margin:16px 24px 0; padding:12px 14px; border-radius:10px; background:var(--amber-t); border:1px solid rgba(201,122,10,.3);
+    font-size:12.5px; color:#8a5606; line-height:1.45}
+  .dhx{margin:14px 24px 0; font-size:11.5px; color:var(--faint)}
+  .dact{padding:20px 24px 30px; display:flex; gap:9px; flex-wrap:wrap}
+  .dact .btn{flex:1; min-width:120px}
+  .btn-coral{background:#fff; border-color:rgba(210,75,63,.45); color:var(--coral)}
+  .btn-coral:hover{background:var(--coral-t); transform:translateY(-1px)}
+
+  /* ───────── toasts ───────── */
+  .toasts{position:fixed; right:22px; bottom:22px; z-index:100; display:flex; flex-direction:column; gap:9px}
+  .toast{display:flex; align-items:center; gap:11px; background:var(--ink); color:#eaf3ef; font-size:13px; font-weight:500;
+    padding:12px 16px; border-radius:11px; box-shadow:0 16px 34px -14px rgba(18,42,34,.6); max-width:340px;
+    animation:rowIn .28s both; transition:opacity .3s, transform .3s}
+  .toast.out{opacity:0; transform:translateY(8px)}
+  .toast i{font-style:normal; width:22px; height:22px; border-radius:50%; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:11px; font-weight:700}
+  .toast.ok i{background:var(--pine)} .toast.warn i{background:var(--coral)} .toast.info i{background:var(--blue)}
+
+  @media (max-width:1080px){
+    .grid{grid-template-columns:1fr}
+    .sched-scroll{max-height:540px}
+    .rooms{grid-template-columns:repeat(auto-fill,minmax(158px,1fr))}
+    .statrail{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+    .stat + .stat{border-left:none; border-top:1px solid var(--line2)}
+    .clockbox .clock{font-size:22px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════ TOP BAR ══════════ -->
+  <header class="top">
+    <div class="brand">
+      <div class="mark"><i></i></div>
+      <div>
+        <h1>Cedar Grove Family Clinic</h1>
+        <small>Front desk · Day view · <span id="dayLabel"></span></small>
+      </div>
+    </div>
+    <div class="top-meta">
+      <span class="livechip"><b></b>LIVE</span>
+      <div class="sync"><b></b><span id="syncTxt">Synced just now</span></div>
+      <div class="clockbox">
+        <div class="date" id="clockDate"></div>
+        <div class="clock" id="clockTime">--:--:--</div>
+      </div>
+      <button class="btn btn-ghost" id="btnSheet">Call sheet</button>
+      <button class="btn btn-pine" id="btnNew">+ New visit</button>
+    </div>
+  </header>
+
+  <!-- ══════════ STAT STRIP ══════════ -->
+  <section class="statrail" id="statrail">
+    <div class="stat"><div class="lb">Today's visits</div><div class="nm" id="stTotal">0</div><div class="sb" id="stDone">0 completed</div></div>
+    <div class="stat"><div class="lb">In waiting room</div><div class="nm" id="stWait">0</div><div class="sb">checked in</div></div>
+    <div class="stat"><div class="lb">In exam now</div><div class="nm" id="stProg">0</div><div class="sb">with provider</div></div>
+    <div class="stat warn"><div class="lb">No-shows</div><div class="nm" id="stNo">0</div><div class="sb" id="stNoSub">unreached</div></div>
+    <div class="stat"><div class="lb">Rooms in use</div><div class="nm" id="stRooms">0/7</div><div class="rdots" id="rdots"></div></div>
+  </section>
+
+  <div class="grid">
+
+    <!-- ══════════ SCHEDULE ══════════ -->
+    <section class="panel sched">
+      <div class="phead">
+        <div>
+          <h2>Today's schedule<span class="count pine" id="schedCount"></span></h2>
+          <div class="sub" id="schedSub"></div>
+        </div>
+        <div class="meta" id="schedMeta"></div>
+      </div>
+      <div class="controls">
+        <div class="tabs" id="tabs">
+          <button class="tab on" data-tab="all">All<span id="cAll"></span></button>
+          <button class="tab" data-tab="wait">Waiting<span id="cWait"></span></button>
+          <button class="tab" data-tab="progress">In progress<span id="cProg"></span></button>
+          <button class="tab" data-tab="next">Upcoming<span id="cNext"></span></button>
+          <button class="tab" data-tab="noshow">No-shows<span id="cNo"></span></button>
+        </div>
+        <div class="provs" id="provs"><span class="plabel">On shift</span></div>
+      </div>
+      <div class="sched-scroll" id="schedScroll">
+        <div class="tl" id="timeline"></div>
+      </div>
+    </section>
+
+    <div class="colR">
+
+      <!-- ══════════ NO-SHOWS ══════════ -->
+      <section class="panel nspanel">
+        <div class="phead">
+          <div>
+            <h2>No-shows<span class="count coral" id="nsCount">0</span></h2>
+            <div class="sub">Missed appointments · outreach queue</div>
+          </div>
+          <div class="meta" id="nsMeta"></div>
+        </div>
+        <div class="nslist" id="nsList"></div>
+      </section>
+
+      <!-- ══════════ ROOMS ══════════ -->
+      <section class="panel roompanel">
+        <div class="phead">
+          <div>
+            <h2>Rooms</h2>
+            <div class="sub">7 rooms · live occupancy</div>
+          </div>
+          <div class="meta" id="roomMeta"></div>
+        </div>
+        <div class="rooms" id="rooms"></div>
+        <div class="occ">
+          <div class="ot"><span>Utilization, so far today</span><b id="occPct">0%</b></div>
+          <div class="obar"><i id="occBar" style="width:0%"></i></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- drawer + scrim + toasts -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ═══════════════ DATA ═══════════════ */
+const PROV = {
+  okafor:   {name:'Dr. Amara Okafor',   short:'A. Okafor',     init:'AO', c:'#0c6b52'},
+  lindqvist:{name:'Dr. Elias Lindqvist',short:'E. Lindqvist',  init:'EL', c:'#2f6fb2'},
+  ramos:    {name:'Priya Ramos, PA-C',  short:'P. Ramos, PA-C',init:'PR', c:'#b05a12'},
+  chen:     {name:'Marcus Chen, NP',    short:'M. Chen, NP',   init:'MC', c:'#12857e'}
+};
+const ROOMS = ['Exam 1','Exam 2','Exam 3','Exam 4','Exam 5','Exam 6','Procedure'];
+const APPTS = [
+ {id:'a1', t:480, d:20, name:'Beatriz Almeida',  age:58, prov:'okafor',   room:'Exam 1',    type:'BP follow-up',        phone:'(415) 555-0114', note:'Interpreter requested · Spanish'},
+ {id:'a2', t:480, d:20, name:'Genevieve Osei',   age:34, prov:'ramos',    room:'Exam 2',    type:'Annual physical',     phone:'(415) 555-0172', noShow:true},
+ {id:'a3', t:500, d:30, name:'Harold Whitfield', age:72, prov:'lindqvist',room:'Exam 1',    type:'Diabetes management', phone:'(415) 555-0139', note:'Bring glucometer logs'},
+ {id:'a4', t:510, d:20, name:'Tomás Rivera',     age:8,  prov:'chen',     room:'Exam 3',    type:'Well-child · 8 yr',   phone:'(415) 555-0186'},
+ {id:'a5', t:540, d:20, name:'Dana Kowalczyk',   age:45, prov:'okafor',   room:'Exam 1',    type:'Lab review',          phone:'(415) 555-0128'},
+ {id:'a6', t:540, d:30, name:'Marcus Bell',      age:61, prov:'lindqvist',room:'Exam 2',    type:'Cardiology follow-up',phone:'(415) 555-0151', note:'New palpitations — ECG ordered'},
+ {id:'a7', t:560, d:20, name:'Ingrid Solberg',   age:67, prov:'ramos',    room:'Exam 4',    type:'B12 injection',       phone:'(415) 555-0195', noShow:true},
+ {id:'a8', t:580, d:20, name:'Yusuf Abdi',       age:29, prov:'chen',     room:'Exam 3',    type:'Ankle sprain',        phone:'(415) 555-0143', note:'X-ray ordered · left ankle'},
+ {id:'a9', t:600, d:30, name:'Priya Natarajan',  age:41, prov:'okafor',   room:'Exam 2',    type:'Annual physical',     phone:'(415) 555-0167'},
+ {id:'a10',t:615, d:45, name:'Walter Brandt',    age:70, prov:'lindqvist',room:'Procedure', type:'Skin lesion removal', phone:'(415) 555-0119', note:'Consent signed · lidocaine on hand'},
+ {id:'a11',t:620, d:20, name:'Alice Thibodeaux', age:52, prov:'ramos',    room:'Exam 4',    type:'Thyroid follow-up',   phone:'(415) 555-0102'},
+ {id:'a12',t:640, d:20, name:'Kenji Morita',     age:36, prov:'chen',     room:'Exam 3',    type:'New patient intake',  phone:'(415) 555-0181'},
+ {id:'a13',t:660, d:30, name:'Sofia Marchetti',  age:63, prov:'okafor',   room:'Exam 1',    type:'COPD follow-up',      phone:'(415) 555-0136'},
+ {id:'a14',t:680, d:20, name:'Dev Patel',        age:24, prov:'ramos',    room:'Exam 4',    type:'Travel vaccines',     phone:'(415) 555-0158'},
+ {id:'a15',t:690, d:20, name:'Renata Vasquez',   age:48, prov:'chen',     room:'Exam 2',    type:'Migraine consult',    phone:'(415) 555-0173', noShow:true},
+ {id:'a16',t:700, d:30, name:'Oliver Grant',     age:6,  prov:'lindqvist',room:'Exam 3',    type:'Ear pain · acute',    phone:'(415) 555-0147', note:'Guardian on file: M. Grant'},
+ {id:'a17',t:720, d:20, name:'Mai Nguyen',       age:39, prov:'okafor',   room:'Exam 1',    type:'Results consult',     phone:'(415) 555-0122'}
+];
+const HUDDLE = {t:720, d:30};
+const OV = {};                       // manual status overrides
+const state = {tab:'all', prov:null};
+
+/* ═══════════════ CLOCK (anchored morning) ═══════════════ */
+const boot = Date.now();
+const v0 = new Date(); v0.setHours(10,24,0,0);
+const midnight = new Date(v0); midnight.setHours(0,0,0,0);
+function virt(){ return new Date(v0.getTime() + (Date.now()-boot)); }
+function nowMin(){ return (virt()-midnight)/60000; }
+const p2 = n => String(n).padStart(2,'0');
+function fmt12(min){ let h=Math.floor(min/60), m=Math.round(min%60); const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+p2(m)+' '+ap; }
+function fmtShort(min){ let h=Math.floor(min/60), m=Math.round(min%60); return (h%12||12)+':'+p2(m)+(h>=12?'p':'a'); }
+const dayStr = virt().toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'});
+document.getElementById('dayLabel').textContent = dayStr;
+
+/* ═══════════════ STATUS ENGINE ═══════════════ */
+function statusOf(a){
+  if(OV[a.id]==='gone') return 'gone';
+  if(OV[a.id]) return OV[a.id];
+  if(a.noShow) return 'noshow';
+  const nm = nowMin();
+  if(nm >= a.t+a.d) return 'done';
+  if(nm >= a.t)     return 'progress';
+  if(a.t - nm <= 40) return 'wait';
+  return 'next';
+}
+const visible = () => APPTS.filter(a => statusOf(a)!=='gone');
+const STATMAP = {
+  wait:{label:'Waiting', cls:'wait'}, progress:{label:'In progress', cls:'progress'},
+  next:{label:'Scheduled', cls:'next'}, done:{label:'Done', cls:'done'}, noshow:{label:'No-show', cls:'noshow'}
+};
+
+/* ═══════════════ RENDER: SCHEDULE ═══════════════ */
+function rowHTML(a, s, i){
+  const p = PROV[a.prov];
+  let tail = `<span class="pill ${STATMAP[s].cls}"><b></b>${STATMAP[s].label}</span>`;
+  if(s==='progress') tail += `<span class="livetime" data-live="${a.id}"></span>`;
+  if(s==='noshow')   tail += `<button class="mini re" data-re="${a.id}">Reschedule</button>`;
+  const dim = (state.prov && state.prov!==a.prov) ? ' dim' : '';
+  return `<article class="appt st-${s}${dim}" data-id="${a.id}" data-min="${a.t}" data-dur="${a.d}" tabindex="0"
+    style="animation-delay:${Math.min(i*22,420)}ms">
+    <div class="at">${fmt12(a.t)}<small>${a.d} min</small></div>
+    <div class="am">
+      <div class="arow"><span class="pname">${a.name}</span><span class="rchip">${a.room}</span>${a.note?'<span class="rchip" style="color:var(--amber);border-color:rgba(201,122,10,.35)">⚑ note</span>':''}</div>
+      <div class="asub">${a.type} · ${p.short}</div>
+      ${s==='progress'?`<div class="prog"><i data-prog="${a.id}"></i></div>`:''}
+    </div>
+    <div class="ast">${tail}</div>
+  </article>`;
+}
+function renderSchedule(){
+  const list = visible().sort((a,b)=>a.t-b.t);
+  const match = a => state.tab==='all' ? true : statusOf(a)===state.tab;
+  let html='', lastH=null, i=0;
+  list.forEach(a=>{
+    const s = statusOf(a);
+    const h = Math.floor(a.t/60);
+    if(state.tab==='all' && h!==lastH){ lastH=h; html += `<div class="hour">${p2(h%12||12)}:00 ${h>=12?'PM':'AM'}</div>`; }
+    if(!match(a)) return;
+    html += rowHTML(a, s, i++);
+  });
+  if(state.tab==='all') html += `<article class="appt huddle"><div class="at">${fmt12(HUDDLE.t)}<small>${HUDDLE.d} min</small></div>
+    <div class="am"><div class="arow"><span class="pname">Front-desk huddle</span><span class="rchip">All staff</span></div>
+    <div class="asub">Charting catch-up · phone triage rotation · afternoon prep</div></div>
+    <div class="ast"><span class="pill next"><b></b>Blocked</span></div></article>`;
+  if(!html || (state.tab!=='all' && !list.some(match)))
+    html = `<div style="padding:44px 20px;text-align:center;color:var(--faint);font-size:13px">Nothing in this view right now.</div>`;
+  html += `<div class="nowline" id="nowline" style="${state.tab==='all'?'':'display:none'}"><em id="nowLabel"></em></div>`;
+  document.getElementById('timeline').innerHTML = html;
+  positionNowLine();
+}
+
+/* ═══════════════ RENDER: NO-SHOWS ═══════════════ */
+function renderNoShows(){
+  const ns = visible().filter(a=>statusOf(a)==='noshow').sort((a,b)=>a.t-b.t);
+  const el = document.getElementById('nsList');
+  document.getElementById('nsCount').textContent = ns.length;
+  document.getElementById('nsMeta').textContent = ns.length ? ns.length+' to rebook' : 'queue clear';
+  if(!ns.length){
+    el.innerHTML = `<div class="empty"><div class="ck">✓</div><p>Every patient rebooked</p><small>Outreach queue is clear — nice work.</small></div>`;
+    return;
+  }
+  el.innerHTML = ns.map((a,i)=>`
+    <div class="ns" data-id="${a.id}" style="animation-delay:${i*60}ms">
+      <div class="nst">${fmtShort(a.t)}</div>
+      <div><b>${a.name}</b><small>${a.type} · ${PROV[a.prov].short} · ${a.phone}</small></div>
+      <div class="nsa">
+        <button class="mini call" data-call="${a.id}">☎ Call</button>
+        <button class="mini re" data-re="${a.id}">Reschedule</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════ RENDER: ROOMS ═══════════════ */
+function renderRooms(){
+  const vis = visible();
+  const nm = nowMin();
+  const cards = ROOMS.map((room,i)=>{
+    const occ = vis.find(a=>a.room===room && statusOf(a)==='progress');
+    const next = vis.filter(a=>a.room===room && ['wait','next'].includes(statusOf(a))).sort((a,b)=>a.t-b.t)[0];
+    let cls='', body='', foot='';
+    if(occ){
+      cls='inuse';
+      const soon = (occ.t+occ.d - nm) <= 5;
+      body = `<div class="rinfo"><b>${occ.name}</b><span>${PROV[occ.prov].short} · ${occ.type}</span></div>
+        <div class="ringwrap${soon?' soon':''}"><svg class="ring" width="44" height="44" viewBox="0 0 44 44">
+        <circle class="rbg" cx="22" cy="22" r="17"/><circle class="rfg" cx="22" cy="22" r="17" data-ring="${occ.id}"/></svg>
+        <span class="rt" data-rt="${occ.id}"></span></div>`;
+      foot = `<span data-rfoot="${occ.id}"></span> · ends ${fmtShort(occ.t+occ.d)}`;
+    } else if(next && next.t - nm <= 25){
+      cls='turn';
+      body = `<div class="rinfo"><b>Next · ${next.name}</b><span>${PROV[next.prov].short} · ${next.type}</span></div>`;
+      foot = `Turns over in ${Math.max(1,Math.round(next.t-nm))} min`;
+    } else {
+      body = next
+        ? `<div class="rinfo"><b style="color:var(--sub);font-weight:600">Open</b><span>Next · ${next.name} ${fmtShort(next.t)}</span></div>`
+        : `<div class="rinfo"><b style="color:var(--sub);font-weight:600">Open</b><span>No visits booked</span></div>`;
+      foot = 'available';
+    }
+    return `<div class="roomcard ${cls}" data-room="${room}" data-appt="${occ?occ.id:''}" style="animation-delay:${i*40}ms">
+      <div class="rhead"><span class="rname">${room}</span><span class="rdot2"></span></div>
+      <div class="rbody">${body}</div>
+      <div class="rfoot mono">${foot}</div>
+    </div>`;
+  });
+  document.getElementById('rooms').innerHTML = cards.join('');
+}
+
+/* ═══════════════ RENDER: STATS / PROVIDERS / TABS ═══════════════ */
+function counts(){
+  const vis = visible(); const c = {all:vis.length, wait:0, progress:0, next:0, noshow:0, done:0};
+  vis.forEach(a=>{ const s=statusOf(a); if(c[s]!==undefined) c[s]++; });
+  return c;
+}
+function setNum(el, val, str){
+  const txt = str!==undefined ? str : val;
+  if(el.textContent != String(txt)){ el.textContent = txt; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+}
+function renderStats(){
+  const c = counts();
+  const inUse = ROOMS.filter(r=>visible().some(a=>a.room===r && statusOf(a)==='progress')).length;
+  setNum(document.getElementById('stTotal'), c.all);
+  document.getElementById('stDone').textContent = c.done+' completed';
+  setNum(document.getElementById('stWait'), c.wait);
+  setNum(document.getElementById('stProg'), c.progress);
+  setNum(document.getElementById('stNo'), c.noshow);
+  document.getElementById('stNoSub').textContent = c.noshow ? 'unreached' : 'none today';
+  setNum(document.getElementById('stRooms'), null, inUse+'/'+ROOMS.length);
+  document.getElementById('rdots').innerHTML = ROOMS.map(r=>{
+    const on = visible().some(a=>a.room===r && statusOf(a)==='progress');
+    return `<span class="rdot${on?' on':''}"></span>`;
+  }).join('');
+  /* tab counts */
+  document.getElementById('cAll').textContent=c.all; document.getElementById('cWait').textContent=c.wait;
+  document.getElementById('cProg').textContent=c.progress; document.getElementById('cNext').textContent=c.next;
+  document.getElementById('cNo').textContent=c.noshow;
+  document.getElementById('schedCount').textContent=c.all;
+  document.getElementById('schedSub').textContent = dayStr + ' · 8:00 AM – 1:00 PM';
+  const later = c.next + c.wait;
+  document.getElementById('schedMeta').textContent = c.done+' done · '+later+' ahead';
+}
+function renderProviders(){
+  const el = document.getElementById('provs');
+  const vis = visible();
+  el.innerHTML = '<span class="plabel">On shift</span>' + Object.entries(PROV).map(([k,p])=>{
+    const cur = vis.find(a=>a.prov===k && statusOf(a)==='progress');
+    const nxt = vis.filter(a=>a.prov===k && ['wait','next'].includes(statusOf(a))).sort((a,b)=>a.t-b.t)[0];
+    const where = cur ? cur.room : (nxt ? '→ '+nxt.room : 'free');
+    return `<button class="prov${state.prov===k?' on':''}" data-prov="${k}" style="--pc:${p.c}" title="${p.name} · ${where}">
+      <i>${p.init}</i><span>${p.short.split(',')[0].replace('Dr. ','')}</span></button>`;
+  }).join('');
+}
+
+/* ═══════════════ NOW LINE ═══════════════ */
+function positionNowLine(){
+  const cont = document.getElementById('schedScroll');
+  const tl = document.getElementById('timeline');
+  const nl = document.getElementById('nowline');
+  if(!nl || nl.style.display==='none') return;
+  const rows = [...tl.querySelectorAll('.appt')].filter(r=>r.dataset.min);
+  if(!rows.length) return;
+  const nm = nowMin();
+  const top = r => r.offsetTop;
+  let y;
+  const nxt = rows.find(r=>+r.dataset.min > nm);
+  if(!nxt){ const l=rows[rows.length-1]; y = top(l)+l.offsetHeight; }
+  else {
+    const idx = rows.indexOf(nxt);
+    const prev = idx>0 ? rows[idx-1] : null;
+    const from = prev ? top(prev)+prev.offsetHeight : top(nxt);
+    y = from + Math.min(26, (top(nxt)-from)*0.5);
+  }
+  y = Math.max(6, Math.min(y, tl.scrollHeight-8));
+  nl.style.transform = `translateY(${y}px)`;
+  document.getElementById('nowLabel').textContent = fmt12(nm);
+}
+
+/* ═══════════════ TICKERS ═══════════════ */
+function tickLive(){
+  const nm = nowMin();
+  /* clock */
+  const d = virt(); let h=d.getHours(); const ap=h>=12?'PM':'AM'; h=h%12||12;
+  document.getElementById('clockTime').textContent = `${p2(h)}:${p2(d.getMinutes())}:${p2(d.getSeconds())} ${ap}`;
+  document.getElementById('clockDate').textContent = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+  /* in-progress bars, timers, room rings */
+  visible().forEach(a=>{
+    if(statusOf(a)!=='progress') return;
+    const p = Math.max(0, Math.min(1,(nm-a.t)/a.d));
+    const bar = document.querySelector(`[data-prog="${a.id}"]`); if(bar) bar.style.width=(p*100)+'%';
+    const lt = document.querySelector(`[data-live="${a.id}"]`);
+    if(lt) lt.textContent = `${Math.floor(nm-a.t)}m in · ends ${fmtShort(a.t+a.d)}`;
+    const ring = document.querySelector(`[data-ring="${a.id}"]`);
+    if(ring){ ring.style.strokeDashoffset = 106.8*(1-p);
+      const wrap = ring.closest('.ringwrap'); if(wrap) wrap.classList.toggle('soon',(a.t+a.d-nm)<=5); }
+    const rt = document.querySelector(`[data-rt="${a.id}"]`); if(rt) rt.textContent = Math.max(0,Math.ceil(a.t+a.d-nm))+'m';
+    const rf = document.querySelector(`[data-rfoot="${a.id}"]`); if(rf) rf.textContent = 'Elapsed '+Math.floor(nm-a.t)+' min';
+  });
+  /* occupancy meter */
+  const inUse = ROOMS.filter(r=>visible().some(a=>a.room===r && statusOf(a)==='progress')).length;
+  const pct = Math.round(inUse/ROOMS.length*100);
+  document.getElementById('occBar').style.width = pct+'%';
+  document.getElementById('occPct').textContent = pct+'%';
+  document.getElementById('roomMeta').textContent = inUse+' occupied';
+  positionNowLine();
+}
+let lastSync = Date.now();
+setInterval(()=>{ if(Date.now()-lastSync>32000) lastSync=Date.now();
+  const s=Math.floor((Date.now()-lastSync)/1000);
+  document.getElementById('syncTxt').textContent = s<3?'Synced just now':`Synced ${s}s ago`;
+},1000);
+
+/* ═══════════════ DRAWER ═══════════════ */
+function openDrawer(id){
+  const a = APPTS.find(x=>x.id===id); if(!a) return;
+  const s = statusOf(a), p = PROV[a.prov];
+  const visits = (id.charCodeAt(1)%7)+1;
+  let actions = '';
+  if(s==='next')      actions = `<button class="btn btn-pine" data-act="checkin">✓ Check in</button><button class="btn btn-coral" data-act="noshow">Mark no-show</button>`;
+  if(s==='wait')      actions = `<button class="btn btn-pine" data-act="start">▶ Start visit</button><button class="btn btn-coral" data-act="noshow">Mark no-show</button>`;
+  if(s==='progress')  actions = `<button class="btn btn-pine" data-act="complete">✓ Complete visit</button>`;
+  if(s==='done')      actions = `<button class="btn btn-ghost" data-act="reinstate">↺ Reinstate</button>`;
+  if(s==='noshow')    actions = `<button class="btn btn-pine" data-act="resched">↻ Reschedule</button><button class="btn btn-ghost" data-act="call">☎ Call patient</button>`;
+  document.getElementById('drawer').innerHTML = `
+    <div class="dhead"><button class="x" id="dClose">✕</button>
+      <h3>${a.name}</h3><div class="dage">Age ${a.age} · MRN CG-${(1400+id.charCodeAt(1)*7)}</div>
+      <span class="pill ${STATMAP[s].cls}"><b></b>${STATMAP[s].label}</span>
+    </div>
+    <dl class="dgrid">
+      <dt>Time</dt><dd class="mono">${fmt12(a.t)} – ${fmt12(a.t+a.d)} · ${a.d} min</dd>
+      <dt>Provider</dt><dd>${p.name}</dd>
+      <dt>Room</dt><dd>${a.room}</dd>
+      <dt>Visit type</dt><dd>${a.type}</dd>
+      <dt>Phone</dt><dd class="mono">${a.phone}</dd>
+    </dl>
+    ${a.note?`<div class="dnote">⚑ &nbsp;${a.note}</div>`:''}
+    <div class="dhx">${visits} previous visit${visits>1?'s':''} · last seen Feb 12, 2025 · insurance on file ✓</div>
+    <div class="dact" data-id="${a.id}">${actions}</div>`;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer').setAttribute('aria-hidden','false');
+  document.getElementById('scrim').classList.add('show');
+  document.getElementById('dClose').onclick = closeDrawer;
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer').setAttribute('aria-hidden','true');
+  document.getElementById('scrim').classList.remove('show');
+}
+function renderAll(){ renderStats(); renderSchedule(); renderNoShows(); renderRooms(); renderProviders(); }
+
+/* ═══════════════ ACTIONS ═══════════════ */
+const SLOT_POOL = ['1:20 PM','2:40 PM','3:15 PM','Thu 9:40 AM','Fri 11:00 AM'];
+function reschedule(id){
+  const a = APPTS.find(x=>x.id===id);
+  const card = document.querySelector(`.ns[data-id="${id}"]`);
+  const finish = ()=>{ OV[id]='gone'; renderAll();
+    toast(`${a.name} rebooked → ${SLOT_POOL[Math.floor(Math.random()*SLOT_POOL.length)]} with ${PROV[a.prov].short}`,'ok'); };
+  if(card){ card.classList.add('leaving'); setTimeout(finish,320); } else finish();
+}
+function doAct(act, id){
+  const a = APPTS.find(x=>x.id===id);
+  if(act==='checkin'){ OV[id]='wait'; toast(`${a.name} checked in — waiting room`,'ok'); }
+  if(act==='start'){ OV[id]='progress'; toast(`Visit started · ${a.room} · ${PROV[a.prov].short}`,'ok'); }
+  if(act==='complete'){ OV[id]='done'; toast(`Visit completed — ${a.room} freed up`,'ok'); }
+  if(act==='noshow'){ OV[id]='noshow'; toast(`${a.name} marked as no-show`,'warn'); }
+  if(act==='reinstate'){ OV[id]='next'; toast(`${a.name} reinstated to the schedule`,'info'); }
+  if(act==='call'){ toast(`Calling ${a.phone} — ${a.name}…`,'info'); }
+  if(act==='resched'){ reschedule(id); closeDrawer(); return; }
+  renderAll(); openDrawer(id);
+}
+function toast(msg, kind='info'){
+  const t = document.createElement('div');
+  t.className = 'toast '+kind;
+  const ic = kind==='ok'?'✓':kind==='warn'?'!':'i';
+  t.innerHTML = `<i>${ic}</i><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); }, 3600);
+}
+
+/* ═══════════════ EVENTS ═══════════════ */
+document.addEventListener('click', e=>{
+  const re = e.target.closest('[data-re]');
+  if(re){ e.stopPropagation(); reschedule(re.dataset.re); return; }
+  const call = e.target.closest('[data-call]');
+  if(call){ e.stopPropagation(); const a=APPTS.find(x=>x.id===call.dataset.call); toast(`Calling ${a.phone} — ${a.name}…`,'info'); return; }
+  const act = e.target.closest('[data-act]');
+  if(act){ doAct(act.dataset.act, act.parentElement.dataset.id); return; }
+  const tab = e.target.closest('.tab');
+  if(tab){ state.tab = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===tab));
+    renderSchedule(); return; }
+  const pv = e.target.closest('.prov');
+  if(pv){ state.prov = state.prov===pv.dataset.prov ? null : pv.dataset.prov;
+    renderProviders(); renderSchedule(); return; }
+  const row = e.target.closest('.appt[data-id]');
+  if(row && !row.classList.contains('huddle')){ openDrawer(row.dataset.id); return; }
+  const rc = e.target.closest('.roomcard');
+  if(rc){ if(rc.dataset.appt) openDrawer(rc.dataset.appt);
+    else toast(`${rc.dataset.room} is open — drag a visit here to place a patient.`,'info'); return; }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeDrawer();
+  const row = e.target.closest?.('.appt[data-id]');
+  if(e.key==='Enter' && row && !row.classList.contains('huddle')) openDrawer(row.dataset.id);
+});
+document.getElementById('scrim').addEventListener('click', closeDrawer);
+document.getElementById('btnNew').addEventListener('click', ()=>toast('New-visit intake opens from the chart — books stay read-only in this demo.','info'));
+document.getElementById('btnSheet').addEventListener('click', ()=>toast('Outreach call sheet sent to the front printer.','ok'));
+
+/* ═══════════════ INIT ═══════════════ */
+renderAll();
+/* count-up intro for the stat strip */
+(function(){
+  const targets = [['stTotal',APPTS.length],['stWait',counts().wait],['stProg',counts().progress],['stNo',counts().noshow]];
+  targets.forEach(([id,v],ix)=>{
+    const el = document.getElementById(id); const t0 = performance.now(); const dur=750;
+    (function step(t){ const k=Math.min(1,(t-t0)/dur); el.textContent=Math.round(v*(1-Math.pow(1-k,3)));
+      if(k<1) requestAnimationFrame(step); })(t0);
+    void ix;
+  });
+  document.getElementById('stRooms').textContent =
+    ROOMS.filter(r=>visible().some(a=>a.room===r&&statusOf(a)==='progress')).length+'/'+ROOMS.length;
+})();
+tickLive();
+setInterval(tickLive, 1000);
+/* settle the scroll just above the "now" line */
+setTimeout(()=>{
+  const cont = document.getElementById('schedScroll');
+  const nl = document.getElementById('nowline');
+  if(nl) cont.scrollTop = Math.max(0, nl.getBoundingClientRect().top - cont.getBoundingClientRect().top + cont.scrollTop - 120);
+}, 80);
+</script>
+</body>
+</html>

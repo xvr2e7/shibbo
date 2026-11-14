@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChartFlow — Open-Source Charting Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #0f1523;
+            --bg-tertiary: #161e30;
+            --bg-card: #131b2c;
+            --border-color: #1e2a42;
+            --border-light: #2a3a5c;
+            --text-primary: #e8edf5;
+            --text-secondary: #9aa7bd;
+            --text-muted: #6b7a94;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-dark: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+            --cyan: #06b6d4;
+            --cyan-glow: rgba(6, 182, 212, 0.3);
+            --emerald: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.3);
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 40px var(--accent-glow);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        ::selection {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        a {
+            color: var(--accent-light);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+        a:hover {
+            color: var(--accent);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── Animated background grid ── */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.08) 1px, transparent 0);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 70%);
+        }
+
+        /* ── Orbs ── */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+            animation: orbFloat 10s ease-in-out infinite alternate;
+        }
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: var(--accent-glow);
+            top: -200px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--cyan-glow);
+            top: -100px;
+            right: -150px;
+            animation-delay: -3s;
+            animation-duration: 12s;
+        }
+        .orb-3 {
+            width: 350px;
+            height: 350px;
+            background: var(--emerald-glow);
+            bottom: 10%;
+            left: 40%;
+            animation-delay: -6s;
+            animation-duration: 14s;
+            opacity: 0.2;
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                transform: translate(40px, -30px) scale(1.1);
+            }
+        }
+
+        /* ── Header / Nav ── */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 14, 23, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            transition: background var(--transition);
+        }
+        .site-header.scrolled {
+            background: rgba(10, 14, 23, 0.95);
+            border-bottom-color: var(--border-light);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            gap: 24px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+        .nav-logo span {
+            background: linear-gradient(135deg, var(--accent-light), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            list-style: none;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .nav-links a:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.875rem;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all var(--transition);
+            border: none;
+            text-decoration: none;
+            white-space: nowrap;
+            letter-spacing: -0.1px;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            background: var(--accent-dark);
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-light);
+        }
+        .btn-outline:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 0.8125rem;
+            border-radius: var(--radius-sm);
+        }
+        .btn-lg {
+            padding: 14px 32px;
+            font-size: 1rem;
+            border-radius: var(--radius-md);
+        }
+
+        .github-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* ── Mobile menu button ── */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+        .mobile-menu-btn span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            transition: all var(--transition);
+        }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative;
+            z-index: 1;
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            letter-spacing: -0.1px;
+        }
+        .hero-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--emerald);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 var(--emerald-glow);
+            }
+            50% {
+                opacity: 0.6;
+                box-shadow: 0 0 0 6px transparent;
+            }
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1.05;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #ffffff 30%, #b8c4dd 60%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 650px;
+            margin: 0 auto 36px;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        .hero-cta {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--text-primary);
+            display: block;
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* ── Chart Demo Section ── */
+        .demo-section {
+            position: relative;
+            z-index: 1;
+            padding: 40px 0 60px;
+        }
+        .demo-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        .demo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+        .demo-tabs {
+            display: flex;
+            gap: 6px;
+        }
+        .demo-tab {
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .demo-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+        .demo-tab:hover:not(.active) {
+            color: var(--text-secondary);
+        }
+
+        .demo-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 400px;
+        }
+        .demo-chart-area {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            position: relative;
+            min-height: 350px;
+        }
+        .demo-chart-area canvas {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: var(--radius-md);
+        }
+        .demo-code-area {
+            padding: 20px 24px;
+            background: var(--bg-secondary);
+            overflow: auto;
+            position: relative;
+        }
+        .demo-code-area pre {
+            font-family: var(--font-mono);
+            font-size: 0.8125rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+        .demo-code-area .token-comment {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .demo-code-area .token-string {
+            color: var(--emerald);
+        }
+        .demo-code-area .token-keyword {
+            color: var(--accent-light);
+        }
+        .demo-code-area .token-function {
+            color: var(--cyan);
+        }
+        .demo-code-area .token-number {
+            color: var(--amber);
+        }
+
+        /* ── Features Section ── */
+        .features-section {
+            position: relative;
+            z-index: 1;
+            padding: 60px 0 40px;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .section-title {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            margin-bottom: 12px;
+        }
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.0625rem;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 28px 24px;
+            transition: all var(--transition);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--cyan));
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+        .feature-card:hover {
+            border-color: var(--border-light);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            font-size: 1.25rem;
+        }
+        .feature-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+        .feature-card h3 {
+            font-size: 1.0625rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        /* ── Installation Section ── */
+        .install-section {
+            position: relative;
+            z-index: 1;
+            padding: 60px 0;
+        }
+        .install-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-md);
+        }
+        .install-card h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .install-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .install-tab {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            text-align: center;
+        }
+        .install-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+        .install-tab:hover:not(.active) {
+            color: var(--text-secondary);
+        }
+
+        .install-code {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px 24px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+        }
+        .install-code .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            font-weight: 500;
+        }
+        .install-code .copy-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+        .install-code .prompt {
+            color: var(--text-muted);
+            user-select: none;
+        }
+        .install-code .cmd {
+            color: var(--cyan);
+        }
+        .install-code .arg {
+            color: var(--emerald);
+        }
+
+        /* ── CTA Banner ── */
+        .cta-banner {
+            position: relative;
+            z-index: 1;
+            padding: 60px 0 40px;
+        }
+        .cta-inner {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 48px 40px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-inner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 200px;
+            background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .cta-inner h2 {
+            font-size: clamp(1.5rem, 3.5vw, 2rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        .cta-inner p {
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Footer ── */
+        .site-footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--border-color);
+            padding: 40px 0;
+            background: var(--bg-secondary);
+        }
+        .footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 32px;
+            align-items: flex-start;
+        }
+        .footer-brand {
+            max-width: 300px;
+        }
+        .footer-brand .nav-logo {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .footer-brand p {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .footer-links {
+            display: flex;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+        .footer-col h4 {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .footer-col ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .footer-col a {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            transition: color var(--transition);
+        }
+        .footer-col a:hover {
+            color: var(--text-primary);
+        }
+        .footer-bottom {
+            border-top: 1px solid var(--border-color);
+            margin-top: 32px;
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .demo-body {
+                grid-template-columns: 1fr;
+            }
+            .demo-chart-area {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                min-height: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            .mobile-menu-btn {
+                display: flex;
+            }
+            .nav-actions .btn-outline {
+                display: none;
+            }
+            .nav-inner {
+                height: 56px;
+                gap: 12px;
+            }
+            .hero {
+                padding: 48px 0 32px;
+            }
+            .hero-stats {
+                gap: 20px;
+                padding-top: 20px;
+            }
+            .stat-value {
+                font-size: 1.25rem;
+            }
+            .install-card {
+                padding: 24px 20px;
+                border-radius: var(--radius-md);
+            }
+            .cta-inner {
+                padding: 32px 20px;
+                border-radius: var(--radius-md);
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .footer-inner {
+                flex-direction: column;
+            }
+            .demo-body {
+                min-height: auto;
+            }
+            .demo-chart-area {
+                min-height: 250px;
+                padding: 16px;
+            }
+            .demo-code-area {
+                padding: 16px;
+            }
+            .hero-cta {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .hero-cta .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 16px;
+            }
+            .hero-title {
+                letter-spacing: -1px;
+            }
+            .install-tabs {
+                flex-direction: column;
+                gap: 2px;
+            }
+            .footer-links {
+                gap: 24px;
+            }
+        }
+
+        /* ── Mobile menu panel ── */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: var(--shadow-lg);
+        }
+        .mobile-menu.open {
+            display: flex;
+        }
+        .mobile-menu a {
+            padding: 12px 8px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9375rem;
+            transition: all var(--transition);
+        }
+        .mobile-menu a:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background elements -->
+    <div class="bg-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Header -->
+    <header class="site-header" id="siteHeader">
+        <div class="container nav-inner">
+            <a href="#" class="nav-logo">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="28" height="28" rx="6" fill="url(#lg1)" opacity="0.2"/>
+                    <path d="M7 22 L12 15 L16 18 L21 10 L25 14" stroke="url(#lg1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <circle cx="7" cy="22" r="2.5" fill="url(#lg1)"/>
+                    <circle cx="12" cy="15" r="2.5" fill="url(#lg1)"/>
+                    <circle cx="16" cy="18" r="2.5" fill="url(#lg1)"/>
+                    <circle cx="21" cy="10" r="2.5" fill="url(#lg1)"/>
+                    <circle cx="25" cy="14" r="2.5" fill="url(#lg1)"/>
+                    <defs>
+                        <linearGradient id="lg1" x1="2" y1="2" x2="30" y2="30">
+                            <stop offset="0%" stop-color="#818cf8"/>
+                            <stop offset="100%" stop-color="#06b6d4"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>ChartFlow</span>
+            </a>
+
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#docs">Documentation</a></li>
+                    <li><a href="#examples">Examples</a></li>
+                    <li><a href="#api">API Reference</a></li>
+                    <li><a href="#blog">Blog</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-actions">
+                <a href="#" class="btn btn-outline btn-sm">
+                    <svg class="github-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </a>
+                <a href="#quickstart" class="btn btn-primary btn-sm">Get Started</a>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#docs">Documentation</a>
+        <a href="#examples">Examples</a>
+        <a href="#api">API Reference</a>
+        <a href="#blog">Blog</a>
+        <a href="#quickstart" style="color: var(--accent-light);">Get Started</a>
+    </div>
+
+    <main>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge">
+                    <span class="dot"></span>
+                    v3.2.0 · MIT License · 87KB gzipped
+                </div>
+                <h1 class="hero-title">Beautiful charts.<br>Zero effort.</h1>
+                <p class="hero-subtitle">
+                    ChartFlow is a lightweight, dependency-free charting library for the modern web.
+                    Build interactive, responsive, and accessible visualizations with a few lines of code.
+                </p>
+                <div class="hero-cta">
+                    <a href="#quickstart" class="btn btn-primary btn-lg">Quick Start →</a>
+                    <a href="#examples" class="btn btn-outline btn-lg">View Examples</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-value">12k+</span>
+                        <span class="stat-label">GitHub Stars</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">850k</span>
+                        <span class="stat-label">Weekly Downloads</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">230+</span>
+                        <span class="stat-label">Contributors</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">87KB</span>
+                        <span class="stat-label">Minzipped</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo Section -->
+        <section class="demo-section" id="examples">
+            <div class="container">
+                <div class="demo-card">
+                    <div class="demo-header">
+                        <div class="demo-tabs">
+                            <button class="demo-tab active" data-chart="line">Line Chart</button>
+                            <button class="demo-tab" data-chart="bar">Bar Chart</button>
+                            <button class="demo-tab" data-chart="area">Area Chart</button>
+                            <button class="demo-tab" data-chart="pie">Pie Chart</button>
+                        </div>
+                        <span style="font-size:0.8125rem;color:var(--text-muted);font-weight:500;">Live Demo</span>
+                    </div>
+                    <div class="demo-body">
+                        <div class="demo-chart-area">
+                            <canvas id="demoCanvas" width="520" height="340"></canvas>
+                        </div>
+                        <div class="demo-code-area">
+                            <pre id="demoCode">// Line chart with ChartFlow
+const chart = new ChartFlow({
+    el: '#chart',
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Revenue',
+            data: [42, 58, 67, 71, 88, 96],
+            color: '#818cf8',
+            fill: true,
+            smooth: true
+        }]
+    },
+    options: {
+        responsive: true,
+        animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+        },
+        tooltip: { enabled: true },
+        legend: { position: 'top' }
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features-section" id="docs">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+                    <p class="section-subtitle">
+                        Built for developers who want powerful visualizations without the bloat.
+                    </p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="4 17 10 11 14 14 20 6"/>
+                                <polyline points="14 6 20 6 20 12"/>
+                            </svg>
+                        </div>
+                        <h3>Blazing Fast</h3>
+                        <p>Renders thousands of data points at 60fps using a highly optimized canvas engine. No virtual DOM overhead.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <path d="M8 21h8M12 17v4"/>
+                            </svg>
+                        </div>
+                        <h3>Responsive by Default</h3>
+                        <p>Charts automatically resize and adapt to any container. Perfect for dashboards and mobile-first layouts.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2a10 10 0 1010 10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <h3>Rich Animations</h3>
+                        <p>Bring data to life with smooth transitions, staggered reveals, and spring-based easing curves built in.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2v20M2 12h20"/>
+                                <circle cx="12" cy="12" r="8"/>
+                            </svg>
+                        </div>
+                        <h3>Accessible</h3>
+                        <p>ARIA labels, keyboard navigation, and high-contrast color schemes. Inclusive by design, not as an afterthought.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                            </svg>
+                        </div>
+                        <h3>11 Chart Types</h3>
+                        <p>Line, bar, area, pie, doughnut, radar, scatter, bubble, polar, heatmap, and candlestick — all in one package.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                            </svg>
+                        </div>
+                        <h3>Fully Extensible</h3>
+                        <p>Plugin architecture lets you add custom chart types, tooltip renderers, and data transforms seamlessly.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation -->
+        <section class="install-section" id="quickstart">
+            <div class="container">
+                <div class="install-card">
+                    <h2>Install in seconds</h2>
+                    <div class="install-tabs">
+                        <button class="install-tab active" data-pkg="npm">npm</button>
+                        <button class="install-tab" data-pkg="yarn">yarn</button>
+                        <button class="install-tab" data-pkg="pnpm">pnpm</button>
+                        <button class="install-tab" data-pkg="cdn">CDN</button>
+                    </div>
+                    <div class="install-code" id="installCode">
+                        <span class="prompt">$ </span><span class="cmd">npm install</span> <span class="arg">chartflow</span>
+                        <button class="copy-btn" id="copyBtn">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Banner -->
+        <section class="cta-banner">
+            <div class="container">
+                <div class="cta-inner">
+                    <h2>Ready to build something amazing?</h2>
+                    <p>Join thousands of developers using ChartFlow to bring their data to life.</p>
+                    <a href="#quickstart" class="btn btn-primary btn-lg">Start Building Free</a>
+                    <a href="#api" class="btn btn-outline btn-lg" style="margin-left:12px;">Read the API Docs</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <a href="#" class="nav-logo">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:28px;">
+                            <rect x="2" y="2" width="28" height="28" rx="6" fill="url(#lg2)" opacity="0.2"/>
+                            <path d="M7 22 L12 15 L16 18 L21 10 L25 14" stroke="url(#lg2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            <circle cx="7" cy="22" r="2.5" fill="url(#lg2)"/>
+                            <circle cx="12" cy="15" r="2.5" fill="url(#lg2)"/>
+                            <circle cx="16" cy="18" r="2.5" fill="url(#lg2)"/>
+                            <circle cx="21" cy="10" r="2.5" fill="url(#lg2)"/>
+                            <circle cx="25" cy="14" r="2.5" fill="url(#lg2)"/>
+                            <defs>
+                                <linearGradient id="lg2" x1="2" y1="2" x2="30" y2="30">
+                                    <stop offset="0%" stop-color="#818cf8"/>
+                                    <stop offset="100%" stop-color="#06b6d4"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span>ChartFlow</span>
+                    </a>
+                    <p>Open-source charting library for the modern web. MIT licensed. Built with ♥ by the community.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>Documentation</h4>
+                        <ul>
+                            <li><a href="#">Getting Started</a></li>
+                            <li><a href="#">Installation</a></li>
+                            <li><a href="#">Configuration</a></li>
+                            <li><a href="#">API Reference</a></li>
+                            <li><a href="#">Migration Guide</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Community</h4>
+                        <ul>
+                            <li><a href="#">GitHub</a></li>
+                            <li><a href="#">Discord</a></li>
+                            <li><a href="#">Twitter</a></li>
+                            <li><a href="#">Stack Overflow</a></li>
+                            <li><a href="#">Contributing</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Resources</h4>
+                        <ul>
+                            <li><a href="#">Examples</a></li>
+                            <li><a href="#">Changelog</a></li>
+                            <li><a href="#">Blog</a></li>
+                            <li><a href="#">Roadmap</a></li>
+                            <li><a href="#">Sponsors</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 ChartFlow. Released under the MIT License.</span>
+                <span>v3.2.0 · <a href="#">Privacy Policy</a> · <a href="#">Terms</a></span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ── Mobile menu toggle ──
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+        });
+
+        // ── Header scroll effect ──
+        const siteHeader = document.getElementById('siteHeader');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 10) {
+                siteHeader.classList.add('scrolled');
+            } else {
+                siteHeader.classList.remove('scrolled');
+            }
+        });
+
+        // ── Chart drawing ──
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentChart = 'line';
+        let animationFrame = null;
+        let animationProgress = 0;
+        let animationStart = null;
+
+        function getChartData(type) {
+            const lineData = {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                values: [42, 58, 67, 71, 88, 96],
+                color: '#818cf8',
+                fillColor: 'rgba(129, 140, 248, 0.15)',
+                secondaryValues: [30, 40, 52, 48, 65, 70],
+                secondaryColor: '#06b6d4'
+            };
+            const barData = {
+                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                values: [65, 78, 92, 88],
+                color: '#10b981',
+                fillColor: 'rgba(16, 185, 129, 0.2)',
+                secondaryValues: [45, 52, 68, 72],
+                secondaryColor: '#f59e0b'
+            };
+            const areaData = {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                values: [35, 42, 38, 55, 62, 48, 58],
+                color: '#f43f5e',
+                fillColor: 'rgba(244, 63, 94, 0.2)',
+                secondaryValues: [20, 30, 28, 40, 35, 38, 32],
+                secondaryColor: '#06b6d4'
+            };
+            const pieData = {
+                labels: ['Desktop', 'Mobile', 'Tablet', 'Other'],
+                values: [45, 35, 15, 5],
+                color: '#818cf8',
+                fillColor: 'rgba(129, 140, 248, 0.15)',
+                secondaryValues: null,
+                secondaryColor: null,
+                pieColors: ['#818cf8', '#06b6d4', '#10b981', '#f59e0b']
+            };
+            const map = { line: lineData, bar: barData, area: areaData, pie: pieData };
+            return map[type] || lineData;
+        }
+
+        function drawChart(type, progress) {
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            const padL = 55;
+            const padR = 30;
+            const padT = 30;
+            const padB = 50;
+            const chartW = w - padL - padR;
+            const chartH = h - padT - padB;
+            const data = getChartData(type);
+
+            // Background grid
+            ctx.strokeStyle = 'rgba(30, 42, 66, 0.5)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= 4; i++) {
+                const y = padT + (chartH / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padL, y);
+                ctx.lineTo(w - padR, y);
+                ctx.stroke();
+            }
+
+            if (type === 'pie') {
+                const cx = padL + chartW / 2;
+                const cy = padT + chartH / 2;
+                const r = Math.min(chartW, chartH) / 2 - 20;
+                const pieData = data;
+                const colors = pieData.pieColors;
+                let startAngle = -Math.PI / 2;
+                const total = pieData.values.reduce((s, v) => s + v, 0);
+
+                pieData.values.forEach((val, i) => {
+                    const sliceAngle = (val / total) * 2 * Math.PI;
+                    const currentProgress = Math.min(progress * 1.2, 1);
+                    const endAngle = startAngle + sliceAngle * currentProgress;
+
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.arc(cx, cy, r, startAngle, endAngle);
+                    ctx.closePath();
+                    ctx.fillStyle = colors[i] || '#818cf8';
+                    ctx.globalAlpha = 0.85 + 0.15 * (i % 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    ctx.strokeStyle = '#0a0e17';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    startAngle = endAngle;
+                });
+
+                // Center hole for doughnut effect
+                if (progress > 0.5) {
+                    const innerR = r * 0.55 * Math.min((progress - 0.5) * 4, 1);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, Math.max(innerR, 1), 0, 2 * Math.PI);
+                    ctx.fillStyle = '#0a0e17';
+                    ctx.fill();
+                }
+
+                // Labels
+                ctx.fillStyle = '#9aa7bd';
+                ctx.font = '500 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                const labelY = cy + r + 20;
+                pieData.labels.forEach((label, i) => {
+                    const midAngle = i * (2 * Math.PI) + (pieData.values[i] / total) * Math.PI;
+                    const lx = cx + Math.cos(midAngle - Math.PI / 2) * (r + 12);
+                    const ly = cy + Math.sin(midAngle - Math.PI / 2) * (r + 12);
+                    ctx.fillText(label, lx, ly + 14);
+                });
+                return;
+            }
+
+            const values = data.values;
+            const labels = data.labels;
+            const maxVal = Math.max(...values) * 1.2;
+            const minVal = 0;
+            const range = maxVal - minVal;
+            const n = values.length;
+
+            function getX(i) {
+                return padL + (i / (n - 1)) * chartW;
+            }
+
+            function getY(v) {
+                return padT + chartH - ((v - minVal) / range) * chartH;
+            }
+
+            // Secondary line (always draw for line/area, bar draws behind)
+            if (type === 'line' || type === 'area') {
+                const sValues = data.secondaryValues;
+                ctx.beginPath();
+                const pts = sValues.map((v, i) => [getX(i), getY(v)]);
+                const maxPts = Math.floor(progress * n);
+                for (let i = 0; i <= Math.min(maxPts, n - 1); i++) {
+                    const [x, y] = pts[i];
+                    if (i === 0) ctx.moveTo(x, y);
+                    else {
+                        const prevX = pts[i - 1][0];
+                        const prevY = pts[i - 1][1];
+                        const midX = (prevX + x) / 2;
+                        ctx.bezierCurveTo(midX, prevY, midX, y, x, y);
+                    }
+                }
+                ctx.strokeStyle = data.secondaryColor;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.globalAlpha = 0.6;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.globalAlpha = 1;
+            }
+
+            if (type === 'bar') {
+                const barGap = 6;
+                const totalBars = n * 2;
+                const barWidth = Math.max((chartW / totalBars) - barGap, 4);
+                const maxPts = Math.floor(progress * n);
+
+                // Secondary bars
+                if (data.secondaryValues) {
+                    data.secondaryValues.forEach((v, i) => {
+                        if (i > maxPts) return;
+                        const x = getX(i) - barWidth - barGap / 2;
+                        const y = getY(v);
+                        const barH = padT + chartH - y;
+                        ctx.fillStyle = data.secondaryColor;
+                        ctx.globalAlpha = 0.6;
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, barWidth, Math.max(barH, 2), 3);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    });
+                }
+
+                // Primary bars
+                values.forEach((v, i) => {
+                    if (i > maxPts) return;
+                    const x = getX(i) + barGap / 2;
+                    const y = getY(v);
+                    const barH = padT + chartH - y;
+                    const gradient = ctx.createLinearGradient(x, y, x, y + barH);
+                    gradient.addColorStop(0, data.color);
+                    gradient.addColorStop(1, data.color + '99');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, barWidth, Math.max(barH, 2), 3);
+                    ctx.fill();
+                });
+
+                // Labels
+                ctx.fillStyle = '#6b7a94';
+                ctx.font = '500 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                labels.forEach((label, i) => {
+                    if (i > maxPts) return;
+                    ctx.fillText(label, getX(i) + barWidth / 2 + barGap / 4, padT + chartH + 20);
+                });
+                return;
+            }
+
+            // Line or area primary
+            const pts = values.map((v, i) => [getX(i), getY(v)]);
+            const maxPts = Math.floor(progress * n);
+            const drawnPts = pts.slice(0, Math.max(maxPts + (maxPts === 0 ? 0 : 0.5), 1));
+
+            if (drawnPts.length >= 2) {
+                // Area fill
+                if (type === 'area' && drawnPts.length > 1) {
+                    ctx.beginPath();
+                    const firstX = drawnPts[0][0];
+                    const lastX = drawnPts[drawnPts.length - 1][0];
+                    ctx.moveTo(firstX, padT + chartH);
+                    drawnPts.forEach(([x, y]) => ctx.lineTo(x, y));
+                    ctx.lineTo(lastX, padT + chartH);
+                    ctx.closePath();
+                    const fillGrad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+                    fillGrad.addColorStop(0, data.fillColor);
+                    fillGrad.addColorStop(1, 'rgba(10, 14, 23, 0)');
+                    ctx.fillStyle = fillGrad;
+                    ctx.fill();
+                }
+
+                // Smooth line
+                ctx.beginPath();
+                ctx.moveTo(drawnPts[0][0], drawnPts[0][1]);
+                for (let i = 1; i < drawnPts.length; i++) {
+                    const [x, y] = drawnPts[i];
+                    const [prevX, prevY] = drawnPts[i - 1];
+                    const midX = (prevX + x) / 2;
+                    ctx.bezierCurveTo(midX, prevY, midX, y, x, y);
+                }
+                ctx.strokeStyle = data.color;
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                // Points
+                drawnPts.forEach(([x, y], idx) => {
+                    if (idx > maxPts) return;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fillStyle = data.color;
+                    ctx.fill();
+                    ctx.strokeStyle = '#0a0e17';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+            }
+
+            // Labels
+            ctx.fillStyle = '#6b7a94';
+            ctx.font = '500 11px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            labels.forEach((label, i) => {
+                if (i > maxPts) return;
+                ctx.fillText(label, getX(i), padT + chartH + 20);
+            });
+
+            // Y-axis ticks
+            ctx.textAlign = 'right';
+            ctx.font = '500 10px Inter, sans-serif';
+            ctx.fillStyle = '#6b7a94';
+            for (let i = 0; i <= 4; i++) {
+                const v = minVal + (range / 4) * i;
+                const y = padT + chartH - (i / 4) * chartH;
+                ctx.fillText(Math.round(v).toString(), padL - 8, y + 4);
+            }
+        }
+
+        function animateChart(type) {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            animationProgress = 0;
+            animationStart = null;
+
+            function step(timestamp) {
+                if (!animationStart) animationStart = timestamp;
+                const elapsed = timestamp - animationStart;
+                const duration = 1200;
+                animationProgress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - animationProgress, 4);
+                drawChart(type, eased);
+                if (animationProgress < 1) {
+                    animationFrame = requestAnimationFrame(step);
+                }
+            }
+            animationFrame = requestAnimationFrame(step);
+        }
+
+        // Initialize chart
+        animateChart('line');
+
+        // ── Chart tab switching ──
+        const demoCodeEl = document.getElementById('demoCode');
+        const codeSnippets = {
+            line: `// Line chart with ChartFlow
+const chart = new ChartFlow({
+    el: '#chart',
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Revenue',
+            data: [42, 58, 67, 71, 88, 96],
+            color: '#818cf8',
+            fill: true,
+            smooth: true
+        }]
+    },
+    options: {
+        responsive: true,
+        animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+        },
+        tooltip: { enabled: true },
+        legend: { position: 'top' }
+    }
+});`,
+            bar: `// Bar chart with ChartFlow
+const chart = new ChartFlow({
+    el: '#chart',
+    type: 'bar',
+    data: {
+        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+        datasets: [{
+            label: 'Sales',
+            data: [65, 78, 92, 88],
+            color: '#10b981',
+            borderRadius: 6,
+            barThickness: 24
+        }]
+    },
+    options: {
+        responsive: true,
+        animation: {
+            duration: 600,
+            stagger: 80
+        },
+        axis: {
+            y: { beginAtZero: true },
+            x: { grid: false }
+        }
+    }
+});`,
+            area: `// Area chart with ChartFlow
+const chart = new ChartFlow({
+    el: '#chart',
+    type: 'area',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            label: 'Visitors',
+            data: [35, 42, 38, 55, 62, 48, 58],
+            color: '#f43f5e',
+            fillOpacity: 0.3,
+            smooth: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        animation: {
+            duration: 900,
+            easing: 'easeInOutCubic'
+        },
+        tooltip: {
+            mode: 'index',
+            intersect: false
+        }
+    }
+});`,
+            pie: `// Pie chart with ChartFlow
+const chart = new ChartFlow({
+    el: '#chart',
+    type: 'pie',
+    data: {
+        labels: ['Desktop', 'Mobile', 'Tablet', 'Other'],
+        datasets: [{
+            data: [45, 35, 15, 5],
+            colors: ['#818cf8', '#06b6d4', '#10b981', '#f59e0b'],
+            borderWidth: 3,
+            borderColor: '#0a0e17'
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '55%',
+        animation: {
+            duration: 700,
+            rotate: true
+        },
+        legend: { position: 'bottom' }
+    }
+});`
+        };
+
+        document.querySelectorAll('.demo-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const chartType = tab.dataset.chart;
+                currentChart = chartType;
+                demoCodeEl.textContent = codeSnippets[chartType] || codeSnippets.line;
+                animateChart(chartType);
+            });
+        });
+
+        // ── Installation tabs ──
+        const installSnippets = {
+            npm: '<span class="prompt">$ </span><span class="cmd">npm install</span> <span class="arg">chartflow</span>',
+            yarn: '<span class="prompt">$ </span><span class="cmd">yarn add</span> <span class="arg">chartflow</span>',
+            pnpm: '<span class="prompt">$ </span><span class="cmd">pnpm add</span> <span class="arg">chartflow</span>',
+            cdn: '<span class="prompt"><!-- </span><span class="cmd">Add to your HTML</span><span class="prompt"> --></span>\n<span class="prompt"><</span><span class="cmd">script</span> <span class="arg">src</span><span class="prompt">="</span><span class="arg">https://cdn.jsdelivr.net/npm/chartflow@3/dist/chartflow.min.js</span><span class="prompt">"></span><span class="prompt"></</span><span class="cmd">script</span><span class="prompt">></span>'
+        };
+
+        const installCodeEl = document.getElementById('installCode');
+        document.querySelectorAll('.install-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const pkg = tab.dataset.pkg;
+                installCodeEl.innerHTML = installSnippets[pkg] + '<button class="copy-btn" id="copyBtn">Copy</button>';
+                // Re-attach copy listener
+                document.getElementById('copyBtn').addEventListener('click', copyInstallCode);
+            });
+        });
+
+        function copyInstallCode() {
+            const text = installCodeEl.textContent.replace('Copy', '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            });
+        }
+        document.getElementById('copyBtn').addEventListener('click', copyInstallCode);
+
+        // ── Smooth scroll for anchor links ──
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                const target = document.querySelector(href);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    mobileMenu.classList.remove('open');
+                }
+            });
+        });
+
+        // ── Canvas resize for high-DPI ──
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = canvas.parentElement.clientWidth - 48;
+            const displayHeight = canvas.parentElement.clientHeight - 8;
+            if (displayWidth > 0 && displayHeight > 0) {
+                canvas.width = Math.min(displayWidth * dpr, 520);
+                canvas.height = Math.min(displayHeight * dpr, 340);
+                canvas.style.width = Math.min(displayWidth, 520) + 'px';
+                canvas.style.height = Math.min(displayHeight, 340) + 'px';
+                ctx.scale(dpr, dpr);
+                animateChart(currentChart);
+            }
+        }
+        // Simpler: just use fixed size but redraw on resize
+        window.addEventListener('resize', () => {
+            animateChart(currentChart);
+        });
+    </script>
+</body>
+</html>

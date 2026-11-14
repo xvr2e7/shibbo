@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmur — AI Note-Taking That Remembers Everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #ffffff;
+    --fg: #0f172a;
+    --muted: #64748b;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --accent: #a855f7;
+    --card: #f8fafc;
+    --border: #e2e8f0;
+    --radius: 18px;
+    --shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.08);
+    --max-width: 1200px;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { text-decoration: none; color: inherit; }
+  img { max-width: 100%; display: block; }
+  .container { max-width: var(--max-width); margin: 0 auto; padding: 0 1.5rem; }
+  .section { padding: 80px 0; }
+  .section-header { text-align: center; max-width: 700px; margin: 0 auto 60px; }
+  .section-header h2 { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+  .section-header p { color: var(--muted); font-size: 1.1rem; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 26px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 12px 24px -6px rgba(99, 102, 241, 0.35); }
+  .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-sm { padding: 10px 20px; font-size: 0.9rem; }
+  .btn-lg { padding: 16px 32px; font-size: 1.05rem; }
+
+  /* Navbar */
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
+  .logo span { color: var(--primary); }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a { font-size: 0.95rem; font-weight: 500; color: var(--muted); transition: color 0.2s; }
+  .nav-links a:hover { color: var(--fg); }
+  .nav-actions { display: flex; align-items: center; gap: 12px; }
+  .nav-toggle { display: none; background: none; border: none; cursor: pointer; width: 24px; height: 18px; position: relative; }
+  .nav-toggle span { position: absolute; left: 0; width: 100%; height: 2px; background: var(--fg); border-radius: 2px; transition: 0.3s; }
+  .nav-toggle span:nth-child(1) { top: 0; }
+  .nav-toggle span:nth-child(2) { top: 8px; }
+  .nav-toggle span:nth-child(3) { top: 16px; }
+
+  /* Hero */
+  .hero { position: relative; padding: 160px 0 120px; overflow: hidden; }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    z-index: -1;
+    opacity: 0.55;
+  }
+  .blob-1 { top: -8%; left: 15%; width: 560px; height: 560px; background: #c084fc; }
+  .blob-2 { bottom: -12%; right: 15%; width: 640px; height: 640px; background: #60a5fa; }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #f1f5f9; color: var(--primary);
+    font-size: 0.85rem; font-weight: 600; padding: 6px 14px;
+    border-radius: 999px; margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 3.5rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 20px; }
+  .hero h1 .accent { color: var(--primary); }
+  .lead { font-size: 1.25rem; color: var(--muted); margin-bottom: 32px; max-width: 520px; }
+  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+  .trust-logos { margin-top: 40px; font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+  .logo-row { display: flex; gap: 16px; opacity: 0.5; }
+
+  .phone-mock {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    width: 100%; max-width: 420px;
+    height: 560px;
+    display: flex; flex-direction: column;
+  }
+  .screen-header {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    padding: 18px 20px;
+    font-weight: 600; font-size: 0.95rem; color: var(--fg);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .screen-header .dot {
+    display: flex; gap: 6px;
+  }
+  .screen-header .dot div { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+  .screen-header .dot .active { background: #22c55e; }
+  .transcript {
+    flex: 1; padding: 24px 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .transcript p { font-size: 0.9rem; color: #334155; line-height: 1.5; }
+  .transcript strong { color: var(--primary); }
+  .transcript em { font-style: normal; color: var(--accent); font-weight: 600; }
+  .summary-card {
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 20px;
+  }
+  .summary-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--fg); }
+  .summary-card p { font-size: 0.9rem; color: var(--muted); margin-bottom: 12px; }
+  .summary-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .summary-card li { font-size: 0.85rem; color: var(--muted); padding-left: 20px; position: relative; }
+  .summary-card li::before { content: '✓'; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
+
+  /* Features */
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .feature-icon {
+    width: 48px; height: 48px; background: #eef2ff; color: var(--primary);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px; font-size: 1.4rem;
+  }
+  .feature-card h3 { font-size: 1.25rem; margin-bottom: 10px; }
+  .feature-card p { font-size: 0.95rem; color: var(--muted); }
+
+  /* How it works */
+  .steps { display: flex; gap: 24px; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 280px; }
+  .step-number {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; background: var(--primary); color: #fff;
+    border-radius: 50%; font-weight: 700; font-size: 1.1rem; margin-bottom: 16px;
+  }
+  .step h3 { font-size: 1.35rem; margin-bottom: 10px; }
+  .step p { color: var(--muted); font-size: 1rem; }
+
+  /* Testimonials */
+  .testimonial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .testimonial {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px;
+  }
+  .quote { font-size: 1.05rem; color: var(--fg); margin-bottom: 24px; line-height: 1.6; }
+  .author { display: flex; align-items: center; gap: 12px; }
+  .author-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; color: var(--fg);
+  }
+  .author-info h4 { font-size: 0.95rem; margin-bottom: 2px; }
+  .author-info span { font-size: 0.85rem; color: var(--muted); }
+
+  /* Pricing */
+  .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .pricing-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 28px;
+    display: flex; flex-direction: column;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .pricing-card.popular {
+    border-color: var(--primary);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    position: relative;
+  }
+  .pricing-card.popular::before {
+    content: 'Most popular'; position: absolute; top: -10px; left: 50%;
+    transform: translateX(-50%); background: var(--primary); color: #fff;
+    font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+  }
+  .pricing-card h3 { font-size: 1.25rem; margin-bottom: 8px; }
+  .price { font-size: 2.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+  .price span { font-size: 1rem; font-weight: 500; color: var(--muted); }
+  .pricing-card p { color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+  .feature-list { list-style: none; margin-bottom: 30px; }
+  .feature-list li { font-size: 0.9rem; color: #334155; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  .feature-list li::before { content: '✓'; color: var(--primary); font-weight: 700; }
+  .btn-block { width: 100%; }
+
+  /* CTA */
+  .cta {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: #fff; border-radius: var(--radius);
+    padding: 80px 0; text-align: center;
+  }
+  .cta h2 { font-size: 2.5rem; margin-bottom: 16px; }
+  .cta p { color: rgba(255,255,255,0.9); margin-bottom: 32px; font-size: 1.1rem; }
+  .cta .btn { background: #fff; color: var(--primary); }
+  .cta .btn:hover { background: #f8fafc; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 40px 0; color: var(--muted); font-size: 0.9rem; }
+  .footer-grid { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+  .footer-links { display: flex; gap: 28px; }
+  .footer-links a { color: var(--muted); transition: color 0.2s; }
+  .footer-links a:hover { color: var(--fg); }
+
+  /* Demo Modal */
+  .modal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal.hidden { display: none; }
+  .modal-content {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 560px;
+    max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 24px 28px; border-bottom: 1px solid var(--border);
+  }
+  .modal-header h3 { font-size: 1.25rem; }
+  .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); line-height: 1; }
+  .modal-body { padding: 28px; overflow-y: auto; flex: 1; }
+  #demo-transcript { display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; color: #334155; }
+  #demo-transcript p strong { color: var(--primary); }
+  #demo-transcript p em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero h1 { font-size: 2.5rem; }
+    .phone-mock { margin: 0 auto; }
+    .nav-links { display: none; }
+    .nav-toggle { display: block; }
+    .nav-links.open { 
+      display: flex; position: absolute; top: 72px; left: 0; right: 0;
+      background: #fff; border-bottom: 1px solid var(--border);
+      flex-direction: column; padding: 24px; gap: 16px; box-shadow: var(--shadow);
+    }
+    .nav-actions .btn-sm { display: none; }
+    .section { padding: 56px 0; }
+    .section-header h2 { font-size: 1.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container nav-inner">
+    <a href="#" class="logo">Murmur<span>.</span></a>
+    <div class="nav-links" id="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Customers</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#login" class="btn btn-outline btn-sm">Log in</a>
+      <button id="btn-demo" class="btn btn-primary btn-sm">Try demo</button>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="container hero-grid">
+    <div class="hero-content">
+      <span class="badge">&#9679; AI-powered note-taking</span>
+      <h1>Murmur turns conversations into knowledge.</h1>
+      <p class="lead">Record meetings, lectures, or ideas and let Murmur transcribe, summarize, and extract action items in real time. Never miss a detail again.</p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn btn-primary btn-lg">Start for free</a>
+        <a href="#features" class="btn btn-outline btn-lg">See how it works</a>
+      </div>
+      <div class="trust-logos">
+        <span>Trusted by teams at</span>
+        <div class="logo-row">
+          <span style="letter-spacing:-2px;">···</span><span style="letter-spacing:-2px;">···</span><span style="letter-spacing:-2px;">···</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="phone-mock">
+        <div class="screen-header">
+          Team Standup &middot; May 14
+          <div class="dot"><div></div><div class="active"></div><div></div></div>
+        </div>
+        <div class="transcript">
+          <p><strong>Sarah:</strong> Let's ship the landing page by Friday.</p>
+          <p><strong>James:</strong> I'll handle the API integration.</p>
+          <p><em>Murmur detected 2 action items.</em></p>
+        </div>
+        <div class="summary-card">
+          <h4>Summary</h4>
+          <p>Team agreed to ship landing page Friday. James assigned API integration.</p>
+          <ul>
+            <li>Ship landing page — Friday</li>
+            <li>API integration — James</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <h2>Built for how you actually work</h2>
+      <p>Capture audio, import files, or paste text. Murmur does the heavy lifting so you can stay in the conversation.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#128224;</div>
+        <h3>Real-time transcription</h3>
+        <p>Live speech-to-text with speaker identification, so you always know who said what.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128196;</div>
+        <h3>AI summarization</h3>
+        <p>Instant summaries, key takeaways, and concise recaps generated from your notes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128269;</div>
+        <h3>Action item detection</h3>
+        <p>Murmur finds tasks, deadlines, and owners automatically and turns them into checklists.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128269;</div>
+        <h3>Smart semantic search</h3>
+        <p>Search by meaning, not just keywords. Find that one detail from a call last month in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128218;</div>
+        <h3>Multi-language support</h3>
+        <p>Transcribe and translate across dozens of languages with near-human accuracy.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128271;</div>
+        <h3>Encrypted and private</h3>
+        <p>End-to-end encryption and granular access controls keep your notes secure.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <h2>From recording to insight in three steps</h2>
+      <p>No setup, no training. Just press record and let Murmur handle the rest.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Record or import</h3>
+        <p>Capture a meeting, upload an audio file, or paste text directly into Murmur.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Murmur listens</h3>
+        <p>AI transcribes the audio, identifies speakers, and extracts key moments in real time.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Review and share</h3>
+        <p>Edit the transcript, polish the summary, and share action items with your team.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="testimonials">
+  <div class="container">
+    <div class="section-header">
+      <h2>What teams are saying</h2>
+      <p>Thousands of professionals rely on Murmur to stay organized.</p>
+    </div>
+    <div class="testimonial-grid">
+      <div class="testimonial">
+        <p class="quote">"Murmur cut our meeting follow-up time in half. The summaries are surprisingly accurate and the action items actually get done."</p>
+        <div class="author">
+          <div class="author-avatar">LM</div>
+          <div class="author-info">
+            <h4>Lena Morgan</h4>
+            <span>Product Lead, Nova Labs</span>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="quote">"As a journalist, being able to search interviews by meaning instead of scrolling through transcripts is a game changer."</p>
+        <div class="author">
+          <div class="author-avatar">DJ</div>
+          <div class="author-info">
+            <h4>Diego Ruiz</h4>
+            <span>Freelance Journalist</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <h2>Simple, transparent pricing</h2>
+      <p>Start free. Scale when you're ready.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <div class="price">$0<span>/mo</span></div>
+        <p>Up to 300 minutes of transcription per month.</p>
+        <ul class="feature-list">
+          <li>Real-time transcription</li>
+          <li>Basic summaries</li>
+          <li>Export to Markdown &amp; PDF</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#cta" class="btn btn-primary btn-block">Get started</a>
+      </div>
+      <div class="pricing-card popular">
+        <h3>Pro</h3>
+        <div class="price">$12<span>/mo</span></div>
+        <p>For individuals who need unlimited capture.</p>
+        <ul class="feature-list">
+          <li>Unlimited transcription</li>
+          <li>Advanced AI summaries</li>
+          <li>Action item detection</li>
+          <li>Priority email support</li>
+        </ul>
+        <a href="#cta" class="btn btn-primary btn-block">Start free trial</a>
+      </div>
+      <div class="pricing-card">
+        <h3>Team</h3>
+        <div class="price">$20<span>/user /mo</span></div>
+        <p>For teams collaborating on shared knowledge.</p>
+        <ul class="feature-list">
+          <li>Everything in Pro</li>
+          <li>Shared workspaces</li>
+          <li>Admin controls &amp; SSO</li>
+          <li>Priority Slack support</li>
+        </ul>
+        <a href="#cta" class="btn btn-outline btn-block">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="cta">
+  <div class="container">
+    <h2>Ready to stop taking notes?</h2>
+    <p>Join thousands of teams capturing every detail with Murmur.</p>
+    <a href="#" class="btn btn-lg">Create your free account</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-grid">
+    <div style="font-weight:700; font-size:1.25rem; letter-spacing:-0.03em;">Murmur<span style="color:var(--primary);">.</span></div>
+    <div class="footer-links">
+      <a href="#privacy">Privacy</a>
+      <a href="#terms">Terms</a>
+      <a href="#status">Status</a>
+      <a href="#twitter">Twitter</a>
+    </div>
+    <div>&copy; 2025 Murmur Inc.</div>
+  </div>
+</footer>
+
+<!-- Demo Modal -->
+<div class="modal hidden" id="demo-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Live Demo</h3>
+      <button class="modal-close" id="close-demo">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="demo-transcript"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const toggle = document.getElementById('nav-toggle');
+  const links = document.getElementById('nav-links');
+
+  toggle.addEventListener('click', () => {
+    links.classList.toggle('open');
+  });
+
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => links.classList.remove('open'));
+  });
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      const href = this.getAttribute('href');
+      if (href.length > 1) {
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    });
+  });
+
+  // Demo modal logic
+  const btnDemo = document.getElementById('btn-demo');
+  const modal = document.getElementById('demo-modal');
+  const closeDemo = document.getElementById('close-demo');
+  const transcript = document.getElementById('demo-transcript');
+
+  const lines = [
+    '<p><strong>Sarah:</strong> Let’s ship the landing page by Friday.</p>',
+    '<p><strong>James:</strong> I’ll handle the API integration.</p>',
+    '<p><em>Murmur detected 2 action items.</em></p>'
+  ];
+
+  function typeDemo() {
+    transcript.innerHTML = '';
+    let i = 0;
+    function next() {
+      if (i < lines.length) {
+        transcript.innerHTML += lines[i];
+        i++;
+        setTimeout(next, 900);
+      }
+    }
+    next();
+  }
+
+  btnDemo.addEventListener('click', (e) => {
+    e.preventDefault();
+    modal.classList.remove('hidden');
+    typeDemo();
+  });
+
+  closeDemo.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+})();
+</script>
+
+</body>
+</html>

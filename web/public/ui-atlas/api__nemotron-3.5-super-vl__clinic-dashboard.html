@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinic Dashboard — Today's Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #f3f4f6; color: #1f2937; line-height: 1.5; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand h1 { font-size: 24px; font-weight: 700; color: #0f766e; }
+  .brand span { font-weight: 500; color: #6b7280; }
+  .today { font-size: 14px; color: #4b5563; }
+  .today strong { color: #111827; }
+
+  .dashboard { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 16px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px; }
+  .card-body { padding: 16px 20px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; padding: 10px 12px; }
+  td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+
+  .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .status.checked-in { background: #dcfce7; color: #166534; }
+  .status.waiting { background: #fef3c7; color: #92400e; }
+  .status.scheduled { background: #dbeafe; color: #1e40af; }
+  .status.completed { background: #e5e7eb; color: #4b5563; }
+  .status.no-show { background: #fee2e2; color: #991b1b; }
+
+  .time { font-weight: 600; color: #111827; display: block; }
+  .patient { font-weight: 500; display: block; }
+  .doctor { color: #4b5563; font-size: 13px; display: block; margin-top: 2px; }
+  .type { color: #6b7280; font-size: 13px; display: block; margin-top: 2px; }
+
+  .btn { background: #0f766e; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .btn:hover { background: #0d5f59; }
+  .btn-sm { padding: 4px 8px; font-size: 11px; }
+  .btn-outline { background: transparent; border: 1px solid #0f766e; color: #0f766e; }
+
+  .rooms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .room { padding: 14px; border-radius: 8px; font-size: 14px; display: flex; align-items: center; justify-content: space-between; flex-direction: column; }
+  .room.available { background: #f0fdf4; border: 1px dashed #bbf7d0; color: #166534; }
+  .room.occupied { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .room.cleaning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+  .room-label { font-weight: 600; }
+  .room-patient { font-size: 12px; color: #6b7280; margin-top: 4px; text-align: center; }
+
+  .no-show-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
+  .no-show-item:last-child { border-bottom: none; }
+  .no-show-info { display: flex; flex-direction: column; gap: 2px; }
+  .no-show-time { font-weight: 600; font-size: 13px; }
+  .no-show-name { font-weight: 500; font-size: 14px; }
+  .no-show-doctor { font-size: 12px; color: #6b7280; }
+
+  .empty-note { padding: 12px 16px; font-size: 12px; color: #6b7280; text-align: center; background: #f9fafb; }
+
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .dashboard { grid-template-columns: 1fr; }
+    .rooms-grid { grid-template-columns: 1fr; }
+    th, td { padding: 8px 10px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <i class="fas fa-clinic-medical"></i>
+      <div>
+        <h1>Clinic Dashboard</h1>
+        <span>Small Family Clinic • Appointment System</span>
+      </div>
+    </div>
+    <div class="today">
+      <i class="far fa-calendar-alt"></i> <strong>Today:</strong> Thursday, October 26, 2023
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <!-- Today's Schedule -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fas fa-calendar-check"></i> Today's Schedule</div>
+        <button class="btn btn-sm"><i class="fas fa-plus"></i> Add</button>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 120px;">Time</th>
+              <th>Patient</th>
+              <th style="width: 140px;">Doctor</th>
+              <th style="width: 160px;">Type</th>
+              <th style="width: 110px;">Status</th>
+              <th style="width: 100px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="time">08:00 AM</span></td>
+              <td><span class="patient">Alice Johnson</span><span class="type">General Checkup</span></td>
+              <td><span class="doctor">Dr. Chen</span></td>
+              <td>New Patient</td>
+              <td><span class="status checked-in"><i class="fas fa-user-check"></i> Checked In</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="time">08:30 AM</span></td>
+              <td><span class="patient">Bob Williams</span><span class="type">Follow-up</span></td>
+              <td><span class="doctor">Dr. Patel</span></td>
+              <td>Returning</td>
+              <td><span class="status waiting"><i class="fas fa-clock"></i> Waiting</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="time">09:00 AM</span></td>
+              <td><span class="patient">Carol Davis</span><span class="type">Dental Cleaning</span></td>
+              <td><span class="doctor">Dr. Chen</span></td>
+              <td>Hygiene</td>
+              <td><span class="status scheduled"><i class="fas fa-calendar"></i> Scheduled</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="time">09:30 AM</span></td>
+              <td><span class="patient">David Wilson</span><span class="type">Consultation</span></td>
+              <td><span class="doctor">Dr. Patel</span></td>
+              <td>Cardiology</td>
+              <td><span class="status checked-in"><i class="fas fa-user-check"></i> Checked In</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="time">10:00 AM</span></td>
+              <td><span class="patient">Emma Brown</span><span class="type">Vaccination</span></td>
+              <td><span class="doctor">Dr. Lee</span></td>
+              <td>Immunization</td>
+              <td><span class="status scheduled"><i class="fas fa-calendar"></i> Scheduled</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="time">10:30 AM</span></td>
+              <td><span class="patient">Frank Miller</span><span class="type">Blood Work</span></td>
+              <td><span class="doctor">Dr. Chen</span></td>
+              <td>Lab</td>
+              <td><span class="status waiting"><i class="fas fa-clock"></i> Waiting</span></td>
+              <td><button class="btn btn-sm btn-outline">View</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right Column: No-shows + Rooms -->
+    <div class="card" style="display: flex; flex-direction: column; gap: 24px;">
+      <!-- No-shows -->
+      <div>
+        <div class="card-header">
+          <div class="card-title" style="color: #991b1b;"><i class="fas fa-exclamation-circle"></i> No-Shows</div>
+          <button class="btn btn-sm btn-outline"><i class="fas fa-phone"></i> Call All</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="no-show-item">
+            <div class="no-show-info">
+              <span class="no-show-time">08:15 AM</span>
+              <span class="no-show-name">Grace Lee</span>
+              <span class="no-show-doctor">Dr. Patel • Follow-up</span>
+            </div>
+            <button class="btn btn-sm btn-outline">Reschedule</button>
+          </div>
+          <div class="no-show-item">
+            <div class="no-show-info">
+              <span class="no-show-time">09:45 AM</span>
+              <span class="no-show-name">Henry Kim</span>
+              <span class="no-show-doctor">Dr. Lee • Vaccination</span>
+            </div>
+            <button class="btn btn-sm btn-outline">Reschedule</button>
+          </div>
+          <div class="empty-note">No more no-shows today</div>
+        </div>
+      </div>
+
+      <!-- Rooms in Use -->
+      <div>
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-door-open"></i> Rooms in Use</div>
+          <span class="status scheduled" style="padding: 2px 8px; font-size: 11px;">3 of 4 Active</span>
+        </div>
+        <div class="card-body" style="padding: 16px 20px 20px;">
+          <div class="rooms-grid">
+            <div class="room occupied">
+              <div>
+                <div class="room-label">Room 101</div>
+                <span class="room-patient">Dr. Chen with Alice Johnson</span>
+              </div>
+              <span class="status checked-in" style="padding: 2px 6px; font-size: 10px;">Occupied</span>
+            </div>
+            <div class="room available">
+              <div>
+                <div class="room-label">Room 102</div>
+                <span class="room-patient">Ready for next patient</span>
+              </div>
+              <span class="status scheduled" style="padding: 2px 6px; font-size: 10px;">Available</span>
+            </div>
+            <div class="room occupied">
+              <div>
+                <div class="room-label">Room 103</div>
+                <span class="room-patient">Dr. Patel with David Wilson</span>
+              </div>
+              <span class="status checked-in" style="padding: 2px 6px; font-size: 10px;">Occupied</span>
+            </div>
+            <div class="room cleaning">
+              <div>
+                <div class="room-label">Room 104</div>
+                <span class="room-patient">Sanitizing in progress</span>
+              </div>
+              <span class="status waiting" style="padding: 2px 6px; font-size: 10px;">Cleaning</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

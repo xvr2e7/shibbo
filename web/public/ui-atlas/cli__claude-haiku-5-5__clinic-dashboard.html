@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinic Dashboard</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --ink: #1d2733;
+    --muted: #6b7785;
+    --line: #e3e8ee;
+    --brand: #0f766e;
+    --brand-soft: #e6f4f2;
+    --waiting: #b45309;
+    --waiting-soft: #fef3e2;
+    --progress: #1d4ed8;
+    --progress-soft: #e8efff;
+    --done: #15803d;
+    --done-soft: #e7f6ec;
+    --noshow: #b91c1c;
+    --noshow-soft: #fdecec;
+    --scheduled: #475569;
+    --scheduled-soft: #eef2f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--brand); color: #fff;
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .brand h1 { font-size: 18px; margin: 0; }
+  .brand small { color: var(--muted); display: block; }
+  .clock { text-align: right; }
+  .clock .date { font-weight: 600; }
+  .clock .time { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  main { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-size: 28px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel + .panel { margin-top: 20px; }
+  .panel-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .panel-head h2 { font-size: 15px; margin: 0; }
+  .panel-body { padding: 0; }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--muted);
+    background: #fafbfc;
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.time { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .muted { color: var(--muted); }
+  .patient-name { font-weight: 600; }
+  .patient-meta { color: var(--muted); font-size: 12px; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .b-scheduled { background: var(--scheduled-soft); color: var(--scheduled); }
+  .b-waiting { background: var(--waiting-soft); color: var(--waiting); }
+  .b-progress { background: var(--progress-soft); color: var(--progress); }
+  .b-done { background: var(--done-soft); color: var(--done); }
+  .b-noshow { background: var(--noshow-soft); color: var(--noshow); }
+
+  .actions button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .actions button:hover { background: var(--bg); }
+  .actions button:disabled { opacity: .4; cursor: default; }
+
+  .rooms { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; }
+  @media (max-width: 560px) { .rooms { grid-template-columns: 1fr; } }
+  .room {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 4px solid var(--line);
+  }
+  .room.occupied { border-left-color: var(--progress); background: #fbfcff; }
+  .room.cleaning { border-left-color: var(--waiting); background: #fffcf6; }
+  .room.free { border-left-color: var(--done); }
+  .room-top { display: flex; justify-content: space-between; align-items: center; }
+  .room-name { font-weight: 700; }
+  .room-status { font-size: 12px; color: var(--muted); }
+  .room-who { margin-top: 6px; font-size: 13px; }
+  .room-who .muted { font-size: 12px; }
+
+  .noshow-list { list-style: none; margin: 0; padding: 0; }
+  .noshow-list li {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+  }
+  .noshow-list li:last-child { border-bottom: none; }
+  .noshow-list .who { font-weight: 600; }
+  .noshow-list .meta { color: var(--muted); font-size: 12px; }
+  .rate-bar {
+    height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 16px 14px;
+  }
+  .rate-bar span { display: block; height: 100%; background: var(--noshow); }
+  .rate-label { padding: 14px 16px 0; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+
+  .empty { padding: 24px; text-align: center; color: var(--muted); }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">+</div>
+    <div>
+      <h1>Riverside Family Clinic</h1>
+      <small>Appointment dashboard</small>
+    </div>
+  </div>
+  <div class="clock">
+    <div class="date" id="today-date"></div>
+    <div class="time" id="now-time"></div>
+  </div>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="stat">
+      <div class="label">Appointments today</div>
+      <div class="value" id="stat-total">0</div>
+      <div class="sub" id="stat-total-sub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Checked in / waiting</div>
+      <div class="value" id="stat-waiting">0</div>
+      <div class="sub" id="stat-waiting-sub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">No-shows</div>
+      <div class="value" id="stat-noshow">0</div>
+      <div class="sub" id="stat-noshow-sub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Rooms in use</div>
+      <div class="value" id="stat-rooms">0/0</div>
+      <div class="sub" id="stat-rooms-sub"></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Today's schedule</h2>
+          <div class="filters" id="filters">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="scheduled">Scheduled</button>
+            <button class="chip" data-filter="waiting">Waiting</button>
+            <button class="chip" data-filter="progress">In room</button>
+            <button class="chip" data-filter="done">Done</button>
+            <button class="chip" data-filter="noshow">No-show</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Patient</th>
+                <th>Provider</th>
+                <th>Room</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="schedule-body"></tbody>
+          </table>
+          <div class="empty" id="schedule-empty" hidden>No appointments match this filter.</div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Rooms</h2>
+          <span class="muted" id="rooms-summary"></span>
+        </div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>No-shows today</h2>
+          <span class="muted" id="noshow-count"></span>
+        </div>
+        <div class="rate-label">
+          <span>No-show rate</span>
+          <span id="noshow-rate"></span>
+        </div>
+        <div class="rate-bar"><span id="noshow-bar" style="width:0%"></span></div>
+        <ul class="noshow-list" id="noshow-list"></ul>
+      </section>
+    </div>
+  </div>
+
+  <footer>Sample data for demonstration only. Patient names are fictional.</footer>
+</main>
+
+<script>
+  // Sample data. Replace with an API call in production.
+  const ROOMS = ["Exam 1", "Exam 2", "Exam 3", "Exam 4", "Procedure", "Consult"];
+
+  const PROVIDERS = {
+    "Dr. Patel": "Family Medicine",
+    "Dr. Okafor": "Pediatrics",
+    "R. Lindqvist, NP": "Urgent Care"
+  };
+
+  // status: scheduled | waiting | progress | done | noshow
+  const APPTS = [
+    { time: "08:00", patient: "Maya Ortiz",      age: 34, reason: "Annual physical",     provider: "Dr. Patel",       room: "Exam 1",    status: "done" },
+    { time: "08:15", patient: "Lucas Bennett",   age: 6,  reason: "Well-child visit",    provider: "Dr. Okafor",      room: "Exam 2",    status: "done" },
+    { time: "08:30", patient: "Priya Shah",      age: 52, reason: "BP follow-up",        provider: "Dr. Patel",       room: "Exam 3",    status: "progress" },
+    { time: "08:45", patient: "Thomas Reyes",    age: 71, reason: "Medication refill",   provider: "R. Lindqvist, NP",room: "Consult",   status: "noshow" },
+    { time: "09:00", patient: "Aisha Kamara",    age: 28, reason: "Sore throat",         provider: "R. Lindqvist, NP",room: "Exam 4",    status: "progress" },
+    { time: "09:15", patient: "Ethan Walsh",     age: 9,  reason: "Ear pain",            provider: "Dr. Okafor",      room: "Exam 2",    status: "waiting" },
+    { time: "09:30", patient: "Grace Nakamura",  age: 45, reason: "Lab review",          provider: "Dr. Patel",       room: "Exam 1",    status: "waiting" },
+    { time: "09:45", patient: "Owen Fischer",    age: 62, reason: "Diabetes check",      provider: "Dr. Patel",       room: "Procedure", status: "scheduled" },
+    { time: "10:00", patient: "Sofia Lindgren",  age: 4,  reason: "Vaccines",            provider: "Dr. Okafor",      room: "Exam 2",    status: "scheduled" },
+    { time: "10:15", patient: "Daniel Moreau",   age: 39, reason: "Back pain",           provider: "R. Lindqvist, NP",room: "Exam 3",    status: "scheduled" },
+    { time: "10:30", patient: "Hannah Brooks",   age: 31, reason: "Contraception consult",provider: "Dr. Patel",      room: "Consult",   status: "scheduled" },
+    { time: "10:45", patient: "Marcus Hill",     age: 16, reason: "Sports physical",     provider: "Dr. Okafor",      room: "Exam 4",    status: "noshow" },
+    { time: "11:00", patient: "Chloe Dubois",    age: 50, reason: "Skin lesion check",   provider: "Dr. Patel",       room: "Procedure", status: "scheduled" },
+    { time: "11:15", patient: "Ravi Menon",      age: 67, reason: "Post-op wound check", provider: "R. Lindqvist, NP",room: "Exam 1",    status: "scheduled" }
+  ];
+
+  const ROOM_STATE = {
+    "Exam 1":    { status: "occupied", patient: "Grace Nakamura", note: "Waiting for provider" },
+    "Exam 2":    { status: "occupied", patient: "Ethan Walsh",    note: "Checked in 09:12" },
+    "Exam 3":    { status: "occupied", patient: "Priya Shah",     note: "With Dr. Patel" },
+    "Exam 4":    { status: "occupied", patient: "Aisha Kamara",   note: "With R. Lindqvist, NP" },
+    "Procedure": { status: "free",     patient: null,             note: "Ready" },
+    "Consult":   { status: "cleaning", patient: null,             note: "Turnover in progress" }
+  };
+
+  const STATUS_LABEL = {
+    scheduled: "Scheduled",
+    waiting: "Waiting",
+    progress: "In room",
+    done: "Done",
+    noshow: "No-show"
+  };
+
+  let activeFilter = "all";
+
+  const $ = (id) => document.getElementById(id);
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  function renderClock() {
+    const now = new Date();
+    $("today-date").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    $("now-time").textContent = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderStats() {
+    const total = APPTS.length;
+    const waiting = APPTS.filter(a => a.status === "waiting" || a.status === "progress" || a.status === "done").length;
+    const inQueue = APPTS.filter(a => a.status === "waiting").length;
+    const noshows = APPTS.filter(a => a.status === "noshow").length;
+    const occupied = Object.values(ROOM_STATE).filter(r => r.status === "occupied").length;
+
+    $("stat-total").textContent = total;
+    $("stat-total-sub").textContent = `${APPTS.filter(a => a.status === "scheduled").length} still to come`;
+
+    $("stat-waiting").textContent = waiting;
+    $("stat-waiting-sub").textContent = `${inQueue} in waiting room now`;
+
+    $("stat-noshow").textContent = noshows;
+    $("stat-noshow-sub").textContent = `${Math.round((noshows / total) * 100)}% of booked`;
+
+    $("stat-rooms").textContent = `${occupied}/${ROOMS.length}`;
+    $("stat-rooms-sub").textContent = `${ROOMS.length - occupied} available`;
+  }
+
+  function renderSchedule() {
+    const rows = APPTS
+      .filter(a => activeFilter === "all" || a.status === activeFilter)
+      .map(a => `
+        <tr>
+          <td class="time">${esc(a.time)}</td>
+          <td>
+            <div class="patient-name">${esc(a.patient)}</div>
+            <div class="patient-meta">${a.age} yrs · ${esc(a.reason)}</div>
+          </td>
+          <td class="muted">${esc(a.provider)}</td>
+          <td>${esc(a.room)}</td>
+          <td><span class="badge b-${a.status === "progress" ? "progress" : a.status}">${STATUS_LABEL[a.status]}</span></td>
+          <td class="actions">${actionButtons(a)}</td>
+        </tr>`).join("");
+
+    $("schedule-body").innerHTML = rows;
+    $("schedule-empty").hidden = rows.length > 0;
+  }
+
+  function actionButtons(a) {
+    const idx = APPTS.indexOf(a);
+    if (a.status === "scheduled") {
+      return `<button data-act="checkin" data-i="${idx}">Check in</button> <button data-act="noshow" data-i="${idx}">No-show</button>`;
+    }
+    if (a.status === "waiting") {
+      return `<button data-act="roomin" data-i="${idx}">To room</button>`;
+    }
+    if (a.status === "progress") {
+      return `<button data-act="done" data-i="${idx}">Complete</button>`;
+    }
+    return "";
+  }
+
+  function renderRooms() {
+    $("rooms").innerHTML = ROOMS.map(name => {
+      const r = ROOM_STATE[name];
+      const label = r.status === "occupied" ? "Occupied" : r.status === "cleaning" ? "Cleaning" : "Free";
+      const who = r.patient
+        ? `<div class="room-who">${esc(r.patient)}<div class="muted">${esc(r.note)}</div></div>`
+        : `<div class="room-who muted">${esc(r.note)}</div>`;
+      return `
+        <div class="room ${r.status}">
+          <div class="room-top">
+            <span class="room-name">${esc(name)}</span>
+            <span class="room-status">${label}</span>
+          </div>
+          ${who}
+        </div>`;
+    }).join("");
+
+    const occupied = Object.values(ROOM_STATE).filter(r => r.status === "occupied").length;
+    $("rooms-summary").textContent = `${occupied} of ${ROOMS.length} in use`;
+  }
+
+  function renderNoShows() {
+    const list = APPTS.filter(a => a.status === "noshow");
+    const total = APPTS.length;
+    const rate = total ? Math.round((list.length / total) * 100) : 0;
+
+    $("noshow-count").textContent = `${list.length} today`;
+    $("noshow-rate").textContent = `${rate}%`;
+    $("noshow-bar").style.width = `${rate}%`;
+
+    $("noshow-list").innerHTML = list.length
+      ? list.map(a => `
+          <li>
+            <div>
+              <div class="who">${esc(a.patient)}</div>
+              <div class="meta">${esc(a.time)} · ${esc(a.provider)} · ${esc(a.reason)}</div>
+            </div>
+            <span class="badge b-noshow">No-show</span>
+          </li>`).join("")
+      : `<li class="empty">No no-shows today.</li>`;
+  }
+
+  function renderAll() {
+    renderStats();
+    renderSchedule();
+    renderRooms();
+    renderNoShows();
+  }
+
+  // Filters
+  $("filters").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-filter]");
+    if (!btn) return;
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll("#filters .chip").forEach(c => c.classList.toggle("active", c === btn));
+    renderSchedule();
+  });
+
+  // Row actions (local state only)
+  $("schedule-body").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const appt = APPTS[Number(btn.dataset.i)];
+    const act = btn.dataset.act;
+
+    if (act === "checkin") appt.status = "waiting";
+    if (act === "noshow") appt.status = "noshow";
+    if (act === "roomin") {
+      appt.status = "progress";
+      ROOM_STATE[appt.room] = { status: "occupied", patient: appt.patient, note: `With ${appt.provider}` };
+    }
+    if (act === "done") {
+      appt.status = "done";
+      ROOM_STATE[appt.room] = { status: "cleaning", patient: null, note: "Turnover in progress" };
+    }
+    renderAll();
+  });
+
+  renderClock();
+  setInterval(renderClock, 30000);
+  renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .team-avatars {
+            display: flex;
+            gap: -8px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            margin-left: -10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .avatar:first-child {
+            margin-left: 0;
+        }
+
+        .avatar:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .avatar.sarah { background: #ff6b6b; }
+        .avatar.mike { background: #4ecdc4; }
+        .avatar.emma { background: #ffe66d; color: #333; }
+        .avatar.alex { background: #95e1d3; }
+
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        .column {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            min-width: 320px;
+            max-width: 320px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .column-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .column-title h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .task-count {
+            background: #f0f0f0;
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .column-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-backlog { background: #a0a0a0; }
+        .dot-progress { background: #667eea; }
+        .dot-review { background: #f093fb; }
+        .dot-done { background: #4ecdc4; }
+
+        .add-task-btn {
+            background: none;
+            border: 2px dashed #ddd;
+            color: #999;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .add-task-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 200px;
+        }
+
+        .task {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: grab;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .task:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+
+        .task-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        .tag-ui { background: #e3f2fd; color: #1976d2; }
+        .tag-ux { background: #fce4ec; color: #c2185b; }
+        .tag-brand { background: #fff3e0; color: #ef6c00; }
+        .tag-icon { background: #e8f5e9; color: #388e3c; }
+        .tag-web { background: #f3e5f5; color: #7b1fa2; }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-assignee {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .task-priority {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .priority-high { background: #ff6b6b; }
+        .priority-medium { background: #ffe66d; }
+        .priority-low { background: #4ecdc4; }
+
+        .task-image {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 24px;
+        }
+
+        .task-due {
+            font-size: 11px;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-due.overdue {
+            color: #ff6b6b;
+        }
+
+        .column.drag-over {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal input, .modal select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .modal input:focus, .modal select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .modal-btn.submit {
+            background: #667eea;
+            color: white;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .column {
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 Design Team Board</h1>
+        <div class="team-avatars">
+            <div class="avatar sarah" title="Sarah">S</div>
+            <div class="avatar mike" title="Mike">M</div>
+            <div class="avatar emma" title="Emma">E</div>
+            <div class="avatar alex" title="Alex">A</div>
+        </div>
+    </div>
+
+    <div class="board" id="board">
+        <div class="column" data-column="backlog">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-backlog"></div>
+                    <h2>Backlog</h2>
+                </div>
+                <span class="task-count" data-count>4</span>
+            </div>
+            <button class="add-task-btn" onclick="openModal('backlog')">+ Add Task</button>
+            <div class="tasks" data-tasks>
+                <div class="task" draggable="true" data-id="1">
+                    <span class="task-tag tag-ui">UI Design</span>
+                    <div class="task-title">Redesign dashboard navigation</div>
+                    <div class="task-meta">
+                        <div class="task-assignee sarah" style="background: #ff6b6b;">S</div>
+                        <div class="task-priority">
+                            <div class="priority-dot priority-high"></div>
+                            High
+                        </div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="2">
+                    <span class="task-tag tag-brand">Branding</span>
+                    <div class="task-title">Create social media templates for Q4 campaign</div>
+                    <div class="task-meta">
+                        <div class="task-assignee emma" style="background: #ffe66d; color: #333;">E</div>
+                        <div class="task-due">📅 Oct 30</div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="3">
+                    <span class="task-tag tag-icon">Iconography</span>
+                    <div class="task-title">Design new icon set for mobile app</div>
+                    <div class="task-meta">
+                        <div class="task-assignee alex" style="background: #95e1d3;">A</div>
+                        <div class="task-priority">
+                            <div class="priority-dot priority-medium"></div>
+                            Medium
+                        </div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="4">
+                    <span class="task-tag tag-ux">UX Research</span>
+                    <div class="task-title">Conduct user interviews for checkout flow</div>
+                    <div class="task-meta">
+                        <div class="task-assignee mike" style="background: #4ecdc4;">M</div>
+                        <div class="task-due overdue">📅 Oct 20</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column" data-column="progress">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-progress"></div>
+                    <h2>In Progress</h2>
+                </div>
+                <span class="task-count" data-count>3</span>
+            </div>
+            <button class="add-task-btn" onclick="openModal('progress')">+ Add Task</button>
+            <div class="tasks" data-tasks>
+                <div class="task" draggable="true" data-id="5">
+                    <div class="task-image">🖼️</div>
+                    <span class="task-tag tag-web">Web Design</span>
+                    <div class="task-title">Landing page hero section redesign</div>
+                    <div class="task-meta">
+                        <div class="task-assignee sarah" style="background: #ff6b6b;">S</div>
+                        <div class="task-due">📅 Oct 28</div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="6">
+                    <span class="task-tag tag-ui">UI Design</span>
+                    <div class="task-title">Design settings page components</div>
+                    <div class="task-meta">
+                        <div class="task-assignee mike" style="background: #4ecdc4;">M</div>
+                        <div class="task-priority">
+                            <div class="priority-dot priority-low"></div>
+                            Low
+                        </div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="7">
+                    <span class="task-tag tag-ux">UX Research</span>
+                    <div class="task-title">Analyze heatmap data from homepage</div>
+                    <div class="task-meta">
+                        <div class="task-assignee emma" style="background: #ffe66d; color: #333;">E</div>
+                        <div class="task-priority">
+                            <div class="priority-dot priority-medium"></div>
+                            Medium
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column" data-column="review">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-review"></div>
+                    <h2>Review</h2>
+                </div>
+                <span class="task-count" data-count>2</span>
+            </div>
+            <button class="add-task-btn" onclick="openModal('review')">+ Add Task</button>
+            <div class="tasks" data-tasks>
+                <div class="task" draggable="true" data-id="8">
+                    <div class="task-image">🎨</div>
+                    <span class="task-tag tag-brand">Branding</span>
+                    <div class="task-title">New logo variations for client approval</div>
+                    <div class="task-meta">
+                        <div class="task-assignee alex" style="background: #95e1d3;">A</div>
+                        <div class="task-priority">
+                            <div class="priority-dot priority-high"></div>
+                            High
+                        </div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="9">
+                    <span class="task-tag tag-ui">UI Design</span>
+                    <div class="task-title">Mobile app onboarding screens</div>
+                    <div class="task-meta">
+                        <div class="task-assignee sarah" style="background: #ff6b6b;">S</div>
+                        <div class="task-due">📅 Oct 25</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column" data-column="done">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-done"></div>
+                    <h2>Done</h2>
+                </div>
+                <span class="task-count" data-count>3</span>
+            </div>
+            <button class="add-task-btn" onclick="openModal('done')">+ Add Task</button>
+            <div class="tasks" data-tasks>
+                <div class="task" draggable="true" data-id="10">
+                    <span class="task-tag tag-icon">Iconography</span>
+                    <div class="task-title">Payment method icons completed</div>
+                    <div class="task-meta">
+                        <div class="task-assignee alex" style="background: #95e1d3;">A</div>
+                        <div class="task-due">✓ Oct 18</div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="11">
+                    <span class="task-tag tag-web">Web Design</span>
+                    <div class="task-title">Blog post template design</div>
+                    <div class="task-meta">
+                        <div class="task-assignee mike" style="background: #4ecdc4;">M</div>
+                        <div class="task-due">✓ Oct 15</div>
+                    </div>
+                </div>
+                <div class="task" draggable="true" data-id="12">
+                    <span class="task-tag tag-ux">UX Research</span>
+                    <div class="task-title">Competitor analysis report</div>
+                    <div class="task-meta">
+                        <div class="task-assignee emma" style="background: #ffe66d; color: #333;">E</div>
+                        <div class="task-due">✓ Oct 12</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3>Add New Task</h3>
+            <input type="text" id="taskTitle" placeholder="Task title...">
+            <select id="taskTag">
+                <option value="ui">UI Design</option>
+                <option value="ux">UX Research</option>
+                <option value="brand">Branding</option>
+                <option value="icon">Iconography</option>
+                <option value="web">Web Design</option>
+            </select>
+            <select id="taskAssignee">
+                <option value="sarah">Sarah</option>
+                <option value="mike">Mike</option>
+                <option value="emma">Emma</option>
+                <option value="alex">Alex</option>
+            </select>
+            <select id="taskPriority">
+                <option value="low">Low Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="high">High Priority</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn submit" onclick="addTask()">Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let draggedTask = null;
+        let currentColumn = null;
+        let taskIdCounter = 13;
+
+        // Initialize drag and drop
+        function initDragAndDrop() {
+            const tasks = document.querySelectorAll('.task');
+            const columns = document.querySelectorAll('.column');
+
+            tasks.forEach(task => {
+                task.addEventListener('dragstart', handleDragStart);
+                task.addEventListener('dragend', handleDragEnd);
+            });
+
+            columns.forEach(column => {
+                const tasksContainer = column.querySelector('[data-tasks]');
+                tasksContainer.addEventListener('dragover', handleDragOver);
+                tasksContainer.addEventListener('drop', handleDrop);
+                tasksContainer.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedTask = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            draggedTask = null;
+            updateTaskCounts();
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.closest('.column').classList.add('drag-over');
+            
+            const afterElement = getDragAfterElement(this, e.clientY);
+            if (afterElement == null) {
+                this.appendChild(draggedTask);
+            } else {
+                this.insertBefore(draggedTask, afterElement);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.closest('.column').classList.remove('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.closest('.column').classList.remove('drag-over');
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateTaskCounts() {
+            document.querySelectorAll('.column').forEach(column => {
+                const count = column.querySelectorAll('.task').length;
+                column.querySelector('[data-count]').textContent = count;
+            });
+        }
+
+        function openModal(column) {
+            currentColumn = column;
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('taskTitle').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('taskTitle').value = '';
+            currentColumn = null;
+        }
+
+        function addTask() {
+            const title = document.getElementById('taskTitle').value.trim();
+            if (!title) return;
+
+            const tag = document.getElementById('taskTag').value;
+            const assignee = document.getElementById('taskAssignee').value;
+            const priority = document.getElementById('taskPriority').value;
+
+            const tagClasses = {
+                ui: 'tag-ui',
+                ux: 'tag-ux',
+                brand: 'tag-brand',
+                icon: 'tag-icon',
+                web: 'tag-web'
+            };
+
+            const tagNames = {
+                ui: 'UI Design',
+                ux: 'UX Research',
+                brand: 'Branding',
+                icon: 'Iconography',
+                web: 'Web Design'
+            };
+
+            const assigneeColors = {
+                sarah: '#ff6b6b',
+                mike: '#4ecdc4',
+                emma: '#ffe66d',
+                alex: '#95e1d3'
+            };
+
+            const assigneeTextColors = {
+                sarah: 'white',
+                mike: 'white',
+                emma: '#333',
+                alex: 'white'
+            };
+
+            const task = document.createElement('div');
+            task.className = 'task';
+            task.draggable = true;
+            task.dataset.id = taskIdCounter++;
+            task.innerHTML = `
+                <span class="task-tag ${tagClasses[tag]}">${tagNames[tag]}</span>
+                <div class="task-title">${title}</div>
+                <div class="task-meta">
+                    <div class="task-assignee" style="background: ${assigneeColors[assignee]}; color: ${assigneeTextColors[assignee]};">${assignee[0].toUpperCase()}</div>
+                    <div class="task-priority">
+                        <div class="priority-dot priority-${priority}"></div>
+                        ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </div>
+                </div>
+            `;
+
+            task.addEventListener('dragstart', handleDragStart);
+            task.addEventListener('dragend', handleDragEnd);
+
+            const column = document.querySelector(`[data-column="${currentColumn}"]`);
+            column.querySelector('[data-tasks]').appendChild(task);
+
+            closeModal();
+            updateTaskCounts();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.key === 'Enter' && document.getElementById('modalOverlay').classList.contains('active')) {
+                addTask();
+            }
+        });
+
+        // Initialize
+        initDragAndDrop();
+    </script>
+</body>
+</html>

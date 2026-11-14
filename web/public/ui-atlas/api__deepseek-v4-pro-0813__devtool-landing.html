@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tern — Find slow database queries before your users do</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080c0a;
+            --bg-secondary: #0c1210;
+            --bg-card: #111a17;
+            --bg-card-hover: #16231e;
+            --border: #1c2b25;
+            --border-light: #2a3f36;
+            --text: #e8efec;
+            --text-muted: #8da399;
+            --text-dim: #5c7167;
+            --accent: #2ee6a8;
+            --accent-hover: #1ccf8f;
+            --accent-glow: rgba(46, 230, 168, 0.15);
+            --accent-glow-strong: rgba(46, 230, 168, 0.25);
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+            --terminal-bg: #070b09;
+            --terminal-header: #0d1310;
+            --terminal-text: #d4e2dc;
+            --terminal-dim: #5c7167;
+            --terminal-accent: #2ee6a8;
+            --terminal-warning: #fbbf24;
+            --terminal-danger: #f87171;
+            --terminal-info: #60a5fa;
+            --terminal-sql: #e8c47a;
+            --terminal-muted: #7d9489;
+            --code-bg: #0a0f0d;
+            --code-border: #1c2b25;
+            --code-text: #d4e2dc;
+            --code-accent: #2ee6a8;
+            --code-dim: #5c7167;
+            --code-keyword: #7dd3fc;
+            --code-string: #a5b4fc;
+            --code-comment: #4b5e54;
+            --code-variable: #e8c47a;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --transition: 0.2s ease;
+            --transition-slow: 0.35s ease;
+            --max-width: 1200px;
+            --nav-height: 68px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── Background decorations ── */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 20% 10%, rgba(46, 230, 168, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(46, 230, 168, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 60% 80%, rgba(46, 230, 168, 0.04) 0%, transparent 50%),
+                linear-gradient(rgba(46, 230, 168, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(46, 230, 168, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+            mask-image: radial-gradient(ellipse at center 30%, black 0%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center 30%, black 0%, transparent 75%);
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(100px);
+            opacity: 0.5;
+        }
+        .bg-orb-1 {
+            width: 500px;
+            height: 500px;
+            top: -200px;
+            right: -100px;
+            background: rgba(46, 230, 168, 0.08);
+        }
+        .bg-orb-2 {
+            width: 400px;
+            height: 400px;
+            bottom: -100px;
+            left: -150px;
+            background: rgba(46, 230, 168, 0.05);
+        }
+
+        /* ── Navigation ── */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background: rgba(8, 12, 10, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(28, 43, 37, 0.6);
+            transition: background var(--transition);
+        }
+        .nav.scrolled {
+            background: rgba(8, 12, 10, 0.92);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: -0.02em;
+            transition: opacity var(--transition);
+        }
+        .nav-logo:hover {
+            opacity: 0.85;
+        }
+        .nav-logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--accent), #0fb88a);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #08130e;
+            box-shadow: 0 0 20px rgba(46, 230, 168, 0.35);
+            flex-shrink: 0;
+        }
+        .nav-logo span {
+            font-weight: 600;
+        }
+        .nav-logo .logo-version {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: var(--accent);
+            background: rgba(46, 230, 168, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            letter-spacing: 0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            list-style: none;
+        }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 450;
+            transition: color var(--transition);
+            letter-spacing: 0.01em;
+        }
+        .nav-links a:hover {
+            color: var(--text);
+        }
+        .nav-cta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-github {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-weight: 500;
+        }
+        .nav-github:hover {
+            color: var(--text);
+            border-color: var(--border-light);
+            background: var(--bg-card);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #08130e;
+            box-shadow: 0 0 24px rgba(46, 230, 168, 0.3);
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 32px rgba(46, 230, 168, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border-light);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--text-muted);
+            transform: translateY(-1px);
+        }
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 0.82rem;
+            border-radius: 5px;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative;
+            z-index: 1;
+            padding: calc(var(--nav-height) + 60px) 32px 80px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 56px;
+            align-items: center;
+            min-height: 90vh;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(46, 230, 168, 0.08);
+            border: 1px solid rgba(46, 230, 168, 0.2);
+            border-radius: 100px;
+            padding: 6px 14px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.03em;
+            width: fit-content;
+        }
+        .hero-badge .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(46, 230, 168, 0.5);
+            }
+            50% {
+                opacity: 0.6;
+                box-shadow: 0 0 0 5px rgba(46, 230, 168, 0);
+            }
+        }
+
+        .hero h1 {
+            font-size: 3.4rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.035em;
+            color: var(--text);
+        }
+        .hero h1 .highlight {
+            color: var(--accent);
+            position: relative;
+            white-space: nowrap;
+        }
+        .hero h1 .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: rgba(46, 230, 168, 0.2);
+            border-radius: 2px;
+            z-index: -1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            max-width: 480px;
+            font-weight: 400;
+        }
+        .hero-subtitle strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .hero-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+        .hero-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hero-meta .meta-item svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--text-dim);
+        }
+
+        /* ── Terminal ── */
+        .terminal-window {
+            background: var(--terminal-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(46, 230, 168, 0.06),
+                0 24px 60px -12px rgba(0, 0, 0, 0.7),
+                0 0 80px -20px rgba(46, 230, 168, 0.12);
+            font-family: var(--font-mono);
+            position: relative;
+        }
+        .terminal-window::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(46, 230, 168, 0.3), transparent);
+            pointer-events: none;
+        }
+
+        .terminal-header {
+            background: var(--terminal-header);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+        }
+        .terminal-dots {
+            display: flex;
+            gap: 7px;
+            flex-shrink: 0;
+        }
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: opacity var(--transition);
+        }
+        .terminal-dot-red {
+            background: #ff5f57;
+        }
+        .terminal-dot-yellow {
+            background: #febc2e;
+        }
+        .terminal-dot-green {
+            background: #28c840;
+        }
+        .terminal-title {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            flex: 1;
+            text-align: center;
+        }
+        .terminal-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(46, 230, 168, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+
+        .terminal-body {
+            padding: 20px 22px;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            min-height: 400px;
+        }
+        .terminal-line {
+            display: flex;
+            gap: 8px;
+            white-space: pre;
+            min-height: 1.6em;
+        }
+        .terminal-prompt {
+            color: var(--terminal-accent);
+            font-weight: 600;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .terminal-command {
+            color: var(--terminal-text);
+            font-weight: 500;
+        }
+        .terminal-output {
+            color: var(--terminal-muted);
+        }
+        .terminal-output-dim {
+            color: var(--terminal-dim);
+        }
+        .terminal-output-success {
+            color: var(--terminal-accent);
+        }
+        .terminal-output-warning {
+            color: var(--terminal-warning);
+            font-weight: 600;
+        }
+        .terminal-output-danger {
+            color: var(--terminal-danger);
+        }
+        .terminal-output-info {
+            color: var(--terminal-info);
+        }
+        .terminal-sql {
+            color: var(--terminal-sql);
+            font-style: italic;
+        }
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--terminal-accent);
+            border-radius: 1px;
+            animation: blink 1.1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .terminal-divider {
+            border-top: 1px dashed var(--border-light);
+            margin: 12px 0;
+            padding-top: 8px;
+            color: var(--terminal-dim);
+            font-size: 0.7rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        /* ── Section base ── */
+        .section {
+            position: relative;
+            z-index: 1;
+            padding: 80px 32px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 52px;
+        }
+        .section-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            color: var(--text);
+            max-width: 620px;
+            margin: 0 auto;
+        }
+        .section-subtitle {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 540px;
+            margin: 16px auto 0;
+            line-height: 1.7;
+        }
+
+        /* ── Features ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 28px 24px;
+            transition: all var(--transition-slow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-slow);
+        }
+        .feature-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-light);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+        }
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        .feature-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-sm);
+            background: rgba(46, 230, 168, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(46, 230, 168, 0.15);
+        }
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            color: var(--text);
+        }
+        .feature-card p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        /* ── How it works ── */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            position: relative;
+        }
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 18%;
+            right: 18%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--border), var(--border-light), var(--border));
+            z-index: 0;
+        }
+        .step-card {
+            text-align: center;
+            padding: 20px 12px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .step-number {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+            box-shadow: 0 0 24px rgba(46, 230, 168, 0.15);
+            position: relative;
+            z-index: 1;
+        }
+        .step-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        .step-card p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            max-width: 280px;
+        }
+        .step-code {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent);
+            background: rgba(46, 230, 168, 0.08);
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(46, 230, 168, 0.15);
+        }
+
+        /* ── Stats ── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 36px 28px;
+            margin-top: 72px;
+        }
+        .stat {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+        .stat-value .stat-accent {
+            color: var(--accent);
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        /* ── Testimonials ── */
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .testimonial-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all var(--transition-slow);
+        }
+        .testimonial-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-light);
+            transform: translateY(-2px);
+        }
+        .testimonial-quote {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .testimonial-quote::before {
+            content: '"';
+            color: var(--accent);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-right: 2px;
+        }
+        .testimonial-quote::after {
+            content: '"';
+            color: var(--accent);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-left: 2px;
+        }
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .testimonial-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a2f27, #0a1a14);
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+        .testimonial-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .testimonial-role {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        /* ── Install CTA ── */
+        .install-section {
+            position: relative;
+            z-index: 1;
+            padding: 80px 32px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            text-align: center;
+        }
+        .install-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .install-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .install-card h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            max-width: 500px;
+        }
+        .install-card p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 440px;
+            line-height: 1.7;
+        }
+        .install-command-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            width: 100%;
+            max-width: 440px;
+            margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        .install-prefix {
+            padding: 12px 14px;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            user-select: none;
+            border-right: 1px solid var(--code-border);
+            font-weight: 500;
+        }
+        .install-command {
+            flex: 1;
+            padding: 12px 14px;
+            color: var(--code-accent);
+            font-weight: 500;
+            text-align: left;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.8rem;
+        }
+        .install-copy-btn {
+            padding: 12px 16px;
+            background: rgba(46, 230, 168, 0.1);
+            color: var(--accent);
+            border: none;
+            border-left: 1px solid var(--code-border);
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: background var(--transition);
+            white-space: nowrap;
+        }
+        .install-copy-btn:hover {
+            background: rgba(46, 230, 168, 0.2);
+        }
+        .install-copy-btn.copied {
+            color: #08130e;
+            background: var(--accent);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+            padding: 48px 32px 32px;
+        }
+        .footer-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        .footer-brand {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 280px;
+        }
+        .footer-brand .nav-logo {
+            font-size: 1.1rem;
+        }
+        .footer-brand p {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        .footer-links {
+            display: flex;
+            gap: 64px;
+            flex-wrap: wrap;
+        }
+        .footer-col h4 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .footer-col a {
+            display: block;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            transition: color var(--transition);
+        }
+        .footer-col a:hover {
+            color: var(--text);
+        }
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+        .footer-bottom .footer-socials {
+            display: flex;
+            gap: 12px;
+        }
+        .footer-socials a {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color var(--transition);
+            font-size: 0.85rem;
+        }
+        .footer-socials a:hover {
+            color: var(--text);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                padding-top: calc(var(--nav-height) + 40px);
+                min-height: auto;
+            }
+            .hero-content {
+                text-align: center;
+                align-items: center;
+            }
+            .hero-badge {
+                margin: 0 auto;
+            }
+            .hero-subtitle {
+                max-width: 100%;
+            }
+            .hero-actions {
+                justify-content: center;
+            }
+            .hero-meta {
+                justify-content: center;
+            }
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .testimonials-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .steps-grid::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                padding: 0 16px;
+                height: 58px;
+            }
+            .nav-links {
+                display: none;
+            }
+            .nav-github {
+                display: none;
+            }
+            .hero {
+                padding: calc(var(--nav-height) + 30px) 16px 60px;
+                gap: 32px;
+            }
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            .hero h1 .highlight {
+                white-space: normal;
+            }
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            .terminal-body {
+                font-size: 0.68rem;
+                padding: 14px 14px;
+                min-height: 300px;
+            }
+            .section {
+                padding: 56px 16px;
+            }
+            .section-title {
+                font-size: 1.85rem;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .steps-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 24px;
+                padding: 24px 16px;
+                margin-top: 40px;
+            }
+            .stat-value {
+                font-size: 1.6rem;
+            }
+            .install-card {
+                padding: 40px 20px;
+            }
+            .install-card h2 {
+                font-size: 1.6rem;
+            }
+            .install-command-wrap {
+                font-size: 0.75rem;
+            }
+            .footer {
+                padding: 32px 16px 24px;
+            }
+            .footer-top {
+                flex-direction: column;
+                gap: 24px;
+            }
+            .footer-links {
+                gap: 32px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+            .terminal-body {
+                font-size: 0.62rem;
+                line-height: 1.6;
+            }
+            .terminal-window {
+                border-radius: var(--radius-md);
+            }
+            .btn {
+                padding: 9px 16px;
+                font-size: 0.82rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background decorations -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="mainNav" role="navigation" aria-label="Main navigation">
+        <a href="#" class="nav-logo" aria-label="Tern home">
+            <div class="nav-logo-icon" aria-hidden="true">&#128038;</div>
+            <span>tern</span>
+            <span class="logo-version">v2.4</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How it works</a></li>
+            <li><a href="#stats">Stats</a></li>
+            <li><a href="#testimonials">Testimonials</a></li>
+            <li><a href="#install">Install</a></li>
+        </ul>
+        <div class="nav-cta">
+            <a href="https://github.com/tern-tool/tern" class="nav-github" target="_blank" rel="noopener">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+            <a href="#install" class="btn btn-primary btn-sm">Install</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero" aria-label="Hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="pulse-dot" aria-hidden="true"></span>
+                v2.4 released — now with MySQL support
+            </div>
+            <h1>
+                Find slow database queries <span class="highlight">before your users do</span>
+            </h1>
+            <p class="hero-subtitle">
+                <strong>Tern</strong> profiles your database queries in real time, identifies bottlenecks, and gives you <strong>actionable suggestions</strong> — all from your terminal. No agents, no overhead, no guesswork.
+            </p>
+            <div class="hero-actions">
+                <a href="#install" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    Install Tern
+                </a>
+                <a href="https://github.com/tern-tool/tern" class="btn btn-secondary" target="_blank" rel="noopener">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    Star on GitHub
+                </a>
+            </div>
+            <div class="hero-meta">
+                <span class="meta-item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                    12k+ GitHub stars
+                </span>
+                <span class="meta-item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-9 14H7v-4h3v4zm0-6H7V7h3v4zm5 6h-3v-2h3v2zm0-4h-3V7h3v6z"/></svg>
+                    PostgreSQL · MySQL · SQLite
+                </span>
+                <span class="meta-item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.62-2.97 8.93-7 10.05C7.97 19.93 5 15.62 5 11V6.3l7-3.12z"/></svg>
+                    MIT licensed
+                </span>
+            </div>
+        </div>
+
+        <!-- Terminal mockup -->
+        <div class="terminal-window" aria-label="Terminal demonstration of Tern">
+            <div class="terminal-header">
+                <div class="terminal-dots">
+                    <span class="terminal-dot terminal-dot-red" aria-hidden="true"></span>
+                    <span class="terminal-dot terminal-dot-yellow" aria-hidden="true"></span>
+                    <span class="terminal-dot terminal-dot-green" aria-hidden="true"></span>
+                </div>
+                <span class="terminal-title">tern — zsh</span>
+                <span class="terminal-tag">PostgreSQL 16</span>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-line">
+                    <span class="terminal-prompt">$</span>
+                    <span class="terminal-command">tern analyze --db postgres://localhost/app</span>
+                </div>
+                <div class="terminal-line"><span class="terminal-output-dim">Scanning schema... 42 tables found</span></div>
+                <div class="terminal-line"><span class="terminal-output-dim">Profiling queries over 7 days of logs...</span></div>
+                <div class="terminal-line"><span class="terminal-output-success">✓ 18,423 queries profiled</span></div>
+                <div class="terminal-line"><span class="terminal-output-success">✓ 3 slow queries identified</span></div>
+                <div class="terminal-divider">Slow Queries (threshold: 100ms)</div>
+                <div class="terminal-line">
+                    <span class="terminal-output-danger">⚠ CRITICAL&nbsp; 2.4s</span>
+                    <span class="terminal-output-dim">· 312 executions/day</span>
+                </div>
+                <div class="terminal-line"><span class="terminal-sql">SELECT * FROM orders o</span></div>
+                <div class="terminal-line"><span class="terminal-sql">  JOIN customers c ON c.id = o.customer_id</span></div>
+                <div class="terminal-line"><span class="terminal-sql">  WHERE o.created_at &gt; NOW() - '30 days'</span></div>
+                <div class="terminal-line"><span class="terminal-output-warning">→ Missing index on orders(created_at)</span></div>
+                <div class="terminal-line"><span class="terminal-output-warning">→ Sequential scan on 1.2M rows</span></div>
+                <div class="terminal-line" style="margin-top:8px;">
+                    <span class="terminal-output-warning">⚠ WARNING&nbsp; 0.9s</span>
+                    <span class="terminal-output-dim">· 89 executions/day</span>
+                </div>
+                <div class="terminal-line"><span class="terminal-sql">SELECT COUNT(*) FROM audit_log</span></div>
+                <div class="terminal-line"><span class="terminal-output-warning">→ Full table scan · Consider partitioning</span></div>
+                <div class="terminal-line" style="margin-top:8px;">
+                    <span class="terminal-output-warning">⚠ WARNING&nbsp; 0.8s</span>
+                    <span class="terminal-output-dim">· 42 executions/day</span>
+                </div>
+                <div class="terminal-line"><span class="terminal-sql">UPDATE sessions SET data = $1 WHERE token = $2</span></div>
+                <div class="terminal-line"><span class="terminal-output-warning">→ Hot row contention · VACUUM overdue</span></div>
+                <div class="terminal-divider">Summary</div>
+                <div class="terminal-line"><span class="terminal-output">3 slow queries found · 1 critical · 2 warnings</span></div>
+                <div class="terminal-line"><span class="terminal-output-info">Suggestions written to: tern-report.md</span></div>
+                <div class="terminal-line">
+                    <span class="terminal-prompt">$</span>
+                    <span class="terminal-cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features" aria-label="Features">
+        <div class="section-header">
+            <span class="section-label">Features</span>
+            <h2 class="section-title">Everything you need to keep your queries fast</h2>
+            <p class="section-subtitle">Tern works with your existing database — no schema changes, no invasive agents, and zero production overhead.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128269;</div>
+                <h3>Automatic query profiling</h3>
+                <p>Continuously profiles every query against your database and automatically flags the ones crossing your latency thresholds. No manual tracing or sampling.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128450;&#65039;</div>
+                <h3>Multi-database support</h3>
+                <p>Native support for PostgreSQL, MySQL, and SQLite — with more adapters on the way. Connect via URL, config file, or environment variables.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128202;</div>
+                <h3>Visual explain plans</h3>
+                <p>Export interactive explain plans for every slow query. See exactly which indexes are missing and where sequential scans are wasting CPU.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128680;</div>
+                <h3>CI-ready integration</h3>
+                <p>Run Tern in your CI pipeline to catch slow queries before they hit production. Fails the build when query performance regresses.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128274;</div>
+                <h3>Read-only &amp; safe</h3>
+                <p>Tern only runs EXPLAIN and system catalog queries. It never modifies your data, never adds triggers, and never impacts transaction throughput.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" aria-hidden="true">&#128221;</div>
+                <h3>Actionable suggestions</h3>
+                <p>Every finding comes with a concrete fix: index recommendations, query rewrites, VACUUM schedules, and partitioning strategies — ready to apply.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="how-it-works" aria-label="How it works">
+        <div class="section-header">
+            <span class="section-label">How it works</span>
+            <h2 class="section-title">Three steps to faster queries</h2>
+            <p class="section-subtitle">Get from zero to actionable insights in under a minute.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Install Tern</h3>
+                <p>Install via npm, Homebrew, or download a single static binary. No dependencies required.</p>
+                <span class="step-code">npm install -g tern-cli</span>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Run the analyzer</h3>
+                <p>Point Tern at your database and let it profile your query logs, pg_stat_statements, or slow query log.</p>
+                <span class="step-code">tern analyze --db postgres://...</span>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Apply the fixes</h3>
+                <p>Open the generated report, apply the suggested indexes and rewrites, and watch your p99 drop.</p>
+                <span class="step-code">tern report --open</span>
+            </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="stats-bar" id="stats" aria-label="Statistics">
+            <div class="stat">
+                <span class="stat-value">12k<span class="stat-accent">+</span></span>
+                <span class="stat-label">GitHub Stars</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">50k<span class="stat-accent">+</span></span>
+                <span class="stat-label">Repositories Analyzed</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">2.4M<span class="stat-accent">+</span></span>
+                <span class="stat-label">Queries Profiled</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">87<span class="stat-accent">%</span></span>
+                <span class="stat-label">Avg. Query Speedup</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section" id="testimonials" aria-label="Testimonials">
+        <div class="section-header">
+            <span class="section-label">Testimonials</span>
+            <h2 class="section-title">Loved by developers worldwide</h2>
+            <p class="section-subtitle">From indie developers to large engineering teams — here's what they're saying.</p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-quote">Tern found a missing index in our checkout service that cut our P99 latency from 800ms to 120ms. It took literally 30 seconds to run.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">SK</div>
+                    <div>
+                        <div class="testimonial-name">Sarah Kim</div>
+                        <div class="testimonial-role">Staff Engineer @ Vercel</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-quote">The CI integration is a game changer. We've prevented dozens of slow queries from ever making it to production. Tern is now part of our standard pipeline.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">JM</div>
+                    <div>
+                        <div class="testimonial-name">James Miller</div>
+                        <div class="testimonial-role">Platform Lead @ Shopify</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-quote">The explain plan export is beautiful. I can finally show non-technical stakeholders exactly why a query is slow and what we need to fix.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">AR</div>
+                    <div>
+                        <div class="testimonial-name">Aisha Rahman</div>
+                        <div class="testimonial-role">CTO @ IndieStudio</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Install CTA -->
+    <section class="install-section" id="install" aria-label="Install Tern">
+        <div class="install-card">
+            <span class="section-label">Get Started</span>
+            <h2>Ready to speed up your database?</h2>
+            <p>Install Tern with one command. No sign-up, no cloud — just your terminal and your database.</p>
+            <div class="install-command-wrap">
+                <span class="install-prefix">$</span>
+                <span class="install-command" id="installCmd">npm install -g tern-cli</span>
+                <button class="install-copy-btn" id="copyBtn" aria-label="Copy install command">Copy</button>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:4px;">
+                <a href="https://github.com/tern-tool/tern" class="btn btn-secondary" target="_blank" rel="noopener">View Documentation</a>
+                <a href="https://github.com/tern-tool/tern/releases" class="btn btn-secondary" target="_blank" rel="noopener">Download Binary</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a href="#" class="nav-logo" aria-label="Tern home">
+                        <div class="nav-logo-icon" aria-hidden="true">&#128038;</div>
+                        <span>tern</span>
+                    </a>
+                    <p>Find slow database queries before your users do. Open-source, MIT licensed, and built for developers who care about performance.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#how-it-works">How it works</a>
+                        <a href="#install">Install</a>
+                        <a href="https://github.com/tern-tool/tern/releases">Changelog</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Resources</h4>
+                        <a href="https://github.com/tern-tool/tern/wiki">Documentation</a>
+                        <a href="https://github.com/tern-tool/tern/wiki/API">API Reference</a>
+                        <a href="https://github.com/tern-tool/tern/tree/main/examples">Examples</a>
+                        <a href="https://github.com/tern-tool/tern/discussions">Community</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Connect</h4>
+                        <a href="https://github.com/tern-tool/tern">GitHub</a>
+                        <a href="https://twitter.com/tern_db">Twitter / X</a>
+                        <a href="https://discord.gg/tern">Discord</a>
+                        <a href="mailto:hello@tern.dev">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2025 Tern. All rights reserved. MIT License.</span>
+                <div class="footer-socials">
+                    <a href="https://github.com/tern-tool/tern" aria-label="GitHub">GitHub</a>
+                    <a href="https://twitter.com/tern_db" aria-label="Twitter">Twitter</a>
+                    <a href="https://discord.gg/tern" aria-label="Discord">Discord</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // Sticky nav scroll effect
+            const nav = document.getElementById('mainNav');
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 30) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            });
+
+            // Copy install command
+            const copyBtn = document.getElementById('copyBtn');
+            const installCmd = document.getElementById('installCmd');
+
+            copyBtn.addEventListener('click', function() {
+                const text = installCmd.textContent.trim();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        copyBtn.textContent = 'Copied!';
+                        copyBtn.classList.add('copied');
+                        setTimeout(function() {
+                            copyBtn.textContent = 'Copy';
+                            copyBtn.classList.remove('copied');
+                        }, 2000);
+                    }).catch(function() {
+                        fallbackCopy();
+                    });
+                } else {
+                    fallbackCopy();
+                }
+            });
+
+            function fallbackCopy() {
+                const text = installCmd.textContent.trim();
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(function() {
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (e) {
+                    copyBtn.textContent = 'Error';
+                }
+                document.body.removeChild(textarea);
+            }
+        })();
+    </script>
+</body>
+</html>

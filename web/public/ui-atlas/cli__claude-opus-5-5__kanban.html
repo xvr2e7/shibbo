@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Board — Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f3ef;
+    --panel:#ebe8e2;
+    --card:#ffffff;
+    --ink:#1f1d1a;
+    --muted:#77726a;
+    --line:#dcd8d0;
+    --accent:#ff5b37;
+    --accent-ink:#fff;
+    --shadow:0 1px 2px rgba(31,29,26,.06),0 2px 8px rgba(31,29,26,.05);
+    --shadow-lift:0 10px 30px rgba(31,29,26,.18);
+    --radius:12px;
+  }
+  [data-theme="dark"]{
+    --bg:#171614;
+    --panel:#211f1c;
+    --card:#2b2925;
+    --ink:#f1ede6;
+    --muted:#9d978c;
+    --line:#3a3732;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+    --shadow-lift:0 10px 30px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    font-size:14px;display:flex;flex-direction:column;transition:background .2s,color .2s;
+  }
+  button{font:inherit;color:inherit;cursor:pointer}
+  input,textarea,select{font:inherit;color:var(--ink)}
+
+  /* Header */
+  header{
+    display:flex;align-items:center;gap:16px;padding:18px 28px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+  .logo{width:32px;height:32px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700}
+  .brand h1{font-family:Fraunces,serif;font-size:22px;margin:0;font-weight:600;letter-spacing:-.01em}
+  .brand small{color:var(--muted);display:block;font-size:12px;margin-top:1px}
+  .search{
+    display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:7px 14px;min-width:220px;
+  }
+  .search input{border:0;outline:0;background:transparent;width:100%}
+  .members{display:flex;align-items:center}
+  .members .avatar{margin-left:-6px;border:2px solid var(--bg);cursor:pointer;transition:transform .15s,opacity .15s}
+  .members .avatar:first-child{margin-left:0}
+  .members .avatar:hover{transform:translateY(-2px)}
+  .members.filtering .avatar:not(.active){opacity:.35}
+  .btn{
+    border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:500;
+    display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;
+  }
+  .btn:hover{border-color:var(--muted)}
+  .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .btn.primary:hover{opacity:.9}
+  .btn.icon{padding:8px 10px}
+
+  /* Tag filter bar */
+  .filters{display:flex;gap:8px;padding:14px 28px 0;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:500;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .chip .dot{width:8px;height:8px;border-radius:50%}
+  .chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+  /* Board */
+  main{flex:1;overflow-x:auto;padding:18px 28px 28px}
+  .board{display:flex;gap:16px;align-items:flex-start;min-height:100%}
+  .column{
+    background:var(--panel);border-radius:16px;width:300px;flex:0 0 300px;display:flex;flex-direction:column;
+    max-height:calc(100vh - 170px);
+  }
+  .col-head{display:flex;align-items:center;gap:8px;padding:14px 14px 8px}
+  .col-head .swatch{width:10px;height:10px;border-radius:3px}
+  .col-title{font-weight:600;flex:1;outline:none;border-radius:4px;padding:2px 4px;margin-left:-4px}
+  .col-title:focus{background:var(--card)}
+  .count{font-size:12px;color:var(--muted);background:var(--card);border-radius:999px;padding:2px 8px;font-weight:500}
+  .count.over{background:var(--accent);color:#fff}
+  .col-menu{border:0;background:transparent;color:var(--muted);padding:2px 6px;border-radius:6px}
+  .col-menu:hover{background:var(--card);color:var(--ink)}
+  .cards{padding:6px 10px 10px;overflow-y:auto;flex:1;min-height:60px;display:flex;flex-direction:column;gap:8px}
+  .add-card{
+    margin:0 10px 12px;border:1px dashed var(--line);background:transparent;border-radius:10px;padding:9px;
+    color:var(--muted);text-align:left;
+  }
+  .add-card:hover{color:var(--ink);border-color:var(--muted);background:var(--card)}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);padding:12px 12px 10px;box-shadow:var(--shadow);
+    cursor:grab;border:1px solid transparent;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;
+  }
+  .card:hover{border-color:var(--line)}
+  .card:active{cursor:grabbing}
+  .card.dragging{opacity:.4}
+  .card .cover{height:6px;border-radius:4px;margin:-2px 0 10px}
+  .card h3{font-size:14px;font-weight:600;margin:0 0 4px;line-height:1.35}
+  .card p{margin:0 0 10px;color:var(--muted);font-size:12.5px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px}
+  .pill{font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:6px;background:var(--panel)}
+  .pill.due-soon{color:#b7791f;background:rgba(236,180,60,.18)}
+  .pill.overdue{color:#c53030;background:rgba(229,62,62,.14)}
+  .prio{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .spacer{flex:1}
+  .avatar{
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#fff;
+    flex:0 0 auto;
+  }
+  .placeholder{border:2px dashed var(--accent);border-radius:var(--radius);background:rgba(255,91,55,.06);flex:0 0 auto}
+
+  .add-col{
+    flex:0 0 260px;border:1px dashed var(--line);border-radius:16px;background:transparent;padding:16px;color:var(--muted);
+    text-align:left;font-weight:500;
+  }
+  .add-col:hover{color:var(--ink);border-color:var(--muted)}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(20,18,15,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .overlay.open{display:flex;animation:fade .15s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:var(--card);border-radius:18px;width:min(520px,100%);padding:24px;box-shadow:var(--shadow-lift);
+    max-height:90vh;overflow:auto;animation:pop .18s ease-out;
+  }
+  @keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .modal h2{font-family:Fraunces,serif;margin:0 0 16px;font-size:20px;font-weight:600}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+  .field input,.field textarea,.field select{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);outline:none;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--ink)}
+  .field textarea{min-height:90px;resize:vertical}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .opt-group{display:flex;gap:6px;flex-wrap:wrap}
+  .opt{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+  .opt.selected{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+  .opt .avatar{width:20px;height:20px;font-size:9px}
+  .modal-actions{display:flex;gap:8px;margin-top:20px;align-items:center}
+  .btn.danger{color:#d23c2a;border-color:transparent;background:transparent}
+  .btn.danger:hover{background:rgba(210,60,42,.08)}
+
+  /* Context menu */
+  .menu{position:fixed;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lift);padding:6px;z-index:60;display:none;min-width:170px}
+  .menu.open{display:block}
+  .menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:6px}
+  .menu button:hover{background:var(--panel)}
+  .menu button.danger{color:#d23c2a}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--bg);
+    padding:10px 16px;border-radius:999px;font-weight:500;transition:transform .25s;z-index:70;display:flex;gap:12px;align-items:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast button{background:transparent;border:0;color:var(--accent);font-weight:600}
+
+  .empty-hint{color:var(--muted);font-size:12px;text-align:center;padding:14px 4px}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">✦</div>
+    <div>
+      <h1>Studio Board</h1>
+      <small id="summary">—</small>
+    </div>
+  </div>
+  <label class="search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="color:var(--muted)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" placeholder="Search cards…  ( / )">
+  </label>
+  <div class="members" id="members" title="Filter by teammate"></div>
+  <button class="btn icon" id="themeBtn" title="Toggle theme">◐</button>
+  <button class="btn primary" id="newBtn">＋ New card</button>
+</header>
+<div class="filters" id="filters"></div>
+
+<main><div class="board" id="board"></div></main>
+
+<!-- Card modal -->
+<div class="overlay" id="overlay">
+  <form class="modal" id="form" autocomplete="off">
+    <h2 id="modalTitle">New card</h2>
+    <div class="field"><label>Title</label><input id="fTitle" required placeholder="e.g. Onboarding illustrations"></div>
+    <div class="field"><label>Description</label><textarea id="fDesc" placeholder="Context, links, acceptance notes…"></textarea></div>
+    <div class="field"><label>Type</label><div class="opt-group" id="fTags"></div></div>
+    <div class="field"><label>Assignee</label><div class="opt-group" id="fPeople"></div></div>
+    <div class="row">
+      <div class="field"><label>Due date</label><input type="date" id="fDue"></div>
+      <div class="field"><label>Priority</label>
+        <select id="fPrio"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Column</label><select id="fCol"></select></div>
+    <div class="modal-actions">
+      <button type="button" class="btn danger" id="delBtn">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="menu" id="colMenu">
+  <button data-act="rename">Rename</button>
+  <button data-act="wip">Set WIP limit</button>
+  <button data-act="left">Move left</button>
+  <button data-act="right">Move right</button>
+  <button data-act="delete" class="danger">Delete column</button>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
+
+<script>
+const STORE = 'studio-board-v1';
+
+const TAGS = {
+  ui:       {label:'UI',        color:'#5b6cff'},
+  brand:    {label:'Branding',  color:'#ff5b37'},
+  research: {label:'Research',  color:'#14a37f'},
+  illus:    {label:'Illustration', color:'#d946a8'},
+  motion:   {label:'Motion',    color:'#e0a100'},
+  system:   {label:'Design System', color:'#0ea5c6'},
+};
+const PEOPLE = {
+  mk:{name:'Mika K.',  color:'#ff7a59'},
+  jr:{name:'Jo R.',    color:'#6366f1'},
+  sa:{name:'Sam A.',   color:'#10b981'},
+  lp:{name:'Lee P.',   color:'#e11d74'},
+  ta:{name:'Taylor A.',color:'#f59e0b'},
+};
+const PRIO = {low:{label:'Low',color:'#9ca3af'},med:{label:'Medium',color:'#f59e0b'},high:{label:'High',color:'#ef4444'}};
+const COL_COLORS = ['#a8a29e','#5b6cff','#e0a100','#d946a8','#14a37f','#0ea5c6','#ff5b37'];
+
+const uid = () => Math.random().toString(36).slice(2,9);
+const addDays = n => { const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+
+function seed(){
+  const c = (title,desc,tag,who,due,prio)=>({id:uid(),title,desc,tag,who,due,prio});
+  return {
+    columns:[
+      {id:uid(),title:'Backlog',color:COL_COLORS[0],wip:0,cards:[
+        c('Icon set refresh','Audit 24px icons, align stroke weights to 1.75.','system','jr',addDays(14),'low'),
+        c('Competitor moodboard','Collect onboarding patterns from 10 fintech apps.','research','sa','', 'low'),
+        c('Holiday campaign concepts','3 directions for the December social push.','brand','lp',addDays(20),'med'),
+      ]},
+      {id:uid(),title:'In Progress',color:COL_COLORS[1],wip:4,cards:[
+        c('Checkout flow v2','Hi-fi screens for new 2-step checkout. Mobile first.','ui','mk',addDays(2),'high'),
+        c('Empty state illustrations','Set of 6 spot illustrations in new brand style.','illus','lp',addDays(5),'med'),
+        c('Button press micro-interaction','Spring curve exploration in Rive.','motion','ta',addDays(-1),'med'),
+      ]},
+      {id:uid(),title:'Review',color:COL_COLORS[2],wip:3,cards:[
+        c('Usability test synthesis','Affinity map from 8 sessions → top 5 insights.','research','sa',addDays(1),'high'),
+        c('Color tokens v3','Dark mode contrast pass; needs eng review.','system','jr',addDays(3),'med'),
+      ]},
+      {id:uid(),title:'Done',color:COL_COLORS[4],wip:0,cards:[
+        c('Logo lockup guidelines','Clear space, min sizes, misuse examples.','brand','mk','','low'),
+      ]},
+    ]
+  };
+}
+
+let state = load();
+let filters = {q:'',tag:null,who:null};
+let editing = null; // {cardId, colId} or {colId} for new
+let lastDeleted = null;
+
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(STORE)); if(s&&s.columns) return s; }catch(e){}
+  return seed();
+}
+function save(){ localStorage.setItem(STORE, JSON.stringify(state)); }
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+const esc = s => String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const initials = n => n.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const avatar = key => { const p=PEOPLE[key]; if(!p) return ''; return `<span class="avatar" style="background:${p.color}" title="${esc(p.name)}">${initials(p.name)}</span>`; };
+
+function findCard(id){
+  for(const col of state.columns){ const i=col.cards.findIndex(c=>c.id===id); if(i>-1) return {col,i,card:col.cards[i]}; }
+  return null;
+}
+function matches(card){
+  if(filters.tag && card.tag!==filters.tag) return false;
+  if(filters.who && card.who!==filters.who) return false;
+  if(filters.q){
+    const q=filters.q.toLowerCase();
+    const hay=(card.title+' '+card.desc+' '+(TAGS[card.tag]?.label||'')+' '+(PEOPLE[card.who]?.name||'')).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+function dueInfo(due){
+  if(!due) return null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const d=new Date(due+'T00:00:00');
+  const diff=Math.round((d-today)/864e5);
+  const label = diff===0?'Today':diff===1?'Tomorrow':diff===-1?'Yesterday':d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  return {label, cls: diff<0?'overdue':diff<=2?'due-soon':''};
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const board=$('#board'); board.innerHTML='';
+  const doneCol = state.columns[state.columns.length-1];
+  let total=0, overdue=0;
+  state.columns.forEach(col=>{
+    total+=col.cards.length;
+    if(col!==doneCol) col.cards.forEach(c=>{ const d=dueInfo(c.due); if(d&&d.cls==='overdue') overdue++; });
+
+    const colEl=el('section','column'); colEl.dataset.id=col.id;
+    const over = col.wip && col.cards.length>col.wip;
+    colEl.innerHTML=`
+      <div class="col-head">
+        <span class="swatch" style="background:${col.color}"></span>
+        <span class="col-title" spellcheck="false">${esc(col.title)}</span>
+        <span class="count ${over?'over':''}" title="${col.wip?'WIP limit '+col.wip:'No WIP limit'}">${col.cards.length}${col.wip?' / '+col.wip:''}</span>
+        <button class="col-menu" title="Column options">⋯</button>
+      </div>`;
+    const list=el('div','cards'); list.dataset.col=col.id;
+    const visible=col.cards.filter(matches);
+    visible.forEach(card=>list.appendChild(renderCard(card)));
+    if(!visible.length) list.appendChild(el('div','empty-hint', col.cards.length?'No matches':'Drop cards here'));
+    colEl.appendChild(list);
+    const add=el('button','add-card','＋ Add card'); add.onclick=()=>openModal(null,col.id);
+    colEl.appendChild(add);
+
+    const title=colEl.querySelector('.col-title');
+    title.ondblclick=()=>startRename(title,col);
+    colEl.querySelector('.col-menu').onclick=e=>openColMenu(e,col);
+    bindDrop(list);
+    board.appendChild(colEl);
+  });
+  const addCol=el('button','add-col','＋ Add column');
+  addCol.onclick=()=>{
+    const name=prompt('Column name'); if(!name||!name.trim()) return;
+    state.columns.push({id:uid(),title:name.trim(),color:COL_COLORS[state.columns.length%COL_COLORS.length],wip:0,cards:[]});
+    save(); render();
+  };
+  board.appendChild(addCol);
+  $('#summary').textContent=`${total} cards · ${state.columns.length} columns${overdue?` · ${overdue} overdue`:''}`;
+  renderFilters();
+}
+
+function renderCard(card){
+  const t=TAGS[card.tag], d=dueInfo(card.due), p=PRIO[card.prio]||PRIO.low;
+  const e=el('article','card'); e.draggable=true; e.dataset.id=card.id; e.tabIndex=0;
+  e.innerHTML=`
+    ${t?`<div class="cover" style="background:${t.color}"></div>`:''}
+    <h3>${esc(card.title)}</h3>
+    ${card.desc?`<p>${esc(card.desc)}</p>`:''}
+    <div class="meta">
+      ${t?`<span class="tag" style="background:${t.color}1f;color:${t.color}">${t.label}</span>`:''}
+      ${d?`<span class="pill ${d.cls}">◷ ${d.label}</span>`:''}
+      <span class="prio" style="background:${p.color}" title="${p.label} priority"></span>
+      <span class="spacer"></span>
+      ${avatar(card.who)}
+    </div>`;
+  e.onclick=()=>openModal(card.id);
+  e.onkeydown=ev=>{ if(ev.key==='Enter') openModal(card.id); };
+  e.addEventListener('dragstart',ev=>{
+    dragId=card.id; e.classList.add('dragging');
+    ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',card.id);
+    placeholder.style.height=e.offsetHeight+'px';
+  });
+  e.addEventListener('dragend',()=>{ e.classList.remove('dragging'); placeholder.remove(); dragId=null; });
+  return e;
+}
+
+function renderFilters(){
+  const f=$('#filters'); f.innerHTML='';
+  const all=el('button','chip'+(filters.tag?'':' active'),'All types'); all.onclick=()=>{filters.tag=null;render();};
+  f.appendChild(all);
+  Object.entries(TAGS).forEach(([k,t])=>{
+    const b=el('button','chip'+(filters.tag===k?' active':''),`<span class="dot" style="background:${t.color}"></span>${t.label}`);
+    b.onclick=()=>{filters.tag=filters.tag===k?null:k;render();};
+    f.appendChild(b);
+  });
+  const m=$('#members'); m.innerHTML=''; m.classList.toggle('filtering',!!filters.who);
+  Object.keys(PEOPLE).forEach(k=>{
+    const wrap=document.createElement('div'); wrap.innerHTML=avatar(k);
+    const a=wrap.firstChild; if(filters.who===k) a.classList.add('active');
+    a.onclick=()=>{filters.who=filters.who===k?null:k;render();};
+    m.appendChild(a);
+  });
+}
+
+/* ---------- Drag & drop ---------- */
+let dragId=null;
+const placeholder=el('div','placeholder');
+function bindDrop(list){
+  list.addEventListener('dragover',ev=>{
+    if(!dragId) return;
+    ev.preventDefault();
+    list.querySelector('.empty-hint')?.remove();
+    const after=[...list.querySelectorAll('.card:not(.dragging)')].find(c=>{
+      const r=c.getBoundingClientRect(); return ev.clientY < r.top + r.height/2;
+    });
+    if(after) list.insertBefore(placeholder,after); else list.appendChild(placeholder);
+  });
+  list.addEventListener('drop',ev=>{
+    ev.preventDefault(); if(!dragId) return;
+    const found=findCard(dragId); if(!found) return;
+    const target=state.columns.find(c=>c.id===list.dataset.col);
+    // Determine index relative to full (unfiltered) list
+    const nextEl=placeholder.nextElementSibling;
+    found.col.cards.splice(found.i,1);
+    let idx=target.cards.length;
+    if(nextEl && nextEl.classList.contains('card')){
+      const j=target.cards.findIndex(c=>c.id===nextEl.dataset.id); if(j>-1) idx=j;
+    }
+    target.cards.splice(idx,0,found.card);
+    placeholder.remove(); save(); render();
+    if(target.wip && target.cards.length>target.wip) toast(`“${target.title}” is over its WIP limit`,false);
+  });
+}
+
+/* ---------- Modal ---------- */
+let selTag=null, selWho=null;
+function openModal(cardId,colId){
+  const f=findCard(cardId);
+  editing={cardId:f?cardId:null};
+  const card=f?f.card:{title:'',desc:'',tag:'ui',who:null,due:'',prio:'med'};
+  $('#modalTitle').textContent=f?'Edit card':'New card';
+  $('#fTitle').value=card.title; $('#fDesc').value=card.desc;
+  $('#fDue').value=card.due||''; $('#fPrio').value=card.prio||'med';
+  selTag=card.tag; selWho=card.who;
+  $('#fCol').innerHTML=state.columns.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('');
+  $('#fCol').value=f?f.col.id:(colId||state.columns[0]?.id);
+  $('#delBtn').style.visibility=f?'visible':'hidden';
+  renderOpts();
+  $('#overlay').classList.add('open');
+  setTimeout(()=>$('#fTitle').focus(),30);
+}
+function renderOpts(){
+  $('#fTags').innerHTML=Object.entries(TAGS).map(([k,t])=>
+    `<button type="button" class="opt ${selTag===k?'selected':''}" data-k="${k}"><span class="prio" style="background:${t.color}"></span>${t.label}</button>`).join('');
+  $('#fPeople').innerHTML=`<button type="button" class="opt ${!selWho?'selected':''}" data-k="">Unassigned</button>`+
+    Object.entries(PEOPLE).map(([k,p])=>`<button type="button" class="opt ${selWho===k?'selected':''}" data-k="${k}">${avatar(k)}${esc(p.name)}</button>`).join('');
+  $('#fTags').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{selTag=b.dataset.k;renderOpts();});
+  $('#fPeople').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{selWho=b.dataset.k||null;renderOpts();});
+}
+function closeModal(){ $('#overlay').classList.remove('open'); editing=null; }
+
+$('#form').onsubmit=ev=>{
+  ev.preventDefault();
+  const data={title:$('#fTitle').value.trim(),desc:$('#fDesc').value.trim(),tag:selTag,who:selWho,due:$('#fDue').value,prio:$('#fPrio').value};
+  if(!data.title) return;
+  const target=state.columns.find(c=>c.id===$('#fCol').value);
+  if(editing.cardId){
+    const f=findCard(editing.cardId);
+    Object.assign(f.card,data);
+    if(f.col!==target){ f.col.cards.splice(f.i,1); target.cards.push(f.card); }
+  } else {
+    target.cards.push({id:uid(),...data});
+  }
+  save(); closeModal(); render();
+};
+$('#delBtn').onclick=()=>{
+  const f=findCard(editing.cardId); if(!f) return;
+  lastDeleted={colId:f.col.id,index:f.i,card:f.card};
+  f.col.cards.splice(f.i,1); save(); closeModal(); render();
+  toast(`Deleted “${f.card.title}”`,true);
+};
+$('#cancelBtn').onclick=closeModal;
+$('#overlay').onclick=e=>{ if(e.target.id==='overlay') closeModal(); };
+
+/* ---------- Column menu ---------- */
+let menuCol=null;
+function openColMenu(ev,col){
+  ev.stopPropagation(); menuCol=col;
+  const m=$('#colMenu'); const r=ev.currentTarget.getBoundingClientRect();
+  m.style.top=(r.bottom+4)+'px'; m.style.left=Math.min(r.left,innerWidth-190)+'px';
+  m.classList.add('open');
+}
+document.addEventListener('click',()=>$('#colMenu').classList.remove('open'));
+$('#colMenu').onclick=e=>{
+  const act=e.target.dataset.act; if(!act||!menuCol) return;
+  const i=state.columns.indexOf(menuCol);
+  if(act==='rename'){
+    const t=document.querySelector(`.column[data-id="${menuCol.id}"] .col-title`); startRename(t,menuCol); return;
+  }
+  if(act==='wip'){
+    const v=prompt('WIP limit (0 for none)',menuCol.wip||0); if(v===null) return;
+    menuCol.wip=Math.max(0,parseInt(v,10)||0);
+  }
+  if(act==='left'&&i>0) [state.columns[i-1],state.columns[i]]=[state.columns[i],state.columns[i-1]];
+  if(act==='right'&&i<state.columns.length-1) [state.columns[i+1],state.columns[i]]=[state.columns[i],state.columns[i+1]];
+  if(act==='delete'){
+    if(menuCol.cards.length && !confirm(`Delete “${menuCol.title}” and its ${menuCol.cards.length} card(s)?`)) return;
+    state.columns.splice(i,1);
+  }
+  save(); render();
+};
+function startRename(titleEl,col){
+  titleEl.contentEditable='true'; titleEl.focus();
+  const range=document.createRange(); range.selectNodeContents(titleEl);
+  const sel=getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  const finish=()=>{
+    titleEl.contentEditable='false';
+    const v=titleEl.textContent.trim(); if(v) col.title=v;
+    save(); render();
+  };
+  titleEl.onblur=finish;
+  titleEl.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();titleEl.blur();} if(e.key==='Escape'){titleEl.textContent=col.title;titleEl.blur();} };
+}
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function toast(msg,undo){
+  $('#toastMsg').textContent=msg; $('#undoBtn').style.display=undo?'':'none';
+  $('#toast').classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000);
+}
+$('#undoBtn').onclick=()=>{
+  if(!lastDeleted) return;
+  const col=state.columns.find(c=>c.id===lastDeleted.colId)||state.columns[0];
+  col.cards.splice(Math.min(lastDeleted.index,col.cards.length),0,lastDeleted.card);
+  lastDeleted=null; save(); render(); $('#toast').classList.remove('show');
+};
+
+/* ---------- Header controls ---------- */
+$('#search').oninput=e=>{filters.q=e.target.value;render();};
+$('#newBtn').onclick=()=>openModal(null,state.columns[0]?.id);
+const applyTheme=t=>{document.documentElement.dataset.theme=t;localStorage.setItem(STORE+'-theme',t);};
+applyTheme(localStorage.getItem(STORE+'-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+$('#themeBtn').onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
+document.addEventListener('keydown',e=>{
+  const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)||document.activeElement.isContentEditable;
+  if(e.key==='Escape'&&$('#overlay').classList.contains('open')) closeModal();
+  if(typing) return;
+  if(e.key==='/'){e.preventDefault();$('#search').focus();}
+  if(e.key==='n'){e.preventDefault();openModal(null,state.columns[0]?.id);}
+});
+
+render();
+</script>
+</body>
+</html>

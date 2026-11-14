@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Today's Schedule — Willow Health</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #202d31;
+      --muted: #7e8b8d;
+      --line: #edf0ed;
+      --canvas: #f7f8f5;
+      --white: #fff;
+      --green: #367c68;
+      --green-dark: #235f50;
+      --green-soft: #e8f3ed;
+      --blue: #567db4;
+      --blue-soft: #eef3fb;
+      --amber: #c58c3a;
+      --amber-soft: #fbf3e6;
+      --rose: #bf6b64;
+      --rose-soft: #f9eeeb;
+      --sidebar: #243a39;
+      --sidebar-muted: #a9b9b2;
+      --shadow: 0 8px 28px rgba(38, 57, 51, .045);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 244px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      color: #fff;
+      min-height: 100vh;
+      padding: 28px 17px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 11px;
+      margin-bottom: 42px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: #d9e9dd;
+      color: var(--green-dark);
+    }
+
+    .brand-name {
+      font: 800 17px "Manrope", sans-serif;
+      letter-spacing: -.5px;
+    }
+
+    .brand-sub {
+      color: #b8c7bf;
+      font-size: 10px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .nav-label {
+      color: #8fa69d;
+      padding: 0 12px;
+      margin: 0 0 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 5px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-height: 44px;
+      padding: 0 12px;
+      color: var(--sidebar-muted);
+      text-decoration: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .18s, color .18s;
+    }
+
+    .nav a:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav a.active { background: #36534b; color: #fff; }
+    .nav svg { width: 18px; height: 18px; flex: none; }
+
+    .nav-count {
+      margin-left: auto;
+      min-width: 21px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      color: #f3d8b3;
+      background: rgba(207, 155, 83, .18);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .sidebar-bottom { margin-top: auto; }
+    .help-card {
+      margin: 0 3px 19px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .help-card strong { display: block; font-size: 12px; margin-bottom: 5px; }
+    .help-card p { color: #a9b9b2; font-size: 11px; line-height: 1.5; margin: 0 0 11px; }
+    .help-card a { color: #d5e7dc; text-decoration: none; font-size: 11px; font-weight: 700; }
+    .user-profile {
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding: 17px 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: none;
+      border-radius: 50%;
+      color: #376b5c;
+      background: #e1eee5;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .user-profile strong { display: block; font-size: 12px; font-weight: 600; }
+    .user-profile span { display: block; margin-top: 3px; color: #a9b9b2; font-size: 10px; }
+
+    .main { min-width: 0; padding: 0 42px 40px; }
+    .topbar {
+      min-height: 83px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e9ede9;
+      gap: 20px;
+    }
+
+    .breadcrumb { color: #8b9796; font-size: 12px; }
+    .breadcrumb strong { color: #485957; font-weight: 600; }
+
+    .top-actions { display: flex; align-items: center; gap: 11px; }
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid #e8ece8;
+      border-radius: 10px;
+      background: #fff;
+      color: #62716d;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .icon-button svg { width: 17px; height: 17px; }
+    .notification-dot {
+      position: absolute;
+      top: 7px;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #d7816f;
+      border: 1px solid #fff;
+    }
+
+    .top-user {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding-left: 5px;
+    }
+    .top-user .avatar { width: 35px; height: 35px; background: #f0e8dc; color: #926b3b; }
+    .top-user strong { display: block; font-size: 12px; font-weight: 600; }
+    .top-user span { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    .content { max-width: 1480px; margin: 0 auto; }
+    .page-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      padding: 29px 0 23px;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.35px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font: 800 27px "Manrope", sans-serif;
+      letter-spacing: -.9px;
+      margin: 0;
+    }
+
+    .heading-sub {
+      color: var(--muted);
+      margin-top: 5px;
+      font-size: 12px;
+    }
+
+    .heading-tools { display: flex; align-items: center; gap: 10px; }
+    .date-control, .primary-button {
+      height: 39px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .date-control { border: 1px solid #e4e9e4; background: #fff; color: #4e5c59; }
+    .date-control svg { width: 15px; height: 15px; color: #81908b; }
+    .primary-button {
+      border: 0;
+      background: var(--green);
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(54,124,104,.15);
+    }
+    .primary-button:hover { background: var(--green-dark); }
+    .primary-button svg { width: 15px; height: 15px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid #edf0ed;
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      min-height: 104px;
+    }
+
+    .stat-top { display: flex; align-items: center; justify-content: space-between; }
+    .stat-label { color: #7c8986; font-size: 11px; font-weight: 500; }
+    .stat-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+    }
+    .stat-icon svg { width: 15px; height: 15px; }
+    .stat-icon.green { color: var(--green); background: var(--green-soft); }
+    .stat-icon.blue { color: var(--blue); background: var(--blue-soft); }
+    .stat-icon.amber { color: var(--amber); background: var(--amber-soft); }
+    .stat-icon.rose { color: var(--rose); background: var(--rose-soft); }
+    .stat-value { margin-top: 7px; font: 800 23px "Manrope", sans-serif; letter-spacing: -.8px; }
+    .stat-note { color: #98a29f; font-size: 10px; margin-left: 5px; font-weight: 500; letter-spacing: 0; }
+    .stat-detail { margin-top: 4px; color: #87928f; font-size: 10px; }
+    .stat-detail .positive { color: var(--green); font-weight: 600; }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(290px, .92fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #edf0ed;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 18px 19px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font: 700 14px "Manrope", sans-serif;
+      letter-spacing: -.2px;
+      margin: 0;
+    }
+    .panel-caption { margin-top: 4px; color: #8b9693; font-size: 10px; }
+    .text-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--green);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .text-link svg { width: 13px; height: 13px; }
+
+    .schedule-toolbar {
+      padding: 0 19px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 5px;
+      background: #f5f7f4;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .filter {
+      border: 0;
+      background: transparent;
+      color: #89938f;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .filter.active { color: #3d6458; background: #fff; box-shadow: 0 1px 4px rgba(35,50,44,.08); }
+    .provider-select {
+      color: #697773;
+      border: 0;
+      background: transparent;
+      font-size: 10px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .schedule-scroll { overflow-x: auto; }
+    .schedule-table { width: 100%; border-collapse: collapse; min-width: 650px; }
+    .schedule-table th {
+      padding: 10px 12px;
+      color: #9aa39f;
+      background: #fafbf9;
+      border-top: 1px solid #f0f2ef;
+      border-bottom: 1px solid #f0f2ef;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+    .schedule-table th:first-child, .schedule-table td:first-child { padding-left: 19px; }
+    .schedule-table th:last-child, .schedule-table td:last-child { padding-right: 19px; }
+    .schedule-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #f0f2ef;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .schedule-table tbody tr:last-child td { border-bottom: 0; }
+    .schedule-table tbody tr:hover { background: #fcfdfb; }
+
+    .time { color: #485955; font-size: 11px; font-weight: 700; }
+    .time small { display: block; margin-top: 3px; color: #a0aaa6; font-size: 9px; font-weight: 400; }
+    .patient-cell { display: flex; align-items: center; gap: 9px; }
+    .patient-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #5c7569;
+      background: #edf2e9;
+      font-size: 9px;
+      font-weight: 700;
+      flex: none;
+    }
+    .patient-avatar.pink { color: #956d68; background: #f5eae6; }
+    .patient-avatar.blue { color: #61789b; background: #e9eff7; }
+    .patient-avatar.gold { color: #96794c; background: #f4efdf; }
+    .patient-name { color: #354541; font-size: 11px; font-weight: 700; }
+    .patient-type { color: #929d99; font-size: 9px; margin-top: 3px; }
+    .provider { color: #63716d; font-size: 10px; }
+    .room { color: #63716d; font-size: 10px; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 20px;
+      padding: 5px 8px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .status:before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status.confirmed { color: #4b886d; background: #edf6ef; }
+    .status.checked { color: #6081b0; background: #eff3fa; }
+    .status.in-room { color: #b27e31; background: #fbf3e5; }
+    .status.no-show { color: #b86b62; background: #faeeeb; }
+    .status.upcoming { color: #7b8984; background: #f2f4f1; }
+
+    .current-time {
+      background: #fcf5f1;
+      border-left: 2px solid #e5a58e;
+    }
+    .current-time td:first-child { position: relative; }
+
+    .schedule-footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 19px;
+      background: #fcfdfb;
+      border-top: 1px solid #f0f2ef;
+      color: #929d99;
+      font-size: 10px;
+    }
+    .schedule-footer strong { color: #65736e; font-weight: 600; }
+
+    .right-column { display: grid; gap: 17px; }
+    .rooms-summary {
+      color: #8d9994;
+      border: 1px solid #e8eee8;
+      background: #f8faf7;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .rooms-list { padding: 0 18px 6px; }
+    .room-item {
+      padding: 12px 0;
+      border-top: 1px solid #f0f2ef;
+    }
+    .room-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .room-name { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+    .room-symbol {
+      display: grid;
+      place-items: center;
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      color: #60816f;
+      background: #eef4ee;
+    }
+    .room-symbol svg { width: 14px; height: 14px; }
+    .room-state { color: #4f896c; font-size: 9px; font-weight: 700; }
+    .room-state.cleaning { color: #ba8a48; }
+    .room-state.available { color: #8b9892; }
+    .room-detail { display: flex; justify-content: space-between; margin: 7px 0 7px 35px; color: #929d99; font-size: 9px; }
+    .progress-track { height: 4px; margin-left: 35px; border-radius: 5px; background: #eff2ef; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: inherit; background: #76a68a; }
+    .progress-fill.clean { background: #d6b274; }
+    .progress-fill.empty { width: 0 !important; }
+
+    .no-show-panel .panel-header { padding-bottom: 13px; }
+    .no-show-count {
+      display: grid;
+      place-items: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 7px;
+      color: #b86b62;
+      background: #faeeeb;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .no-show-list { padding: 0 18px; }
+    .no-show-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px solid #f0f2ef;
+    }
+    .no-show-item .patient-avatar { width: 31px; height: 31px; }
+    .no-show-info { min-width: 0; flex: 1; }
+    .no-show-info strong { display: block; color: #45544f; font-size: 10px; }
+    .no-show-info span { display: block; color: #929d99; font-size: 9px; margin-top: 4px; }
+    .no-show-time { color: #a3756d; font-size: 9px; font-weight: 700; white-space: nowrap; }
+    .no-show-actions {
+      display: flex;
+      gap: 7px;
+      padding: 11px 18px 16px;
+      border-top: 1px solid #f0f2ef;
+    }
+    .small-button {
+      height: 30px;
+      flex: 1;
+      border: 1px solid #e7ebe7;
+      border-radius: 7px;
+      background: #fff;
+      color: #65736e;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .small-button.emphasis { background: #f5f8f4; color: #4b7965; border-color: #e3ebe3; }
+
+    .day-note {
+      margin-top: 18px;
+      padding: 13px 15px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid #e6ede6;
+      border-radius: 10px;
+      background: #f2f7f1;
+      color: #687a70;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+    .day-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: #5f8b70; }
+    .day-note strong { color: #466653; }
+
+    @media (max-width: 1100px) {
+      .main { padding: 0 25px 32px; }
+      .dashboard-grid { grid-template-columns: minmax(0, 1.5fr) minmax(265px, .9fr); }
+      .stats { gap: 10px; }
+      .stat-card { padding: 14px; }
+    }
+
+    @media (max-width: 850px) {
+      .app { grid-template-columns: 72px minmax(0, 1fr); }
+      .sidebar { padding: 23px 10px 17px; align-items: center; }
+      .brand { padding: 0; margin-bottom: 38px; }
+      .brand-copy, .nav-label, .nav a span, .nav-count, .help-card, .user-profile .profile-copy { display: none; }
+      .nav { width: 100%; }
+      .nav a { justify-content: center; padding: 0; }
+      .nav a svg { width: 19px; height: 19px; }
+      .user-profile { width: 100%; justify-content: center; padding: 16px 0 0; }
+      .main { padding: 0 20px 30px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .right-column { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+
+    @media (max-width: 600px) {
+      .app { display: block; }
+      .sidebar {
+        min-height: auto;
+        height: 58px;
+        padding: 0 16px;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+      .brand { margin: 0; }
+      .brand-copy { display: block; }
+      .brand-mark { width: 31px; height: 31px; }
+      .nav-label, .nav a span, .nav-count, .sidebar-bottom { display: none; }
+      .nav {
+        display: flex;
+        width: auto;
+        gap: 3px;
+      }
+      .nav a { width: 38px; min-height: 38px; }
+      .nav a:not(.active) { display: none; }
+      .main { padding: 0 15px 25px; }
+      .topbar { min-height: 60px; }
+      .top-user .profile-copy { display: none; }
+      .page-heading { align-items: flex-start; flex-direction: column; padding: 22px 0 17px; gap: 14px; }
+      h1 { font-size: 24px; }
+      .heading-tools { width: 100%; }
+      .date-control { flex: 1; }
+      .primary-button { flex: 1; justify-content: center; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-bottom: 15px; }
+      .stat-card { min-height: 94px; padding: 12px; }
+      .stat-value { font-size: 21px; }
+      .dashboard-grid { gap: 14px; }
+      .right-column { grid-template-columns: 1fr; }
+      .panel-header { padding: 15px 14px 13px; }
+      .schedule-toolbar { padding: 0 14px 12px; }
+      .schedule-table th:first-child, .schedule-table td:first-child { padding-left: 14px; }
+      .schedule-table th:last-child, .schedule-table td:last-child { padding-right: 14px; }
+      .schedule-footer { padding: 11px 14px; }
+      .day-note { margin-top: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M7.5 5.5c2.5 0 4.5 2 4.5 4.5-2.5 0-4.5-2-4.5-4.5ZM16.5 18.5c-2.5 0-4.5-2-4.5-4.5 2.5 0 4.5 2 4.5 4.5Z" fill="currentColor" opacity=".55"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <div class="brand-name">Willow Health</div>
+          <div class="brand-sub">Family medicine</div>
+        </div>
+      </div>
+
+      <div class="nav-label">Workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="active" href="#" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7.5 3v4M16.5 3v4M4 9.5h16M8 13h2M14 13h2M8 17h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Appointments</span>
+        </a>
+        <a href="#">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M3 20v-1.4A4.6 4.6 0 0 1 7.6 14h2.8a4.6 4.6 0 0 1 4.6 4.6V20M16 5.2a3.3 3.3 0 0 1 0 6.2M17 14.2a4.4 4.4 0 0 1 4 4.4V20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Patients</span>
+        </a>
+        <a href="#">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Rooms</span>
+        </a>
+        <a href="#">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15l3-4 3 2 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 7h3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Reports</span>
+        </a>
+        <a href="#">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 2.9-.2-.1a1.7 1.7 0 0 0-1.8 0l-.2.1h-3.4l-.1-.2a1.7 1.7 0 0 0-1.6-1l-.2.1-2.9-1.7.1-.2a1.7 1.7 0 0 0 0-1.8l-.1-.2v-3.4l.2-.1a1.7 1.7 0 0 0 1-1.6l-.1-.2 1.7-2.9.2.1a1.7 1.7 0 0 0 1.8 0l.2-.1h3.4l.1.2a1.7 1.7 0 0 0 1.6 1l.2-.1 2.9 1.7-.1.2a1.7 1.7 0 0 0 0 1.8l.1.2V15Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="help-card">
+          <strong>Need a hand?</strong>
+          <p>Our support team is here if you need help with your clinic workspace.</p>
+          <a href="#">Visit help center →</a>
+        </div>
+        <div class="user-profile">
+          <div class="avatar">JM</div>
+          <div class="profile-copy">
+            <strong>Jordan Miller</strong>
+            <span>Clinic administrator</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumb">Workspace <span aria-hidden="true"> / </span> <strong>Dashboard</strong></div>
+        <div class="top-actions">
+          <button class="icon-button" aria-label="Search">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.3" stroke="currentColor" stroke-width="1.7"/><path d="m15.5 15.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 16 18 16 18 9ZM10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="notification-dot"></span>
+          </button>
+          <div class="top-user">
+            <div class="avatar">JM</div>
+            <div class="profile-copy">
+              <strong>Jordan Miller</strong>
+              <span>Administrator</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">Tuesday, November 10, 2026</div>
+            <h1>Good morning, Jordan</h1>
+            <div class="heading-sub">Here’s what’s happening at Willow Health today.</div>
+          </div>
+          <div class="heading-tools">
+            <button class="date-control">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7.5 3v4M16.5 3v4M4 9.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              Tue, Nov 10, 2026
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="primary-button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              New appointment
+            </button>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="Today's overview">
+          <article class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Appointments today</div>
+              <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 3v4M16 3v4M4.5 9h15M8 13h3M8 16h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="stat-value">24 <span class="stat-note">visits</span></div>
+            <div class="stat-detail"><span class="positive">18 completed</span> · 6 remaining</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Checked in</div>
+              <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.2V12a8 8 0 1 1-4.7-7.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m8.5 11.5 3 3L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="stat-value">5 <span class="stat-note">patients</span></div>
+            <div class="stat-detail">1 patient currently in a room</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">No-shows</div>
+              <div class="stat-icon rose">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="stat-value">2 <span class="stat-note">today</span></div>
+            <div class="stat-detail">Both appointments need follow-up</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Rooms in use</div>
+              <div class="stat-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="stat-value">3 <span class="stat-note">of 5 rooms</span></div>
+            <div class="stat-detail">2 rooms ready for the next patient</div>
+          </article>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel" aria-labelledby="schedule-title">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title" id="schedule-title">Today’s schedule</h2>
+                <div class="panel-caption">Tuesday, November 10 · All providers</div>
+              </div>
+              <a href="#" class="text-link">
+                Full calendar
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+            </div>
+
+            <div class="schedule-toolbar">
+              <div class="filter-group" aria-label="Schedule filters">
+                <button class="filter active">All visits</button>
+                <button class="filter">In progress</button>
+                <button class="filter">Upcoming</button>
+              </div>
+              <select class="provider-select" aria-label="Filter by provider">
+                <option>All providers⌄</option>
+              </select>
+            </div>
+
+            <div class="schedule-scroll">
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Patient</th>
+                    <th>Provider</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="time">8:30 AM<small>30 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar">AM</div>
+                        <div><div class="patient-name">Ava Mitchell</div><div class="patient-type">Annual physical</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Sarah Chen</td>
+                    <td class="room">Room 02</td>
+                    <td><span class="status checked">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td class="time">9:00 AM<small>20 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar blue">JR</div>
+                        <div><div class="patient-name">James Rivera</div><div class="patient-type">Follow-up</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Michael Lee</td>
+                    <td class="room">Room 01</td>
+                    <td><span class="status checked">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td class="time">9:30 AM<small>30 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar pink">SK</div>
+                        <div><div class="patient-name">Sofia Kim</div><div class="patient-type">Wellness visit</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Sarah Chen</td>
+                    <td class="room">Room 03</td>
+                    <td><span class="status no-show">No-show</span></td>
+                  </tr>
+                  <tr class="current-time">
+                    <td class="time">10:30 AM<small>Now · 20 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar gold">TW</div>
+                        <div><div class="patient-name">Thomas Wright</div><div class="patient-type">New patient visit</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Michael Lee</td>
+                    <td class="room">Room 04</td>
+                    <td><span class="status in-room">In room</span></td>
+                  </tr>
+                  <tr>
+                    <td class="time">11:00 AM<small>30 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar">EP</div>
+                        <div><div class="patient-name">Emily Parker</div><div class="patient-type">Blood pressure check</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Sarah Chen</td>
+                    <td class="room">Room 02</td>
+                    <td><span class="status checked">Checked in</span></td>
+                  </tr>
+                  <tr>
+                    <td class="time">11:30 AM<small>20 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar blue">DL</div>
+                        <div><div class="patient-name">Daniel Lewis</div><div class="patient-type">Medication review</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Michael Lee</td>
+                    <td class="room">Room 01</td>
+                    <td><span class="status confirmed">Confirmed</span></td>
+                  </tr>
+                  <tr>
+                    <td class="time">12:00 PM<small>30 min</small></td>
+                    <td>
+                      <div class="patient-cell">
+                        <div class="patient-avatar pink">NC</div>
+                        <div><div class="patient-name">Nora Campbell</div><div class="patient-type">Acute visit</div></div>
+                      </div>
+                    </td>
+                    <td class="provider">Dr. Sarah Chen</td>
+                    <td class="room">Room 05</td>
+                    <td><span class="status upcoming">Upcoming</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="schedule-footer">
+              <span>Showing <strong>7 of 24 appointments</strong></span>
+              <span>Last updated just now</span>
+            </div>
+          </section>
+
+          <aside class="right-column">
+            <section class="panel" aria-labelledby="rooms-title">
+              <div class="panel-header">
+                <div>
+                  <h2 class="panel-title" id="rooms-title">Rooms</h2>
+                  <div class="panel-caption">Live room availability</div>
+                </div>
+                <span class="rooms-summary">3 / 5 in use</span>
+              </div>
+              <div class="rooms-list">
+                <div class="room-item">
+                  <div class="room-top">
+                    <div class="room-name"><span class="room-symbol"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Room 01</div>
+                    <span class="room-state">In use</span>
+                  </div>
+                  <div class="room-detail"><span>Dr. Michael Lee · James Rivera</span><span>Until 10:50</span></div>
+                  <div class="progress-track"><div class="progress-fill" style="width:72%"></div></div>
+                </div>
+                <div class="room-item">
+                  <div class="room-top">
+                    <div class="room-name"><span class="room-symbol"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Room 02</div>
+                    <span class="room-state">In use</span>
+                  </div>
+                  <div class="room-detail"><span>Dr. Sarah Chen · Emily Parker</span><span>Until 11:30</span></div>
+                  <div class="progress-track"><div class="progress-fill" style="width:54%"></div></div>
+                </div>
+                <div class="room-item">
+                  <div class="room-top">
+                    <div class="room-name"><span class="room-symbol"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Room 03</div>
+                    <span class="room-state cleaning">Cleaning</span>
+                  </div>
+                  <div class="room-detail"><span>Turnover in progress</span><span>~5 min</span></div>
+                  <div class="progress-track"><div class="progress-fill clean" style="width:76%"></div></div>
+                </div>
+                <div class="room-item">
+                  <div class="room-top">
+                    <div class="room-name"><span class="room-symbol"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Room 04</div>
+                    <span class="room-state">In use</span>
+                  </div>
+                  <div class="room-detail"><span>Dr. Michael Lee · Thomas Wright</span><span>Until 10:50</span></div>
+                  <div class="progress-track"><div class="progress-fill" style="width:46%"></div></div>
+                </div>
+                <div class="room-item">
+                  <div class="room-top">
+                    <div class="room-name"><span class="room-symbol"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Room 05</div>
+                    <span class="room-state available">Available</span>
+                  </div>
+                  <div class="room-detail"><span>Ready for next patient</span><span>Available now</span></div>
+                  <div class="progress-track"><div class="progress-fill empty" style="width:0%"></div></div>
+                </div>
+              </div>
+              <div class="schedule-footer">
+                <span>Room 05 is ready for use</span>
+                <a href="#" class="text-link">Manage rooms</a>
+              </div>
+            </section>
+
+            <section class="panel no-show-panel" aria-labelledby="no-show-title">
+              <div class="panel-header">
+                <div>
+                  <h2 class="panel-title" id="no-show-title">No-shows</h2>
+                  <div class="panel-caption">Follow-up recommended</div>
+                </div>
+                <span class="no-show-count">2</span>
+              </div>
+              <div class="no-show-list">
+                <div class="no-show-item">
+                  <div class="patient-avatar pink">SK</div>
+                  <div class="no-show-info">
+                    <strong>Sofia Kim</strong>
+                    <span>Wellness visit · Dr. Sarah Chen</span>
+                  </div>
+                  <div class="no-show-time">9:30 AM</div>
+                </div>
+                <div class="no-show-item">
+                  <div class="patient-avatar gold">RB</div>
+                  <div class="no-show-info">
+                    <strong>Robert Bennett</strong>
+                    <span>Follow-up · Dr. Michael Lee</span>
+                  </div>
+                  <div class="no-show-time">8:00 AM</div>
+                </div>
+              </div>
+              <div class="no-show-actions">
+                <button class="small-button emphasis">Send follow-up</button>
+                <button class="small-button">View all</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <div class="day-note">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          <div><strong>Clinic note:</strong> Dr. Chen is out of office after 2:00 PM. Afternoon appointments have been reassigned to Dr. Lee.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

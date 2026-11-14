@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay: your support tickets, turned into a weekly product report</title>
+<meta name="description" content="Relay reads every support ticket, groups them into the problems customers actually have, and sends your product team a one-page report every Monday.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F0E8;
+    --card: #FBFAF6;
+    --ink: #17160F;
+    --muted: #6A665A;
+    --line: #D8D3C5;
+    --accent: #E2472B;
+    --accent-dark: #C23A21;
+    --green: #1E6A49;
+    --dark: #14130E;
+    --dark-line: #34322A;
+    --dark-muted: #A29D8E;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --wrap: 1180px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  h1, h2, h3, p { margin: 0; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 28px; }
+  .mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { left: 16px; top: 16px; background: var(--ink); color: var(--paper); padding: 10px 14px; z-index: 100; border-radius: 6px; }
+
+  /* Nav */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--serif); font-size: 28px; line-height: 1; }
+  .logo svg { display: block; }
+  .nav-links { display: flex; align-items: center; gap: 30px; }
+  .nav-links a { text-decoration: none; font-size: 15px; color: var(--muted); transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--ink); color: var(--paper);
+    border: 1px solid var(--ink); border-radius: 999px;
+    padding: 11px 20px; font-size: 15px; font-weight: 500;
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn.ghost:hover { border-color: var(--ink); background: transparent; }
+  .nav-links .btn { color: var(--paper); padding: 8px 16px; font-size: 14px; }
+
+  /* Hero */
+  .hero { padding: 84px 0 56px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); margin-bottom: 26px; }
+  .eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  h1 {
+    font-family: var(--serif); font-weight: 400;
+    font-size: clamp(2.9rem, 7.7vw, 6.7rem);
+    line-height: .96; letter-spacing: -.02em;
+    max-width: 13ch;
+    text-wrap: balance;
+  }
+  h1 em { color: var(--accent); }
+  .hero-row { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: end; margin-top: 36px; }
+  .lede { font-size: clamp(1.05rem, 1.5vw, 1.28rem); line-height: 1.5; color: #3B382E; max-width: 34em; }
+  .signup { display: flex; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px; max-width: 480px; }
+  .signup:focus-within { border-color: var(--ink); }
+  .signup input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 16px; font-size: 16px; outline: none; }
+  .signup input::placeholder { color: #9A9586; }
+  .form-note { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 1.5em; }
+  .form-note.ok { color: var(--green); }
+  .form-note.err { color: var(--accent-dark); }
+
+  /* Machine */
+  .machine {
+    margin-top: 72px;
+    display: grid; grid-template-columns: minmax(0, .82fr) 92px minmax(0, 1.18fr);
+    align-items: stretch;
+  }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--muted); }
+  .inbox { display: flex; flex-direction: column; overflow: hidden; }
+  .feed {
+    position: relative; flex: 1; height: 372px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  }
+  .feed-track { display: flex; flex-direction: column; animation: feed 38s linear infinite; }
+  .feed:hover .feed-track { animation-play-state: paused; }
+  @keyframes feed { to { transform: translateY(-50%); } }
+  .ticket { padding: 14px 18px; border-bottom: 1px dashed var(--line); }
+  .ticket .meta { display: flex; gap: 10px; color: var(--muted); font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; margin-bottom: 4px; }
+  .ticket p { font-size: 14.5px; line-height: 1.4; color: #3B382E; }
+  .conduit { position: relative; display: flex; align-items: center; justify-content: center; }
+  .conduit::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 14px);
+    background-size: 14px 2px;
+    animation: flow 0.7s linear infinite;
+  }
+  @keyframes flow { to { background-position: 14px 0; } }
+  .conduit span {
+    position: relative; background: var(--accent); color: #fff; width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; box-shadow: 0 0 0 8px var(--paper);
+  }
+  .report-mini { box-shadow: 0 1px 0 #fff inset, 0 24px 48px -28px rgba(23,22,15,.35); display: flex; flex-direction: column; }
+  .report-mini .body { padding: 22px 22px 8px; flex: 1; }
+  .report-mini h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.6rem, 2.6vw, 2.1rem); line-height: 1.08; margin-bottom: 18px; }
+  .row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 84px 40px 58px; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+  .row .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .row .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .bar { height: 6px; background: #E9E5D9; border-radius: 3px; overflow: hidden; }
+  .row .bar i { display: block; height: 100%; background: var(--ink); border-radius: 3px; transform-origin: left; animation: grow 1.1s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .row .c { font-family: var(--mono); font-size: 13px; text-align: right; }
+  .delta { font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap; }
+  .delta.up { color: var(--accent-dark); }
+  .delta.down { color: var(--green); }
+  .delta.flat { color: var(--muted); }
+  .delta.new { color: #fff; background: var(--accent); border-radius: 4px; padding: 2px 6px; justify-self: end; text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; }
+  .report-mini .foot { padding: 14px 22px; border-top: 1px solid var(--line); color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* Sources */
+  .sources { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 72px; }
+  .sources .wrap { display: flex; align-items: center; gap: 14px 36px; flex-wrap: wrap; padding-top: 22px; padding-bottom: 22px; }
+  .sources .label { color: var(--muted); }
+  .sources ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 0; padding: 0; font-family: var(--serif); font-size: 23px; color: #3B382E; }
+
+  /* Sections */
+  section { padding: 112px 0; }
+  .sec-head { display: grid; grid-template-columns: 200px 1fr; gap: 32px; margin-bottom: 56px; align-items: baseline; }
+  .sec-head .mono { color: var(--muted); }
+  .sec-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.1rem, 4.4vw, 3.6rem); line-height: 1.02; letter-spacing: -.012em; max-width: 18ch; text-wrap: balance; }
+  .sec-head p { margin-top: 18px; color: var(--muted); max-width: 36em; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ink); }
+  .step { padding: 28px 28px 8px 0; border-right: 1px solid var(--line); }
+  .step + .step { padding-left: 28px; }
+  .step:last-child { border-right: 0; padding-right: 0; }
+  .step .num { font-family: var(--serif); font-size: 64px; line-height: 1; color: var(--accent); }
+  .step h3 { font-size: 20px; font-weight: 600; margin: 22px 0 8px; letter-spacing: -.01em; }
+  .step p { color: #4A473C; font-size: 16px; }
+  .step .tag { display: inline-block; margin-top: 18px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 11px; }
+
+  /* Sample report (dark) */
+  .sample { background: var(--dark); color: #EDE9DD; }
+  .sample .sec-head .mono, .sample .sec-head p { color: var(--dark-muted); }
+  .sample-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px; align-items: start; }
+  .themes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--dark-line); }
+  .theme-btn {
+    width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--dark-line);
+    display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 14px; align-items: center;
+    padding: 20px 14px; cursor: pointer; color: #EDE9DD; transition: background .15s, color .15s;
+  }
+  .theme-btn:hover { background: #1D1C15; }
+  .theme-btn .n { font-family: var(--mono); font-size: 12px; color: var(--dark-muted); }
+  .theme-btn .t { font-size: 17px; line-height: 1.3; }
+  .theme-btn .c { font-family: var(--mono); font-size: 13px; color: var(--dark-muted); }
+  .theme-btn .delta.up { color: #FF8A70; }
+  .theme-btn .delta.down { color: #6FCB9F; }
+  .theme-btn .delta.flat { color: var(--dark-muted); }
+  .theme-btn[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+  .theme-btn[aria-pressed="true"] .n, .theme-btn[aria-pressed="true"] .c { color: var(--muted); }
+  .theme-btn[aria-pressed="true"] .delta.up { color: var(--accent-dark); }
+  .theme-btn[aria-pressed="true"] .delta.down { color: var(--green); }
+  .theme-btn[aria-pressed="true"] .delta.flat { color: var(--muted); }
+  .themes-note { margin-top: 18px; color: var(--dark-muted); }
+  .detail { background: var(--card); color: var(--ink); border-radius: 14px; padding: 30px; position: sticky; top: 88px; }
+  .detail-top { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); margin-bottom: 14px; flex-wrap: wrap; }
+  .detail h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.08; }
+  .detail .sum { margin-top: 14px; color: #3B382E; font-size: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 24px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stats div { padding: 14px 12px 14px 0; }
+  .stats div + div { padding-left: 14px; border-left: 1px solid var(--line); }
+  .stats b { display: block; font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.1; }
+  .stats span { color: var(--muted); font-size: 10.5px; }
+  .spark-wrap { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 24px; }
+  .spark-wrap svg { flex: 1; height: 56px; display: block; overflow: visible; }
+  .spark-wrap .mono { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+  .quotes { display: grid; gap: 12px; margin: 0 0 22px; padding: 0; list-style: none; }
+  .quotes li { border-left: 2px solid var(--accent); padding: 2px 0 2px 14px; }
+  .quotes q { font-family: var(--serif); font-size: 20px; line-height: 1.3; quotes: "\201C" "\201D"; }
+  .quotes cite { display: block; font-style: normal; color: var(--muted); margin-top: 4px; font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; }
+  .next { background: #EFEBDF; border-radius: 10px; padding: 16px 18px; font-size: 15.5px; }
+  .next .mono { display: block; color: var(--muted); margin-bottom: 4px; font-size: 10.5px; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .feature { padding: 30px 28px 34px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transition: background .2s; }
+  .feature:hover { background: var(--card); }
+  .feature svg { display: block; margin-bottom: 22px; }
+  .feature h3 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 8px; }
+  .feature p { color: #4A473C; font-size: 15.5px; }
+
+  /* Quote */
+  .voice { padding: 0 0 112px; }
+  .voice blockquote { margin: 0; border-top: 1px solid var(--ink); padding-top: 40px; display: grid; grid-template-columns: 200px 1fr; gap: 32px; }
+  .voice p { font-family: var(--serif); font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.12; letter-spacing: -.01em; max-width: 24ch; text-wrap: balance; }
+  .voice footer { margin-top: 26px; color: var(--muted); font-size: 15px; }
+  .voice footer b { color: var(--ink); font-weight: 600; }
+
+  /* Pricing */
+  .pricing { background: #EBE7DB; }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .plan { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 30px 28px; display: flex; flex-direction: column; }
+  .plan.featured { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .plan .mono { color: var(--muted); }
+  .plan.featured .mono { color: var(--dark-muted); }
+  .price { font-family: var(--serif); font-size: 60px; line-height: 1; margin: 18px 0 4px; }
+  .price small { font-family: var(--sans); font-size: 15px; color: var(--muted); margin-left: 4px; }
+  .plan.featured .price small { color: var(--dark-muted); }
+  .plan .for { font-size: 15.5px; color: #4A473C; min-height: 3.1em; }
+  .plan.featured .for { color: #CFCABB; }
+  .plan ul { list-style: none; margin: 22px 0 28px; padding: 22px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; font-size: 15.5px; flex: 1; align-content: start; }
+  .plan.featured ul { border-color: var(--dark-line); }
+  .plan li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; }
+  .plan li::before { content: "+"; font-family: var(--mono); color: var(--accent); }
+  .plan.featured .btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .plan.featured .btn:hover { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+
+  /* FAQ */
+  .faq-list { border-top: 1px solid var(--ink); }
+  details { border-bottom: 1px solid var(--line); }
+  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(1.1rem, 1.8vw, 1.3rem); font-weight: 500; letter-spacing: -.01em; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-family: var(--mono); font-size: 22px; font-weight: 400; color: var(--accent); transition: transform .2s; flex: none; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { padding: 0 0 26px; max-width: 44em; color: #4A473C; }
+
+  /* CTA */
+  .cta { background: var(--accent); color: #fff; text-align: center; padding: 120px 0; }
+  .cta h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.6rem, 6.6vw, 5.4rem); line-height: .98; letter-spacing: -.02em; text-wrap: balance; }
+  .cta p.sub { margin: 22px auto 34px; max-width: 30em; font-size: 1.15rem; color: #FFE7E0; }
+  .cta .signup { margin: 0 auto; border-color: transparent; background: #fff; color: var(--ink); }
+  .cta .form-note, .cta .form-note.ok, .cta .form-note.err { color: #fff; }
+
+  footer.site { padding: 44px 0 56px; }
+  footer.site .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 14.5px; }
+  footer.site nav { display: flex; gap: 24px; flex-wrap: wrap; }
+  footer.site a { text-decoration: none; }
+  footer.site a:hover { color: var(--ink); }
+
+  /* Responsive */
+  @media (max-width: 960px) {
+    .hero { padding-top: 56px; }
+    .hero-row { grid-template-columns: 1fr; gap: 28px; align-items: start; }
+    .machine { grid-template-columns: 1fr; margin-top: 52px; }
+    .feed { height: 190px; }
+    .conduit { height: 76px; }
+    .conduit::before { left: 50%; right: auto; top: 0; bottom: 0; width: 2px; height: auto;
+      background: repeating-linear-gradient(180deg, var(--ink) 0 6px, transparent 6px 14px); background-size: 2px 14px; animation-name: flow-v; }
+    .conduit span svg { transform: rotate(90deg); }
+    @keyframes flow-v { to { background-position: 0 14px; } }
+    section { padding: 80px 0; }
+    .sec-head, .voice blockquote { grid-template-columns: 1fr; gap: 14px; }
+    .sec-head { margin-bottom: 40px; }
+    .steps { grid-template-columns: 1fr; }
+    .step, .step + .step { padding: 26px 0 30px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .sample-grid { grid-template-columns: 1fr; }
+    .detail { position: static; }
+    .features { grid-template-columns: repeat(2, 1fr); }
+    .plans { grid-template-columns: 1fr; }
+    .plan .for { min-height: 0; }
+    .voice { padding-bottom: 80px; }
+  }
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 20px; }
+    .nav-links a:not(.btn) { display: none; }
+    .features { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 20px minmax(0, 1fr) 36px 54px; gap: 10px; }
+    .row .bar { display: none; }
+    .row .t { white-space: normal; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stats div:nth-child(3) { padding-left: 0; border-left: 0; }
+    .stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .detail { padding: 22px; }
+    .theme-btn { grid-template-columns: 22px minmax(0, 1fr) auto; padding: 16px 10px; }
+    .theme-btn .c { display: none; }
+    .signup { flex-direction: column; border-radius: 18px; padding: 8px; }
+    .signup input { padding: 10px 12px; }
+    .cta { padding: 88px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#" aria-label="Relay home">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <circle cx="5" cy="13" r="4" fill="#17160F"/>
+        <path d="M9 13h6" stroke="#17160F" stroke-width="2" stroke-dasharray="2 2"/>
+        <rect x="15" y="6" width="10" height="14" rx="2" fill="#E2472B"/>
+      </svg>
+      Relay
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#sample">Sample report</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn" href="#start">Start free</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="wrap">
+      <div class="mono eyebrow"><i></i> The weekly product report, written from your support queue</div>
+      <h1>Your support queue already wrote the <em>roadmap.</em></h1>
+
+      <div class="hero-row">
+        <p class="lede">Relay reads every ticket, groups them into the problems customers actually have, and sends your product team a one-page report each Monday, with counts, trends, and the receipts to back them up.</p>
+        <div>
+          <form class="signup" novalidate>
+            <label class="skip" for="email-hero">Work email</label>
+            <input id="email-hero" type="email" name="email" placeholder="you@company.com" autocomplete="email" required>
+            <button class="btn" type="submit">Get your first report</button>
+          </form>
+          <p class="form-note" aria-live="polite">Free for 14 days. No card. Set up in about ten minutes.</p>
+        </div>
+      </div>
+
+      <div class="machine">
+        <div class="panel inbox" aria-label="Incoming support tickets">
+          <div class="panel-head mono"><span>Support inbox</span><span>2,314 this week</span></div>
+          <div class="feed">
+            <div class="feed-track" id="feed">
+              <div class="ticket"><div class="meta"><span>#48213</span><span>Email</span></div><p>export just spins forever. I have a board meeting at 3 and need this data</p></div>
+              <div class="ticket"><div class="meta"><span>#48217</span><span>Chat</span></div><p>Stuck in a login loop since this morning. We use Okta.</p></div>
+              <div class="ticket"><div class="meta"><span>#48220</span><span>Email</span></div><p>How do I transfer billing to our new finance lead? The old owner left.</p></div>
+              <div class="ticket"><div class="meta"><span>#48226</span><span>In-app</span></div><p>push notifs showing up 20 min late on Android, anyone else?</p></div>
+              <div class="ticket"><div class="meta"><span>#48231</span><span>Chat</span></div><p>are viewers counted as seats?? we just got charged for 14</p></div>
+              <div class="ticket"><div class="meta"><span>#48234</span><span>Email</span></div><p>CSV download fails at around 12k rows every single time. 504.</p></div>
+              <div class="ticket"><div class="meta"><span>#48239</span><span>Chat</span></div><p>SSO redirect keeps bouncing me back to the login page</p></div>
+              <div class="ticket"><div class="meta"><span>#48245</span><span>Email</span></div><p>Need to pull all of Q3 for an audit. Export times out. Is there a workaround?</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conduit" aria-hidden="true">
+          <span><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9h12M10 4l5 5-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+
+        <div class="panel report-mini" aria-label="Example weekly report">
+          <div class="panel-head mono"><span>Relay Weekly</span><span>Week 45 · Nov 2–8</span></div>
+          <div class="body">
+            <h2>What customers told you this week</h2>
+            <div class="row"><span class="n">01</span><span class="t">CSV export times out over 10k rows</span><span class="bar"><i style="width:100%"></i></span><span class="c">142</span><span class="delta up">▲ 38%</span></div>
+            <div class="row"><span class="n">02</span><span class="t">SSO login loop after Okta update</span><span class="bar"><i style="width:61%;animation-delay:.08s"></i></span><span class="c">87</span><span class="delta new">New</span></div>
+            <div class="row"><span class="n">03</span><span class="t">Can’t change the billing owner</span><span class="bar"><i style="width:45%;animation-delay:.16s"></i></span><span class="c">64</span><span class="delta up">▲ 12%</span></div>
+            <div class="row"><span class="n">04</span><span class="t">Mobile notifications arrive late</span><span class="bar"><i style="width:36%;animation-delay:.24s"></i></span><span class="c">51</span><span class="delta down">▼ 9%</span></div>
+            <div class="row"><span class="n">05</span><span class="t">Seat limits on Team plan are unclear</span><span class="bar"><i style="width:30%;animation-delay:.32s"></i></span><span class="c">43</span><span class="delta flat">— 0%</span></div>
+          </div>
+          <div class="foot mono"><span>2,314 tickets → 31 themes → 1 page</span><span>Sent Mon 9:00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sources">
+      <div class="wrap">
+        <span class="mono label">Reads from</span>
+        <ul>
+          <li>Zendesk</li><li>Intercom</li><li>Help Scout</li><li>Front</li><li>Freshdesk</li><li>Gmail</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono">How it works</span>
+        <div>
+          <h2>Connect once. Read one page a week.</h2>
+          <p>No tagging taxonomy to maintain, no spreadsheet to update, no asking support to “pull some examples” before planning.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <h3>Connect your helpdesk</h3>
+          <p>Authorize read-only access and Relay backfills the last 90 days, so your first report already knows what normal looks like.</p>
+          <span class="mono tag">~10 minutes</span>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <h3>Relay reads everything</h3>
+          <p>Every conversation is read in full and grouped by the underlying problem, not by the tag an agent picked at 4:55pm on a Friday.</p>
+          <span class="mono tag">Continuous</span>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <h3>Monday, the report lands</h3>
+          <p>Ranked themes, week-over-week movement, affected revenue, and customer quotes, delivered to Slack, email, or Notion.</p>
+          <span class="mono tag">Every Monday, 9:00</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sample" id="sample">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono">Sample report</span>
+        <div>
+          <h2>Every claim comes with its evidence.</h2>
+          <p>Pick a theme to see what your team would get: a plain summary, the numbers, what customers said in their own words, and a suggested next step.</p>
+        </div>
+      </div>
+      <div class="sample-grid">
+        <div>
+          <ul class="themes" id="themes"></ul>
+          <p class="mono themes-note">Top 5 of 31 themes · Week 45 · Nov 2–8, 2026</p>
+        </div>
+        <article class="detail" id="detail" aria-live="polite"></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono">What’s inside</span>
+        <div><h2>Built for the meeting where priorities get decided.</h2></div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="4" y="5" width="18" height="22" rx="2" stroke="#17160F" stroke-width="1.6"/><path d="M9 12h8M9 17h8M9 22h4" stroke="#17160F" stroke-width="1.6" stroke-linecap="round"/><circle cx="24" cy="22" r="5" fill="#E2472B"/></svg>
+          <h3>Linked to source tickets</h3>
+          <p>Every number opens the tickets behind it. When someone asks “is that real?”, the answer is one click away.</p>
+        </div>
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M4 24l7-7 5 4 11-12" stroke="#17160F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27" cy="9" r="3.5" fill="#E2472B"/></svg>
+          <h3>Trends, not just totals</h3>
+          <p>Relay compares each theme against its own history and flags what’s new, what’s climbing, and what your last release fixed.</p>
+        </div>
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="11" stroke="#17160F" stroke-width="1.6"/><path d="M16 9v14M19.5 12.5c-.6-1.2-2-1.8-3.5-1.8-2 0-3.5 1-3.5 2.6 0 3.6 7.2 1.6 7.2 5.4 0 1.6-1.6 2.6-3.7 2.6-1.7 0-3.2-.7-3.8-2" stroke="#E2472B" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <h3>Weighted by revenue</h3>
+          <p>Sync your CRM and see which problems touch your largest accounts, so 12 enterprise tickets don’t get buried under 200 free-plan ones.</p>
+        </div>
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M5 8h22v13H14l-6 5v-5H5z" stroke="#17160F" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 13h3" stroke="#E2472B" stroke-width="2.4" stroke-linecap="round"/><path d="M16 13h6M10 17h9" stroke="#17160F" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <h3>Customers’ own words</h3>
+          <p>Each theme carries the quotes that explain it best, pulled verbatim from the ticket. No paraphrasing, no guesswork.</p>
+        </div>
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="2" stroke="#17160F" stroke-width="1.6"/><rect x="18" y="4" width="10" height="10" rx="2" stroke="#17160F" stroke-width="1.6"/><rect x="4" y="18" width="10" height="10" rx="2" stroke="#17160F" stroke-width="1.6"/><rect x="18" y="18" width="10" height="10" rx="2" fill="#E2472B"/></svg>
+          <h3>Goes where you plan</h3>
+          <p>Post to Slack, email a PDF, write to a Notion page, or open a Linear or Jira issue from any theme with the evidence attached.</p>
+        </div>
+        <div class="feature">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 4l10 4v7c0 6.5-4.2 11-10 13C10.200 26 6 21.500 6 15V8z" stroke="#17160F" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.500 16l3.200 3.200 6-6.400" stroke="#E2472B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Private by default</h3>
+          <p>Names, emails, and card numbers are redacted before analysis. Read-only access, and your tickets are never used to train models.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="voice">
+    <div class="wrap">
+      <blockquote>
+        <span class="mono" style="color:var(--muted)">From a customer</span>
+        <div>
+          <p>“We used to argue about which problems were real. Now we open the report and argue about what to do first.”</p>
+          <footer><b>Maya Okafor</b> · Head of Product, Fieldnote</footer>
+        </div>
+      </blockquote>
+    </div>
+  </div>
+
+  <section class="pricing" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono">Pricing</span>
+        <div>
+          <h2>Priced by ticket volume, not seats.</h2>
+          <p>Everyone on your team can read the report. Every plan starts with a 14-day free trial.</p>
+        </div>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <span class="mono">Starter</span>
+          <div class="price">$99<small>/ month</small></div>
+          <p class="for">For small teams who want to stop guessing.</p>
+          <ul>
+            <li>Up to 1,000 tickets a month</li>
+            <li>One helpdesk connection</li>
+            <li>Weekly report by email and Slack</li>
+            <li>90 days of history</li>
+          </ul>
+          <a class="btn ghost" href="#start">Start free</a>
+        </div>
+        <div class="plan featured">
+          <span class="mono">Team</span>
+          <div class="price">$349<small>/ month</small></div>
+          <p class="for">For product teams that plan from customer evidence.</p>
+          <ul>
+            <li>Up to 10,000 tickets a month</li>
+            <li>Unlimited helpdesk connections</li>
+            <li>Revenue weighting via CRM sync</li>
+            <li>Notion, Linear, and Jira delivery</li>
+            <li>Custom report sections and schedule</li>
+          </ul>
+          <a class="btn" href="#start">Start free</a>
+        </div>
+        <div class="plan">
+          <span class="mono">Scale</span>
+          <div class="price">Custom</div>
+          <p class="for">For high-volume support and stricter requirements.</p>
+          <ul>
+            <li>Unlimited tickets</li>
+            <li>Reports per product line or region</li>
+            <li>SSO, audit log, and data residency</li>
+            <li>Dedicated onboarding</li>
+          </ul>
+          <a class="btn ghost" href="mailto:sales@relay.example">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono">Questions</span>
+        <div><h2>Things people ask before connecting.</h2></div>
+      </div>
+      <div class="faq-list">
+        <details open>
+          <summary>Do we need to tag tickets for this to work?</summary>
+          <p>No. Relay reads the full text of each conversation and groups by the underlying problem. If you already tag, Relay uses your tags as a hint, but it doesn’t depend on them being consistent.</p>
+        </details>
+        <details>
+          <summary>How is this different from the reporting in our helpdesk?</summary>
+          <p>Helpdesk reports tell you how support is performing: volume, response time, satisfaction. Relay tells you what customers are struggling with in the product, ranked and explained, written for the people who decide what gets built.</p>
+        </details>
+        <details>
+          <summary>What happens to customer data?</summary>
+          <p>Relay connects with read-only access. Personal details such as names, emails, phone numbers, and payment data are redacted before analysis. Your tickets are never used to train models, and you can delete everything at any time.</p>
+        </details>
+        <details>
+          <summary>Can we review the report before it goes out?</summary>
+          <p>Yes. Turn on draft mode and the report arrives to an editor first. You can merge or rename themes, add a note, or pin a theme you’re tracking, then send it on.</p>
+        </details>
+        <details>
+          <summary>What if a theme is grouped wrong?</summary>
+          <p>Split it, merge it, or move tickets between themes. Relay remembers the correction and applies it to future weeks, so the report gets closer to how your team thinks about the product.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="start">
+    <div class="wrap">
+      <h2>Monday, 9:00.<br>One page.</h2>
+      <p class="sub">Connect your helpdesk today and your first report covers the last 90 days.</p>
+      <form class="signup" novalidate>
+        <label class="skip" for="email-cta">Work email</label>
+        <input id="email-cta" type="email" name="email" placeholder="you@company.com" autocomplete="email" required>
+        <button class="btn" type="submit">Get your first report</button>
+      </form>
+      <p class="form-note" aria-live="polite">Free for 14 days. No card required.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© 2026 Relay</span>
+    <nav aria-label="Footer">
+      <a href="#how">How it works</a>
+      <a href="#sample">Sample report</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="#">Privacy</a>
+      <a href="#">Security</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Seamless ticket feed: duplicate the items once so the -50% loop lines up.
+  var feed = document.getElementById('feed');
+  if (feed) {
+    Array.prototype.slice.call(feed.children).forEach(function (el) {
+      var copy = el.cloneNode(true);
+      copy.setAttribute('aria-hidden', 'true');
+      feed.appendChild(copy);
+    });
+  }
+
+  // Sample report data
+  var themes = [
+    {
+      title: 'CSV export times out over 10k rows',
+      count: 142, delta: '▲ 38%', dir: 'up', accounts: 61, arr: '$412k',
+      trend: [38, 41, 44, 52, 60, 71, 103, 142],
+      summary: 'Exports larger than roughly 10,000 rows fail with a 504 after 60 seconds. Most reports come from admins preparing end-of-quarter reviews, and several mention falling back to screenshots.',
+      quotes: [
+        ['Export just spins forever. I have a board meeting at 3 and need this data.', '#48213 · Enterprise · Email'],
+        ['It fails at around 12k rows every single time. Smaller date ranges work but I need the full quarter.', '#48234 · Team · Email']
+      ],
+      next: 'Move large exports to a background job that emails a download link. 23 tickets ask for exactly this.'
+    },
+    {
+      title: 'SSO login loop after Okta update',
+      count: 87, delta: 'New', dir: 'new', accounts: 19, arr: '$655k',
+      trend: [0, 0, 0, 0, 0, 2, 9, 87],
+      summary: 'Users signing in through Okta are redirected back to the login page. Reports began Tuesday and are concentrated in a small number of large accounts. Clearing cookies does not help.',
+      quotes: [
+        ['Stuck in a login loop since this morning. We use Okta. Our whole ops team is locked out.', '#48217 · Enterprise · Chat'],
+        ['SSO redirect keeps bouncing me back to the login page. Password login is disabled for our org so there is no way in.', '#48239 · Enterprise · Chat']
+      ],
+      next: 'Treat as an incident: few accounts, high revenue, no workaround. 14 of 19 accounts have password login disabled.'
+    },
+    {
+      title: 'Can’t change the billing owner',
+      count: 64, delta: '▲ 12%', dir: 'up', accounts: 58, arr: '$96k',
+      trend: [40, 44, 47, 45, 52, 55, 57, 64],
+      summary: 'Only the current billing owner can transfer ownership, which fails when that person has left the company. Each case needs a manual fix from support and takes two days on average to resolve.',
+      quotes: [
+        ['How do I transfer billing to our new finance lead? The old owner left in September.', '#48220 · Team · Email'],
+        ['I’m the admin of the workspace but apparently not allowed to update the card. That makes no sense to me.', '#48302 · Team · Chat']
+      ],
+      next: 'Let workspace admins reassign the billing owner. This has been a top-ten theme for eight straight weeks.'
+    },
+    {
+      title: 'Mobile notifications arrive late',
+      count: 51, delta: '▼ 9%', dir: 'down', accounts: 44, arr: '$71k',
+      trend: [70, 74, 69, 66, 61, 58, 56, 51],
+      summary: 'Push notifications arrive 10 to 30 minutes late, almost entirely on Android. Volume has fallen for five weeks since the 4.2 release, but has not gone away on devices with battery optimization turned on.',
+      quotes: [
+        ['Push notifs showing up 20 min late on Android. By the time I see the alert the thing is already handled.', '#48226 · Starter · In-app'],
+        ['Better than it was a month ago, but still late whenever my phone has been idle for a while.', '#48351 · Team · Email']
+      ],
+      next: 'The 4.2 fix is working. Remaining reports point at battery optimization; an in-app prompt may close this out.'
+    },
+    {
+      title: 'Seat limits on Team plan are unclear',
+      count: 43, delta: '— 0%', dir: 'flat', accounts: 39, arr: '$58k',
+      trend: [41, 45, 42, 44, 40, 43, 43, 43],
+      summary: 'Customers are surprised that view-only members count toward paid seats. The pattern is steady week to week, and most tickets arrive within a day of an invoice.',
+      quotes: [
+        ['Are viewers counted as seats?? We just got charged for 14 and only 6 of us actually use it.', '#48231 · Team · Chat'],
+        ['The pricing page says “per editor” but the invoice says per member. Which is it?', '#48377 · Team · Email']
+      ],
+      next: 'A copy fix, not an engineering one: the pricing page and the invoice use different words for the same thing.'
+    }
+  ];
+
+  var list = document.getElementById('themes');
+  var detail = document.getElementById('detail');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function spark(data, dir) {
+    var w = 200, h = 48, max = Math.max.apply(null, data.concat([1]));
+    var pts = data.map(function (v, i) {
+      return [(i * w / (data.length - 1)).toFixed(1), (h - 4 - (v / max) * (h - 10)).toFixed(1)];
+    });
+    var line = pts.map(function (p) { return p.join(','); }).join(' ');
+    var last = pts[pts.length - 1];
+    var color = dir === 'down' ? '#1E6A49' : (dir === 'flat' ? '#6A665A' : '#E2472B');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="Ticket volume over the last 8 weeks">' +
+      '<polygon points="0,' + h + ' ' + line + ' ' + w + ',' + h + '" fill="' + color + '" opacity=".1"/>' +
+      '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<line x1="0" y1="' + h + '" x2="' + w + '" y2="' + h + '" stroke="#D8D3C5" vector-effect="non-scaling-stroke"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="0" fill="' + color + '"/>' +
+      '</svg>';
+  }
+
+  function show(i) {
+    var t = themes[i];
+    Array.prototype.forEach.call(list.querySelectorAll('button'), function (b, j) {
+      b.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+    });
+    detail.innerHTML =
+      '<div class="detail-top mono"><span>Theme ' + String(i + 1).padStart(2, '0') + ' of 31</span><span>Week 45</span></div>' +
+      '<h3>' + esc(t.title) + '</h3>' +
+      '<p class="sum">' + esc(t.summary) + '</p>' +
+      '<div class="stats">' +
+        '<div><b>' + t.count + '</b><span class="mono">Tickets</span></div>' +
+        '<div><b>' + esc(t.delta.replace(/^[▲▼—]\s*/, function (m) { return m.trim() === '▼' ? '−' : (m.trim() === '▲' ? '+' : ''); })) + '</b><span class="mono">vs last week</span></div>' +
+        '<div><b>' + t.accounts + '</b><span class="mono">Accounts</span></div>' +
+        '<div><b>' + esc(t.arr) + '</b><span class="mono">ARR affected</span></div>' +
+      '</div>' +
+      '<div class="spark-wrap">' + spark(t.trend, t.dir) + '<span class="mono">Last 8 weeks</span></div>' +
+      '<ul class="quotes">' + t.quotes.map(function (q) {
+        return '<li><q>' + esc(q[0]) + '</q><cite>' + esc(q[1]) + '</cite></li>';
+      }).join('') + '</ul>' +
+      '<div class="next"><span class="mono">Suggested next step</span>' + esc(t.next) + '</div>';
+  }
+
+  if (list && detail) {
+    themes.forEach(function (t, i) {
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'theme-btn';
+      b.innerHTML =
+        '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="t">' + esc(t.title) + '</span>' +
+        '<span class="c">' + t.count + '</span>' +
+        '<span class="delta ' + t.dir + '">' + esc(t.delta) + '</span>';
+      b.addEventListener('click', function () { show(i); });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    show(0);
+  }
+
+  // Signup forms (front-end only; wire to your backend)
+  Array.prototype.forEach.call(document.querySelectorAll('form.signup'), function (form) {
+    var note = form.parentNode.querySelector('.form-note');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = form.querySelector('input[type="email"]');
+      var value = input.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        note.textContent = 'Enter a work email, like you@company.com.';
+        note.className = 'form-note err';
+        input.focus();
+        return;
+      }
+      note.textContent = 'You’re in. We’ll send setup steps to ' + value + '.';
+      note.className = 'form-note ok';
+      form.reset();
+    });
+  });
+})();
+</script>
+</body>
+</html>

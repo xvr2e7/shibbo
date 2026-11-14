@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally Hall — Bookkeeping for freelancers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f1ead9;
+    --paper-hi:#faf4e6;
+    --ink:#1d1712;
+    --ink-soft:#59503f;
+    --red:#b3271f;
+    --rule:rgba(29,23,18,.16);
+    --rule-strong:rgba(29,23,18,.5);
+    --serif:"Fraunces",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-optical-sizing:auto;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--red);color:var(--paper-hi)}
+  section{scroll-margin-top:86px}
+  a{color:inherit}
+
+  .wrap{max-width:1060px;margin:0 auto;padding-inline:clamp(1.25rem,4vw,3rem)}
+
+  /* ---- ledger margin line, running the full page ---- */
+  #mline{position:fixed;top:0;bottom:0;left:calc(50vw - 640px);width:2px;background:var(--red);opacity:.55;z-index:4;pointer-events:none}
+  @media (max-width:1280px){#mline{display:none}}
+
+  /* ---- header ---- */
+  header.site{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--ink)}
+  .bar{display:flex;align-items:center;gap:2.2rem;padding-block:.9rem}
+  .wordmark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+  .wordmark svg{display:block}
+  .wordmark b{font-family:var(--serif);font-weight:600;font-size:1.15rem;letter-spacing:.01em}
+  nav.main{display:flex;gap:1.8rem;margin-left:auto}
+  nav.main a{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;color:var(--ink-soft);padding-block:.2rem}
+  nav.main a:hover{color:var(--red)}
+  .btn{
+    font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;
+    background:var(--ink);color:var(--paper-hi);border:1px solid var(--ink);
+    padding:.85em 1.5em;cursor:pointer;text-decoration:none;display:inline-block;
+    transition:background .18s ease,border-color .18s ease,transform .12s ease;
+  }
+  .btn:hover{background:var(--red);border-color:var(--red)}
+  .btn:active{transform:translateY(1px)}
+  .btn.small{padding:.7em 1.2em;font-size:.7rem}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:transparent;text-decoration:underline;text-underline-offset:4px}
+  .btn.ghost:hover{background:transparent;color:var(--red);border-color:transparent}
+  @media (max-width:840px){nav.main{display:none}.bar .btn{margin-left:auto}}
+
+  :focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+  /* ---- sheets (ruled panels) ---- */
+  .sheet{
+    position:relative;background:var(--paper-hi);border:1px solid var(--ink);
+    box-shadow:9px 9px 0 rgba(29,23,18,.08);
+    background-image:repeating-linear-gradient(to bottom,transparent 0 2.39rem,var(--rule) 2.39rem 2.4rem);
+  }
+  .sheet::before{content:"";position:absolute;top:0;bottom:0;left:1.3rem;width:1.5px;background:var(--red);opacity:.5}
+
+  /* ---- type helpers ---- */
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
+  h1{font-weight:500;font-size:clamp(2.7rem,6.4vw,5.2rem);line-height:1.02;letter-spacing:-.01em}
+  h1 em{font-style:italic;font-weight:400;color:var(--red)}
+  h2{font-weight:500;font-size:clamp(1.9rem,3.4vw,2.7rem);line-height:1.1;letter-spacing:-.01em}
+  .sec-no{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:var(--red);text-transform:uppercase;display:block;margin-bottom:1rem}
+  p.lede{font-size:1.08rem;color:var(--ink-soft);max-width:34rem}
+
+  /* ---- hero ---- */
+  .hero{padding:clamp(3rem,7vw,6rem) 0 0}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(2rem,5vw,4.5rem);align-items:start}
+  @media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+  .hero h1{margin:1.1rem 0 1.6rem}
+  .hero-cta{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2.2rem;align-items:center}
+  .hero-note{margin-top:1.4rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+
+  .fig{padding:1.4rem 1.3rem 1.2rem 3rem;cursor:pointer}
+  .fig-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:.6rem}
+  .fig-head b{color:var(--red);font-weight:500}
+  #tallySvg{display:block;width:100%;height:auto}
+  .fig-cap{margin-top:.9rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* ---- ticker ---- */
+  .ticker{margin-top:clamp(3rem,7vw,5.5rem);border-block:1px solid var(--ink);overflow:hidden;background:var(--paper-hi)}
+  .tick-track{display:flex;width:max-content;animation:tick 46s linear infinite}
+  .ticker:hover .tick-track{animation-play-state:paused}
+  .tick-run{display:flex;padding-block:.75rem}
+  .tick-run span{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+  .tick-run span::after{content:"·";color:var(--red);margin:0 1.4rem}
+  @keyframes tick{to{transform:translateX(-50%)}}
+
+  /* ---- sections ---- */
+  .block{border-top:1px solid var(--ink);padding-block:clamp(4.5rem,9vw,7rem)}
+  .block:first-of-type{border-top:0}
+  .split{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:clamp(2rem,5vw,4.5rem)}
+  @media (max-width:900px){.split{grid-template-columns:1fr}}
+  .rail{position:relative}
+  @media (min-width:901px){.rail{position:sticky;top:110px;align-self:start}}
+  .rail .aside{font-style:italic;color:var(--ink-soft);margin-top:1.6rem;max-width:24rem}
+
+  /* ---- honesty ledger ---- */
+  .sheet.ledger{padding:1.6rem 1.5rem 1.4rem 3rem}
+  .ledger-head{display:flex;justify-content:space-between;gap:1rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:1.2rem}
+  .ledger-head b{color:var(--red);font-weight:500}
+  .lrow{display:flex;align-items:baseline;gap:.9rem;padding-block:.55rem;font-size:1.02rem}
+  .lrow .lab{white-space:nowrap}
+  .leader{flex:1;border-bottom:2px dotted var(--rule-strong);transform:translateY(-.28em);min-width:1.5rem}
+  .lrow .val{font-family:var(--mono);font-size:.92rem;white-space:nowrap}
+  .lrow .val.zero{color:var(--red)}
+  .lrow .val.words{font-family:var(--serif);font-style:italic;color:var(--ink-soft)}
+  .lrow:hover .lab{color:var(--red)}
+  .ledger-foot{margin-top:1.4rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--ink-soft)}
+  .ledger-foot a{color:var(--red)}
+
+  /* ---- features ---- */
+  .entry{border-top:1px solid var(--rule-strong);padding:2rem 0 2.4rem;display:grid;grid-template-columns:4.5rem 1fr;gap:1.4rem}
+  .entry:last-child{border-bottom:1px solid var(--rule-strong)}
+  .entry .no{font-family:var(--mono);font-size:.85rem;color:var(--red);padding-top:.5rem}
+  .entry h3{font-weight:500;font-size:1.55rem;line-height:1.15;margin-bottom:.6rem}
+  .entry p{color:var(--ink-soft);max-width:36rem}
+  .entry .tag{display:inline-block;margin-top:.9rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);border:1px solid var(--rule-strong);padding:.45em .9em}
+
+  /* ---- specimen / demo ---- */
+  .sheet.demo{margin-top:.5rem;padding:1.5rem 1.5rem 1.6rem 3rem}
+  .demo-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:1.1rem;flex-wrap:wrap}
+  .demo-head b{color:var(--red);font-weight:500}
+  .entry-form{display:grid;grid-template-columns:1fr 9.5rem auto auto;gap:.8rem;margin-bottom:.4rem}
+  @media (max-width:760px){.entry-form{grid-template-columns:1fr 1fr}}
+  .entry-form input{
+    font-family:var(--mono);font-size:.85rem;color:var(--ink);
+    background:transparent;border:0;border-bottom:1px solid var(--ink);
+    padding:.6em .1em;border-radius:0;
+  }
+  .entry-form input::placeholder{color:var(--ink-soft);opacity:.7}
+  .entry-form input:focus{outline:0;border-bottom-color:var(--red)}
+  .entry-form input::placeholder{font-style:italic;font-family:var(--serif)}
+  .seg{display:flex;border:1px solid var(--ink)}
+  .seg button{flex:1;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;padding:.75em 1.1em;background:transparent;border:0;color:var(--ink);cursor:pointer}
+  .seg button.on{background:var(--ink);color:var(--paper-hi)}
+  .shake{animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  #formMsg{min-height:1.5rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;color:var(--red);margin:.4rem 0 .8rem;text-transform:uppercase}
+  #lines{margin-top:.4rem}
+  .line{display:flex;align-items:baseline;gap:.9rem;padding-block:.5rem;font-size:1rem;animation:lineIn .35s ease both}
+  @keyframes lineIn{from{opacity:0;transform:translateY(6px)}}
+  .line .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .line .leader{transform:translateY(-.28em)}
+  .line .amt{font-family:var(--mono);font-size:.9rem;white-space:nowrap}
+  .line .amt.in{color:var(--ink)}
+  .line .amt.out{color:var(--red)}
+  .line .del{border:0;background:none;color:var(--ink-soft);font-family:var(--mono);font-size:.9rem;cursor:pointer;padding:0 .2rem;line-height:1}
+  .line .del:hover{color:var(--red)}
+  #empty{font-style:italic;color:var(--ink-soft);padding-block:.7rem}
+  .totals{border-top:1px solid var(--ink);margin-top:1.1rem;padding-top:.8rem}
+  .totals .lrow{padding-block:.32rem;font-size:.95rem}
+  .demo-foot{margin-top:1rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .linkish{border:0;background:none;font:inherit;color:var(--red);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
+
+  /* ---- pricing ---- */
+  .price-line{font-size:clamp(1.7rem,3.2vw,2.5rem);line-height:1.25;max-width:30ch;font-weight:500}
+  .price-line em{font-style:italic;color:var(--red)}
+  .seat-line{margin-top:1.6rem;font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--red)}
+  .inc{margin-top:2.4rem}
+  .inc .lrow{font-size:1rem}
+  .fine{margin-top:1.8rem;font-style:italic;color:var(--ink-soft);max-width:34rem}
+
+  /* ---- faq ---- */
+  .qa{border-top:1px solid var(--rule-strong)}
+  .qa:last-child{border-bottom:1px solid var(--rule-strong)}
+  .qa .q{
+    width:100%;display:flex;align-items:baseline;gap:1.2rem;text-align:left;
+    background:none;border:0;cursor:pointer;padding:1.3rem .2rem;
+    font-family:var(--serif);font-size:clamp(1.05rem,1.6vw,1.25rem);color:var(--ink);
+  }
+  .qa .q:hover{color:var(--red)}
+  .qa .q .qn{font-family:var(--mono);font-size:.72rem;color:var(--red);letter-spacing:.1em}
+  .qa .q::after{content:"+";font-family:var(--mono);margin-left:auto;color:var(--ink-soft)}
+  .qa.open .q::after{content:"–";color:var(--red)}
+  .a-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+  .qa.open .a-wrap{grid-template-rows:1fr}
+  .a-inner{overflow:hidden}
+  .a-inner p{padding:0 .2rem 1.5rem 3.4rem;color:var(--ink-soft);max-width:44rem}
+  @media (max-width:700px){.a-inner p{padding-left:.2rem}}
+
+  /* ---- signup ---- */
+  .cta-final{text-align:left}
+  .cta-final h2{font-size:clamp(2.3rem,5vw,4rem)}
+  .cta-final h2 em{font-style:italic;color:var(--red)}
+  .mailform{display:flex;gap:.9rem;margin-top:2rem;max-width:34rem;flex-wrap:wrap}
+  .mailform input{
+    flex:1;min-width:14rem;font-family:var(--mono);font-size:.85rem;color:var(--ink);
+    background:transparent;border:0;border-bottom:1px solid var(--ink);padding:.7em .1em;
+  }
+  .mailform input:focus{outline:0;border-bottom-color:var(--red)}
+  #mailDone{margin-top:2rem;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:1.4rem .2rem;max-width:34rem}
+  #mailDone .t{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--red)}
+  #mailDone p{margin-top:.5rem;color:var(--ink-soft)}
+  .cta-sub{margin-top:1rem;font-style:italic;color:var(--ink-soft);max-width:34rem}
+
+  /* ---- footer ---- */
+  footer.site{border-top:1px solid var(--ink);padding:2.2rem 0 2.8rem;margin-top:clamp(4rem,8vw,6rem)}
+  .foot{display:flex;flex-wrap:wrap;gap:1.4rem 3rem;align-items:baseline;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .foot a{color:var(--ink-soft);text-decoration:none}
+  .foot a:hover{color:var(--red)}
+  .foot .mk{margin-left:auto}
+
+  /* ---- reveal ---- */
+  .rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .rv{opacity:1;transform:none;transition:none}
+    .tick-track{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<div id="mline" aria-hidden="true"></div>
+
+<header class="site">
+  <div class="wrap bar">
+    <a class="wordmark" href="#top" aria-label="Tally Hall, back to top">
+      <svg width="34" height="24" viewBox="0 0 34 24" fill="none" aria-hidden="true">
+        <path d="M5 2.5 C6 8.5, 4.5 15.5, 5.5 21.5" stroke="#1d1712" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M11.5 2 C12.5 8, 11 16, 12 22" stroke="#1d1712" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M18 2.5 C17 8.5, 19 15.5, 18 21.5" stroke="#1d1712" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M24.5 2 C25.5 8, 24 16, 25 22" stroke="#1d1712" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M2 18 C11 14, 21 10, 31 4" stroke="#b3271f" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <b>Tally&nbsp;Hall</b>
+    </a>
+    <nav class="main" aria-label="Sections">
+      <a href="#honest">The ledger</a>
+      <a href="#try">Specimen</a>
+      <a href="#price">Pricing</a>
+      <a href="#faq">Fine print</a>
+    </nav>
+    <a class="btn small" href="#signup">Be №&nbsp;1</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ № 01 · HERO ============ -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Bookkeeping for freelancers — opened last Tuesday</span>
+          <h1>Your freelance money,<br><em>tallied &amp; squared.</em></h1>
+          <p class="lede">Invoices in, expenses out, taxes set aside before they’re due —
+          without spreadsheets, guesswork, or the Sunday-night dread.</p>
+          <div class="hero-cta">
+            <a class="btn" href="#try">Try the ledger</a>
+            <a class="btn ghost" href="#price">See pricing</a>
+          </div>
+          <p class="hero-note">Free for the first 500 freelancers — see №&nbsp;05 below.</p>
+        </div>
+
+        <figure class="fig sheet" id="figSheet" title="Click to count it again">
+          <div class="fig-head"><span>Fig. 1 — Working sheet</span><b id="tallyCount">COUNT&nbsp;·&nbsp;0</b></div>
+          <svg id="tallySvg" viewBox="0 0 176 168" fill="none" role="img" aria-label="Animated hand-drawn tally marks"></svg>
+          <figcaption class="fig-cap">Everything gets counted here. It’s a condition.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="tick-track">
+        <div class="tick-run">
+          <span>Studio rent</span><span>Software</span><span>Health insurance</span><span>Coffee</span>
+          <span>Coffee (again)</span><span>Internet</span><span>That subscription you forgot</span>
+          <span>Quarterly taxes</span><span>PayPal fees</span><span>Late-paying clients</span>
+          <span>Train fare</span><span>Ink &amp; paper</span><span>Design books</span><span>The IRS</span>
+        </div>
+        <div class="tick-run" aria-hidden="true">
+          <span>Studio rent</span><span>Software</span><span>Health insurance</span><span>Coffee</span>
+          <span>Coffee (again)</span><span>Internet</span><span>That subscription you forgot</span>
+          <span>Quarterly taxes</span><span>PayPal fees</span><span>Late-paying clients</span>
+          <span>Train fare</span><span>Ink &amp; paper</span><span>Design books</span><span>The IRS</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 02 · THE HONEST PART ============ -->
+  <section class="block" id="honest">
+    <div class="wrap split">
+      <div class="rail rv">
+        <span class="sec-no">№ 02 — The honest part</span>
+        <h2>The ledger,<br>exactly as it stands.</h2>
+        <p class="aside">Most launch pages open with logos and five stars.
+        We don’t have those yet, so here is our book —
+        the real one, not the marketing one.</p>
+      </div>
+      <div class="sheet ledger rv">
+        <div class="ledger-head"><span>Tally Hall — statement of affairs</span><b>As of today</b></div>
+        <div class="lrow"><span class="lab">Customers</span><span class="leader"></span><span class="val zero">0</span></div>
+        <div class="lrow"><span class="lab">Reviews</span><span class="leader"></span><span class="val zero">none yet</span></div>
+        <div class="lrow"><span class="lab">Testimonials written by an agency</span><span class="leader"></span><span class="val zero">0 — on principle</span></div>
+        <div class="lrow"><span class="lab">Days since we opened*</span><span class="leader"></span><span class="val" id="daysOpen">—</span></div>
+        <div class="lrow"><span class="lab">Features shipped</span><span class="leader"></span><span class="val">17</span></div>
+        <div class="lrow"><span class="lab">Features promised but missing</span><span class="leader"></span><span class="val zero">0</span></div>
+        <div class="lrow"><span class="lab">People on the team</span><span class="leader"></span><span class="val">2</span></div>
+        <div class="lrow"><span class="lab">Exit strategy</span><span class="leader"></span><span class="val words">none — we like this</span></div>
+        <div class="lrow"><span class="lab">Your current system</span><span class="leader"></span><span class="val words">a spreadsheet &amp; mild dread</span></div>
+        <p class="ledger-foot">* We opened on Tuesday, <span id="openedDate">—</span>. Last week, in other words.
+        If “zero customers” worries you, <a href="#faq">skip to the fine print</a> — question one is yours.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 03 · WHAT IT DOES ============ -->
+  <section class="block" id="does">
+    <div class="wrap split">
+      <div class="rail rv">
+        <span class="sec-no">№ 03 — What it does</span>
+        <h2>Four things,<br>done properly.</h2>
+        <p class="aside">No dashboards you’ll never open. No “AI insights.”
+        Just the books — ruled, dated, and honest.</p>
+      </div>
+      <div>
+        <article class="entry rv">
+          <span class="no">3.1</span>
+          <div>
+            <h3>Income that files itself</h3>
+            <p>Connect your bank, Stripe, or your invoicing email. Every payment lands
+            as a line — labeled, categorized, dated — before you’ve closed the tab.</p>
+            <span class="tag">Bank sync · Stripe · PayPal</span>
+          </div>
+        </article>
+        <article class="entry rv">
+          <span class="no">3.2</span>
+          <div>
+            <h3>Tax day, demoted</h3>
+            <p>With every payment, Tally Hall skims off what you’ll owe —
+            self-employment tax included — so the number never surprises you.
+            April becomes a formality, not a fire drill.</p>
+            <span class="tag">Set-aside, updated per payment</span>
+          </div>
+        </article>
+        <article class="entry rv">
+          <span class="no">3.3</span>
+          <div>
+            <h3>Receipts become records</h3>
+            <p>Photograph a receipt; it reads itself, matches its expense,
+            and stops living in your pocket or your junk drawer.</p>
+            <span class="tag">Photo in → ledger line out</span>
+          </div>
+        </article>
+        <article class="entry rv">
+          <span class="no">3.4</span>
+          <div>
+            <h3>The monthly square-up</h3>
+            <p>One page, first of each month: earned, spent, set aside, kept.
+            Your accountant gets clean CSV or PDF exports — or nothing at all,
+            if you’d rather keep it between us.</p>
+            <span class="tag">CSV · PDF · accountant-legible</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 04 · SPECIMEN ============ -->
+  <section class="block" id="try">
+    <div class="wrap split">
+      <div class="rail rv">
+        <span class="sec-no">№ 04 — Specimen</span>
+        <h2>Try the ledger,<br>right here.</h2>
+        <p class="aside">A working miniature of the app, bound into this page.
+        Add a line, watch the tally move, see what you’d keep.</p>
+      </div>
+      <div class="sheet demo rv">
+        <div class="demo-head">
+          <span>Working sheet — <span id="today">—</span></span>
+          <b id="demoTallyWrap">TALLY — <svg id="demoTally" width="0" height="14" viewBox="0 0 0 14" fill="none" aria-hidden="true"></svg></b>
+        </div>
+
+        <form class="entry-form" id="lineForm" novalidate>
+          <input id="descIn" type="text" placeholder="What was it? (e.g. Studio rent)" autocomplete="off" aria-label="Description">
+          <input id="amtIn" type="number" placeholder="Amount" min="0" step="0.01" inputmode="decimal" aria-label="Amount in dollars">
+          <div class="seg" role="group" aria-label="Money in or out">
+            <button type="button" class="tbtn" data-t="in">Money in</button>
+            <button type="button" class="tbtn on" data-t="out">Money out</button>
+          </div>
+          <button class="btn small" type="submit">Add line</button>
+        </form>
+        <div id="formMsg" aria-live="polite"></div>
+
+        <div id="lines"></div>
+        <div id="empty">No lines yet — add something above, or load a sample week below.</div>
+
+        <div class="totals">
+          <div class="lrow"><span class="lab">Earned</span><span class="leader"></span><span class="val" id="tEarn">$0.00</span></div>
+          <div class="lrow"><span class="lab">Spent</span><span class="leader"></span><span class="val" id="tSpend">$0.00</span></div>
+          <div class="lrow"><span class="lab">Set aside for taxes (30% of income)</span><span class="leader"></span><span class="val" id="tAside">$0.00</span></div>
+          <div class="lrow"><span class="lab">Kept</span><span class="leader"></span><span class="val" id="tKept">$0.00</span></div>
+        </div>
+
+        <p class="demo-foot">
+          <button class="linkish" id="sampleBtn" type="button">Load a sample week</button>
+          &nbsp;·&nbsp; runs entirely in this page — nothing you type leaves your browser.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 05 · PRICING ============ -->
+  <section class="block" id="price">
+    <div class="wrap split">
+      <div class="rail rv">
+        <span class="sec-no">№ 05 — Pricing, briefly</span>
+        <h2>One plan.<br>One sentence.</h2>
+        <p class="aside">Freelancers have filled enough complicated forms for one lifetime.</p>
+      </div>
+      <div class="rv">
+        <p class="price-line">Free for the first <em>500</em> freelancers.
+        After that, $9 a month — for everyone who arrives late.</p>
+        <p class="seat-line">Seats taken: 0 of 500 — you’d take the first.</p>
+
+        <div class="inc">
+          <div class="lrow"><span class="lab">Bank &amp; Stripe sync</span><span class="leader"></span><span class="val">included</span></div>
+          <div class="lrow"><span class="lab">Quarterly tax estimates, updated per payment</span><span class="leader"></span><span class="val">included</span></div>
+          <div class="lrow"><span class="lab">Unlimited receipts, photographed &amp; matched</span><span class="leader"></span><span class="val">included</span></div>
+          <div class="lrow"><span class="lab">CSV / PDF export — accountant &amp; IRS legible</span><span class="leader"></span><span class="val">included</span></div>
+          <div class="lrow"><span class="lab">Email support, answered by one of two people</span><span class="leader"></span><span class="val">included</span></div>
+        </div>
+
+        <p class="fine">No annual lock-in, no per-invoice fees, no “contact sales.”
+        If we ever change this deal, your terms don’t — the first 500 keep free forever,
+        and that promise is in the signup note, in writing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 06 · FINE PRINT ============ -->
+  <section class="block" id="faq">
+    <div class="wrap split">
+      <div class="rail rv">
+        <span class="sec-no">№ 06 — The fine print</span>
+        <h2>Questions<br>you should ask.</h2>
+        <p class="aside">We wrote the ones we’d ask an app this young —
+        and answered them without flinching.</p>
+      </div>
+      <div class="rv">
+        <div class="qa open">
+          <button class="q" type="button"><span class="qn">Q.1</span>You have zero customers. Why would I sign up?</button>
+          <div class="a-wrap"><div class="a-inner"><p>You shouldn’t — not on faith. Trust the exits instead: everything you put
+          in comes out as standard CSV, openable in any spreadsheet tool, from a button that’s hard to miss.
+          If we vanish, your books don’t. And being №&nbsp;1 has its perks: the free-forever plan,
+          and a founder who answers support himself (there are two of us — you’d be a third of the workload).</p></div></div>
+        </div>
+        <div class="qa">
+          <button class="q" type="button"><span class="qn">Q.2</span>Where does my data live?</button>
+          <div class="a-wrap"><div class="a-inner"><p>On servers we rent, encrypted at rest, backed up nightly.
+          We run no ads, sell nothing, and share nothing beyond what keeps the lights on.
+          We’re too new to have learned bad habits — help us keep it that way.</p></div></div>
+        </div>
+        <div class="qa">
+          <button class="q" type="button"><span class="qn">Q.3</span>Do you file my taxes for me?</button>
+          <div class="a-wrap"><div class="a-inner"><p>No — and be suspicious of apps that claim to. Tally Hall’s job happens earlier:
+          with each payment it sets aside what you’ll owe, self-employment tax included, so the
+          number never turns into a surprise. When you file, your accountant gets clean totals,
+          categorized exports, and matched receipts. Not excuses.</p></div></div>
+        </div>
+        <div class="qa">
+          <button class="q" type="button"><span class="qn">Q.4</span>Which currencies and banks?</button>
+          <div class="a-wrap"><div class="a-inner"><p>USD, EUR, GBP and CAD at launch. Bank sync covers most major US institutions;
+          Stripe and PayPal import everywhere. Everything else can be typed in by hand —
+          the form takes about nine seconds.</p></div></div>
+        </div>
+        <div class="qa">
+          <button class="q" type="button"><span class="qn">Q.5</span>What if you go out of business?</button>
+          <div class="a-wrap"><div class="a-inner"><p>You get 60 days’ notice and a complete export, in a format any spreadsheet
+          or accountant can open. We’ve watched too many apps die with other people’s data locked inside.
+          Ours won’t go that way — it’s in the same writing as your free-forever terms.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ № 07 · SIGNUP ============ -->
+  <section class="block" id="signup">
+    <div class="wrap cta-final">
+      <span class="sec-no rv">№ 07 — Last page of the sheet</span>
+      <h2 class="rv">Be our <em>first</em> customer.</h2>
+      <p class="cta-sub rv">Leave an email and you’ll get one message from one of two humans —
+      your login, a thank-you, and nothing else. No drip, no sequence, no “quick check-ins.”</p>
+      <form class="mailform rv" id="mailForm" novalidate>
+        <input type="email" id="mailIn" placeholder="you@yourstudio.com" aria-label="Your email address" autocomplete="email">
+        <button class="btn" type="submit">Take seat № 1</button>
+      </form>
+      <div id="mailDone" hidden>
+        <p class="t">Noted, in ink.</p>
+        <p>You’d be customer №&nbsp;1 of 500. Expect a short, personal email — not a welcome sequence.
+        If it isn’t, reply “you promised” and we’ll eat the fine print.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap foot">
+    <span>Tally Hall — bookkeeping for freelancers</span>
+    <a href="#price">Pricing</a>
+    <a href="#faq">Fine print</a>
+    <a href="mailto:hello@tallyhall.app">hello@tallyhall.app</a>
+    <span class="mk">Set in Fraunces &amp; Plex Mono · Sheet 1 of 1 · <span id="yr"></span></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+
+  /* ---------- dates: we opened "last Tuesday" ---------- */
+  function lastTuesday(){
+    const d = new Date(); d.setHours(12,0,0,0);
+    let back = (d.getDay() + 7 - 2) % 7;   // days since most recent Tuesday
+    if(back === 0) back = 7;               // today IS Tuesday -> last week's
+    d.setDate(d.getDate() - back);
+    return d;
+  }
+  const opened = lastTuesday();
+  const days = Math.round((new Date().setHours(12,0,0,0) - opened) / 864e5);
+  $("#daysOpen").textContent = days;
+  $("#openedDate").textContent = opened.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+  $("#today").textContent = new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+  $("#yr").textContent = new Date().getFullYear();
+
+  /* ---------- hand-drawn tally generator ---------- */
+  const jit = i => Math.sin(i * 12.9898) * 1.3;   // deterministic wobble per stroke
+  const vPath = (x,y,h,i) => {
+    const j = jit(i);
+    return `M ${x} ${y+3} C ${x+j*2} ${y+h*.33}, ${x-j*1.4} ${y+h*.66}, ${x+j} ${y+h-3}`;
+  };
+  const sPath = (x,y,h) => `M ${x-3} ${y+h*.62} C ${x+9} ${y+h*.48}, ${x+15} ${y+h*.36}, ${x+27} ${y+h*.05}`;
+
+  function buildTally(target, layout, strokeW, animate, onStroke){
+    // layout: rows -> groups -> strokes per group
+    target.innerHTML = "";
+    const NS = "http://www.w3.org/2000/svg";
+    const paths = [];
+    let idx = 0;
+    layout.forEach((row, r) => {
+      const y = 8 + r * 92, h = 62;
+      row.forEach((count, g) => {
+        const gx = 6 + g * 44;
+        for(let s = 0; s < count; s++){
+          const isSlash = (s === 4);
+          const p = document.createElementNS(NS, "path");
+          p.setAttribute("d", isSlash ? sPath(gx, y, h) : vPath(gx + s * 7, y, h, idx));
+          p.setAttribute("stroke", isSlash ? "#b3271f" : "#1d1712");
+          p.setAttribute("stroke-width", strokeW);
+          p.setAttribute("stroke-linecap", "round");
+          p.setAttribute("fill", "none");
+          target.appendChild(p);
+          paths.push(p);
+          idx++;
+        }
+      });
+    });
+    if(!animate){
+      paths.forEach(p => { const L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = 0; });
+      if(onStroke) paths.forEach((_, i) => onStroke(i + 1));
+      return paths;
+    }
+    paths.forEach((p, i) => {
+      const L = p.getTotalLength();
+      p.style.strokeDasharray = L;
+      p.style.strokeDashoffset = L;
+      const delay = 300 + i * 105;
+      setTimeout(() => {
+        p.style.transition = "stroke-dashoffset .42s cubic-bezier(.55,0,.25,1)";
+        p.style.strokeDashoffset = 0;
+      }, delay);
+      if(onStroke) setTimeout(() => onStroke(i + 1), delay + 430);
+    });
+    return paths;
+  }
+
+  // hero figure: 3 full groups, then 1 group + 3 loose strokes = 23
+  const heroLayout = [[5,5,5],[5,3]];
+  const heroSvg = $("#tallySvg");
+  function runHero(){
+    $("#tallyCount").textContent = "COUNT · 0";
+    buildTally(heroSvg, heroLayout, 3, true,
+      n => { $("#tallyCount").textContent = "COUNT · " + n; });
+  }
+  window.addEventListener("load", runHero);
+  $("#figSheet").addEventListener("click", runHero);
+
+  // adjust hero viewBox to content
+  heroSvg.setAttribute("viewBox", "0 0 176 168");
+
+  /* ---------- specimen ledger ---------- */
+  const fmt = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"});
+  let lines = [];
+  let type = "out";
+
+  $$(".tbtn").forEach(b => b.addEventListener("click", () => {
+    type = b.dataset.t;
+    $$(".tbtn").forEach(x => x.classList.toggle("on", x === b));
+  }));
+
+  function renderDemo(){
+    const box = $("#lines");
+    box.innerHTML = "";
+    lines.forEach((l, i) => {
+      const row = document.createElement("div");
+      row.className = "line";
+      const amt = (l.t === "in" ? "+" : "−") + fmt.format(l.a);
+      row.innerHTML =
+        `<span class="d"></span><span class="leader"></span>` +
+        `<span class="amt ${l.t}">${amt}</span>`;
+      row.querySelector(".d").textContent = l.d;
+      const del = document.createElement("button");
+      del.className = "del"; del.type = "button";
+      del.textContent = "×"; del.setAttribute("aria-label", "Delete line: " + l.d);
+      del.addEventListener("click", () => { lines.splice(i, 1); renderDemo(); });
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+    $("#empty").style.display = lines.length ? "none" : "";
+
+    const earned = lines.filter(l => l.t === "in").reduce((s,l) => s + l.a, 0);
+    const spent  = lines.filter(l => l.t === "out").reduce((s,l) => s + l.a, 0);
+    const aside  = Math.round(earned * 0.30);
+    const kept   = earned - spent - aside;
+    $("#tEarn").textContent  = "+" + fmt.format(earned);
+    $("#tSpend").textContent = "−" + fmt.format(spent);
+    $("#tAside").textContent = fmt.format(aside);
+    const keptEl = $("#tKept");
+    keptEl.textContent = (kept < 0 ? "−" : "+") + fmt.format(Math.abs(kept));
+    keptEl.classList.toggle("zero", kept < 0);
+
+    // corner mini-tally: one stroke per line
+    const n = Math.min(lines.length, 25);
+    const groups = [];
+    for(let i = 0; i < n; i += 5) groups.push(Math.min(5, n - i));
+    const mini = $("#demoTally");
+    const rows = [groups.slice(0, 5), groups.slice(5)]; // wrap after 5 groups
+    const shown = rows.filter(r => r.length);
+    const w = Math.max(...shown.map(r => r.length)) * 12 + 30;
+    mini.setAttribute("viewBox", `0 0 ${Math.max(w,30)} ${shown.length * 16}`);
+    mini.setAttribute("width", Math.max(w,30));
+    buildTally(mini, shown.length ? shown : [[0]], 1.8, false);
+  }
+
+  function addLine(d, a, t){
+    lines.push({ d, a, t });
+    renderDemo();
+  }
+
+  $("#lineForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const desc = $("#descIn").value.trim();
+    const amt = parseFloat($("#amtIn").value);
+    const msg = $("#formMsg");
+    msg.textContent = "";
+    if(!desc){
+      msg.textContent = "Give it a name first — future-you will thank you.";
+      $("#descIn").classList.add("shake");
+      setTimeout(() => $("#descIn").classList.remove("shake"), 350);
+      $("#descIn").focus();
+      return;
+    }
+    if(!isFinite(amt) || amt <= 0){
+      msg.textContent = "Amount should be a number above zero.";
+      $("#amtIn").classList.add("shake");
+      setTimeout(() => $("#amtIn").classList.remove("shake"), 350);
+      $("#amtIn").focus();
+      return;
+    }
+    addLine(desc, amt, type);
+    $("#descIn").value = ""; $("#amtIn").value = "";
+    $("#descIn").focus();
+  });
+
+  $("#sampleBtn").addEventListener("click", () => {
+    lines = [
+      { d:"Invoice #084 — paid", a:1250, t:"in" },
+      { d:"Studio rent, this month", a:650, t:"out" },
+      { d:"Design software", a:54, t:"out" },
+      { d:"Health insurance", a:310, t:"out" },
+      { d:"Coffee (a lot of coffee)", a:23.50, t:"out" }
+    ];
+    renderDemo();
+  });
+
+  renderDemo();
+
+  /* ---------- accordion ---------- */
+  $$(".qa .q").forEach(btn => btn.addEventListener("click", () => {
+    const qa = btn.parentElement;
+    const wasOpen = qa.classList.contains("open");
+    $$(".qa.open").forEach(o => o.classList.remove("open"));
+    if(!wasOpen) qa.classList.add("open");
+  }));
+
+  /* ---------- signup ---------- */
+  $("#mailForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("#mailIn").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+      $("#mailIn").classList.add("shake");
+      setTimeout(() => $("#mailIn").classList.remove("shake"), 350);
+      $("#mailIn").focus();
+      return;
+    }
+    $("#mailForm").hidden = true;
+    $("#mailDone").hidden = false;
+  });
+
+  /* ---------- scroll reveal ---------- */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  }, { threshold: .12 });
+  $$(".rv").forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>

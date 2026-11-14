@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plotline: Fast, composable charts for the web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;--bg2:#f7f8fb;--bg3:#eef0f6;--fg:#0f1222;--fg2:#4a5068;--fg3:#7d839b;
+    --border:#e3e6ef;--accent:#5b5bf7;--accent2:#00b3a4;--accent3:#ff7a59;--accent4:#f5b83d;
+    --code-bg:#0f1222;--code-fg:#e6e8f2;--card:#ffffff;--shadow:0 1px 2px rgba(15,18,34,.04),0 8px 24px rgba(15,18,34,.06);
+    --focus:0 0 0 3px rgba(91,91,247,.35);
+  }
+  [data-theme="dark"]{
+    --bg:#0b0d18;--bg2:#11142280;--bg3:#1a1e30;--fg:#eceef8;--fg2:#a8aec6;--fg3:#7a809a;
+    --border:#23283d;--card:#121628;--code-bg:#070912;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+  a{color:inherit;text-decoration:none}
+  code,pre,kbd{font-family:"JetBrains Mono",ui-monospace,monospace}
+  button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+
+  /* Banner */
+  .banner{background:linear-gradient(90deg,var(--accent),#8b5cf6);color:#fff;text-align:center;font-size:13.5px;padding:8px 16px;font-weight:500}
+  .banner a{text-decoration:underline;text-underline-offset:2px}
+
+  /* Nav */
+  header{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border)}
+  .nav{display:flex;align-items:center;gap:28px;height:62px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+  .logo svg{width:28px;height:28px}
+  .ver{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border)}
+  .links{display:flex;gap:22px;font-size:14.5px;font-weight:500;color:var(--fg2)}
+  .links a:hover,.links a.active{color:var(--fg)}
+  .links a.active{position:relative}
+  .links a.active::after{content:"";position:absolute;left:0;right:0;bottom:-21px;height:2px;background:var(--accent);border-radius:2px}
+  .spacer{flex:1}
+  .search{display:flex;align-items:center;gap:8px;width:240px;padding:7px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg2);color:var(--fg3);font-size:14px}
+  .search:hover{border-color:var(--fg3)}
+  .search kbd{margin-left:auto;font-size:11px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg)}
+  .icon-btn{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid transparent;background:none;color:var(--fg2)}
+  .icon-btn:hover{background:var(--bg3);color:var(--fg)}
+  .gh{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:6px 12px;border:1px solid var(--border);border-radius:9px;color:var(--fg2)}
+  .gh:hover{color:var(--fg);border-color:var(--fg3)}
+  .menu-btn{display:none}
+
+  /* Hero */
+  .hero{position:relative;padding:80px 0 64px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(600px 300px at 15% 0%,rgba(91,91,247,.14),transparent 70%),
+    radial-gradient(500px 280px at 90% 20%,rgba(0,179,164,.12),transparent 70%);pointer-events:none}
+  .hero-grid{position:relative;display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);padding:5px 12px;border-radius:99px;border:1px solid color-mix(in srgb,var(--accent) 25%,transparent)}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent2) 25%,transparent)}
+  h1{font-size:clamp(38px,5vw,58px);line-height:1.06;letter-spacing:-.035em;margin:20px 0 18px;font-weight:800}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),#8b5cf6 45%,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:18.5px;color:var(--fg2);max-width:540px;margin:0 0 30px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--border);transition:transform .15s,box-shadow .15s,background .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(91,91,247,.35)}
+  .btn.primary:hover{box-shadow:0 10px 24px rgba(91,91,247,.45)}
+  .btn.ghost{background:var(--card)}
+  .install{display:flex;align-items:center;gap:12px;max-width:440px;padding:10px 10px 10px 16px;border-radius:10px;background:var(--code-bg);color:var(--code-fg);font-family:"JetBrains Mono",monospace;font-size:14px;border:1px solid #23283d}
+  .install .p{color:#6f76a0}
+  .install span.cmd{flex:1}
+  .copy{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;border:1px solid #2c3250;background:#171b2e;color:#c6cae0;font-size:12px;font-family:Inter,sans-serif}
+  .copy:hover{background:#20253d}
+  .stats{display:flex;gap:28px;margin-top:28px;color:var(--fg3);font-size:13.5px}
+  .stats b{display:block;color:var(--fg);font-size:20px;letter-spacing:-.02em}
+
+  .demo{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .demo-top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+  .demo-title{font-weight:600;font-size:14.5px}
+  .demo-sub{font-size:12.5px;color:var(--fg3)}
+  .seg{display:flex;background:var(--bg3);padding:3px;border-radius:8px;gap:2px}
+  .seg button{border:0;background:none;padding:4px 10px;font-size:12.5px;font-weight:600;border-radius:6px;color:var(--fg3)}
+  .seg button.on{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .demo-body{position:relative;padding:12px 10px 6px}
+  #heroChart{display:block;width:100%;height:280px}
+  .legend{display:flex;gap:16px;padding:0 18px 14px;font-size:12.5px;color:var(--fg2)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:7px 10px;border-radius:8px;opacity:0;transform:translate(-50%,-110%);transition:opacity .12s;white-space:nowrap;line-height:1.45}
+  .tip b{font-weight:600}
+  .demo-code{border-top:1px solid var(--border);background:var(--code-bg);color:var(--code-fg);font-size:12.5px;padding:14px 18px;margin:0;overflow:auto;line-height:1.65}
+
+  /* Syntax */
+  .k{color:#c792ea}.s{color:#c3e88d}.f{color:#82aaff}.n{color:#f78c6c}.c{color:#636b8f;font-style:italic}.pr{color:#89ddff}
+
+  /* Sections */
+  section{padding:72px 0}
+  .alt{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .sec-head{max-width:640px;margin-bottom:40px}
+  .sec-head .tag{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  h2{font-size:clamp(28px,3.4vw,38px);letter-spacing:-.03em;line-height:1.15;margin:8px 0 12px}
+  .sec-head p{color:var(--fg2);font-size:17px;margin:0}
+
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .feat{padding:26px;border:1px solid var(--border);border-radius:14px;background:var(--card);transition:border-color .2s,transform .2s}
+  .feat:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border));transform:translateY(-2px)}
+  .feat .ic{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;margin-bottom:16px}
+  .feat h3{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}
+  .feat p{margin:0;color:var(--fg2);font-size:14.5px}
+
+  /* Quickstart */
+  .qs{display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:start}
+  .steps{list-style:none;padding:0;margin:0;counter-reset:s}
+  .steps li{counter-increment:s;position:relative;padding:0 0 26px 52px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--card);border:1px solid var(--border);color:var(--accent)}
+  .steps li:not(:last-child)::after{content:"";position:absolute;left:16px;top:38px;bottom:4px;width:1px;background:var(--border)}
+  .steps h4{margin:4px 0 4px;font-size:16px}
+  .steps p{margin:0;color:var(--fg2);font-size:14.5px}
+  .steps code{font-size:13px;background:var(--bg3);padding:1px 6px;border-radius:5px}
+  .codebox{border-radius:14px;overflow:hidden;border:1px solid #23283d;background:var(--code-bg);box-shadow:var(--shadow)}
+  .tabs{display:flex;gap:2px;padding:8px 8px 0;background:#0b0d18;border-bottom:1px solid #23283d}
+  .tabs button{border:0;background:none;color:#8a90ad;padding:8px 14px;font-size:13px;font-weight:500;border-radius:8px 8px 0 0}
+  .tabs button.on{background:var(--code-bg);color:#fff;box-shadow:inset 0 2px 0 var(--accent)}
+  .tabs .copy{margin-left:auto;align-self:center;margin-bottom:8px}
+  .codebox pre{margin:0;padding:20px 22px;color:var(--code-fg);font-size:13.5px;line-height:1.7;overflow:auto;min-height:290px}
+  .panel{display:none}.panel.on{display:block}
+
+  /* Gallery */
+  .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .g{border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:hidden;transition:transform .2s,box-shadow .2s}
+  .g:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .g svg{display:block;width:100%;height:140px;background:var(--bg2)}
+  .g .meta{padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+  .g .meta b{font-size:14.5px;font-weight:600}
+  .g .meta span{font-size:12px;color:var(--fg3);font-family:"JetBrains Mono",monospace}
+  .more{text-align:center;margin-top:28px}
+
+  /* Docs cards */
+  .docs{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .doc{display:flex;flex-direction:column;padding:22px;border:1px solid var(--border);border-radius:14px;background:var(--card);transition:border-color .2s}
+  .doc:hover{border-color:var(--accent)}
+  .doc h3{margin:12px 0 6px;font-size:16.5px;display:flex;align-items:center;justify-content:space-between}
+  .doc h3 .arr{transition:transform .2s;color:var(--fg3)}
+  .doc:hover h3 .arr{transform:translateX(4px);color:var(--accent)}
+  .doc p{margin:0 0 14px;color:var(--fg2);font-size:14px}
+  .doc ul{list-style:none;margin:auto 0 0;padding:14px 0 0;border-top:1px dashed var(--border);font-size:13.5px}
+  .doc li{padding:3px 0}
+  .doc li a{color:var(--fg2)}.doc li a:hover{color:var(--accent)}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;align-self:flex-start}
+
+  /* Frameworks */
+  .fw{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .fw a{display:flex;align-items:center;gap:10px;padding:10px 18px;border:1px solid var(--border);border-radius:99px;background:var(--card);font-weight:600;font-size:14.5px}
+  .fw a:hover{border-color:var(--fg3)}
+  .fw code{font-size:12px;color:var(--fg3);font-weight:400}
+
+  /* Community */
+  .comm{display:grid;grid-template-columns:1.3fr 1fr;gap:24px}
+  .ccard{padding:30px;border-radius:16px;border:1px solid var(--border);background:var(--card)}
+  .ccard h3{margin:0 0 8px;font-size:21px;letter-spacing:-.02em}
+  .ccard p{color:var(--fg2);margin:0 0 20px}
+  .avatars{display:flex;margin:0 0 20px}
+  .avatars span{width:36px;height:36px;border-radius:50%;border:2px solid var(--card);margin-left:-8px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff}
+  .avatars span:first-child{margin-left:0}
+  .sponsors{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+  .sponsors div{height:54px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--fg3);letter-spacing:-.02em}
+  .changelog{list-style:none;padding:0;margin:0}
+  .changelog li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .changelog li:last-child{border:0}
+  .changelog code{font-size:12px;color:var(--accent);min-width:56px}
+  .changelog span{color:var(--fg2)}
+
+  footer{border-top:1px solid var(--border);padding:48px 0 36px;font-size:14px;color:var(--fg2)}
+  .foot{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:32px}
+  .foot h5{margin:0 0 12px;font-size:13px;color:var(--fg);text-transform:uppercase;letter-spacing:.06em}
+  .foot ul{list-style:none;padding:0;margin:0}
+  .foot li{padding:4px 0}
+  .foot a:hover{color:var(--fg)}
+  .legal{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--fg3)}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transition:.25s;pointer-events:none;z-index:100}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:1000px){
+    .hero-grid,.qs,.comm{grid-template-columns:1fr}
+    .features{grid-template-columns:1fr 1fr}
+    .gallery,.docs{grid-template-columns:1fr 1fr}
+    .foot{grid-template-columns:1fr 1fr}
+    .links,.search{display:none}
+    .menu-btn{display:grid}
+  }
+  @media (max-width:600px){
+    .features,.gallery,.docs{grid-template-columns:1fr}
+    .gh{display:none}
+    .stats{flex-wrap:wrap}
+    .legal{flex-direction:column;gap:8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="banner">🎉 Plotline 4.2 is out: WebGPU renderer, streaming data, and 40% smaller bundles. <a href="#changelog">Read the release notes →</a></div>
+
+<header>
+  <div class="wrap nav">
+    <a href="#" class="logo" aria-label="Plotline home">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="url(#lg)"/><path d="M7 22 L13 15 L18 19 L25 9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25" cy="9" r="2.4" fill="#fff"/><defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#5b5bf7"/><stop offset="1" stop-color="#00b3a4"/></linearGradient></defs></svg>
+      Plotline <span class="ver">v4.2.1</span>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="#" class="active">Docs</a>
+      <a href="#gallery">Examples</a>
+      <a href="#guides">API</a>
+      <a href="#frameworks">Integrations</a>
+      <a href="#community">Community</a>
+    </nav>
+    <div class="spacer"></div>
+    <button class="search" id="searchBtn" aria-label="Search documentation">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search docs…<kbd>⌘K</kbd>
+    </button>
+    <a class="gh" href="#" aria-label="GitHub repository">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.1 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>
+      ★ 28.4k
+    </a>
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode">
+      <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="icon-btn menu-btn" aria-label="Open menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>MIT licensed · 0 dependencies · 38 kB gzipped</span>
+        <h1>Charts that are <span class="grad">fast to write</span> and fast to render.</h1>
+        <p class="lede">Plotline is a declarative, TypeScript-first charting library. Compose marks, scales and interactions into anything from a sparkline to a million-point dashboard, rendered with SVG, Canvas or WebGPU.</p>
+        <div class="cta">
+          <a href="#quickstart" class="btn primary">Get started
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a href="#gallery" class="btn ghost">Browse examples</a>
+        </div>
+        <div class="install">
+          <span class="p">$</span><span class="cmd" id="heroCmd">npm install plotline</span>
+          <button class="copy" data-copy="npm install plotline">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy</button>
+        </div>
+        <div class="stats">
+          <div><b>2.1M</b>weekly downloads</div>
+          <div><b>640+</b>contributors</div>
+          <div><b>30+</b>chart types</div>
+        </div>
+      </div>
+
+      <div class="demo" aria-label="Interactive chart demo">
+        <div class="demo-top">
+          <div>
+            <div class="demo-title">Monthly active users</div>
+            <div class="demo-sub">Hover the chart · live example</div>
+          </div>
+          <div class="seg" role="tablist" aria-label="Chart type">
+            <button class="on" data-type="area">Area</button>
+            <button data-type="line">Line</button>
+            <button data-type="bar">Bar</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="heroChart" role="img" aria-label="Chart of monthly active users for web and mobile"></svg>
+          <div class="tip" id="tip"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Web</span>
+          <span><i style="background:var(--accent2)"></i>Mobile</span>
+        </div>
+<pre class="demo-code"><span class="k">new</span> <span class="f">Chart</span>(<span class="s">'#mau'</span>, {
+  data: users,
+  x: <span class="s">'month'</span>, y: [<span class="s">'web'</span>, <span class="s">'mobile'</span>],
+  mark: <span class="s" id="markLabel">'area'</span>, curve: <span class="s">'monotone'</span>, tooltip: <span class="n">true</span>
+}).<span class="f">render</span>();</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="tag">Why Plotline</div>
+        <h2>Everything you need, nothing you don't.</h2>
+        <p>A small core with tree-shakeable modules. Pay only for the charts you actually ship.</p>
+      </div>
+      <div class="features">
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
+          <h3>Blazing performance</h3>
+          <p>Render 1M+ points at 60fps with the WebGPU backend. Automatic downsampling keeps SVG output lean.</p>
+        </div>
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,var(--accent2) 14%,transparent);color:var(--accent2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+          <h3>Composable grammar</h3>
+          <p>Layer marks, scales and transforms like building blocks. Build custom visualizations without forking.</p>
+        </div>
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,var(--accent3) 14%,transparent);color:var(--accent3)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+          <h3>TypeScript-first</h3>
+          <p>Fully typed APIs infer your data shape, so field names autocomplete and typos fail at compile time.</p>
+        </div>
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,var(--accent4) 18%,transparent);color:#d39412"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div>
+          <h3>Accessible by default</h3>
+          <p>ARIA roles, keyboard navigation, screen-reader summaries and color-blind-safe palettes out of the box.</p>
+        </div>
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,#8b5cf6 14%,transparent);color:#8b5cf6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+          <h3>Streaming &amp; real-time</h3>
+          <p>Push data with <code>chart.append()</code> and get smooth transitions without re-rendering the world.</p>
+        </div>
+        <div class="feat">
+          <div class="ic" style="background:color-mix(in srgb,#ec4899 14%,transparent);color:#ec4899"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
+          <h3>Themeable everywhere</h3>
+          <p>Style with CSS variables, design tokens or a theme object. Dark mode follows your app automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="wrap qs">
+      <div>
+        <div class="sec-head" style="margin-bottom:28px">
+          <div class="tag">Quick start</div>
+          <h2>Your first chart in under a minute.</h2>
+        </div>
+        <ol class="steps">
+          <li><h4>Install the package</h4><p>Use your favourite package manager, or drop in the CDN build. No peer dependencies.</p></li>
+          <li><h4>Point it at a container</h4><p>Any element works: a CSS selector, an <code>HTMLElement</code>, or a framework ref.</p></li>
+          <li><h4>Describe your data</h4><p>Map fields to channels like <code>x</code>, <code>y</code> and <code>color</code>. Plotline picks sensible scales and axes.</p></li>
+          <li><h4>Ship it</h4><p>Responsive, accessible and SSR-safe. Read the <a href="#guides" style="color:var(--accent);font-weight:600">core concepts</a> next.</p></li>
+        </ol>
+      </div>
+      <div class="codebox">
+        <div class="tabs" role="tablist">
+          <button class="on" data-panel="p-js">main.ts</button>
+          <button data-panel="p-react">App.tsx</button>
+          <button data-panel="p-cdn">index.html</button>
+          <button class="copy" id="copyCode"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy</button>
+        </div>
+<pre class="panel on" id="p-js"><span class="k">import</span> { <span class="f">Chart</span>, <span class="f">line</span>, <span class="f">dot</span> } <span class="k">from</span> <span class="s">'plotline'</span>;
+
+<span class="k">const</span> data = [
+  { day: <span class="s">'Mon'</span>, visits: <span class="n">1240</span> },
+  { day: <span class="s">'Tue'</span>, visits: <span class="n">1580</span> },
+  { day: <span class="s">'Wed'</span>, visits: <span class="n">1320</span> },
+  <span class="c">// …</span>
+];
+
+<span class="k">new</span> <span class="f">Chart</span>(<span class="s">'#app'</span>, {
+  data,
+  marks: [
+    <span class="f">line</span>({ x: <span class="s">'day'</span>, y: <span class="s">'visits'</span>, curve: <span class="s">'natural'</span> }),
+    <span class="f">dot</span>({ x: <span class="s">'day'</span>, y: <span class="s">'visits'</span>, r: <span class="n">4</span> }),
+  ],
+  axis: { y: { grid: <span class="n">true</span>, format: <span class="s">'~s'</span> } },
+  tooltip: <span class="n">true</span>,
+}).<span class="f">render</span>();</pre>
+<pre class="panel" id="p-react"><span class="k">import</span> { <span class="f">LineChart</span> } <span class="k">from</span> <span class="s">'@plotline/react'</span>;
+
+<span class="k">export default function</span> <span class="f">App</span>() {
+  <span class="k">return</span> (
+    &lt;<span class="pr">LineChart</span>
+      data={data}
+      x=<span class="s">"day"</span>
+      y=<span class="s">"visits"</span>
+      curve=<span class="s">"natural"</span>
+      dots
+      tooltip
+      height={<span class="n">320</span>}
+    /&gt;
+  );
+}
+
+<span class="c">// Works with Server Components. The chart</span>
+<span class="c">// hydrates on the client only when visible.</span></pre>
+<pre class="panel" id="p-cdn">&lt;<span class="pr">div</span> id=<span class="s">"app"</span>&gt;&lt;/<span class="pr">div</span>&gt;
+
+&lt;<span class="pr">script</span> src=<span class="s">"https://cdn.jsdelivr.net/npm/plotline@4"</span>&gt;&lt;/<span class="pr">script</span>&gt;
+&lt;<span class="pr">script</span>&gt;
+  <span class="k">new</span> Plotline.<span class="f">Chart</span>(<span class="s">'#app'</span>, {
+    data: [<span class="n">3</span>, <span class="n">7</span>, <span class="n">4</span>, <span class="n">9</span>, <span class="n">6</span>, <span class="n">11</span>],
+    mark: <span class="s">'bar'</span>,
+  }).<span class="f">render</span>();
+&lt;/<span class="pr">script</span>&gt;</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="gallery">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="tag">Gallery</div>
+        <h2>30+ chart types, one consistent API.</h2>
+        <p>Every example is live and editable. Copy the code, tweak it in the playground, or start from a template.</p>
+      </div>
+      <div class="gallery" id="galleryGrid"></div>
+      <div class="more"><a href="#" class="btn ghost">View all 120 examples →</a></div>
+    </div>
+  </section>
+
+  <section id="guides">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="tag">Documentation</div>
+        <h2>Find your way around.</h2>
+        <p>From first steps to deep customisation, organised by what you're trying to do.</p>
+      </div>
+      <div class="docs">
+        <a class="doc" href="#">
+          <span class="badge" style="background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)">Learn</span>
+          <h3>Getting started <span class="arr">→</span></h3>
+          <p>Install, render your first chart, and understand the mental model.</p>
+          <ul><li>Installation</li><li>Core concepts</li><li>Data formats</li><li>Migrating from v3</li></ul>
+        </a>
+        <a class="doc" href="#">
+          <span class="badge" style="background:color-mix(in srgb,var(--accent2) 14%,transparent);color:var(--accent2)">Guides</span>
+          <h3>How-to guides <span class="arr">→</span></h3>
+          <p>Recipes for common tasks like interactions, animation and export.</p>
+          <ul><li>Tooltips &amp; crosshairs</li><li>Zoom and brush</li><li>Real-time data</li><li>Export to PNG/SVG</li></ul>
+        </a>
+        <a class="doc" href="#">
+          <span class="badge" style="background:color-mix(in srgb,var(--accent3) 14%,transparent);color:var(--accent3)">Reference</span>
+          <h3>API reference <span class="arr">→</span></h3>
+          <p>Every option, mark, scale and event, generated from the source.</p>
+          <ul><li>Chart</li><li>Marks</li><li>Scales &amp; axes</li><li>Events</li></ul>
+        </a>
+        <a class="doc" href="#">
+          <span class="badge" style="background:color-mix(in srgb,#8b5cf6 14%,transparent);color:#8b5cf6">Advanced</span>
+          <h3>Extending <span class="arr">→</span></h3>
+          <p>Write custom marks, renderers and plugins for your own needs.</p>
+          <ul><li>Custom marks</li><li>Plugin API</li><li>WebGPU renderer</li><li>Server-side rendering</li></ul>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="frameworks" style="padding:56px 0">
+    <div class="wrap">
+      <div class="sec-head" style="text-align:center;margin:0 auto 28px">
+        <h2 style="font-size:26px">Works with your stack</h2>
+        <p>Official, first-class bindings, maintained in the same monorepo.</p>
+      </div>
+      <div class="fw">
+        <a href="#"><span style="color:#61dafb">⚛</span> React <code>@plotline/react</code></a>
+        <a href="#"><span style="color:#42b883">▲</span> Vue <code>@plotline/vue</code></a>
+        <a href="#"><span style="color:#ff3e00">◆</span> Svelte <code>@plotline/svelte</code></a>
+        <a href="#"><span style="color:#dd0031">⬢</span> Angular <code>@plotline/angular</code></a>
+        <a href="#"><span style="color:#2c4f7c">●</span> Solid <code>@plotline/solid</code></a>
+        <a href="#"><span style="color:var(--fg3)">{ }</span> Vanilla JS <code>plotline</code></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="community">
+    <div class="wrap">
+      <div class="comm">
+        <div class="ccard">
+          <h3>Built in the open, by people like you.</h3>
+          <p>Plotline is community-driven and funded by sponsors. Join the discussion, report a bug, or pick up a <em>good first issue</em>.</p>
+          <div class="avatars" id="avatars"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn primary" href="#">Contribute on GitHub</a>
+            <a class="btn ghost" href="#">Join Discord</a>
+          </div>
+          <div style="margin-top:28px">
+            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);margin-bottom:12px">Gold sponsors</div>
+            <div class="sponsors"><div>Northwind</div><div>Acme&nbsp;Data</div><div>Lumen</div><div>Stackly</div><div>Orbit</div><div>+ You</div></div>
+            <a href="#" style="font-size:14px;color:var(--accent);font-weight:600">Become a sponsor →</a>
+          </div>
+        </div>
+        <div class="ccard" id="changelog">
+          <h3>What's new</h3>
+          <p style="margin-bottom:10px">Recent releases. See the full changelog on GitHub.</p>
+          <ul class="changelog">
+            <li><code>v4.2.1</code><span>Fix tooltip positioning inside scrolled containers.</span></li>
+            <li><code>v4.2.0</code><span><b style="color:var(--fg)">WebGPU renderer</b> (opt-in), streaming <code style="color:var(--fg2);min-width:0">append()</code>, smaller core.</span></li>
+            <li><code>v4.1.0</code><span>Sankey and treemap marks; new <em>colorblind</em> palette.</span></li>
+            <li><code>v4.0.0</code><span>TypeScript rewrite, composable marks API, ESM-only.</span></li>
+            <li><code>v3.9.4</code><span>Final v3 LTS release. Supported until Dec 2025.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a href="#" class="logo" style="margin-bottom:12px">
+          <svg viewBox="0 0 32 32" fill="none" width="26" height="26"><rect width="32" height="32" rx="8" fill="url(#lg)"/><path d="M7 22 L13 15 L18 19 L25 9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25" cy="9" r="2.4" fill="#fff"/></svg>Plotline
+        </a>
+        <p style="max-width:280px;margin:0">Fast, composable, accessible charts for the web. Free and open source under the MIT license.</p>
+      </div>
+      <div><h5>Docs</h5><ul><li><a href="#">Getting started</a></li><li><a href="#">API reference</a></li><li><a href="#">Examples</a></li><li><a href="#">Playground</a></li></ul></div>
+      <div><h5>Community</h5><ul><li><a href="#">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Discussions</a></li><li><a href="#">Stack Overflow</a></li></ul></div>
+      <div><h5>Project</h5><ul><li><a href="#">Blog</a></li><li><a href="#">Changelog</a></li><li><a href="#">Roadmap</a></li><li><a href="#">Brand assets</a></li></ul></div>
+      <div><h5>Support</h5><ul><li><a href="#">Sponsor</a></li><li><a href="#">Code of conduct</a></li><li><a href="#">Security</a></li><li><a href="#">Contributing</a></li></ul></div>
+    </div>
+    <div class="legal"><span>© 2025 Plotline contributors. Released under the MIT License.</span><span>Docs for v4.2 · <a href="#" style="text-decoration:underline">v3 docs</a></span></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  /* Theme */
+  const root = document.documentElement;
+  const themeBtn = document.getElementById('themeBtn');
+  const icon = document.getElementById('themeIcon');
+  const moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  const sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  const setTheme = t => { root.dataset.theme = t; icon.innerHTML = t === 'dark' ? sun : moon; drawHero(); drawGallery(); };
+  themeBtn.onclick = () => setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+  if (matchMedia('(prefers-color-scheme: dark)').matches) root.dataset.theme = 'dark', icon.innerHTML = sun;
+
+  /* Toast + copy */
+  const toast = document.getElementById('toast');
+  const notify = msg => { toast.textContent = msg; toast.classList.add('show'); clearTimeout(notify.t); notify.t = setTimeout(() => toast.classList.remove('show'), 1600); };
+  const copy = txt => (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => notify('Copied to clipboard'), () => notify('Press Ctrl+C to copy'));
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(b.dataset.copy));
+  document.getElementById('copyCode').onclick = () => copy(document.querySelector('.panel.on').innerText);
+
+  /* Tabs */
+  document.querySelectorAll('.tabs button[data-panel]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button[data-panel]').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === b.dataset.panel));
+  });
+
+  /* Search shortcut */
+  const searchBtn = document.getElementById('searchBtn');
+  searchBtn.onclick = () => notify('Search opens here (demo)');
+  addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); searchBtn.click(); } });
+
+  /* Hero chart */
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const web = [42,48,45,58,63,61,72,78,74,86,92,104];
+  const mob = [18,22,27,30,38,44,49,57,66,71,83,96];
+  let type = 'area';
+  const svg = document.getElementById('heroChart');
+  const tip = document.getElementById('tip');
+
+  function smooth(pts) {
+    if (pts.length < 2) return '';
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[Math.max(i - 1, 0)], [x1, y1] = pts[i], [x2, y2] = pts[i + 1], [x3, y3] = pts[Math.min(i + 2, pts.length - 1)];
+      const c1x = x1 + (x2 - x0) / 6, c1y = y1 + (y2 - y0) / 6, c2x = x2 - (x3 - x1) / 6, c2y = y2 - (y3 - y1) / 6;
+      d += ` C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
+    }
+    return d;
+  }
+
+  function drawHero() {
+    const W = svg.clientWidth || 560, H = 280, m = { l: 36, r: 12, t: 14, b: 26 };
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+    const iw = W - m.l - m.r, ih = H - m.t - m.b, max = 120;
+    const acc = css('--accent'), acc2 = css('--accent2'), border = css('--border'), fg3 = css('--fg3'), card = css('--card');
+    const x = i => m.l + (type === 'bar' ? (i + .5) * iw / 12 : i * iw / 11);
+    const y = v => m.t + ih - v / max * ih;
+    const defs = el('defs', {}, svg);
+    [[acc, 'g1'], [acc2, 'g2']].forEach(([c, id]) => {
+      const g = el('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+      el('stop', { offset: 0, 'stop-color': c, 'stop-opacity': .32 }, g);
+      el('stop', { offset: 1, 'stop-color': c, 'stop-opacity': 0 }, g);
+    });
+    for (let v = 0; v <= max; v += 30) {
+      el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: border, 'stroke-dasharray': v ? '3 4' : '' }, svg);
+      el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: fg3 }, svg).textContent = v + 'k';
+    }
+    months.forEach((mo, i) => { if (i % 2 === 0 || W > 500) el('text', { x: x(i), y: H - 6, 'text-anchor': 'middle', 'font-size': 11, fill: fg3 }, svg).textContent = mo; });
+
+    if (type === 'bar') {
+      const bw = iw / 12 * .32;
+      months.forEach((_, i) => {
+        [[web, acc, -1], [mob, acc2, 1]].forEach(([d, c, s]) => {
+          const r = el('rect', { x: x(i) + (s < 0 ? -bw - 1 : 1), width: bw, y: y(0), height: 0, rx: 3, fill: c }, svg);
+          r.style.transition = `y .6s ${i * 30}ms cubic-bezier(.2,.8,.2,1), height .6s ${i * 30}ms cubic-bezier(.2,.8,.2,1)`;
+          requestAnimationFrame(() => requestAnimationFrame(() => { r.setAttribute('y', y(d[i])); r.setAttribute('height', y(0) - y(d[i])); }));
+        });
+      });
+    } else {
+      [[mob, acc2, 'g2'], [web, acc, 'g1']].forEach(([d, c, g]) => {
+        const pts = d.map((v, i) => [x(i), y(v)]);
+        const path = smooth(pts);
+        if (type === 'area') {
+          const a = el('path', { d: `${path} L${x(11)},${y(0)} L${x(0)},${y(0)} Z`, fill: `url(#${g})`, opacity: 0 }, svg);
+          a.style.transition = 'opacity .8s .3s'; requestAnimationFrame(() => requestAnimationFrame(() => a.setAttribute('opacity', 1)));
+        }
+        const l = el('path', { d: path, fill: 'none', stroke: c, 'stroke-width': 2.5, 'stroke-linecap': 'round' }, svg);
+        const len = l.getTotalLength();
+        l.style.strokeDasharray = len; l.style.strokeDashoffset = len;
+        l.style.transition = 'stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)';
+        requestAnimationFrame(() => requestAnimationFrame(() => l.style.strokeDashoffset = 0));
+        if (type === 'line') pts.forEach(p => el('circle', { cx: p[0], cy: p[1], r: 3, fill: card, stroke: c, 'stroke-width': 2 }, svg));
+      });
+    }
+
+    const guide = el('line', { y1: m.t, y2: m.t + ih, stroke: fg3, 'stroke-dasharray': '3 3', opacity: 0 }, svg);
+    const d1 = el('circle', { r: 5, fill: acc, stroke: card, 'stroke-width': 2, opacity: 0 }, svg);
+    const d2 = el('circle', { r: 5, fill: acc2, stroke: card, 'stroke-width': 2, opacity: 0 }, svg);
+    const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg);
+    const show = i => {
+      const showDots = type !== 'bar';
+      guide.setAttribute('x1', x(i)); guide.setAttribute('x2', x(i)); guide.setAttribute('opacity', .6);
+      d1.setAttribute('cx', x(i)); d1.setAttribute('cy', y(web[i])); d1.setAttribute('opacity', showDots ? 1 : 0);
+      d2.setAttribute('cx', x(i)); d2.setAttribute('cy', y(mob[i])); d2.setAttribute('opacity', showDots ? 1 : 0);
+      const sx = svg.clientWidth / W;
+      tip.innerHTML = `<b>${months[i]} 2025</b><br>Web: ${web[i]}k · Mobile: ${mob[i]}k`;
+      tip.style.left = (10 + x(i) * sx) + 'px';
+      tip.style.top = (12 + y(Math.max(web[i], mob[i])) * sx - 8) + 'px';
+      tip.style.opacity = 1;
+    };
+    hit.addEventListener('mousemove', e => {
+      const r = svg.getBoundingClientRect();
+      const px = (e.clientX - r.left) * W / r.width;
+      const i = type === 'bar' ? Math.floor((px - m.l) / (iw / 12)) : Math.round((px - m.l) / (iw / 11));
+      show(Math.max(0, Math.min(11, i)));
+    });
+    hit.addEventListener('mouseleave', () => { tip.style.opacity = 0; guide.setAttribute('opacity', 0); d1.setAttribute('opacity', 0); d2.setAttribute('opacity', 0); });
+  }
+
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+    type = b.dataset.type;
+    document.getElementById('markLabel').textContent = `'${type}'`;
+    drawHero();
+  });
+
+  /* Gallery */
+  const gallery = [
+    ['Line', 'line()', s => { const p = [10,40,25,60,45,80,70,95,85,110].map((v,i)=>[20+i*28, 120-v*.9]); el('path',{d:smooth(p),fill:'none',stroke:css('--accent'),'stroke-width':2.5},s); }],
+    ['Stacked bar', 'barY()', s => { [[30,20],[50,25],[40,30],[65,20],[55,35],[75,25],[60,30]].forEach(([a,b],i)=>{ const x=26+i*38; el('rect',{x,y:125-a,width:22,height:a,rx:2,fill:css('--accent')},s); el('rect',{x,y:123-a-b,width:22,height:b,rx:2,fill:css('--accent2')},s);}); }],
+    ['Scatter', 'dot()', s => { let seed=7; const r=()=>(seed=(seed*9301+49297)%233280)/233280; for(let i=0;i<60;i++){const xx=r(); el('circle',{cx:20+xx*260,cy:120-(xx*80+r()*30),r:2+r()*4,fill:[css('--accent'),css('--accent2'),css('--accent3')][i%3],opacity:.7},s);} }],
+    ['Donut', 'arc()', s => { const vals=[38,24,18,20], cols=[css('--accent'),css('--accent2'),css('--accent3'),css('--accent4')]; let a0=-Math.PI/2; const cx=150,cy=70,R=52,r=32; vals.forEach((v,i)=>{const a1=a0+v/100*Math.PI*2; const L=a1-a0>Math.PI?1:0; const P=(rad,a)=>[cx+rad*Math.cos(a),cy+rad*Math.sin(a)]; const [x1,y1]=P(R,a0),[x2,y2]=P(R,a1),[x3,y3]=P(r,a1),[x4,y4]=P(r,a0); el('path',{d:`M${x1},${y1}A${R},${R} 0 ${L} 1 ${x2},${y2}L${x3},${y3}A${r},${r} 0 ${L} 0 ${x4},${y4}Z`,fill:cols[i],stroke:css('--bg2'),'stroke-width':2},s); a0=a1;}); }],
+    ['Heatmap', 'cell()', s => { for(let r=0;r<5;r++)for(let c=0;c<12;c++){const v=(Math.sin(c*.7+r)+Math.cos(r*1.3+c*.3)+2)/4; el('rect',{x:24+c*21.5,y:16+r*22,width:19,height:20,rx:3,fill:css('--accent'),opacity:.12+v*.88},s);} }],
+    ['Area', 'areaY()', s => { const p=[30,45,38,55,70,62,80,75,90,100].map((v,i)=>[10+i*31,125-v]); const d=smooth(p); el('path',{d:`${d}L${p[9][0]},130L10,130Z`,fill:css('--accent2'),opacity:.25},s); el('path',{d,fill:'none',stroke:css('--accent2'),'stroke-width':2.5},s); }],
+    ['Candlestick', 'candle()', s => { let p=70; for(let i=0;i<14;i++){const o=p,c=p+(Math.sin(i*1.7)*14),h=Math.max(o,c)+6,l=Math.min(o,c)-6; p=c; const x=22+i*19, up=c>o, col=up?css('--accent2'):css('--accent3'); el('line',{x1:x,x2:x,y1:140-h,y2:140-l,stroke:col,'stroke-width':1.5},s); el('rect',{x:x-5,y:140-Math.max(o,c),width:10,height:Math.max(2,Math.abs(c-o)),fill:col,rx:1},s);} }],
+    ['Radar', 'radial()', s => { const cx=150,cy=72,R=55,n=6; for(let k=1;k<=3;k++){let d='';for(let i=0;i<n;i++){const a=i/n*Math.PI*2-Math.PI/2;d+=(i?'L':'M')+(cx+R*k/3*Math.cos(a))+','+(cy+R*k/3*Math.sin(a));} el('path',{d:d+'Z',fill:'none',stroke:css('--border')},s);} const v=[.9,.6,.8,.5,.95,.7]; let d=''; v.forEach((t,i)=>{const a=i/n*Math.PI*2-Math.PI/2;d+=(i?'L':'M')+(cx+R*t*Math.cos(a))+','+(cy+R*t*Math.sin(a));}); el('path',{d:d+'Z',fill:css('--accent'),'fill-opacity':.25,stroke:css('--accent'),'stroke-width':2},s); }],
+  ];
+  function drawGallery() {
+    const grid = document.getElementById('galleryGrid');
+    grid.innerHTML = '';
+    gallery.forEach(([name, api, draw]) => {
+      const a = document.createElement('a');
+      a.className = 'g'; a.href = '#';
+      a.setAttribute('aria-label', name + ' chart example');
+      const s = el('svg', { viewBox: '0 0 300 140', preserveAspectRatio: 'xMidYMid meet' });
+      draw(s);
+      a.appendChild(s);
+      a.insertAdjacentHTML('beforeend', `<div class="meta"><b>${name}</b><span>${api}</span></div>`);
+      grid.appendChild(a);
+    });
+  }
+
+  /* Avatars */
+  const av = document.getElementById('avatars');
+  const cols = ['#5b5bf7','#00b3a4','#ff7a59','#f5b83d','#8b5cf6','#ec4899','#0ea5e9','#22c55e'];
+  ['AK','MJ','SR','LT','PD','YC','OB','EN'].forEach((t, i) => av.insertAdjacentHTML('beforeend', `<span style="background:${cols[i]}">${t}</span>`));
+  av.insertAdjacentHTML('beforeend', `<span style="background:var(--bg3);color:var(--fg2);font-size:11px">+632</span>`);
+
+  drawHero(); drawGallery();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawHero, 120); });
+})();
+</script>
+</body>
+</html>

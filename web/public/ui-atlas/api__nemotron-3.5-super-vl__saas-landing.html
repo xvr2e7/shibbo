@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay | Turn support tickets into weekly product reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --dark: #0f172a;
+    --slate: #334155;
+    --muted: #64748b;
+    --light: #f8fafc;
+    --border: #e2e8f0;
+    --white: #ffffff;
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: var(--slate);
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--primary); color: var(--white); }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  .btn-secondary { background: var(--light); color: var(--dark); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-outline:hover { background: var(--primary); color: var(--white); }
+
+  /* Navigation */
+  header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.8); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+  }
+  .logo {
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--dark);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--primary); }
+  .nav-links { display: flex; gap: 32px; list-style: none; align-items: center; }
+  .nav-links a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--dark); }
+  .mobile-menu { display: none; background: none; border: none; color: var(--dark); font-size: 1.5rem; cursor: pointer; }
+
+  /* Hero */
+  .hero { padding: 110px 0 90px; background: var(--light); }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .hero h1 {
+    font-size: 3.25rem;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--dark);
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+  }
+  .hero h1 .highlight { color: var(--primary); }
+  .hero p {
+    font-size: 1.25rem;
+    color: var(--muted);
+    margin-bottom: 32px;
+    max-width: 520px;
+  }
+  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+  .hero-stats { display: flex; gap: 30px; margin-top: 48px; }
+  .stat { font-size: 0.9rem; color: var(--muted); }
+  .stat span { display: block; font-size: 1.75rem; font-weight: 800; color: var(--dark); }
+
+  /* Hero Visual */
+  .hero-visual { position: relative; }
+  .report-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 32px;
+    max-width: 420px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+  .report-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), #a855f7);
+  }
+  .report-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot:first-child { background: #ef4444; }
+  .dot:nth-child(2) { background: #f59e0b; }
+  .dot:nth-child(3) { background: #10b981; }
+  .report-title { font-weight: 700; font-size: 1.1rem; color: var(--dark); letter-spacing: -0.5px; }
+  .report-content { display: flex; flex-direction: column; gap: 16px; }
+  .metric-row { font-size: 0.85rem; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; }
+  .metric-row .value { font-weight: 700; color: var(--dark); }
+  .ticket-preview {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .ticket-tag { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; color: var(--white); background: var(--primary); flex-shrink: 0; }
+  .ticket-text { color: var(--slate); font-size: 0.85rem; line-height: 1.4; }
+  .footer-note { margin-top: 8px; font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .footer-note::before { content: '📤'; }
+
+  /* Sections */
+  .section { padding: 90px 0; }
+  .section-header { text-align: center; max-width: 700px; margin: 0 auto 60px; }
+  .section-header h2 { font-size: 2.5rem; font-weight: 800; color: var(--dark); margin-bottom: 16px; letter-spacing: -1px; }
+  .section-header p { font-size: 1.1rem; color: var(--muted); }
+
+  /* Features */
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feature-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    transition: all 0.2s;
+  }
+  .feature-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow); }
+  .feature-icon {
+    width: 48px; height: 48px;
+    background: #eef2ff;
+    color: var(--primary);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    font-size: 1.25rem;
+  }
+  .feature-card h3 { font-size: 1.25rem; color: var(--dark); margin-bottom: 12px; }
+  .feature-card p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; }
+
+  /* How it works */
+  .how-steps { display: flex; justify-content: space-between; gap: 24px; text-align: center; }
+  .step { flex: 1; }
+  .step-number {
+    font-size: 3.5rem; font-weight: 800; color: var(--border);
+    margin-bottom: 16px; line-height: 1;
+  }
+  .step h3 { font-size: 1.25rem; color: var(--dark); margin-bottom: 10px; }
+  .step p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; }
+
+  /* Testimonials */
+  .testimonials { background: var(--light); }
+  .testimonial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
+  .testimonial {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .quote { font-size: 1.1rem; font-style: italic; color: var(--slate); margin-bottom: 24px; line-height: 1.6; }
+  .author { font-weight: 700; color: var(--dark); display: block; margin-bottom: 4px; }
+  .role { font-size: 0.9rem; color: var(--muted); }
+
+  /* Pricing */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .price-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 32px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .price-card.popular { border-color: var(--primary); background: #f8fafc; z-index: 1; }
+  .popular-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: var(--white); font-size: 0.75rem; font-weight: 800;
+    padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .price-card h3 { font-size: 1.25rem; color: var(--dark); margin-bottom: 8px; }
+  .price-card p { font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; }
+  .price { font-size: 2.75rem; font-weight: 800; color: var(--dark); margin-bottom: 6px; }
+  .price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+  .features-list { list-style: none; margin: 24px 0; flex: 1; }
+  .features-list li { margin-bottom: 14px; font-size: 0.95rem; color: var(--slate); display: flex; align-items: center; gap: 10px; }
+  .features-list li::before { content: '✓'; color: #10b981; font-weight: 800; }
+
+  /* FAQ */
+  .faq { max-width: 800px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+  .faq-question {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; font-weight: 600; font-size: 1.1rem; color: var(--dark);
+  }
+  .faq-toggle { font-size: 1.25rem; color: var(--primary); transition: transform 0.2s; }
+  .faq-answer { display: none; padding-top: 16px; font-size: 0.95rem; color: var(--muted); line-height: 1.6; }
+  .faq-item.open .faq-answer { display: block; }
+  .faq-item.open .faq-toggle { transform: rotate(180deg); }
+
+  /* Footer */
+  footer { background: var(--dark); color: #94a3b8; padding: 80px 0 40px; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+  .footer-logo { font-size: 1.5rem; font-weight: 800; color: var(--white); margin-bottom: 16px; letter-spacing: -0.5px; }
+  .footer-logo span { color: var(--primary); }
+  .footer-desc { font-size: 0.95rem; color: #94a3b8; line-height: 1.7; max-width: 260px; }
+  .footer-links h4 { color: var(--white); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+  .footer-links ul { list-style: none; }
+  .footer-links li { margin-bottom: 12px; }
+  .footer-links a { color: #94a3b8; text-decoration: none; font-size: 0.95rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--white); }
+  .copyright { margin-top: 60px; padding-top: 24px; border-top: 1px solid #334155; font-size: 0.9rem; color: #64748b; text-align: center; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .hero-grid, .features-grid, .testimonial-grid, .pricing-grid, .footer-grid, .how-steps {
+      grid-template-columns: 1fr;
+    }
+    .how-steps { flex-direction: column; align-items: center; gap: 40px; }
+    .hero h1 { font-size: 2.5rem; }
+    .hero p { font-size: 1.1rem; text-align: center; }
+    .hero-actions { justify-content: center; }
+    .hero-stats { justify-content: center; }
+    .nav-links { display: none; position: absolute; top: 72px; left: 0; right: 0; background: var(--white); flex-direction: column; padding: 24px; gap: 16px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow); }
+    .nav-links.open { display: flex; }
+    .mobile-menu { display: block; }
+    .section { padding: 60px 0; }
+    .section-header h2 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="nav container">
+    <a href="#" class="logo">Relay<span>.</span></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a href="#" class="btn btn-primary">Start free trial</a>
+    <button class="mobile-menu" id="mobileMenu" aria-label="Toggle menu">☰</button>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-content">
+      <h1>Turn support tickets into <span class="highlight">weekly product reports</span></h1>
+      <p>Relay automatically aggregates your customer support tickets and ships a clean, product-ready digest every Monday. Stop copying and pasting—start shipping what customers actually need.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn btn-primary">Start free trial</a>
+        <a href="#" class="btn btn-secondary">See a sample report</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span>5k+</span> tickets processed weekly</div>
+        <div class="stat"><span>10 min</span> setup time</div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="report-card">
+        <div class="report-header">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <span class="report-title">Weekly Product Report</span>
+        </div>
+        <div class="report-content">
+          <div class="metric-row"><span class="label">Top theme:</span> <span class="value">Checkout errors</span></div>
+          <div class="ticket-preview">
+            <span class="ticket-tag">Bug</span>
+            <span class="ticket-text">"Unable to apply discount code on mobile"</span>
+          </div>
+          <div class="ticket-preview">
+            <span class="ticket-tag">Feature</span>
+            <span class="ticket-text">"Request: Slack integration for alerts"</span>
+          </div>
+          <span class="footer-note">Sent to Product • Mon 9:00 AM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>From inbox to insight in three steps</h2>
+      <p>Connect your help desk, and Relay handles the rest.</p>
+    </div>
+    <div class="how-steps">
+      <div class="step">
+        <div class="step-number">01</div>
+        <h3>Connect</h3>
+        <p>Link Zendesk, Intercom, Freshdesk, or email. Relay pulls in tickets automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <h3>Analyze</h3>
+        <p>AI summarizes themes, sentiment, and request volume every week.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <h3>Report</h3>
+        <p>Get a polished PDF in Slack or email—ready for product planning.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Built for product teams</h2>
+      <p>Everything you need to turn support noise into signal.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>Auto-import</h3>
+        <p>Sync tickets from Zendesk, Intercom, Freshdesk, or email without manual work.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI summaries</h3>
+        <p>Automatically detect recurring bugs, feature requests, and sentiment trends.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <h3>Weekly digest</h3>
+        <p>Receive a clean PDF report every Monday—ready to share with stakeholders.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏷️</div>
+        <h3>Smart tagging</h3>
+        <p>Tag tickets and route insights directly to your product backlog.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Volume trends</h3>
+        <p>See how support topics shift over time to prioritize the right work.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Slack delivery</h3>
+        <p>Post reports directly to your product channel so nothing gets missed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Simple, transparent pricing</h2>
+      <p>Plans that grow with your support volume.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <h3>Starter</h3>
+        <p>For small teams getting started.</p>
+        <div class="price">$29<span>/mo</span></div>
+        <ul class="features-list">
+          <li>Up to 1,000 tickets/month</li>
+          <li>Weekly email report</li>
+          <li>Basic AI summaries</li>
+          <li>Email support</li>
+        </ul>
+        <a href="#" class="btn btn-outline" style="width: 100%;">Get started</a>
+      </div>
+      <div class="price-card popular">
+        <div class="popular-badge">Most popular</div>
+        <h3>Growth</h3>
+        <p>For scaling product teams.</p>
+        <div class="price">$79<span>/mo</span></div>
+        <ul class="features-list">
+          <li>Up to 10,000 tickets/month</li>
+          <li>Weekly PDF + Slack delivery</li>
+          <li>Advanced sentiment analysis</li>
+          <li>Smart tagging & backlog routing</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#" class="btn btn-primary" style="width: 100%;">Start free trial</a>
+      </div>
+      <div class="price-card">
+        <h3>Enterprise</h3>
+        <p>For high-volume organizations.</p>
+        <div class="price">Custom<span>/mo</span></div>
+        <ul class="features-list">
+          <li>Unlimited tickets</li>
+          <li>Custom report schedules</li>
+          <li>SSO & audit logs</li>
+          <li>Dedicated success manager</li>
+          <li>SLA-backed support</li>
+        </ul>
+        <a href="#" class="btn btn-outline" style="width: 100%;">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="testimonials" class="testimonials section">
+  <div class="container">
+    <div class="section-header">
+      <h2>What teams are saying</h2>
+      <p>Real feedback from product managers using Relay.</p>
+    </div>
+    <div class="testimonial-grid">
+      <div class="testimonial">
+        <p class="quote">"Relay has completely changed how we prioritize our roadmap. We used to guess what was broken—now we have data every Monday."</p>
+        <span class="author">Maya Chen</span>
+        <span class="role">Product Manager, ScaleFlow</span>
+      </div>
+      <div class="testimonial">
+        <p class="quote">"The Slack integration is a game-changer. Our product team sees support trends in real time without digging through Zendesk."</p>
+        <span class="author">Jordan Lee</span>
+        <span class="role">Head of Support, Nebula</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="section">
+  <div class="container">
+    <div class="section-header" style="text-align: left; margin: 0 auto 40px 0; max-width: 800px;">
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">Which help desks does Relay support? <span class="faq-toggle">▼</span></div>
+        <div class="faq-answer">Relay integrates with Zendesk, Intercom, Freshdesk, and any email-based support inbox. More integrations are added regularly.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">Can I customize the report? <span class="faq-toggle">▼</span></div>
+        <div class="faq-answer">Yes. You can choose which ticket tags to include, set delivery days, and add custom branding to your PDF reports.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">Is there a free trial? <span class="faq-toggle">▼</span></div>
+        <div class="faq-answer">Absolutely. Every plan starts with a 14-day free trial—no credit card required.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">How is my data secured? <span class="faq-toggle">▼</span></div>
+        <div class="faq-answer">All data is encrypted in transit and at rest. Relay is SOC 2 Type II compliant and GDPR-ready.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-grid">
+    <div>
+      <div class="footer-logo">Relay<span>.</span></div>
+      <div class="footer-desc">Turn customer support tickets into weekly product reports. Stop guessing. Start building.</div>
+    </div>
+    <div class="footer-links">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#">Integrations</a></li>
+        <li><a href="#">Changelog</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Security</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container">
+    <div class="copyright">© 2024 Relay, Inc. All rights reserved.</div>
+  </div>
+</footer>
+
+<script>
+  // Mobile menu toggle
+  const mobileMenu = document.getElementById('mobileMenu');
+  const navLinks = document.getElementById('navLinks');
+  mobileMenu.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+  });
+
+  // Close mobile menu when clicking a link
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+    });
+  });
+
+  // FAQ accordion
+  function toggleFaq(element) {
+    const item = element.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(f => f.classList.remove('open'));
+    if (!isOpen) {
+      item.classList.add('open');
+    }
+  }
+</script>
+
+</body>
+</html>

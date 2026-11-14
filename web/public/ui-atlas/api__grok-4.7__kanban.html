@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Design Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,480;9..144,560;9..144,640&family=Outfit:wght@380;460;560;640&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c1714;
+    --ink-soft: #5c534c;
+    --paper: #f4efe8;
+    --paper-2: #ebe4da;
+    --card: #fffdf9;
+    --line: rgba(28, 23, 20, 0.1);
+    --terracotta: #c45c3e;
+    --ochre: #c9892d;
+    --sage: #5d7a62;
+    --slate: #4a6274;
+    --blush: #d4a59a;
+    --shadow: 0 12px 32px rgba(48, 32, 18, 0.08);
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Outfit", system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #f7dcc8 0%, transparent 55%),
+      radial-gradient(900px 420px at 100% 0%, #e7efe4 0%, transparent 50%),
+      var(--paper);
+    min-height: 100%;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 32px 8px;
+  }
+  .brand {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--ink);
+    color: #f6efe6;
+    display: grid;
+    place-items: center;
+    font-family: "Fraunces", serif;
+    font-weight: 640;
+    letter-spacing: -0.04em;
+    font-size: 22px;
+  }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 560;
+    font-size: 32px;
+    letter-spacing: -0.03em;
+    margin: 0;
+    line-height: 1;
+  }
+  .sub {
+    margin: 4px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    font-weight: 380;
+  }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  button, input, select, textarea {
+    font-family: inherit;
+    color: inherit;
+  }
+  .btn {
+    border: 0;
+    background: var(--ink);
+    color: #f7f1ea;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 560;
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .search {
+    background: rgba(255,253,249,0.7);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 14px;
+    min-width: 220px;
+    outline: none;
+    font-size: 14px;
+  }
+  .search:focus { border-color: #b9a89a; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 20px 32px 32px;
+    align-items: start;
+    overflow-x: auto;
+  }
+  .col {
+    background: rgba(255, 253, 249, 0.45);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    min-height: 68vh;
+    padding: 12px;
+    backdrop-filter: blur(6px);
+  }
+  .col.over { outline: 2px dashed #c9892d; outline-offset: -6px; background: rgba(201, 137, 45, 0.06); }
+  .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 12px;
+  }
+  .col-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 640;
+    letter-spacing: -0.01em;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .count {
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: rgba(28,23,20,0.06);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-weight: 560;
+  }
+  .cards { display: flex; flex-direction: column; gap: 10px; min-height: 40px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 14px 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(28,23,20,0.05);
+    cursor: grab;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.45; transform: rotate(1.5deg) scale(0.98); }
+  .card:hover { transform: translateY(-2px); }
+  .kicker {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 640;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .tag.ui { background: #efe4d6; color: #7a4e22; }
+  .tag.brand { background: #f3ddd6; color: #8d3d2a; }
+  .tag.motion { background: #e4ece7; color: #2f5a3a; }
+  .tag.research { background: #e3eaf0; color: #2d4d64; }
+  .prio {
+    font-size: 11px;
+    font-weight: 560;
+    color: var(--ink-soft);
+  }
+  .prio.high { color: var(--terracotta); }
+  .card h3 {
+    margin: 0 0 6px;
+    font-size: 15.5px;
+    font-weight: 560;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+  .card p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 380;
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+  .avatars { display: flex; }
+  .av {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 640;
+    color: #fff;
+    border: 2px solid #fffdf9;
+    margin-left: -6px;
+  }
+  .av:first-child { margin-left: 0; }
+  .due {
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .card-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .icon {
+    border: 0;
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 6px;
+  }
+  .icon:hover { background: var(--paper-2); color: var(--ink); }
+
+  .empty {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-align: center;
+    padding: 18px 8px;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 23, 20, 0.35);
+    display: none;
+    place-items: center;
+    padding: 20px;
+    z-index: 20;
+  }
+  .overlay.show { display: grid; }
+  .modal {
+    width: min(480px, 100%);
+    background: #fffdf9;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 30px 80px rgba(28,23,20,0.2);
+  }
+  .modal h2 {
+    font-family: "Fraunces", serif;
+    margin: 0 0 14px;
+    font-weight: 560;
+    letter-spacing: -0.03em;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 640;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 12px 0 6px;
+  }
+  input[type="text"], select, textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+  }
+  textarea { min-height: 78px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  footer.note {
+    padding: 0 32px 24px;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+
+  @media (max-width: 980px) {
+    header { flex-direction: column; align-items: stretch; }
+    .toolbar { flex-wrap: wrap; }
+    .board { grid-template-columns: 1fr; }
+    .col { min-height: auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">A</div>
+    <div>
+      <h1>Atelier</h1>
+      <p class="sub">Studio board · four designers, one wall</p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <input class="search" id="search" type="search" placeholder="Filter cards…" aria-label="Filter cards">
+    <button class="btn ghost" id="reset">Reset sample</button>
+    <button class="btn" id="add">+ New card</button>
+  </div>
+</header>
+
+<main class="board" id="board"></main>
+<p class="note">Drag cards between columns. Changes stay in this browser.</p>
+
+<div class="overlay" id="overlay">
+  <form class="modal" id="form">
+    <h2 id="modalTitle">New card</h2>
+    <input type="hidden" id="editId">
+    <label for="title">Title</label>
+    <input id="title" type="text" required maxlength="80" placeholder="Homepage hero exploration">
+    <label for="desc">Notes</label>
+    <textarea id="desc" maxlength="220" placeholder="What needs deciding?"></textarea>
+    <div class="row">
+      <div>
+        <label for="tag">Discipline</label>
+        <select id="tag">
+          <option value="ui">UI</option>
+          <option value="brand">Brand</option>
+          <option value="motion">Motion</option>
+          <option value="research">Research</option>
+        </select>
+      </div>
+      <div>
+        <label for="prio">Priority</label>
+        <select id="prio">
+          <option value="low">Low</option>
+          <option value="med" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="owner">Owner</label>
+        <select id="owner">
+          <option>Mira</option>
+          <option>Leo</option>
+          <option>Noor</option>
+          <option>Jules</option>
+        </select>
+      </div>
+      <div>
+        <label for="column">Column</label>
+        <select id="column">
+          <option value="backlog">Backlog</option>
+          <option value="doing">In progress</option>
+          <option value="review">Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+    <label for="due">Due</label>
+    <input id="due" type="text" placeholder="Fri" maxlength="16">
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const COLS = [
+  { id: "backlog", name: "Backlog", color: "#c9892d" },
+  { id: "doing", name: "In progress", color: "#c45c3e" },
+  { id: "review", name: "Review", color: "#4a6274" },
+  { id: "done", name: "Done", color: "#5d7a62" }
+];
+const COLORS = { Mira: "#c45c3e", Leo: "#4a6274", Noor: "#5d7a62", Jules: "#c9892d" };
+const SEED = [
+  { id: "c1", col: "backlog", title: "Packaging system for spring drop", desc: "Three SKUs, one family. Need foil vs. uncoated decision.", tag: "brand", prio: "med", owner: "Noor", due: "Thu" },
+  { id: "c2", col: "backlog", title: "Onboarding empty states", desc: "Illustrations plus copy for first-run dashboard.", tag: "ui", prio: "low", owner: "Jules", due: "Next week" },
+  { id: "c3", col: "doing", title: "Hero type study", desc: "Fraunces vs. custom wordmark. Two directions for critique.", tag: "brand", prio: "high", owner: "Mira", due: "Today" },
+  { id: "c4", col: "doing", title: "Checkout motion pass", desc: "Confirm micro-interactions under 300ms.", tag: "motion", prio: "med", owner: "Leo", due: "Wed" },
+  { id: "c5", col: "review", title: "Interview synthesis — power users", desc: "Five sessions clustered. Share board before Friday stand-up.", tag: "research", prio: "high", owner: "Noor", due: "Fri" },
+  { id: "c6", col: "review", title: "Icon set v2", desc: "24px grid, optical corrections on arrows.", tag: "ui", prio: "med", owner: "Jules", due: "Thu" },
+  { id: "c7", col: "done", title: "Color tokens documented", desc: "Light + dark published in the studio file.", tag: "ui", prio: "low", owner: "Mira", due: "Done" }
+];
+
+const KEY = "atelier-board-v1";
+let cards = load();
+let dragId = null;
+let query = "";
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return structuredClone(SEED);
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(cards)); }
+function uid() { return "c" + Math.random().toString(36).slice(2, 8); }
+
+function render() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const q = query.trim().toLowerCase();
+  COLS.forEach(col => {
+    const items = cards.filter(c => c.col === col.id && (
+      !q || c.title.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || c.owner.toLowerCase().includes(q) || c.tag.includes(q)
+    ));
+    const section = document.createElement("section");
+    section.className = "col";
+    section.dataset.col = col.id;
+    section.innerHTML = `
+      <div class="col-head">
+        <div class="col-title"><span class="dot" style="background:${col.color}"></span>${col.name}</div>
+        <span class="count">${items.length}</span>
+      </div>
+      <div class="cards" data-col="${col.id}"></div>`;
+    const list = section.querySelector(".cards");
+    if (!items.length) {
+      const e = document.createElement("div");
+      e.className = "empty";
+      e.textContent = q ? "No matches" : "Drop a card here";
+      list.appendChild(e);
+    }
+    items.forEach(card => list.appendChild(cardEl(card)));
+    section.addEventListener("dragover", ev => { ev.preventDefault(); section.classList.add("over"); });
+    section.addEventListener("dragleave", () => section.classList.remove("over"));
+    section.addEventListener("drop", ev => {
+      ev.preventDefault();
+      section.classList.remove("over");
+      if (!dragId) return;
+      const card = cards.find(c => c.id === dragId);
+      if (card) { card.col = col.id; save(); render(); }
+    });
+    board.appendChild(section);
+  });
+}
+
+function cardEl(card) {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.draggable = true;
+  el.dataset.id = card.id;
+  const initial = card.owner.slice(0, 1);
+  el.innerHTML = `
+    <div class="kicker">
+      <span class="tag ${card.tag}">${card.tag}</span>
+      <span class="prio ${card.prio}">${card.prio === "high" ? "High" : card.prio === "med" ? "Med" : "Low"}</span>
+    </div>
+    <h3></h3>
+    <p></p>
+    <div class="meta">
+      <div class="avatars"><span class="av" style="background:${COLORS[card.owner] || "#5c534c"}">${initial}</span></div>
+      <span class="due"></span>
+      <div class="card-actions">
+        <button class="icon" data-act="edit" title="Edit">✎</button>
+        <button class="icon" data-act="del" title="Delete">✕</button>
+      </div>
+    </div>`;
+  el.querySelector("h3").textContent = card.title;
+  el.querySelector("p").textContent = card.desc;
+  el.querySelector(".due").textContent = card.due || card.owner;
+  el.addEventListener("dragstart", () => { dragId = card.id; el.classList.add("dragging"); });
+  el.addEventListener("dragend", () => { dragId = null; el.classList.remove("dragging"); });
+  el.querySelector('[data-act="edit"]').addEventListener("click", () => openForm(card));
+  el.querySelector('[data-act="del"]').addEventListener("click", () => {
+    cards = cards.filter(c => c.id !== card.id);
+    save(); render();
+  });
+  return el;
+}
+
+const overlay = document.getElementById("overlay");
+const form = document.getElementById("form");
+function openForm(card) {
+  document.getElementById("modalTitle").textContent = card ? "Edit card" : "New card";
+  document.getElementById("editId").value = card ? card.id : "";
+  document.getElementById("title").value = card ? card.title : "";
+  document.getElementById("desc").value = card ? card.desc : "";
+  document.getElementById("tag").value = card ? card.tag : "ui";
+  document.getElementById("prio").value = card ? card.prio : "med";
+  document.getElementById("owner").value = card ? card.owner : "Mira";
+  document.getElementById("column").value = card ? card.col : "backlog";
+  document.getElementById("due").value = card ? (card.due || "") : "";
+  overlay.classList.add("show");
+  document.getElementById("title").focus();
+}
+function closeForm() { overlay.classList.remove("show"); form.reset(); }
+
+document.getElementById("add").addEventListener("click", () => openForm(null));
+document.getElementById("cancel").addEventListener("click", closeForm);
+overlay.addEventListener("click", e => { if (e.target === overlay) closeForm(); });
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const id = document.getElementById("editId").value;
+  const data = {
+    title: document.getElementById("title").value.trim(),
+    desc: document.getElementById("desc").value.trim(),
+    tag: document.getElementById("tag").value,
+    prio: document.getElementById("prio").value,
+    owner: document.getElementById("owner").value,
+    col: document.getElementById("column").value,
+    due: document.getElementById("due").value.trim()
+  };
+  if (!data.title) return;
+  if (id) {
+    const card = cards.find(c => c.id === id);
+    Object.assign(card, data);
+  } else {
+    cards.unshift({ id: uid(), ...data });
+  }
+  save(); closeForm(); render();
+});
+document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
+document.getElementById("reset").addEventListener("click", () => {
+  cards = structuredClone(SEED);
+  save(); render();
+});
+
+render();
+</script>
+</body>
+</html>

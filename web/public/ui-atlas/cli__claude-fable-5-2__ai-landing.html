@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — Think out loud. Murmur takes the notes.</title>
+<meta name="description" content="Murmur listens while you talk, type or ramble, then turns it into clean, linked notes you can find again.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231A1814'/%3E%3Cg fill='%23F3EEE4'%3E%3Ccircle cx='7' cy='20' r='2'/%3E%3Ccircle cx='12.5' cy='14' r='2.4'/%3E%3Ccircle cx='19' cy='12' r='2.8'/%3E%3Ccircle cx='25' cy='17' r='2'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  :root {
+    --paper: #F3EEE4;
+    --paper-2: #E9E2D3;
+    --card: #FBF8F2;
+    --ink: #1A1814;
+    --ink-2: #5A554B;
+    --line: rgba(26, 24, 20, .14);
+    --accent: #B53A20;
+    --accent-soft: #F08A5D;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --wrap: 1160px;
+    --pad: clamp(20px, 4vw, 40px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  img, svg, canvas { display: block; max-width: 100%; }
+  a { color: inherit; }
+  h1, h2, h3, p, ul, ol, figure, blockquote { margin: 0; padding: 0; }
+  ul, ol { list-style: none; }
+  button, input { font: inherit; color: inherit; }
+  section[id], div[id] { scroll-margin-top: 84px; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { width: 100%; max-width: var(--wrap); margin-inline: auto; padding-inline: var(--pad); }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .display {
+    font-family: var(--serif);
+    font-weight: 400;
+    letter-spacing: -.015em;
+    line-height: 1;
+    text-wrap: balance;
+  }
+  .display em { font-style: italic; color: var(--accent); }
+
+  h2.display { font-size: clamp(2.4rem, 5.4vw, 4.2rem); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 48px; padding: 0 22px;
+    border-radius: 999px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--paper);
+    font-weight: 500; font-size: 16px; text-decoration: none; white-space: nowrap;
+    cursor: pointer;
+    transition: background .2s, border-color .2s, color .2s, transform .2s;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn.ghost:hover { border-color: var(--ink); background: transparent; }
+  .btn.small { min-height: 40px; padding: 0 16px; font-size: 15px; }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(243, 238, 228, .84);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--serif); font-size: 28px; line-height: 1; letter-spacing: -.01em; }
+  .logo svg { width: 28px; height: 28px; }
+  .nav-links { display: flex; align-items: center; gap: 28px; }
+  .nav-links a { text-decoration: none; font-size: 15px; color: var(--ink-2); transition: color .2s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .menu-btn {
+    display: none; width: 40px; height: 40px; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent; cursor: pointer;
+    align-items: center; justify-content: center;
+  }
+  .menu-btn span, .menu-btn span::before { content: ""; display: block; width: 16px; height: 1.5px; background: var(--ink); transition: transform .2s; }
+  .menu-btn span { transform: translateY(-3px); }
+  .menu-btn span::before { transform: translateY(6px); }
+  .menu-btn[aria-expanded="true"] span { transform: rotate(45deg); }
+  .menu-btn[aria-expanded="true"] span::before { transform: rotate(-90deg); }
+
+  @media (max-width: 860px) {
+    .menu-btn { display: inline-flex; }
+    .nav-links {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      flex-direction: column; align-items: stretch; gap: 0;
+      background: var(--paper); border-bottom: 1px solid var(--line);
+      padding: 8px var(--pad) 16px;
+    }
+    .nav-links.open { display: flex; }
+    .nav-links a { padding: 14px 0; font-size: 17px; color: var(--ink); border-bottom: 1px solid var(--line); }
+    .nav-links a:last-child { border-bottom: 0; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; overflow: hidden; }
+  #flock { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 1; padding-block: clamp(72px, 13vh, 150px) clamp(72px, 12vh, 130px); }
+  .hero .label { display: inline-flex; align-items: center; gap: 10px; }
+  .hero .label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .hero h1 { font-size: clamp(2.9rem, 8vw, 6.5rem); margin-top: 22px; max-width: 12em; }
+  .hero .sub { margin-top: 26px; max-width: 34em; font-size: clamp(1.05rem, 1.5vw, 1.25rem); color: var(--ink-2); text-wrap: pretty; }
+  .hero .cta { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
+  .hero .fine { margin-top: 18px; font-size: 14px; color: var(--ink-2); }
+
+  /* ---------- Demo ---------- */
+  .demo { padding-bottom: clamp(72px, 10vw, 130px); }
+  .demo-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+  .demo-head h2 { font-size: clamp(1.9rem, 3.4vw, 2.6rem); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tab {
+    min-height: 40px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent;
+    font-size: 15px; cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+  }
+  .tab:hover { border-color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .demo-card {
+    display: grid; grid-template-columns: 5fr 6fr;
+    background: var(--card); border: 1px solid var(--line); border-radius: 22px; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 30px 60px -40px rgba(26,24,20,.35);
+  }
+  .pane { padding: clamp(22px, 3vw, 36px); min-width: 0; }
+  .pane-raw { background: var(--paper-2); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 22px; }
+  .pane-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .rec { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+  .rec i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); }
+  .listening .rec i { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  .wave { display: flex; align-items: center; gap: 3px; height: 44px; }
+  .wave span { flex: 1; max-width: 4px; min-width: 2px; border-radius: 2px; background: var(--ink); opacity: .7; height: calc(var(--h) * 1%); transform-origin: center; }
+  .listening .wave span { animation: bounce .7s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+  .raw-text { font-family: var(--mono); font-size: 14.5px; line-height: 1.75; color: var(--ink); }
+  .raw-text .rest { opacity: 0; }
+  .listening .raw-text .typed::after { content: ""; display: inline-block; width: 7px; height: 1.1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); }
+
+  .status { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .note-title { font-family: var(--serif); font-size: clamp(1.6rem, 2.6vw, 2.1rem); line-height: 1.08; letter-spacing: -.01em; margin-top: 18px; text-wrap: balance; }
+  .note-summary { margin-top: 12px; color: var(--ink-2); text-wrap: pretty; }
+  .note-block { margin-top: 22px; }
+  .note-block .label { display: block; margin-bottom: 8px; }
+  .note-points li { position: relative; padding-left: 18px; margin-top: 5px; }
+  .note-points li::before { content: ""; position: absolute; left: 2px; top: .68em; width: 6px; height: 1.5px; background: var(--ink); }
+  .note-todos label { display: flex; align-items: flex-start; gap: 10px; margin-top: 6px; cursor: pointer; }
+  .note-todos input { width: 17px; height: 17px; margin: 4px 0 0; accent-color: var(--accent); flex: none; cursor: pointer; }
+  .note-todos input:checked + span { text-decoration: line-through; color: var(--ink-2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--paper-2); font-size: 14px; }
+  .chip::before { content: "↗"; font-size: 12px; color: var(--accent); }
+
+  .note-part { transition: opacity .45s ease, transform .45s ease; transition-delay: calc(var(--n, 0) * 90ms); }
+  .pending .note-part { opacity: 0; transform: translateY(8px); transition: none; }
+
+  @keyframes pulse { 50% { opacity: .3; } }
+  @keyframes bounce { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
+
+  @media (max-width: 860px) {
+    .demo-card { grid-template-columns: 1fr; }
+    .pane-raw { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+
+  /* ---------- How ---------- */
+  .how { padding-block: clamp(72px, 10vw, 130px); border-top: 1px solid var(--line); }
+  .section-head { max-width: 44rem; }
+  .section-head p { margin-top: 18px; color: var(--ink-2); font-size: 1.1rem; text-wrap: pretty; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: clamp(40px, 6vw, 72px); border-top: 1px solid var(--ink); }
+  .step { padding: 28px 28px 0 0; }
+  .step + .step { padding-left: 28px; border-left: 1px solid var(--line); }
+  .step .num { font-family: var(--serif); font-style: italic; font-size: 3.4rem; line-height: 1; color: var(--accent); }
+  .step h3 { font-family: var(--serif); font-weight: 400; font-size: 1.9rem; line-height: 1.1; margin-top: 18px; }
+  .step p { margin-top: 10px; color: var(--ink-2); text-wrap: pretty; }
+  @media (max-width: 760px) {
+    .steps { grid-template-columns: 1fr; }
+    .step, .step + .step { padding: 26px 0; border-left: 0; }
+    .step + .step { border-top: 1px solid var(--line); }
+  }
+
+  /* ---------- Features ---------- */
+  .features { padding-bottom: clamp(72px, 10vw, 130px); }
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: clamp(36px, 5vw, 56px); }
+  .cell { grid-column: span 2; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: clamp(22px, 2.6vw, 32px); display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .cell.wide { grid-column: span 4; }
+  .cell h3 { font-family: var(--serif); font-weight: 400; font-size: 1.75rem; line-height: 1.1; }
+  .cell p { margin-top: 8px; color: var(--ink-2); text-wrap: pretty; }
+  .cell .art { margin-top: auto; }
+
+  .chat { display: grid; gap: 10px; }
+  .bubble { max-width: 34em; padding: 12px 16px; border-radius: 16px; }
+  .bubble.q { justify-self: end; background: var(--ink); color: var(--paper); border-bottom-right-radius: 4px; }
+  .bubble.a { background: var(--paper-2); border-bottom-left-radius: 4px; }
+  .cite { display: inline-flex; align-items: center; margin-top: 10px; padding: 3px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+
+  .call { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+  .faces { display: flex; }
+  .faces span { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--card); margin-left: -10px; display: grid; place-items: center; font-size: 14px; font-weight: 600; color: var(--paper); }
+  .faces span:first-child { margin-left: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--paper-2); font-size: 14px; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+
+  .graph { width: 100%; height: auto; }
+  .graph line { stroke: var(--ink); stroke-opacity: .28; stroke-width: 1; }
+  .graph circle { fill: var(--ink); }
+  .graph circle.hot { fill: var(--accent); }
+  .graph text { font-family: var(--mono); font-size: 10px; fill: var(--ink-2); }
+
+  .digest li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .digest li:last-child { border-bottom: 1px solid var(--line); }
+  .digest b { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; line-height: 1; }
+
+  .md { font-family: var(--mono); font-size: 13px; line-height: 1.7; background: var(--paper-2); border-radius: 12px; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .md .h { color: var(--accent); }
+
+  @media (max-width: 960px) {
+    .cell, .cell.wide { grid-column: span 3; }
+    .cell.wide { grid-column: span 6; }
+    .cell:last-child { grid-column: span 6; }
+  }
+  @media (max-width: 640px) {
+    .cell, .cell.wide, .cell:last-child { grid-column: span 6; }
+  }
+
+  /* ---------- Quote ---------- */
+  .quote { padding-block: clamp(64px, 9vw, 120px); border-top: 1px solid var(--line); }
+  .quote blockquote { font-family: var(--serif); font-size: clamp(2rem, 4.6vw, 3.6rem); line-height: 1.08; letter-spacing: -.015em; max-width: 20em; text-wrap: balance; }
+  .quote blockquote em { color: var(--accent); }
+  .quote figcaption { margin-top: 26px; color: var(--ink-2); }
+
+  /* ---------- Privacy ---------- */
+  .privacy { background: var(--ink); color: var(--paper); padding-block: clamp(72px, 10vw, 130px); }
+  .privacy .label { color: #B8B0A0; }
+  .privacy .display em { color: var(--accent-soft); }
+  .privacy h2 { margin-top: 16px; }
+  .privacy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: clamp(40px, 6vw, 72px); }
+  .privacy-grid li { border-top: 1px solid rgba(243,238,228,.28); padding-top: 22px; }
+  .privacy-grid h3 { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; line-height: 1.1; }
+  .privacy-grid p { margin-top: 10px; color: #B8B0A0; text-wrap: pretty; }
+  @media (max-width: 760px) { .privacy-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- Pricing ---------- */
+  .pricing { padding-block: clamp(72px, 10vw, 130px); }
+  .pricing-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .seg { display: inline-flex; padding: 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); }
+  .seg button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; font-size: 15px; cursor: pointer; transition: background .2s, color .2s; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: clamp(36px, 5vw, 56px); align-items: stretch; }
+  .plan { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 2.8vw, 34px); }
+  .plan h3 { font-family: var(--serif); font-weight: 400; font-size: 1.9rem; line-height: 1; }
+  .plan .for { margin-top: 8px; color: var(--ink-2); font-size: 15px; }
+  .price { display: flex; align-items: baseline; gap: 8px; margin-top: 26px; }
+  .price b { font-family: var(--serif); font-weight: 400; font-size: 4rem; line-height: 1; letter-spacing: -.02em; }
+  .price span { font-size: 14px; color: var(--ink-2); }
+  .plan ul { margin: 24px 0 30px; display: grid; gap: 9px; }
+  .plan li { position: relative; padding-left: 22px; font-size: 16px; }
+  .plan li::before { content: ""; position: absolute; left: 2px; top: .5em; width: 10px; height: 5px; border-left: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent); transform: rotate(-45deg); }
+  .plan .btn { margin-top: auto; }
+  .plan.featured { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .plan.featured .for, .plan.featured .price span { color: #B8B0A0; }
+  .plan.featured li::before { border-color: var(--accent-soft); }
+  .plan.featured .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+  .plan.featured .btn:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+  .plan.featured :focus-visible { outline-color: var(--accent-soft); }
+  @media (max-width: 900px) { .plans { grid-template-columns: 1fr; } }
+
+  /* ---------- FAQ ---------- */
+  .faq { padding-bottom: clamp(72px, 10vw, 130px); }
+  .faq .wrap { display: grid; grid-template-columns: 1fr 1.6fr; gap: clamp(32px, 6vw, 90px); }
+  .faq details { border-top: 1px solid var(--line); }
+  .faq details:last-child { border-bottom: 1px solid var(--line); }
+  .faq summary { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 0; cursor: pointer; list-style: none; font-size: 1.12rem; font-weight: 500; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-family: var(--serif); font-size: 1.8rem; line-height: 1; color: var(--accent); transition: transform .25s; flex: none; }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { padding: 0 40px 22px 0; color: var(--ink-2); max-width: 40em; text-wrap: pretty; }
+  @media (max-width: 820px) { .faq .wrap { grid-template-columns: 1fr; } }
+
+  /* ---------- CTA ---------- */
+  .get { padding-block: clamp(72px, 11vw, 150px); background: var(--paper-2); border-top: 1px solid var(--line); text-align: center; }
+  .get h2 { font-size: clamp(2.8rem, 7vw, 5.6rem); }
+  .get > .wrap > p { margin: 20px auto 0; max-width: 30em; color: var(--ink-2); font-size: 1.1rem; }
+  .signup { margin: 34px auto 0; max-width: 480px; display: flex; gap: 8px; padding: 6px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
+  .signup:focus-within { border-color: var(--ink); }
+  .signup input { flex: 1; min-width: 0; height: 48px; padding: 0 18px; border: 0; background: transparent; font-size: 16px; outline: none; }
+  .signup input::placeholder { color: #7A7468; }
+  .form-msg { min-height: 1.6em; margin-top: 14px; font-size: 15px; color: var(--accent); }
+  .form-done { margin-top: 34px; font-family: var(--serif); font-size: 1.7rem; line-height: 1.2; }
+  @media (max-width: 480px) {
+    .signup { flex-direction: column; border-radius: 22px; }
+    .signup .btn { width: 100%; }
+  }
+
+  /* ---------- Footer ---------- */
+  footer { padding-block: 36px; border-top: 1px solid var(--line); background: var(--paper-2); }
+  footer .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 22px; }
+  footer a { font-size: 15px; color: var(--ink-2); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+  footer small { font-size: 14px; color: var(--ink-2); }
+
+  /* ---------- Reveal ---------- */
+  .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+  .js .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .js .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Murmur home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="21" r="1.6"/><circle cx="9" cy="15.5" r="2.1"/><circle cx="15.5" cy="12" r="2.7"/><circle cx="22.5" cy="13.5" r="2.2"/><circle cx="28" cy="18.5" r="1.6"/></g></svg>
+      murmur
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn small" href="#get">Get Murmur</a>
+      <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero" id="hero">
+    <canvas id="flock" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <p class="label">AI notes for Mac, iOS and web</p>
+      <h1 class="display">Think out loud. <em>Murmur takes the notes.</em></h1>
+      <p class="sub">Talk, type or ramble. Murmur listens, then settles it all into clean, linked notes you can find again. No templates, no filing, no tidying up afterwards.</p>
+      <div class="cta">
+        <a class="btn" href="#get">Start free</a>
+        <a class="btn ghost" href="#demo">See it settle a note</a>
+      </div>
+      <p class="fine">Free for typed notes, forever. No card needed.</p>
+    </div>
+  </section>
+
+  <section class="demo" id="demo">
+    <div class="wrap">
+      <div class="demo-head reveal">
+        <h2 class="display">From murmur <em>to note.</em></h2>
+        <div class="tabs" role="tablist" aria-label="Sample recordings">
+          <button class="tab" role="tab" id="tab-walk" aria-selected="true" aria-controls="demo-card" data-key="walk" type="button">Idea on a walk</button>
+          <button class="tab" role="tab" id="tab-standup" aria-selected="false" aria-controls="demo-card" data-key="standup" tabindex="-1" type="button">Team standup</button>
+          <button class="tab" role="tab" id="tab-lecture" aria-selected="false" aria-controls="demo-card" data-key="lecture" tabindex="-1" type="button">Lecture</button>
+        </div>
+      </div>
+
+      <div class="demo-card reveal" id="demo-card" role="tabpanel" aria-labelledby="tab-walk">
+        <div class="pane pane-raw">
+          <div class="pane-top">
+            <span class="label">What you said</span>
+            <span class="rec"><i></i><span id="demo-dur">0:41</span></span>
+          </div>
+          <div class="wave" id="wave" aria-hidden="true"></div>
+          <p class="raw-text" id="raw"><span class="typed">okay so, um, idea for the spring workshop — what if we don't do slides at all? like, everyone brings one real project and we just fix things live... cap it at twelve people, maybe. need to ask Dana whether the studio is free on the 14th. oh, and remind me to send Jo the budget by Friday.</span><span class="rest"></span></p>
+        </div>
+
+        <div class="pane pane-note" id="note">
+          <div class="pane-top">
+            <span class="label">What Murmur kept</span>
+            <span class="status" id="demo-status" aria-live="polite">Note ready</span>
+          </div>
+          <h3 class="note-title note-part" id="note-title" style="--n:0">Spring workshop: no slides, real projects</h3>
+          <p class="note-summary note-part" id="note-summary" style="--n:1">Run the workshop as a live working session instead of a presentation, capped at twelve people.</p>
+          <div class="note-block note-part" style="--n:2">
+            <span class="label">Key points</span>
+            <ul class="note-points" id="note-points">
+              <li>Everyone brings one real project</li>
+              <li>Fix things live, no slides</li>
+              <li>Cap attendance at 12</li>
+            </ul>
+          </div>
+          <div class="note-block note-part" style="--n:3">
+            <span class="label">To do</span>
+            <div class="note-todos" id="note-todos">
+              <label><input type="checkbox"><span>Ask Dana if the studio is free on the 14th</span></label>
+              <label><input type="checkbox"><span>Send Jo the budget, due Friday</span></label>
+            </div>
+          </div>
+          <div class="note-block note-part" style="--n:4">
+            <span class="label">Linked to</span>
+            <div class="chips" id="note-links">
+              <span class="chip">Autumn workshop notes</span>
+              <span class="chip">Studio bookings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how" id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="label">How it works</p>
+        <h2 class="display" style="margin-top:16px">Three quiet steps. <em>You only do the first.</em></h2>
+      </div>
+      <ol class="steps">
+        <li class="step reveal">
+          <div class="num">1</div>
+          <h3>Murmur</h3>
+          <p>Hold the key and talk. Or type, paste, or leave it running in a meeting. Half-sentences and tangents are welcome.</p>
+        </li>
+        <li class="step reveal">
+          <div class="num">2</div>
+          <h3>Settle</h3>
+          <p>Murmur drops the ums, finds the point, and writes a titled note with decisions, to-dos and dates pulled out.</p>
+        </li>
+        <li class="step reveal">
+          <div class="num">3</div>
+          <h3>Recall</h3>
+          <p>Ask a plain question weeks later. Murmur answers from your own notes and shows you exactly where it came from.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="label">Features</p>
+        <h2 class="display" style="margin-top:16px">Everything after <em>the thinking</em> is handled.</h2>
+      </div>
+
+      <div class="bento">
+        <article class="cell wide reveal">
+          <div>
+            <h3>Ask your notes</h3>
+            <p>Skip the search box. Ask the way you'd ask a colleague, and get an answer with its source attached.</p>
+          </div>
+          <div class="art chat" aria-label="Example question and answer">
+            <div class="bubble q">When did we decide to launch, and why did it move?</div>
+            <div class="bubble a">March 3. The team moved it so the import fix could ship first.<br><span class="cite">Standup · Feb 12 · 0:31</span></div>
+          </div>
+        </article>
+
+        <article class="cell reveal">
+          <div>
+            <h3>No bot in the call</h3>
+            <p>Murmur listens from your own device. Nobody new joins the meeting.</p>
+          </div>
+          <div class="art call" aria-hidden="true">
+            <div class="faces">
+              <span style="background:#7A6A53">PR</span>
+              <span style="background:#B53A20">MK</span>
+              <span style="background:#3F4A45">JO</span>
+            </div>
+            <span class="pill"><i></i>Listening on this Mac</span>
+          </div>
+        </article>
+
+        <article class="cell reveal">
+          <div>
+            <h3>Notes that link themselves</h3>
+            <p>Mention a person or project and Murmur connects it to everything else you've said about them.</p>
+          </div>
+          <svg class="art graph" viewBox="0 0 280 120" role="img" aria-label="A small graph of connected notes">
+            <line x1="140" y1="60" x2="52" y2="30"/><line x1="140" y1="60" x2="60" y2="96"/>
+            <line x1="140" y1="60" x2="222" y2="26"/><line x1="140" y1="60" x2="230" y2="92"/>
+            <line x1="52" y1="30" x2="60" y2="96"/><line x1="222" y1="26" x2="230" y2="92"/>
+            <circle class="hot" cx="140" cy="60" r="7"/>
+            <circle cx="52" cy="30" r="4.5"/><circle cx="60" cy="96" r="4.5"/>
+            <circle cx="222" cy="26" r="4.5"/><circle cx="230" cy="92" r="4.5"/>
+            <text x="140" y="84" text-anchor="middle">Launch plan</text>
+            <text x="52" y="18" text-anchor="middle">Priya</text>
+            <text x="60" y="114" text-anchor="middle">Standups</text>
+            <text x="222" y="14" text-anchor="middle">Import fix</text>
+            <text x="230" y="110" text-anchor="middle">March 3</text>
+          </svg>
+        </article>
+
+        <article class="cell reveal">
+          <div>
+            <h3>The morning page</h3>
+            <p>One short page each morning with yesterday's decisions, promises and loose ends.</p>
+          </div>
+          <ul class="art digest">
+            <li><span>Decided</span><b>3</b></li>
+            <li><span>You owe</span><b>2</b></li>
+            <li><span>Left hanging</span><b>1</b></li>
+          </ul>
+        </article>
+
+        <article class="cell reveal">
+          <div>
+            <h3>Yours to take</h3>
+            <p>Every note is plain Markdown underneath. Export one or all of them, any time.</p>
+          </div>
+          <div class="art md" aria-label="Markdown export example"><span class="h"># Standup: launch moved</span>
+- Import fix deploys tomorrow
+- [ ] Chase legal re: API keys</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote">
+    <figure class="wrap reveal">
+      <blockquote>“I stopped taking notes in meetings. <em>I started listening in them.</em>”</blockquote>
+      <figcaption>Elena Marsh, product lead and early Murmur user</figcaption>
+    </figure>
+  </section>
+
+  <section class="privacy" id="privacy">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="label">Privacy</p>
+        <h2 class="display">Good listeners <em>keep things to themselves.</em></h2>
+      </div>
+      <ul class="privacy-grid">
+        <li class="reveal">
+          <h3>Transcribed on your device</h3>
+          <p>Speech becomes text on your Mac or phone. Raw audio is deleted once the note is written, unless you choose to keep it.</p>
+        </li>
+        <li class="reveal">
+          <h3>Never used for training</h3>
+          <p>Your notes are not used to train models, ours or anyone else's. That holds on every plan, including Free.</p>
+        </li>
+        <li class="reveal">
+          <h3>Delete means delete</h3>
+          <p>Remove a note and it's gone from our servers and backups within 30 days. Export first if you'd like a copy.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="wrap">
+      <div class="pricing-head reveal">
+        <div class="section-head">
+          <p class="label">Pricing</p>
+          <h2 class="display" style="margin-top:16px">Start free. <em>Stay as long as you like.</em></h2>
+        </div>
+        <div class="seg" role="group" aria-label="Billing period">
+          <button type="button" data-period="m" aria-pressed="true">Monthly</button>
+          <button type="button" data-period="y" aria-pressed="false">Yearly, save 20%</button>
+        </div>
+      </div>
+
+      <div class="plans">
+        <article class="plan reveal">
+          <h3>Free</h3>
+          <p class="for">For trying it on your own thoughts.</p>
+          <div class="price"><b>$0</b><span>forever</span></div>
+          <ul>
+            <li>Unlimited typed notes</li>
+            <li>120 minutes of voice a month</li>
+            <li>20 questions to your notes a month</li>
+            <li>Markdown export</li>
+          </ul>
+          <a class="btn ghost" href="#get">Start free</a>
+        </article>
+
+        <article class="plan featured reveal">
+          <h3>Pro</h3>
+          <p class="for">For people who think out loud daily.</p>
+          <div class="price"><b data-m="$10" data-y="$8">$10</b><span data-m="per month" data-y="per month, billed yearly">per month</span></div>
+          <ul>
+            <li>Unlimited voice capture</li>
+            <li>Unlimited questions</li>
+            <li>Meeting mode, no bot</li>
+            <li>The morning page</li>
+            <li>All your devices, in sync</li>
+          </ul>
+          <a class="btn" href="#get">Get Pro</a>
+        </article>
+
+        <article class="plan reveal">
+          <h3>Team</h3>
+          <p class="for">For teams that share what they heard.</p>
+          <div class="price"><b data-m="$15" data-y="$12">$15</b><span data-m="per person, per month" data-y="per person, per month, billed yearly">per person, per month</span></div>
+          <ul>
+            <li>Everything in Pro</li>
+            <li>Shared spaces and notes</li>
+            <li>Team glossary for names and jargon</li>
+            <li>SSO and admin controls</li>
+          </ul>
+          <a class="btn ghost" href="#get">Start a team</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="label">Questions</p>
+        <h2 class="display" style="margin-top:16px">Asked <em>often.</em></h2>
+      </div>
+      <div class="reveal">
+        <details open>
+          <summary>Does Murmur send a bot into my meetings?</summary>
+          <p>No. Murmur listens through your own device's microphone and system audio, so nothing joins the call. It does remind you to tell people you're recording, because you should.</p>
+        </details>
+        <details>
+          <summary>What happens to my audio?</summary>
+          <p>It's transcribed on your device and deleted once the note is written. You can turn on “keep audio” per note if you want to replay the original.</p>
+        </details>
+        <details>
+          <summary>What if Murmur gets something wrong?</summary>
+          <p>Every line in a note links back to the moment in the transcript it came from. Tap to check it, fix it in place, and Murmur keeps your correction.</p>
+        </details>
+        <details>
+          <summary>Can I just type?</summary>
+          <p>Yes. Typed and pasted notes get the same treatment: titles, to-dos, links and answers. Typed notes are unlimited on every plan.</p>
+        </details>
+        <details>
+          <summary>Which languages does it understand?</summary>
+          <p>More than 30, and it copes when you switch language mid-sentence. Notes are written in whichever language you choose.</p>
+        </details>
+        <details>
+          <summary>Can I get my notes out?</summary>
+          <p>Any time, on any plan. Export a single note or your whole library as plain Markdown files.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="get" id="get">
+    <div class="wrap">
+      <h2 class="display reveal">Say it once. <em>Keep it for good.</em></h2>
+      <p class="reveal">Leave your email and we'll send a download link for Mac, iOS and web.</p>
+      <!-- Front-end only: wire this form to your signup endpoint. -->
+      <form class="signup reveal" id="signup" novalidate>
+        <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" aria-label="Email address" aria-describedby="form-msg" required>
+        <button class="btn" type="submit">Start free</button>
+      </form>
+      <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Murmur, back to top">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="21" r="1.6"/><circle cx="9" cy="15.5" r="2.1"/><circle cx="15.5" cy="12" r="2.7"/><circle cx="22.5" cy="13.5" r="2.2"/><circle cx="28" cy="18.5" r="1.6"/></g></svg>
+      murmur
+    </a>
+    <nav aria-label="Footer">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <small>© 2026 Murmur</small>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Mobile menu ---------- */
+  var menuBtn = document.querySelector('.menu-btn');
+  var navLinks = document.getElementById('nav-links');
+  function setMenu(open) {
+    navLinks.classList.toggle('open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+  }
+  menuBtn.addEventListener('click', function () { setMenu(!navLinks.classList.contains('open')); });
+  navLinks.addEventListener('click', function (e) { if (e.target.tagName === 'A') setMenu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+
+  /* ---------- Reveal on scroll ---------- */
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduce) {
+    var ro = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); ro.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    reveals.forEach(function (el) { ro.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- Hero murmuration ---------- */
+  (function () {
+    var canvas = document.getElementById('flock');
+    var hero = document.getElementById('hero');
+    if (!canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
+    var w = 0, h = 0, birds = [], t = Math.random() * 10, raf = 0, visible = true;
+    var pointer = { x: -9999, y: -9999 };
+
+    function resize() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = hero.clientWidth; h = hero.clientHeight;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function seed() {
+      var n = w < 700 ? 110 : 240;
+      birds = [];
+      for (var i = 0; i < n; i++) {
+        var a = Math.random() * Math.PI * 2;
+        birds.push({
+          x: w * (0.5 + Math.random() * 0.45),
+          y: h * (0.1 + Math.random() * 0.6),
+          vx: Math.cos(a) * 2, vy: Math.sin(a) * 2
+        });
+      }
+    }
+    function step() {
+      t += 0.004;
+      var wide = w >= 900;
+      var tx = w * ((wide ? 0.68 : 0.5) + (wide ? 0.22 : 0.32) * Math.sin(t * 1.3));
+      var ty = h * ((wide ? 0.42 : 0.3) + (wide ? 0.26 : 0.18) * Math.sin(t * 2.1 + 1));
+      var n = birds.length;
+      for (var i = 0; i < n; i++) {
+        var b = birds[i];
+        var cx = 0, cy = 0, avx = 0, avy = 0, sx = 0, sy = 0, c = 0;
+        for (var j = 0; j < n; j++) {
+          if (j === i) continue;
+          var o = birds[j];
+          var dx = o.x - b.x, dy = o.y - b.y;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < 3600) {
+            c++; cx += o.x; cy += o.y; avx += o.vx; avy += o.vy;
+            if (d2 < 256) { sx -= dx; sy -= dy; }
+          }
+        }
+        var ax = (tx - b.x) * 0.0004 + (Math.random() - 0.5) * 0.08;
+        var ay = (ty - b.y) * 0.0004 + (Math.random() - 0.5) * 0.08;
+        if (c) {
+          ax += (cx / c - b.x) * 0.0005 + (avx / c - b.vx) * 0.04 + sx * 0.03;
+          ay += (cy / c - b.y) * 0.0005 + (avy / c - b.vy) * 0.04 + sy * 0.03;
+        }
+        var px = b.x - pointer.x, py = b.y - pointer.y;
+        var pd2 = px * px + py * py;
+        if (pd2 < 16900 && pd2 > 0.01) {
+          var pd = Math.sqrt(pd2);
+          ax += (px / pd) * 0.4; ay += (py / pd) * 0.4;
+        }
+        if (b.x < 30) ax += 0.12; else if (b.x > w - 30) ax -= 0.12;
+        if (b.y < 30) ay += 0.12; else if (b.y > h - 30) ay -= 0.12;
+
+        b.vx += ax; b.vy += ay;
+        var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 0.001;
+        var lim = sp > 3.2 ? 3.2 : (sp < 1.4 ? 1.4 : sp);
+        b.vx = b.vx / sp * lim; b.vy = b.vy / sp * lim;
+        b.x += b.vx; b.y += b.vy;
+      }
+    }
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = w >= 900 ? 'rgba(26,24,20,.62)' : 'rgba(26,24,20,.3)';
+      ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (var i = 0; i < birds.length; i++) {
+        var b = birds[i];
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - b.vx * 2.2, b.y - b.vy * 2.2);
+      }
+      ctx.stroke();
+    }
+    function loop() {
+      step(); draw();
+      raf = requestAnimationFrame(loop);
+    }
+    function start() { if (!raf && visible && !document.hidden && !reduce) raf = requestAnimationFrame(loop); }
+    function stop() { cancelAnimationFrame(raf); raf = 0; }
+
+    resize(); seed();
+    for (var k = 0; k < 240; k++) step();
+    draw();
+
+    hero.addEventListener('pointermove', function (e) {
+      var r = canvas.getBoundingClientRect();
+      pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top;
+    });
+    hero.addEventListener('pointerleave', function () { pointer.x = pointer.y = -9999; });
+    window.addEventListener('resize', function () { resize(); if (reduce) draw(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) {
+        visible = en[0].isIntersecting;
+        if (visible) start(); else stop();
+      }).observe(hero);
+    }
+    start();
+  })();
+
+  /* ---------- Demo ---------- */
+  (function () {
+    var samples = {
+      walk: {
+        dur: '0:41',
+        raw: "okay so, um, idea for the spring workshop — what if we don't do slides at all? like, everyone brings one real project and we just fix things live... cap it at twelve people, maybe. need to ask Dana whether the studio is free on the 14th. oh, and remind me to send Jo the budget by Friday.",
+        title: "Spring workshop: no slides, real projects",
+        summary: "Run the workshop as a live working session instead of a presentation, capped at twelve people.",
+        points: ["Everyone brings one real project", "Fix things live, no slides", "Cap attendance at 12"],
+        todos: ["Ask Dana if the studio is free on the 14th", "Send Jo the budget, due Friday"],
+        links: ["Autumn workshop notes", "Studio bookings"]
+      },
+      standup: {
+        dur: '0:36',
+        raw: "right, quick ones — Priya says the import bug is fixed but it's not deployed yet, that goes out tomorrow. Marcus is still blocked on the API keys, I said I'd chase legal. and we agreed, uh, we're moving the launch to March 3rd so the fix ships first. everyone okay with that? yeah. okay.",
+        title: "Standup: launch moved to March 3",
+        summary: "The launch moves to March 3 so the import fix ships first. One blocker is still open on API keys.",
+        points: ["Import bug fixed, deploys tomorrow (Priya)", "Marcus is blocked on API keys", "Decision: launch moves to March 3"],
+        todos: ["Chase legal about the API keys", "Confirm tomorrow's deploy with Priya"],
+        links: ["Launch plan", "Standup · Feb 11"]
+      },
+      lecture: {
+        dur: '0:44',
+        raw: "so the key thing with spaced repetition is that, um, forgetting is actually part of it — you review right at the point you're about to forget, and that's what strengthens the memory. Ebbinghaus mapped this in the 1880s, the forgetting curve. so for the exam, think intervals of roughly one day, three days, a week, then two weeks.",
+        title: "Spaced repetition and the forgetting curve",
+        summary: "Reviewing just before you forget is what strengthens a memory. Widen the gap after each review.",
+        points: ["Forgetting is part of the mechanism", "Ebbinghaus described the forgetting curve in the 1880s", "Suggested intervals: 1 day, 3 days, 1 week, 2 weeks"],
+        todos: ["Set up a review schedule for the exam"],
+        links: ["Cognitive psych · week 4", "Exam prep"]
+      }
+    };
+
+    var card = document.getElementById('demo-card');
+    var note = document.getElementById('note');
+    var raw = document.getElementById('raw');
+    var typed = raw.querySelector('.typed');
+    var rest = raw.querySelector('.rest');
+    var statusEl = document.getElementById('demo-status');
+    var durEl = document.getElementById('demo-dur');
+    var titleEl = document.getElementById('note-title');
+    var summaryEl = document.getElementById('note-summary');
+    var pointsEl = document.getElementById('note-points');
+    var todosEl = document.getElementById('note-todos');
+    var linksEl = document.getElementById('note-links');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    var wave = document.getElementById('wave');
+    var run = 0;
+
+    for (var i = 0; i < 44; i++) {
+      var bar = document.createElement('span');
+      var hgt = 22 + Math.abs(Math.sin(i * 1.7) * 48 + Math.sin(i * 0.45) * 30);
+      bar.style.setProperty('--h', Math.min(100, Math.round(hgt)));
+      bar.style.setProperty('--i', i);
+      wave.appendChild(bar);
+    }
+
+    function fill(el, items, make) {
+      el.textContent = '';
+      items.forEach(function (text) { el.appendChild(make(text)); });
+    }
+    function play(key, animate) {
+      var s = samples[key], id = ++run;
+      durEl.textContent = s.dur;
+      titleEl.textContent = s.title;
+      summaryEl.textContent = s.summary;
+      fill(pointsEl, s.points, function (text) {
+        var li = document.createElement('li'); li.textContent = text; return li;
+      });
+      fill(todosEl, s.todos, function (text) {
+        var label = document.createElement('label');
+        var box = document.createElement('input'); box.type = 'checkbox';
+        var span = document.createElement('span'); span.textContent = text;
+        label.appendChild(box); label.appendChild(span); return label;
+      });
+      fill(linksEl, s.links, function (text) {
+        var chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = text; return chip;
+      });
+
+      if (!animate || reduce) {
+        typed.textContent = s.raw; rest.textContent = '';
+        card.classList.remove('listening'); note.classList.remove('pending');
+        statusEl.textContent = 'Note ready';
+        return;
+      }
+      typed.textContent = ''; rest.textContent = s.raw;
+      note.classList.add('pending'); card.classList.add('listening');
+      statusEl.textContent = 'Listening…';
+      var pos = 0;
+      (function tick() {
+        if (id !== run) return;
+        pos = Math.min(s.raw.length, pos + 3);
+        typed.textContent = s.raw.slice(0, pos);
+        rest.textContent = s.raw.slice(pos);
+        if (pos < s.raw.length) { requestAnimationFrame(tick); return; }
+        card.classList.remove('listening');
+        statusEl.textContent = 'Settling…';
+        setTimeout(function () {
+          if (id !== run) return;
+          note.classList.remove('pending');
+          statusEl.textContent = 'Note ready';
+        }, 500);
+      })();
+    }
+    function select(tab, focus) {
+      tabs.forEach(function (tb) {
+        var on = tb === tab;
+        tb.setAttribute('aria-selected', String(on));
+        tb.tabIndex = on ? 0 : -1;
+      });
+      card.setAttribute('aria-labelledby', tab.id);
+      if (focus) tab.focus();
+      play(tab.dataset.key, true);
+    }
+    tabs.forEach(function (tab, idx) {
+      tab.addEventListener('click', function () { select(tab, false); });
+      tab.addEventListener('keydown', function (e) {
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) { e.preventDefault(); select(next, true); }
+      });
+    });
+
+    if ('IntersectionObserver' in window && !reduce) {
+      var once = new IntersectionObserver(function (en) {
+        if (en[0].isIntersecting) { once.disconnect(); play('walk', true); }
+      }, { threshold: 0.35 });
+      once.observe(card);
+    }
+  })();
+
+  /* ---------- Pricing toggle ---------- */
+  (function () {
+    var buttons = document.querySelectorAll('.seg button');
+    var priced = document.querySelectorAll('.plans [data-m]');
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var p = btn.dataset.period;
+        buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+        priced.forEach(function (el) { el.textContent = el.dataset[p]; });
+      });
+    });
+  })();
+
+  /* ---------- Signup ---------- */
+  (function () {
+    var form = document.getElementById('signup');
+    var input = document.getElementById('email');
+    var msg = document.getElementById('form-msg');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var value = input.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+        msg.textContent = value ? "That email doesn't look right. Check it and try again." : 'Enter your email to get the download link.';
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+        return;
+      }
+      input.removeAttribute('aria-invalid');
+      var done = document.createElement('p');
+      done.className = 'form-done';
+      done.setAttribute('role', 'status');
+      done.textContent = "You're in. We'll send the download link to " + value + '.';
+      form.replaceWith(done);
+      msg.textContent = '';
+    });
+    input.addEventListener('input', function () { msg.textContent = ''; input.removeAttribute('aria-invalid'); });
+  })();
+})();
+</script>
+</body>
+</html>

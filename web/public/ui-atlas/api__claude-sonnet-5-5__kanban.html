@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Board · Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f3ee;
+    --surface:#ebe8e1;
+    --card:#ffffff;
+    --ink:#1f1d1a;
+    --muted:#7a756b;
+    --line:#dedad1;
+    --accent:#e8553a;
+    --accent-ink:#fff;
+    --radius:12px;
+    --shadow:0 1px 2px rgba(31,29,26,.06),0 1px 1px rgba(31,29,26,.04);
+    --shadow-lg:0 12px 32px rgba(31,29,26,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"DM Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+    font-size:14px;line-height:1.4;
+    display:flex;flex-direction:column;min-height:100vh;
+  }
+  button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* Header */
+  header{
+    display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;
+    padding:20px 28px 8px;
+  }
+  .brand{display:flex;align-items:baseline;gap:12px;margin-right:auto}
+  .brand h1{
+    font-family:Fraunces,Georgia,serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-.01em;
+  }
+  .brand h1 span{color:var(--accent)}
+  .stats{color:var(--muted);font-size:13px}
+  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .search{position:relative}
+  .search input{
+    width:220px;padding:8px 12px 8px 32px;border:1px solid var(--line);border-radius:999px;
+    background:#fff;font:inherit;color:inherit;
+  }
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted)}
+  .people{display:flex;align-items:center;gap:4px}
+  .people .lbl{color:var(--muted);font-size:12px;margin-right:6px}
+  .pbtn{
+    border:2px solid transparent;background:none;padding:0;border-radius:50%;
+    display:grid;place-items:center;transition:transform .12s;
+  }
+  .pbtn:hover{transform:translateY(-1px)}
+  .pbtn[aria-pressed="true"]{border-color:var(--ink)}
+  .pbtn.all{width:32px;height:32px;font-size:11px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--muted)}
+  .pbtn.all[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
+  .btn{
+    border:0;background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;transition:background .15s;
+  }
+  .btn:hover{background:var(--accent)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:var(--surface)}
+  .btn.danger{background:transparent;color:#c0392b;border:1px solid transparent;margin-right:auto}
+  .btn.danger:hover{background:#fbe9e6}
+
+  .avatar{
+    width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;
+    color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;flex:none;
+  }
+  .avatar.sm{width:22px;height:22px;font-size:9.5px}
+  .avatar.none{background:transparent!important;border:1.5px dashed var(--line);color:var(--muted)}
+
+  /* Board */
+  main{
+    flex:1;display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:16px;
+    padding:16px 28px 28px;overflow-x:auto;align-items:start;
+  }
+  .column{
+    background:var(--surface);border-radius:16px;padding:10px;
+    display:flex;flex-direction:column;max-height:calc(100vh - 130px);min-height:200px;
+    transition:box-shadow .15s,background .15s;
+  }
+  .column.over{background:#e4e0d7;box-shadow:inset 0 0 0 2px rgba(232,85,58,.35)}
+  .col-head{display:flex;align-items:center;gap:8px;padding:6px 6px 10px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .col-head h2{margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .count{
+    background:rgba(31,29,26,.08);border-radius:999px;font-size:12px;font-weight:600;
+    padding:1px 8px;color:var(--muted);
+  }
+  .col-head .add{
+    margin-left:auto;width:26px;height:26px;border-radius:8px;border:0;background:transparent;
+    font-size:18px;line-height:1;color:var(--muted);
+  }
+  .col-head .add:hover{background:rgba(31,29,26,.08);color:var(--ink)}
+  .list{display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding:2px;flex:1;min-height:70px}
+  .empty{
+    border:1.5px dashed #cbc6bb;border-radius:var(--radius);color:var(--muted);
+    text-align:center;padding:22px 10px;font-size:13px;
+  }
+  .column.over .empty{display:none}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);padding:12px 12px 11px;
+    box-shadow:var(--shadow);cursor:grab;border:1px solid transparent;
+    display:flex;flex-direction:column;gap:9px;
+    transition:box-shadow .15s,transform .15s,border-color .15s;
+  }
+  .card:hover{box-shadow:0 4px 14px rgba(31,29,26,.1);border-color:var(--line)}
+  .card.dragging{opacity:.4;transform:scale(.98)}
+  .card:active{cursor:grabbing}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+  .prio{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:500}
+  .prio i{width:7px;height:7px;border-radius:50%;display:block}
+  .card h3{margin:0;font-size:14px;font-weight:600;line-height:1.35}
+  .card p{margin:0;color:var(--muted);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-foot{display:flex;align-items:center;justify-content:space-between;min-height:22px}
+  .due{
+    font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;
+  }
+  .due svg{width:12px;height:12px}
+  .due.late{color:#c0392b;font-weight:600}
+  .due.soon{color:#b7791f;font-weight:600}
+  .card.done h3{color:var(--muted);text-decoration:line-through;text-decoration-color:#b5b0a5}
+
+  .drop-ind{height:4px;border-radius:4px;background:var(--accent);margin:-2px 0;flex:none;pointer-events:none}
+
+  /* Dialog */
+  dialog{
+    border:0;border-radius:18px;padding:0;width:min(520px,calc(100vw - 32px));
+    box-shadow:var(--shadow-lg);color:var(--ink);background:#fff;
+  }
+  dialog::backdrop{background:rgba(31,29,26,.4);backdrop-filter:blur(2px)}
+  dialog form{display:flex;flex-direction:column;gap:14px;padding:22px}
+  dialog h2{margin:0;font-family:Fraunces,Georgia,serif;font-size:21px}
+  label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted)}
+  input[type=text],input[type=date],select,textarea{
+    font:inherit;color:var(--ink);font-weight:400;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;width:100%;
+  }
+  textarea{resize:vertical;min-height:80px}
+  input:focus,select:focus,textarea:focus{outline:2px solid rgba(232,85,58,.35);border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  .hint{font-size:11.5px;color:var(--muted);margin:-4px 0 0}
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:var(--ink);color:#fff;padding:10px 12px 10px 16px;border-radius:12px;
+    display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-lg);transition:.25s;z-index:20;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .toast button{background:rgba(255,255,255,.14);border:0;border-radius:8px;padding:4px 10px;font-weight:600;color:#fff}
+  .toast button:hover{background:rgba(255,255,255,.26)}
+
+  @media (max-width:720px){
+    header{padding:16px 16px 4px}
+    main{padding:12px 16px 24px;grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}
+    .column{scroll-snap-align:start;max-height:none}
+    .search input{width:100%}
+    .search{flex:1;min-width:150px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Studio<span>.</span>board</h1>
+    <span class="stats" id="stats"></span>
+  </div>
+  <div class="tools">
+    <div class="search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>
+      <input id="q" type="search" placeholder="Search tasks…" aria-label="Search tasks">
+    </div>
+    <div class="people" id="people" role="group" aria-label="Filter by teammate"></div>
+    <button class="btn" id="newBtn"><span aria-hidden="true">+</span> New task</button>
+  </div>
+</header>
+
+<main id="board"></main>
+
+<dialog id="dlg">
+  <form id="form">
+    <h2 id="dlgTitle">New task</h2>
+    <label>Title
+      <input type="text" id="fTitle" required maxlength="120" placeholder="e.g. Redesign onboarding flow">
+    </label>
+    <label>Description
+      <textarea id="fDesc" placeholder="Add context, links, or acceptance notes…"></textarea>
+    </label>
+    <div class="row">
+      <label>Status <select id="fCol"></select></label>
+      <label>Assignee <select id="fWho"></select></label>
+    </div>
+    <div class="row">
+      <label>Type <select id="fTag"></select></label>
+      <label>Priority
+        <select id="fPrio">
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </label>
+    </div>
+    <label>Due date <input type="date" id="fDue"></label>
+    <p class="hint">Tip: drag cards between columns, or focus a card and press Alt + ← / → to move it.</p>
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn">Delete</button>
+      <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn">Save task</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
+
+<script>
+(() => {
+  const COLS = [
+    {id:'backlog', name:'Backlog',     color:'#9a948a'},
+    {id:'doing',   name:'In progress', color:'#e8a33a'},
+    {id:'review',  name:'In review',   color:'#7b61ff'},
+    {id:'done',    name:'Done',        color:'#2f9e6e'}
+  ];
+  const TAGS = {
+    Brand:        {bg:'#fde8e2', fg:'#a8391f'},
+    UI:           {bg:'#e4ecff', fg:'#2f4cb3'},
+    Research:     {bg:'#e1f4ea', fg:'#1f7048'},
+    Illustration: {bg:'#fff1d6', fg:'#8a5a0c'},
+    Motion:       {bg:'#efe6ff', fg:'#5a3bb5'},
+    Prototype:    {bg:'#e0f3f5', fg:'#1b6672'}
+  };
+  const PRIO = {high:{label:'High',color:'#e8553a'}, med:{label:'Medium',color:'#e8a33a'}, low:{label:'Low',color:'#9a948a'}};
+  const TEAM = [
+    {id:'maya',  name:'Maya Chen',    color:'#e8553a'},
+    {id:'jonas', name:'Jonas Weber',  color:'#3b6fd8'},
+    {id:'priya', name:'Priya Nair',   color:'#2f9e6e'},
+    {id:'leo',   name:'Leo Santos',   color:'#8a58d6'}
+  ];
+  const KEY = 'studio-board-v1';
+
+  const $ = s => document.querySelector(s);
+  const el = (tag, props = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k,v] of Object.entries(props)) {
+      if (k === 'class') n.className = v;
+      else if (k === 'style') n.style.cssText = v;
+      else if (k === 'dataset') Object.assign(n.dataset, v);
+      else if (k in n) n[k] = v;
+      else n.setAttribute(k, v);
+    }
+    kids.flat().forEach(c => c != null && n.append(c.nodeType ? c : document.createTextNode(c)));
+    return n;
+  };
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const iso = d => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0,10); };
+  const off = n => { const d = new Date(today); d.setDate(d.getDate() + n); return iso(d); };
+  const uid = () => Math.random().toString(36).slice(2, 9);
+
+  const seed = () => [
+    {id:uid(), col:'backlog', title:'Audit icon set for consistency', desc:'Check stroke weights and corner radii across all 240 icons.', tag:'UI', prio:'low', who:'priya', due:off(12)},
+    {id:uid(), col:'backlog', title:'Customer interviews: onboarding drop-off', desc:'Recruit 6 participants from the churned-trial segment.', tag:'Research', prio:'med', who:'jonas', due:off(6)},
+    {id:uid(), col:'backlog', title:'Spring campaign illustration directions', desc:'', tag:'Illustration', prio:'med', who:'', due:''},
+    {id:uid(), col:'doing',   title:'Redesign pricing page', desc:'Three-tier layout with comparison table and FAQ accordion.', tag:'UI', prio:'high', who:'maya', due:off(2)},
+    {id:uid(), col:'doing',   title:'Logo lockups for partner program', desc:'Horizontal, stacked, and monochrome variants.', tag:'Brand', prio:'high', who:'leo', due:off(-1)},
+    {id:uid(), col:'doing',   title:'Checkout micro-interactions', desc:'Button states, success confirmation, and error shakes.', tag:'Motion', prio:'med', who:'priya', due:off(5)},
+    {id:uid(), col:'review',  title:'Mobile nav prototype', desc:'Clickable Figma prototype for usability testing on Thursday.', tag:'Prototype', prio:'high', who:'jonas', due:off(1)},
+    {id:uid(), col:'review',  title:'Empty-state illustrations', desc:'Five spot illustrations for inbox, search, and reports.', tag:'Illustration', prio:'low', who:'leo', due:off(3)},
+    {id:uid(), col:'done',    title:'Design tokens v2 handoff', desc:'Color, type, and spacing tokens exported to the dev repo.', tag:'UI', prio:'med', who:'maya', due:off(-4)},
+    {id:uid(), col:'done',    title:'Brand voice one-pager', desc:'', tag:'Brand', prio:'low', who:'priya', due:off(-7)}
+  ];
+
+  let tasks;
+  try { tasks = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+  if (!Array.isArray(tasks)) tasks = seed();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch(e) {} };
+
+  let query = '', person = null, dragId = null, editId = null, lastDeleted = null, toastTimer;
+
+  const member = id => TEAM.find(m => m.id === id);
+  const initials = n => n.split(' ').map(p => p[0]).join('');
+  function avatar(id, small) {
+    const m = member(id);
+    if (!m) return el('span', {class:'avatar none' + (small ? ' sm' : ''), title:'Unassigned'}, '·');
+    return el('span', {class:'avatar' + (small ? ' sm' : ''), style:`background:${m.color}`, title:m.name}, initials(m.name));
+  }
+
+  const matches = t => {
+    if (person && t.who !== person) return false;
+    if (!query) return true;
+    return (t.title + ' ' + t.desc + ' ' + t.tag).toLowerCase().includes(query);
+  };
+
+  function fmtDue(t) {
+    const d = new Date(t.due + 'T00:00:00');
+    const diff = Math.round((d - today) / 864e5);
+    let text, cls = '';
+    if (diff === 0) text = 'Today';
+    else if (diff === 1) text = 'Tomorrow';
+    else if (diff === -1) text = 'Yesterday';
+    else text = d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+    if (t.col !== 'done') {
+      if (diff < 0) cls = 'late';
+      else if (diff <= 2) cls = 'soon';
+    }
+    return {text, cls};
+  }
+
+  const calIcon = () => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 16 16'); s.setAttribute('fill','none');
+    s.setAttribute('stroke','currentColor'); s.setAttribute('stroke-width','1.8'); s.setAttribute('stroke-linecap','round');
+    s.innerHTML = '<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5.5 1.5v3M10.5 1.5v3"/>';
+    return s;
+  };
+
+  function cardEl(t) {
+    const tg = TAGS[t.tag] || TAGS.UI;
+    const pr = PRIO[t.prio] || PRIO.med;
+    const foot = el('div', {class:'card-foot'});
+    if (t.due) {
+      const f = fmtDue(t);
+      foot.append(el('span', {class:'due ' + f.cls}, calIcon(), f.text));
+    } else foot.append(el('span'));
+    foot.append(avatar(t.who, true));
+
+    const c = el('article', {
+      class:'card' + (t.col === 'done' ? ' done' : ''),
+      draggable:true, tabIndex:0, dataset:{id:t.id},
+      'aria-label':`${t.title}. ${COLS.find(x => x.id === t.col).name}. Press Enter to edit.`
+    },
+      el('div', {class:'card-top'},
+        el('span', {class:'tag', style:`background:${tg.bg};color:${tg.fg}`}, t.tag),
+        el('span', {class:'prio'}, el('i', {style:`background:${pr.color}`}), pr.label)
+      ),
+      el('h3', {}, t.title),
+      t.desc ? el('p', {}, t.desc) : null,
+      foot
+    );
+    return c;
+  }
+
+  function render(focusId) {
+    const board = $('#board');
+    board.innerHTML = '';
+    COLS.forEach(col => {
+      const all = tasks.filter(t => t.col === col.id);
+      const vis = all.filter(matches);
+      const list = el('div', {class:'list', dataset:{col:col.id}});
+      vis.forEach(t => list.append(cardEl(t)));
+      if (!vis.length) list.append(el('div', {class:'empty'}, all.length ? 'No matching tasks' : 'Drop tasks here'));
+      board.append(el('section', {class:'column', dataset:{col:col.id}, 'aria-label':col.name},
+        el('div', {class:'col-head'},
+          el('span', {class:'dot', style:`background:${col.color}`}),
+          el('h2', {}, col.name),
+          el('span', {class:'count'}, String(all.length)),
+          el('button', {class:'add', title:`Add task to ${col.name}`, 'aria-label':`Add task to ${col.name}`, onclick:() => openDialog(null, col.id)}, '+')
+        ),
+        list
+      ));
+    });
+    const open = tasks.filter(t => t.col !== 'done').length;
+    const late = tasks.filter(t => t.col !== 'done' && t.due && t.due < iso(today)).length;
+    $('#stats').textContent = `${open} open` + (late ? ` · ${late} overdue` : '');
+    if (focusId) { const n = document.querySelector(`.card[data-id="${focusId}"]`); n && n.focus(); }
+  }
+
+  function renderPeople() {
+    const box = $('#people');
+    box.innerHTML = '';
+    box.append(el('span', {class:'lbl'}, 'Team'));
+    box.append(el('button', {class:'pbtn all', 'aria-pressed':String(!person), title:'Everyone', onclick:() => { person = null; renderPeople(); render(); }}, 'All'));
+    TEAM.forEach(m => {
+      const b = el('button', {class:'pbtn', 'aria-pressed':String(person === m.id), title:m.name, 'aria-label':`Filter by ${m.name}`,
+        onclick:() => { person = person === m.id ? null : m.id; renderPeople(); render(); }}, avatar(m.id));
+      box.append(b);
+    });
+  }
+
+  /* ---------- Drag & drop ---------- */
+  const board = $('#board');
+  const ind = el('div', {class:'drop-ind'});
+
+  board.addEventListener('dragstart', e => {
+    const c = e.target.closest && e.target.closest('.card');
+    if (!c) return;
+    dragId = c.dataset.id;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragId);
+    requestAnimationFrame(() => c.classList.add('dragging'));
+  });
+
+  board.addEventListener('dragover', e => {
+    if (!dragId) return;
+    const colEl = e.target.closest('.column');
+    if (!colEl) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    board.querySelectorAll('.column.over').forEach(c => c !== colEl && c.classList.remove('over'));
+    colEl.classList.add('over');
+    const list = colEl.querySelector('.list');
+    let before = null;
+    for (const c of list.querySelectorAll('.card:not(.dragging)')) {
+      const r = c.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { before = c; break; }
+    }
+    if (before) { if (ind.nextSibling !== before || ind.parentNode !== list) list.insertBefore(ind, before); }
+    else if (ind.parentNode !== list || ind.nextSibling) list.append(ind);
+  });
+
+  board.addEventListener('dragleave', e => {
+    const colEl = e.target.closest('.column');
+    if (colEl && !colEl.contains(e.relatedTarget)) { colEl.classList.remove('over'); if (ind.parentNode && colEl.contains(ind)) ind.remove(); }
+  });
+
+  board.addEventListener('drop', e => {
+    if (!dragId) return;
+    const colEl = e.target.closest('.column');
+    if (!colEl || ind.parentNode == null || !colEl.contains(ind)) return cleanup();
+    e.preventDefault();
+    let n = ind.nextElementSibling, beforeId = null;
+    while (n) { if (n.classList.contains('card') && !n.classList.contains('dragging')) { beforeId = n.dataset.id; break; } n = n.nextElementSibling; }
+    move(dragId, colEl.dataset.col, beforeId);
+    const id = dragId;
+    cleanup();
+    render(id);
+  });
+
+  board.addEventListener('dragend', () => { cleanup(); });
+
+  function cleanup() {
+    dragId = null;
+    ind.remove();
+    board.querySelectorAll('.over').forEach(c => c.classList.remove('over'));
+    board.querySelectorAll('.dragging').forEach(c => c.classList.remove('dragging'));
+  }
+
+  function move(id, col, beforeId) {
+    const i = tasks.findIndex(t => t.id === id);
+    if (i < 0) return;
+    const [t] = tasks.splice(i, 1);
+    t.col = col;
+    const j = beforeId ? tasks.findIndex(x => x.id === beforeId) : -1;
+    if (j >= 0) tasks.splice(j, 0, t); else tasks.push(t);
+    save();
+  }
+
+  /* ---------- Card interactions ---------- */
+  board.addEventListener('click', e => {
+    const c = e.target.closest('.card');
+    if (c) openDialog(c.dataset.id);
+  });
+  board.addEventListener('keydown', e => {
+    const c = e.target.closest && e.target.closest('.card');
+    if (!c || e.target !== c) return;
+    const id = c.dataset.id;
+    if (e.key === 'Enter') { e.preventDefault(); openDialog(id); }
+    else if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      e.preventDefault();
+      const t = tasks.find(x => x.id === id);
+      const i = COLS.findIndex(x => x.id === t.col) + (e.key === 'ArrowRight' ? 1 : -1);
+      if (i >= 0 && i < COLS.length) { move(id, COLS[i].id, null); render(id); }
+    }
+  });
+
+  /* ---------- Dialog ---------- */
+  const dlg = $('#dlg');
+  $('#fCol').append(...COLS.map(c => el('option', {value:c.id}, c.name)));
+  $('#fWho').append(el('option', {value:''}, 'Unassigned'), ...TEAM.map(m => el('option', {value:m.id}, m.name)));
+  $('#fTag').append(...Object.keys(TAGS).map(t => el('option', {value:t}, t)));
+
+  function openDialog(id, col) {
+    editId = id;
+    const t = id ? tasks.find(x => x.id === id) : {title:'', desc:'', col:col || 'backlog', tag:'UI', prio:'med', who:person || '', due:''};
+    $('#dlgTitle').textContent = id ? 'Edit task' : 'New task';
+    $('#fTitle').value = t.title;
+    $('#fDesc').value = t.desc;
+    $('#fCol').value = t.col;
+    $('#fWho').value = t.who;
+    $('#fTag').value = t.tag;
+    $('#fPrio').value = t.prio;
+    $('#fDue').value = t.due;
+    $('#delBtn').style.display = id ? '' : 'none';
+    dlg.showModal();
+    $('#fTitle').focus();
+  }
+
+  $('#newBtn').onclick = () => openDialog(null);
+  $('#cancelBtn').onclick = () => dlg.close();
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+  $('#form').addEventListener('submit', e => {
+    e.preventDefault();
+    const title = $('#fTitle').value.trim();
+    if (!title) return $('#fTitle').focus();
+    const data = {
+      title, desc:$('#fDesc').value.trim(), col:$('#fCol').value, who:$('#fWho').value,
+      tag:$('#fTag').value, prio:$('#fPrio').value, due:$('#fDue').value
+    };
+    let id = editId;
+    if (id) {
+      const t = tasks.find(x => x.id === id);
+      const colChanged = t.col !== data.col;
+      Object.assign(t, data);
+      if (colChanged) move(id, data.col, null);
+    } else {
+      id = uid();
+      tasks.push({id, ...data});
+    }
+    save();
+    dlg.close();
+    render(id);
+  });
+
+  $('#delBtn').onclick = () => {
+    const i = tasks.findIndex(t => t.id === editId);
+    if (i < 0) return;
+    lastDeleted = {task:tasks[i], index:i};
+    tasks.splice(i, 1);
+    save(); dlg.close(); render();
+    showToast(`Deleted “${lastDeleted.task.title}”`);
+  };
+
+  /* ---------- Toast / undo ---------- */
+  function showToast(msg) {
+    $('#toastMsg').textContent = msg;
+    $('#toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 6000);
+  }
+  $('#undoBtn').onclick = () => {
+    if (!lastDeleted) return;
+    tasks.splice(lastDeleted.index, 0, lastDeleted.task);
+    const id = lastDeleted.task.id;
+    lastDeleted = null;
+    save(); render(id);
+    $('#toast').classList.remove('show');
+  };
+
+  /* ---------- Search ---------- */
+  $('#q').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); render(); });
+
+  renderPeople();
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account settings · Kiln</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #c8401f;
+    --accent-ink: var(--accent);
+    --on-accent: #fff;
+    --bg: #f3f0e8;
+    --surface: #fbfaf5;
+    --field: #fffefb;
+    --sunken: #e9e5d9;
+    --ink: #1c1b18;
+    --muted: #645f54;
+    --line: #dcd7ca;
+    --line-strong: #bdb7a7;
+    --switch-off: #8f897a;
+    --danger: #b3261e;
+    --ok: #2a6541;
+    --pad: 20px;
+    --row-y: 16px;
+    --radius: 12px;
+    --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --side: 248px;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --accent-ink: color-mix(in oklab, var(--accent) 55%, white);
+    --bg: #131311;
+    --surface: #1b1a18;
+    --field: #121210;
+    --sunken: #0d0d0b;
+    --ink: #ece9e0;
+    --muted: #a09b8f;
+    --line: #2c2b27;
+    --line-strong: #4a4841;
+    --switch-off: #5e5b53;
+    --danger: #f0766c;
+    --ok: #7cc29a;
+  }
+  [data-density="compact"] { --pad: 16px; --row-y: 10px; }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, p { margin: 0; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; border-radius: 4px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---------- Shell ---------- */
+  .app { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); min-height: 100vh; }
+
+  .side {
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 20px 14px;
+    border-right: 1px solid var(--line);
+    background: var(--bg);
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--ink);
+    display: grid; place-items: center; flex: none;
+  }
+  .brand-mark i { display: block; width: 10px; height: 10px; border-radius: 50% 50% 2px 50%; background: var(--accent); }
+  .brand-name { font: 400 22px/1 var(--serif); letter-spacing: .01em; }
+  .back {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; margin-bottom: 18px;
+    font-size: 13px; color: var(--muted); text-decoration: none; border-radius: 7px;
+  }
+  .back:hover { color: var(--ink); background: var(--sunken); }
+  .eyebrow {
+    font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .side .eyebrow { padding: 0 8px 8px; }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px; border-radius: 7px;
+    font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; white-space: nowrap;
+  }
+  .nav a svg { flex: none; }
+  .nav a:hover { color: var(--ink); background: var(--sunken); }
+  .nav a[aria-current="true"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .nav a[aria-current="true"] svg { color: var(--accent-ink); }
+  .me {
+    margin-top: auto; display: flex; align-items: center; gap: 10px;
+    padding: 12px 8px 0; border-top: 1px solid var(--line); min-width: 0;
+  }
+  .me-text { min-width: 0; }
+  .me-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .me-mail { font: 400 11px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .avatar {
+    display: grid; place-items: center; flex: none; overflow: hidden;
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--ink); color: var(--bg);
+    font: 400 28px/1 var(--serif);
+    background-size: cover; background-position: center;
+  }
+  .avatar.sm { width: 32px; height: 32px; font-size: 14px; }
+
+  main { min-width: 0; padding: 56px 48px 160px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .page-head { padding-bottom: 36px; border-bottom: 1px solid var(--line); }
+  .page-head h1 { font: 400 clamp(38px, 6vw, 54px)/1.02 var(--serif); letter-spacing: -.01em; margin: 14px 0 12px; text-wrap: balance; }
+  .page-head h1 em { color: var(--accent-ink); }
+  .page-head p { color: var(--muted); max-width: 52ch; }
+
+  section { padding-top: 44px; scroll-margin-top: 8px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .sec-head .num { font: 500 12px/1 var(--mono); color: var(--accent-ink); }
+  .sec-head h2 { font: 400 30px/1.1 var(--serif); }
+  .sec-desc { color: var(--muted); font-size: 14px; margin-bottom: 18px; max-width: 60ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .card-pad { padding: var(--pad); }
+  .card-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 12px var(--pad); border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--muted);
+  }
+  .row {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 12px 24px; padding: var(--row-y) var(--pad);
+  }
+  .row + .row, .stack + .row, .row + .stack, .stack + .stack { border-top: 1px solid var(--line); }
+  .row-text { flex: 1 1 240px; min-width: 0; }
+  .row-title { font-weight: 500; font-size: 14px; }
+  .row-sub { font-size: 13px; color: var(--muted); }
+  .stack { padding: var(--row-y) var(--pad); }
+  .stack > .row-text { margin-bottom: 12px; }
+
+  /* ---------- Controls ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 38px; padding: 0 14px;
+    border: 1px solid var(--line-strong); border-radius: 8px;
+    background: var(--field); color: var(--ink);
+    font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+    transition: background .12s, border-color .12s, transform .06s;
+  }
+  .btn:hover { border-color: var(--ink); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { background: color-mix(in oklab, var(--accent) 88%, black); border-color: transparent; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover { color: var(--ink); background: var(--sunken); }
+  .btn.danger { color: var(--danger); border-color: color-mix(in oklab, var(--danger) 45%, transparent); background: transparent; }
+  .btn.danger:hover { border-color: var(--danger); background: color-mix(in oklab, var(--danger) 8%, transparent); }
+  .btn.danger-solid { background: #b3261e; border-color: #b3261e; color: #fff; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label, .label { font-size: 13px; font-weight: 500; }
+  .label-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .hint { font-size: 12px; color: var(--muted); }
+  .hint.mono { font-family: var(--mono); }
+  .err { font-size: 12px; color: var(--danger); min-height: 0; }
+  .err:empty { display: none; }
+  .input, select.input, textarea.input {
+    width: 100%; min-height: 40px; padding: 8px 12px;
+    background: var(--field); border: 1px solid var(--line-strong); border-radius: 8px;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  textarea.input { resize: vertical; min-height: 84px; line-height: 1.45; }
+  .input:hover { border-color: var(--muted); }
+  .input:focus { outline: none; border-color: var(--accent-ink); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .input[aria-invalid="true"] { border-color: var(--danger); }
+  select.input {
+    appearance: none; padding-right: 34px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 17px) 17px, calc(100% - 12px) 17px;
+    background-size: 5px 5px; background-repeat: no-repeat;
+  }
+  .with-btn { position: relative; }
+  .with-btn .input { padding-right: 64px; }
+  .with-btn button {
+    position: absolute; right: 4px; top: 4px; height: 32px; padding: 0 10px;
+    border: 0; background: transparent; border-radius: 6px; cursor: pointer;
+    font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  }
+  .with-btn button:hover { color: var(--ink); background: var(--sunken); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 999px;
+    font: 500 11px/1.2 var(--mono); letter-spacing: .03em;
+    color: var(--ok); background: color-mix(in oklab, var(--ok) 13%, transparent);
+  }
+  .badge.neutral { color: var(--muted); background: var(--sunken); }
+
+  .switch {
+    appearance: none; margin: 0; flex: none; cursor: pointer; position: relative;
+    width: 42px; height: 24px; border-radius: 999px; background: var(--switch-off);
+    transition: background .15s;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3);
+    transition: transform .15s;
+  }
+  .switch:checked { background: var(--accent); }
+  .switch:checked::after { transform: translateX(18px); }
+  .switch:focus-visible { border-radius: 999px; }
+
+  .check {
+    appearance: none; margin: 0; cursor: pointer;
+    width: 20px; height: 20px; border-radius: 6px;
+    border: 1.5px solid var(--switch-off); background: var(--field);
+    display: grid; place-content: center; transition: background .12s, border-color .12s;
+  }
+  .check::after {
+    content: ""; width: 10px; height: 5px;
+    border-left: 2px solid var(--on-accent); border-bottom: 2px solid var(--on-accent);
+    transform: translateY(-1px) rotate(-45deg) scale(0); transition: transform .12s;
+  }
+  .check:checked { background: var(--accent); border-color: var(--accent); }
+  .check:checked::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
+
+  .seg { display: inline-flex; padding: 3px; background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; max-width: 100%; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .seg span { display: block; padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .seg input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 0 0 1px var(--line); }
+  .seg input:focus-visible + span { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+
+  /* Profile */
+  .avatar-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: var(--pad); margin-bottom: var(--pad); border-bottom: 1px solid var(--line); }
+  .avatar-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* Theme picker */
+  .themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .theme { position: relative; display: block; cursor: pointer; border-radius: 10px; border: 1px solid var(--line-strong); padding: 6px 6px 8px; background: var(--field); }
+  .theme input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .theme:has(input:checked) { border-color: var(--accent-ink); box-shadow: 0 0 0 1px var(--accent-ink); }
+  .theme:has(input:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+  .theme-name { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; font-size: 13px; font-weight: 500; }
+  .theme-name i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--switch-off); }
+  .theme:has(input:checked) .theme-name i { border: 4px solid var(--accent-ink); }
+  .pv { height: 74px; border-radius: 6px; overflow: hidden; display: grid; grid-template-columns: 26% 1fr; border: 1px solid rgba(128,128,128,.25); }
+  .pv b { display: block; border-radius: 2px; height: 5px; margin: 7px 6px 0; }
+  .pv .a { border-right: 1px solid rgba(128,128,128,.25); }
+  .pv .b b:first-child { width: 45%; height: 7px; margin-top: 10px; }
+  .pv .b b:last-child { width: 30%; background: var(--accent) !important; }
+  .pv.light { background: #f3f0e8; } .pv.light b { background: #cfc9ba; } .pv.light .b b:first-child { background: #1c1b18; }
+  .pv.dark { background: #131311; } .pv.dark b { background: #3a3832; } .pv.dark .b b:first-child { background: #ece9e0; }
+  .pv.system { background: linear-gradient(115deg, #f3f0e8 50%, #131311 50%); } .pv.system b { background: #8d887b; }
+
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+  .swatch { position: relative; width: 34px; height: 34px; border-radius: 50%; background: var(--c); cursor: pointer; display: block; }
+  .swatch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .swatch:has(input:checked) { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--ink); }
+  .swatch:has(input:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 6px; }
+
+  /* Notifications */
+  .matrix { width: 100%; border-collapse: collapse; }
+  .matrix th, .matrix td { padding: 0; }
+  .matrix thead th { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 14px 0; width: 72px; text-align: center; }
+  .matrix thead th:first-child { width: auto; text-align: left; padding-left: var(--pad); }
+  .matrix thead th:last-child, .matrix td:last-child { padding-right: 8px; }
+  .matrix tbody tr { border-top: 1px solid var(--line); }
+  .matrix tbody th { text-align: left; font-weight: 400; padding: var(--row-y) 8px var(--row-y) var(--pad); }
+  .matrix td label { display: grid; place-items: center; min-height: 48px; cursor: pointer; }
+  .quiet { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .quiet .input { width: auto; }
+
+  /* Security */
+  .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 2px; }
+  .meter i { height: 4px; border-radius: 2px; background: var(--line); transition: background .15s; }
+  .meter[data-score="1"] i:nth-child(-n+1) { background: var(--danger); }
+  .meter[data-score="2"] i:nth-child(-n+2) { background: #b7791f; }
+  .meter[data-score="3"] i:nth-child(-n+3) { background: var(--ok); }
+  .meter[data-score="4"] i { background: var(--ok); }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; align-items: center; gap: 14px; padding: var(--row-y) var(--pad); flex-wrap: wrap; }
+  .list li + li { border-top: 1px solid var(--line); }
+  .tile {
+    width: 38px; height: 38px; border-radius: 9px; flex: none;
+    display: grid; place-items: center;
+    background: var(--sunken); border: 1px solid var(--line); color: var(--muted);
+    font: 500 13px/1 var(--mono);
+  }
+  .list .row-text { flex: 1 1 200px; }
+  .list .meta { font: 400 12px/1.5 var(--mono); color: var(--muted); }
+  .sub-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px var(--pad); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: color-mix(in oklab, var(--sunken) 45%, transparent); }
+
+  .danger-card { border-color: color-mix(in oklab, var(--danger) 40%, var(--line)); }
+
+  /* Save bar + toast */
+  .savebar {
+    position: fixed; bottom: 20px; left: calc(var(--side) + (100vw - var(--side)) / 2);
+    transform: translate(-50%, 140%); opacity: 0;
+    display: flex; align-items: center; gap: 16px;
+    width: max-content; max-width: calc(100vw - 32px);
+    padding: 10px 10px 10px 18px; border-radius: 14px;
+    background: var(--ink); color: var(--bg);
+    box-shadow: 0 12px 32px rgba(0,0,0,.28);
+    transition: transform .28s cubic-bezier(.2,.9,.3,1.1), opacity .2s; z-index: 40;
+  }
+  .savebar[data-show="true"] { transform: translate(-50%, 0); opacity: 1; }
+  .savebar p { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .savebar p::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-ink); flex: none; }
+  .savebar .btn.ghost { color: var(--bg); opacity: .75; }
+  .savebar .btn.ghost:hover { background: color-mix(in oklab, var(--bg) 14%, transparent); opacity: 1; }
+  .savebar-actions { display: flex; gap: 6px; }
+  .toast {
+    position: fixed; top: 20px; right: 20px; z-index: 50;
+    max-width: min(340px, calc(100vw - 40px));
+    padding: 11px 16px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line-strong);
+    box-shadow: 0 8px 24px rgba(0,0,0,.16);
+    font-size: 14px; pointer-events: none;
+    transform: translateY(-12px); opacity: 0; transition: transform .2s, opacity .2s;
+  }
+  .toast[data-show="true"] { transform: none; opacity: 1; }
+
+  dialog {
+    width: min(460px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line-strong);
+    border-radius: 16px; background: var(--surface); color: var(--ink);
+    box-shadow: 0 30px 80px rgba(0,0,0,.4);
+  }
+  dialog::backdrop { background: rgba(15,14,12,.55); backdrop-filter: blur(3px); }
+  .dlg-body { padding: 24px 24px 8px; display: grid; gap: 12px; }
+  .dlg-body h3 { font: 400 28px/1.1 var(--serif); }
+  .dlg-body p { color: var(--muted); font-size: 14px; }
+  .dlg-body code { font: 500 13px var(--mono); color: var(--ink); background: var(--sunken); padding: 2px 6px; border-radius: 5px; }
+  .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px 24px; flex-wrap: wrap; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .app { display: block; }
+    .side {
+      height: auto; flex-direction: row; align-items: center; gap: 4px;
+      padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line);
+    }
+    .brand { padding: 0 8px 0 0; }
+    .brand-name, .back, .side .eyebrow, .me { display: none; }
+    .nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 4px; padding: 2px; flex: 1; min-width: 0; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav a { padding: 10px 12px; min-height: 44px; }
+    .nav a svg { display: none; }
+    main { padding: 32px 16px 160px; }
+    section { scroll-margin-top: 72px; }
+    .savebar { left: 50%; }
+    .toast { top: 76px; right: 16px; }
+  }
+  @media (max-width: 600px) {
+    .fields { grid-template-columns: 1fr; }
+    .themes { gap: 8px; }
+    .pv { height: 56px; }
+    .matrix thead th { width: 54px; letter-spacing: .02em; }
+    .seg span { padding: 10px 12px; }
+    .btn { min-height: 44px; }
+    .savebar { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; width: calc(100vw - 24px); bottom: 12px; }
+    .savebar-actions > * { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i></span>
+      <span class="brand-name">Kiln</span>
+    </div>
+    <a class="back" href="#profile">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>
+      Northpier Studio
+    </a>
+    <div class="eyebrow">Your account</div>
+    <nav class="nav" id="nav" aria-label="Settings sections">
+      <a href="#profile" aria-current="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.75"/><path d="M2.75 13.5c.6-2.4 2.7-3.75 5.25-3.75s4.65 1.35 5.25 3.75"/></svg>
+        Profile
+      </a>
+      <a href="#preferences">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4.5h6m3 0h2m-11 7h2m3 0h6"/><circle cx="10" cy="4.5" r="1.5"/><circle cx="6" cy="11.5" r="1.5"/></svg>
+        Preferences
+      </a>
+      <a href="#notifications">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1.25 4 1.25 4H2.75S4 9.500 4 6.5ZM6.5 13a1.6 1.6 0 0 0 3 0"/></svg>
+        Notifications
+      </a>
+      <a href="#security">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+        Security
+      </a>
+      <a href="#apps">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><path d="M11.25 9.25v4m-2-2h4"/></svg>
+        Connected apps
+      </a>
+      <a href="#danger">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5 14 13H2L8 2.500ZM8 6.5v3m0 1.75v.25"/></svg>
+        Danger zone
+      </a>
+    </nav>
+    <div class="me">
+      <span class="avatar sm" data-initials aria-hidden="true">MO</span>
+      <div class="me-text">
+        <div class="me-name" data-me-name>Maren Okafor</div>
+        <div class="me-mail" data-me-mail>maren@northpier.studio</div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="wrap">
+      <header class="page-head">
+        <div class="eyebrow">Settings / Account</div>
+        <h1>Your account, <em>your way of working.</em></h1>
+        <p>Manage how you appear to teammates, how Kiln looks and behaves for you, and how your account is protected. These settings apply only to you, not the workspace.</p>
+      </header>
+
+      <!-- 01 Profile -->
+      <section id="profile" aria-labelledby="h-profile">
+        <div class="sec-head"><span class="num">01</span><h2 id="h-profile">Profile</h2></div>
+        <p class="sec-desc">Shown on tasks you own, in comments, and anywhere a teammate mentions you.</p>
+        <form class="card" id="profile-form" novalidate>
+          <div class="card-pad">
+            <div class="avatar-row">
+              <span class="avatar" id="avatar" data-initials aria-hidden="true">MO</span>
+              <div>
+                <div class="avatar-actions">
+                  <label class="btn" for="avatar-file">Upload photo</label>
+                  <input class="sr-only" type="file" id="avatar-file" accept="image/*">
+                  <button type="button" class="btn ghost" id="avatar-remove" hidden>Remove</button>
+                </div>
+                <p class="hint" style="margin-top:8px">PNG or JPG, at least 256 × 256 px.</p>
+              </div>
+            </div>
+            <div class="fields">
+              <div class="field">
+                <label for="f-name">Full name</label>
+                <input class="input" id="f-name" name="name" value="Maren Okafor" autocomplete="name" required aria-describedby="e-name">
+                <span class="err" id="e-name" role="alert"></span>
+              </div>
+              <div class="field">
+                <label for="f-handle">Display name</label>
+                <input class="input" id="f-handle" name="handle" value="maren" autocomplete="nickname" aria-describedby="h-handle">
+                <span class="hint" id="h-handle">Teammates mention you with @maren</span>
+              </div>
+              <div class="field full">
+                <div class="label-line">
+                  <label for="f-email">Email address</label>
+                  <span class="badge">✓ Verified</span>
+                </div>
+                <input class="input" id="f-email" name="email" type="email" value="maren@northpier.studio" autocomplete="email" required aria-describedby="e-email">
+                <span class="err" id="e-email" role="alert"></span>
+              </div>
+              <div class="field">
+                <label for="f-title">Job title</label>
+                <input class="input" id="f-title" name="title" value="Delivery Lead" autocomplete="organization-title">
+              </div>
+              <div class="field">
+                <label for="f-pronouns">Pronouns <span class="hint">· optional</span></label>
+                <input class="input" id="f-pronouns" name="pronouns" value="" placeholder="e.g. they/them">
+              </div>
+              <div class="field full">
+                <div class="label-line">
+                  <label for="f-bio">About</label>
+                  <span class="hint mono" id="bio-count" aria-live="off">0 / 160</span>
+                </div>
+                <textarea class="input" id="f-bio" name="bio" maxlength="160" rows="3">Keeps the Harbor redesign and client onboarding tracks moving. Best reached before 4pm.</textarea>
+              </div>
+              <div class="field">
+                <label for="f-tz">Time zone</label>
+                <select class="input" id="f-tz" name="tz">
+                  <option>(UTC−08:00) Pacific Time</option>
+                  <option>(UTC−05:00) Eastern Time</option>
+                  <option selected>(UTC+00:00) London</option>
+                  <option>(UTC+01:00) Lagos, Berlin</option>
+                  <option>(UTC+05:30) Mumbai</option>
+                  <option>(UTC+09:00) Tokyo</option>
+                  <option>(UTC+11:00) Sydney</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-lang">Language</label>
+                <select class="input" id="f-lang" name="lang">
+                  <option selected>English (UK)</option>
+                  <option>English (US)</option>
+                  <option>Deutsch</option>
+                  <option>Español</option>
+                  <option>Français</option>
+                  <option>日本語</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card-foot">
+            <span>Due dates and reminders follow your time zone.</span>
+            <button class="btn primary" type="submit">Save profile</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 02 Preferences -->
+      <section id="preferences" aria-labelledby="h-pref">
+        <div class="sec-head"><span class="num">02</span><h2 id="h-pref">Preferences</h2></div>
+        <p class="sec-desc">How Kiln looks and opens for you. Changes here apply straight away.</p>
+        <div class="card">
+          <fieldset class="stack" style="border:0;margin:0;min-width:0">
+            <legend class="sr-only">Theme</legend>
+            <div class="row-text"><div class="row-title" aria-hidden="true">Theme</div><div class="row-sub">System follows your device's light or dark setting.</div></div>
+            <div class="themes">
+              <label class="theme"><input type="radio" name="theme" value="light"><div class="pv light" aria-hidden="true"><div class="a"><b></b><b></b><b></b></div><div class="b"><b></b><b></b><b></b></div></div><span class="theme-name">Light <i></i></span></label>
+              <label class="theme"><input type="radio" name="theme" value="dark"><div class="pv dark" aria-hidden="true"><div class="a"><b></b><b></b><b></b></div><div class="b"><b></b><b></b><b></b></div></div><span class="theme-name">Dark <i></i></span></label>
+              <label class="theme"><input type="radio" name="theme" value="system" checked><div class="pv system" aria-hidden="true"><div class="a"><b></b><b></b><b></b></div><div class="b"><b></b><b></b><b></b></div></div><span class="theme-name">System <i></i></span></label>
+            </div>
+          </fieldset>
+          <fieldset class="row" style="border:0;border-top:1px solid var(--line);margin:0;min-width:0">
+            <legend class="sr-only">Accent colour</legend>
+            <div class="row-text"><div class="row-title" aria-hidden="true">Accent colour</div><div class="row-sub">Used for buttons, highlights and your cursor in shared docs.</div></div>
+            <div class="swatches">
+              <label class="swatch" style="--c:#c8401f"><input type="radio" name="accent" value="#c8401f" checked><span class="sr-only">Vermilion</span></label>
+              <label class="swatch" style="--c:#96610f"><input type="radio" name="accent" value="#96610f"><span class="sr-only">Ochre</span></label>
+              <label class="swatch" style="--c:#3f6b4f"><input type="radio" name="accent" value="#3f6b4f"><span class="sr-only">Moss</span></label>
+              <label class="swatch" style="--c:#2f55d4"><input type="radio" name="accent" value="#2f55d4"><span class="sr-only">Cobalt</span></label>
+              <label class="swatch" style="--c:#7a3b78"><input type="radio" name="accent" value="#7a3b78"><span class="sr-only">Plum</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="row" style="border:0;border-top:1px solid var(--line);margin:0;min-width:0">
+            <legend class="sr-only">Density</legend>
+            <div class="row-text"><div class="row-title" aria-hidden="true">Density</div><div class="row-sub">Compact fits more rows on screen.</div></div>
+            <div class="seg">
+              <label><input type="radio" name="density" value="comfortable" checked><span>Comfortable</span></label>
+              <label><input type="radio" name="density" value="compact"><span>Compact</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="row" style="border:0;border-top:1px solid var(--line);margin:0;min-width:0">
+            <legend class="sr-only">Default project view</legend>
+            <div class="row-text"><div class="row-title" aria-hidden="true">Default project view</div><div class="row-sub">What you see first when you open a project.</div></div>
+            <div class="seg" data-autosave="Default view updated">
+              <label><input type="radio" name="view" value="list"><span>List</span></label>
+              <label><input type="radio" name="view" value="board" checked><span>Board</span></label>
+              <label><input type="radio" name="view" value="timeline"><span>Timeline</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="row" style="border:0;border-top:1px solid var(--line);margin:0;min-width:0">
+            <legend class="sr-only">Week starts on</legend>
+            <div class="row-text"><div class="row-title" aria-hidden="true">Week starts on</div><div class="row-sub">Affects calendars and the timeline grid.</div></div>
+            <div class="seg" data-autosave="Week start updated">
+              <label><input type="radio" name="week" value="mon" checked><span>Monday</span></label>
+              <label><input type="radio" name="week" value="sun"><span>Sunday</span></label>
+            </div>
+          </fieldset>
+          <div class="row">
+            <div class="row-text"><label class="row-title" for="sw-mine">Open "My tasks" on launch</label><div class="row-sub">Skip the workspace home and land on your own list.</div></div>
+            <input class="switch" type="checkbox" role="switch" id="sw-mine" checked data-autosave="Launch preference saved">
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 Notifications -->
+      <section id="notifications" aria-labelledby="h-notif">
+        <div class="sec-head"><span class="num">03</span><h2 id="h-notif">Notifications</h2></div>
+        <p class="sec-desc">Choose what reaches you and where. In-app notifications land in your Kiln inbox.</p>
+        <div class="card">
+          <table class="matrix" id="matrix">
+            <thead>
+              <tr><th scope="col">Activity</th><th scope="col">Email</th><th scope="col">Push</th><th scope="col">In-app</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><div class="row-title">Assigned to me</div><div class="row-sub">A task or approval becomes yours.</div></th>
+                <td><label><input class="check" type="checkbox" checked aria-label="Assigned to me, email"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Assigned to me, push"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Assigned to me, in-app"></label></td></tr>
+              <tr><th scope="row"><div class="row-title">Mentions</div><div class="row-sub">Someone @mentions you in a comment or doc.</div></th>
+                <td><label><input class="check" type="checkbox" checked aria-label="Mentions, email"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Mentions, push"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Mentions, in-app"></label></td></tr>
+              <tr><th scope="row"><div class="row-title">Comments on my tasks</div><div class="row-sub">Replies and new threads on work you own.</div></th>
+                <td><label><input class="check" type="checkbox" aria-label="Comments on my tasks, email"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Comments on my tasks, push"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Comments on my tasks, in-app"></label></td></tr>
+              <tr><th scope="row"><div class="row-title">Due date reminders</div><div class="row-sub">The day before and the morning something is due.</div></th>
+                <td><label><input class="check" type="checkbox" checked aria-label="Due date reminders, email"></label></td><td><label><input class="check" type="checkbox" aria-label="Due date reminders, push"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Due date reminders, in-app"></label></td></tr>
+              <tr><th scope="row"><div class="row-title">Status changes</div><div class="row-sub">Tasks you follow move between stages.</div></th>
+                <td><label><input class="check" type="checkbox" aria-label="Status changes, email"></label></td><td><label><input class="check" type="checkbox" aria-label="Status changes, push"></label></td><td><label><input class="check" type="checkbox" checked aria-label="Status changes, in-app"></label></td></tr>
+              <tr><th scope="row"><div class="row-title">Weekly digest</div><div class="row-sub">A Monday summary of what shipped and what slipped.</div></th>
+                <td><label><input class="check" type="checkbox" checked aria-label="Weekly digest, email"></label></td><td><label><input class="check" type="checkbox" aria-label="Weekly digest, push"></label></td><td><label><input class="check" type="checkbox" aria-label="Weekly digest, in-app"></label></td></tr>
+            </tbody>
+          </table>
+          <div class="row" style="border-top:1px solid var(--line)">
+            <div class="row-text"><label class="row-title" for="sw-quiet">Quiet hours</label><div class="row-sub">Hold push and email until you're back. In-app still collects quietly.</div></div>
+            <input class="switch" type="checkbox" role="switch" id="sw-quiet" aria-controls="quiet-times">
+          </div>
+          <div class="row" id="quiet-times" hidden>
+            <div class="row-text"><div class="row-title">Schedule</div><div class="row-sub">Every day, in your time zone.</div></div>
+            <div class="quiet">
+              <label class="sr-only" for="q-from">Quiet hours start</label>
+              <input class="input" type="time" id="q-from" value="18:30" data-autosave="Quiet hours updated">
+              <span class="hint">to</span>
+              <label class="sr-only" for="q-to">Quiet hours end</label>
+              <input class="input" type="time" id="q-to" value="08:00" data-autosave="Quiet hours updated">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 Security -->
+      <section id="security" aria-labelledby="h-sec">
+        <div class="sec-head"><span class="num">04</span><h2 id="h-sec">Security</h2></div>
+        <p class="sec-desc">Your password, two-step verification, and the devices signed in to your account.</p>
+        <div class="card">
+          <form class="card-pad" id="pw-form" novalidate>
+            <div class="fields">
+              <div class="field full">
+                <label for="pw-cur">Current password</label>
+                <div class="with-btn">
+                  <input class="input" type="password" id="pw-cur" autocomplete="current-password" aria-describedby="e-pw-cur">
+                  <button type="button" data-reveal="pw-cur" aria-pressed="false">Show</button>
+                </div>
+                <span class="err" id="e-pw-cur" role="alert"></span>
+              </div>
+              <div class="field full">
+                <div class="label-line">
+                  <label for="pw-new">New password</label>
+                  <span class="hint mono" id="pw-label" aria-live="polite"></span>
+                </div>
+                <div class="with-btn">
+                  <input class="input" type="password" id="pw-new" autocomplete="new-password" aria-describedby="h-pw-new e-pw-new">
+                  <button type="button" data-reveal="pw-new" aria-pressed="false">Show</button>
+                </div>
+                <div class="meter" id="pw-meter" data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                <span class="hint" id="h-pw-new">At least 12 characters. A long phrase beats a short jumble.</span>
+                <span class="err" id="e-pw-new" role="alert"></span>
+              </div>
+            </div>
+            <div style="margin-top:16px"><button class="btn" type="submit">Update password</button></div>
+          </form>
+          <div class="row" style="border-top:1px solid var(--line)">
+            <div class="row-text">
+              <label class="row-title" for="sw-2fa">Two-step verification</label>
+              <div class="row-sub" id="tfa-sub">On. Codes come from your authenticator app.</div>
+            </div>
+            <input class="switch" type="checkbox" role="switch" id="sw-2fa" checked aria-describedby="tfa-sub">
+          </div>
+          <div class="sub-head">
+            <span class="eyebrow">Active sessions</span>
+            <button class="btn ghost" type="button" id="revoke-all">Sign out all others</button>
+          </div>
+          <ul class="list" id="sessions">
+            <li>
+              <span class="tile" aria-hidden="true">Mac</span>
+              <div class="row-text"><div class="row-title">MacBook Pro · Safari <span class="badge" style="margin-left:6px">This device</span></div><div class="meta">London, UK · Active now</div></div>
+            </li>
+            <li data-session>
+              <span class="tile" aria-hidden="true">iOS</span>
+              <div class="row-text"><div class="row-title">iPhone 16 · Kiln app</div><div class="meta">London, UK · 2 hours ago</div></div>
+              <button class="btn" type="button" data-revoke aria-label="Sign out iPhone 16">Sign out</button>
+            </li>
+            <li data-session>
+              <span class="tile" aria-hidden="true">Win</span>
+              <div class="row-text"><div class="row-title">Windows PC · Chrome</div><div class="meta">Lagos, NG · 28 Oct 2026</div></div>
+              <button class="btn" type="button" data-revoke aria-label="Sign out Windows PC">Sign out</button>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 05 Connected apps -->
+      <section id="apps" aria-labelledby="h-apps">
+        <div class="sec-head"><span class="num">05</span><h2 id="h-apps">Connected apps</h2></div>
+        <p class="sec-desc">Personal connections that act on your behalf. Workspace-wide integrations are managed by an admin.</p>
+        <div class="card">
+          <ul class="list" id="app-list">
+            <li>
+              <span class="tile" aria-hidden="true">Gh</span>
+              <div class="row-text"><div class="row-title">GitHub</div><div class="row-sub" data-status data-on="Linked as maren-o. Pull requests attach to tasks." data-off="Link pull requests and commits to tasks.">Linked as maren-o. Pull requests attach to tasks.</div></div>
+              <button class="btn" type="button" data-app="GitHub" aria-pressed="true">Disconnect</button>
+            </li>
+            <li>
+              <span class="tile" aria-hidden="true">Sl</span>
+              <div class="row-text"><div class="row-title">Slack</div><div class="row-sub" data-status data-on="Sending mentions to your Slack DMs." data-off="Get mentions and reminders as direct messages.">Sending mentions to your Slack DMs.</div></div>
+              <button class="btn" type="button" data-app="Slack" aria-pressed="true">Disconnect</button>
+            </li>
+            <li>
+              <span class="tile" aria-hidden="true">Ca</span>
+              <div class="row-text"><div class="row-title">Google Calendar</div><div class="row-sub" data-status data-on="Due dates sync to your calendar." data-off="Show due dates and milestones on your calendar.">Show due dates and milestones on your calendar.</div></div>
+              <button class="btn primary" type="button" data-app="Google Calendar" aria-pressed="false">Connect</button>
+            </li>
+            <li>
+              <span class="tile" aria-hidden="true">Fg</span>
+              <div class="row-text"><div class="row-title">Figma</div><div class="row-sub" data-status data-on="Design files preview inside tasks." data-off="Preview design files inside tasks.">Preview design files inside tasks.</div></div>
+              <button class="btn primary" type="button" data-app="Figma" aria-pressed="false">Connect</button>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 06 Danger zone -->
+      <section id="danger" aria-labelledby="h-danger">
+        <div class="sec-head"><span class="num">06</span><h2 id="h-danger">Danger zone</h2></div>
+        <p class="sec-desc">Take your data with you, or close your account for good.</p>
+        <div class="card danger-card">
+          <div class="row">
+            <div class="row-text"><div class="row-title">Export your data</div><div class="row-sub">Tasks, comments and files you created, as a ZIP emailed to you.</div></div>
+            <button class="btn" type="button" id="export">Request export</button>
+          </div>
+          <div class="row">
+            <div class="row-text"><div class="row-title">Delete account</div><div class="row-sub">Removes your profile and unassigns your 14 open tasks. This can't be undone.</div></div>
+            <button class="btn danger" type="button" id="delete-open">Delete account…</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="savebar" id="savebar" data-show="false" inert role="region" aria-label="Unsaved changes">
+  <p>You have unsaved profile changes</p>
+  <div class="savebar-actions">
+    <button class="btn ghost" type="button" id="discard">Discard</button>
+    <button class="btn primary" type="submit" form="profile-form" id="save">Save changes</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" data-show="false"></div>
+
+<dialog id="delete-dlg" aria-labelledby="dlg-title">
+  <form method="dialog" id="delete-form">
+    <div class="dlg-body">
+      <h3 id="dlg-title">Delete your account?</h3>
+      <p>Your profile, personal views and notification history will be erased. Tasks you created stay in Northpier Studio, but your 14 open tasks become unassigned.</p>
+      <div class="field">
+        <label for="dlg-input">Type <code>delete my account</code> to confirm</label>
+        <input class="input" id="dlg-input" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="dlg-cancel">Keep my account</button>
+      <button class="btn danger-solid" type="submit" id="dlg-confirm" disabled>Delete account</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const root = document.documentElement;
+
+  /* Toast */
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.dataset.show = 'true';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (t.dataset.show = 'false'), 2600);
+  }
+
+  /* Scroll spy */
+  const nav = $('#nav');
+  const links = $$('a', nav);
+  function setCurrent(id) {
+    links.forEach(a => {
+      const on = a.getAttribute('href') === '#' + id;
+      if (on) {
+        a.setAttribute('aria-current', 'true');
+        if (nav.scrollWidth > nav.clientWidth) {
+          nav.scrollTo({ left: a.offsetLeft - nav.offsetLeft - 16, behavior: 'smooth' });
+        }
+      } else a.removeAttribute('aria-current');
+    });
+  }
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) setCurrent(e.target.id); });
+  }, { rootMargin: '-25% 0px -65% 0px' });
+  $$('main section').forEach(s => spy.observe(s));
+
+  /* Theme, accent, density */
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  let themeChoice = 'system';
+  function applyTheme() {
+    root.dataset.theme = themeChoice === 'system' ? (mq.matches ? 'dark' : 'light') : themeChoice;
+  }
+  applyTheme();
+  mq.addEventListener('change', applyTheme);
+  $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
+    themeChoice = r.value; applyTheme(); toast('Theme set to ' + r.value);
+  }));
+  $$('input[name="accent"]').forEach(r => r.addEventListener('change', () => {
+    root.style.setProperty('--accent', r.value); toast('Accent colour updated');
+  }));
+  $$('input[name="density"]').forEach(r => r.addEventListener('change', () => {
+    root.dataset.density = r.value; toast('Density set to ' + r.value);
+  }));
+
+  /* Generic autosave toasts */
+  $$('[data-autosave]').forEach(el => el.addEventListener('change', () => toast(el.dataset.autosave)));
+  $('#matrix').addEventListener('change', () => toast('Notification preferences saved'));
+
+  /* Quiet hours */
+  $('#sw-quiet').addEventListener('change', e => {
+    $('#quiet-times').hidden = !e.target.checked;
+    toast(e.target.checked ? 'Quiet hours on' : 'Quiet hours off');
+  });
+
+  /* Profile form: dirty tracking, validation, save */
+  const form = $('#profile-form');
+  const bar = $('#savebar');
+  const bio = $('#f-bio'), bioCount = $('#bio-count');
+  const read = () => Object.fromEntries(new FormData(form));
+  let saved = read();
+  const updateBio = () => (bioCount.textContent = bio.value.length + ' / 160');
+  updateBio();
+
+  function setDirty() {
+    const dirty = JSON.stringify(read()) !== JSON.stringify(saved);
+    bar.dataset.show = String(dirty);
+    bar.inert = !dirty;
+  }
+  form.addEventListener('input', () => {
+    updateBio();
+    const h = $('#f-handle').value.trim();
+    $('#h-handle').textContent = h ? 'Teammates mention you with @' + h : 'Add a display name so teammates can mention you';
+    setDirty();
+  });
+
+  function fieldError(id, msg) {
+    const input = $('#f-' + id);
+    $('#e-' + id).textContent = msg;
+    msg ? input.setAttribute('aria-invalid', 'true') : input.removeAttribute('aria-invalid');
+    return !msg;
+  }
+  const initials = n => n.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = read();
+    const okName = fieldError('name', v.name.trim() ? '' : 'Enter your name so teammates know who you are.');
+    const okMail = fieldError('email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email) ? '' : 'Enter a valid email, like name@company.com.');
+    if (!okName) return $('#f-name').focus();
+    if (!okMail) return $('#f-email').focus();
+    const btns = $$('button[type="submit"]', form).concat($('#save'));
+    btns.forEach(b => (b.disabled = true));
+    setTimeout(() => {
+      saved = v;
+      btns.forEach(b => (b.disabled = false));
+      $$('[data-initials]').forEach(a => { if (!a.style.backgroundImage) a.textContent = initials(v.name); else a.dataset.fallback = initials(v.name); });
+      $('[data-me-name]').textContent = v.name.trim();
+      $('[data-me-mail]').textContent = v.email;
+      setDirty();
+      toast('Profile saved');
+    }, 500);
+  });
+
+  $('#discard').addEventListener('click', () => {
+    Object.entries(saved).forEach(([k, val]) => { if (form.elements[k]) form.elements[k].value = val; });
+    fieldError('name', ''); fieldError('email', '');
+    form.dispatchEvent(new Event('input'));
+    toast('Changes discarded');
+  });
+
+  /* Avatar */
+  const avatars = $$('[data-initials]');
+  $('#avatar-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      avatars.forEach(a => { a.dataset.fallback = a.dataset.fallback || a.textContent; a.textContent = ''; a.style.backgroundImage = `url("${reader.result}")`; });
+      $('#avatar-remove').hidden = false;
+      toast('Photo updated');
+    };
+    reader.readAsDataURL(file);
+  });
+  $('#avatar-remove').addEventListener('click', e => {
+    avatars.forEach(a => { a.style.backgroundImage = ''; a.textContent = a.dataset.fallback || initials(saved.name); delete a.dataset.fallback; });
+    $('#avatar-file').value = '';
+    e.target.hidden = true;
+    toast('Photo removed');
+  });
+
+  /* Password */
+  $$('[data-reveal]').forEach(b => b.addEventListener('click', () => {
+    const input = $('#' + b.dataset.reveal);
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    b.textContent = show ? 'Hide' : 'Show';
+    b.setAttribute('aria-pressed', String(show));
+  }));
+  const pwNew = $('#pw-new'), pwCur = $('#pw-cur');
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  function score(p) {
+    if (!p) return 0;
+    if (p.length < 12) return 1;
+    let s = 2;
+    if (p.length >= 16) s++;
+    if ([/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter(r => r.test(p)).length >= 3) s++;
+    return Math.min(s, 4);
+  }
+  pwNew.addEventListener('input', () => {
+    const s = score(pwNew.value);
+    $('#pw-meter').dataset.score = s;
+    $('#pw-label').textContent = labels[s];
+    $('#e-pw-new').textContent = ''; pwNew.removeAttribute('aria-invalid');
+  });
+  pwCur.addEventListener('input', () => { $('#e-pw-cur').textContent = ''; pwCur.removeAttribute('aria-invalid'); });
+  $('#pw-form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!pwCur.value) {
+      $('#e-pw-cur').textContent = 'Enter your current password to continue.';
+      pwCur.setAttribute('aria-invalid', 'true'); return pwCur.focus();
+    }
+    if (pwNew.value.length < 12) {
+      $('#e-pw-new').textContent = 'Use at least 12 characters. You have ' + pwNew.value.length + '.';
+      pwNew.setAttribute('aria-invalid', 'true'); return pwNew.focus();
+    }
+    e.target.reset();
+    $('#pw-meter').dataset.score = 0; $('#pw-label').textContent = '';
+    $$('[data-reveal]').forEach(b => { $('#' + b.dataset.reveal).type = 'password'; b.textContent = 'Show'; b.setAttribute('aria-pressed', 'false'); });
+    toast('Password updated');
+  });
+
+  /* Two-step */
+  $('#sw-2fa').addEventListener('change', e => {
+    $('#tfa-sub').textContent = e.target.checked
+      ? 'On. Codes come from your authenticator app.'
+      : 'Off. Your account is protected by password only.';
+    toast(e.target.checked ? 'Two-step verification on' : 'Two-step verification off');
+  });
+
+  /* Sessions */
+  const sessions = $('#sessions');
+  function checkSessions() {
+    if (!$('[data-session]', sessions)) { $('#revoke-all').disabled = true; }
+  }
+  sessions.addEventListener('click', e => {
+    const b = e.target.closest('[data-revoke]');
+    if (!b) return;
+    b.closest('li').remove(); checkSessions(); toast('Device signed out');
+  });
+  $('#revoke-all').addEventListener('click', () => {
+    $$('[data-session]', sessions).forEach(li => li.remove());
+    checkSessions(); toast('Signed out of all other devices');
+  });
+
+  /* Connected apps */
+  $('#app-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-app]');
+    if (!b) return;
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? 'Disconnect' : 'Connect';
+    b.classList.toggle('primary', !on);
+    const st = $('[data-status]', b.closest('li'));
+    st.textContent = on ? st.dataset.on : st.dataset.off;
+    toast(b.dataset.app + (on ? ' connected' : ' disconnected'));
+  });
+
+  /* Danger zone */
+  $('#export').addEventListener('click', e => {
+    e.target.disabled = true; e.target.textContent = 'Export requested';
+    toast("Export started. We'll email you a link within the hour.");
+  });
+  const dlg = $('#delete-dlg'), dlgInput = $('#dlg-input'), dlgConfirm = $('#dlg-confirm');
+  $('#delete-open').addEventListener('click', () => {
+    dlgInput.value = ''; dlgConfirm.disabled = true; dlg.showModal(); dlgInput.focus();
+  });
+  $('#dlg-cancel').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  dlgInput.addEventListener('input', () => {
+    dlgConfirm.disabled = dlgInput.value.trim().toLowerCase() !== 'delete my account';
+  });
+  $('#delete-form').addEventListener('submit', () => {
+    toast('Deletion requested. Confirm from the email we just sent.');
+  });
+})();
+</script>
+</body>
+</html>

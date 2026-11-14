@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murmur — AI Note-Taking That Thinks With You</title>
+    <meta name="description" content="Murmur is an AI-powered note-taking app that captures, organizes, and connects your ideas automatically — so you can focus on thinking, not filing.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a14;
+            --bg-secondary: #111120;
+            --bg-card: #151528;
+            --bg-card-hover: #1a1a33;
+            --bg-elevated: #1c1c36;
+            --text-primary: #f5f5fa;
+            --text-secondary: #b5b5c8;
+            --text-muted: #7a7a92;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 50%, #4c1d95 100%);
+            --accent-gradient-soft: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(109, 40, 217, 0.08) 100%);
+            --border-color: rgba(139, 92, 246, 0.2);
+            --border-color-light: rgba(255, 255, 255, 0.06);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.3);
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-full: 9999px;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            --container-max: 1160px;
+            --container-padding: 24px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        ::selection {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: color var(--transition-fast);
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            border: none;
+            background: none;
+            color: inherit;
+        }
+
+        .container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 0 var(--container-padding);
+        }
+
+        /* === GRADIENT TEXT === */
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: gradientShift 6s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* === BUTTONS === */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -0.01em;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 35px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-primary:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-lg {
+            padding: 16px 34px;
+            font-size: 16px;
+        }
+
+        .btn-sm {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        /* === NAVIGATION === */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 16px 0;
+            transition: all var(--transition-base);
+            background: transparent;
+        }
+
+        .navbar.scrolled {
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 10px 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .navbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            transition: opacity var(--transition-fast);
+        }
+
+        .navbar-logo:hover {
+            opacity: 0.85;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .navbar-links a {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
+            transition: color var(--transition-fast);
+            position: relative;
+        }
+
+        .navbar-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-primary);
+            transition: width var(--transition-base);
+            border-radius: 2px;
+        }
+
+        .navbar-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .navbar-links a:hover::after {
+            width: 100%;
+        }
+
+        .navbar-cta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            padding: 6px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: all var(--transition-base);
+            transform-origin: center;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* === MOBILE MENU === */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 20, 0.98);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+            pointer-events: none;
+        }
+
+        .mobile-menu.open {
+            opacity: 1;
+            pointer-events: auto;
+            display: flex;
+        }
+
+        .mobile-menu a {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            transition: color var(--transition-fast);
+        }
+
+        .mobile-menu a:hover {
+            color: var(--accent-secondary);
+        }
+
+        .mobile-menu .btn {
+            margin-top: 10px;
+        }
+
+        /* === HERO === */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 0 80px;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -20%, rgba(139, 92, 246, 0.2) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 50% at 80% 40%, rgba(109, 40, 217, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 50% at 20% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 30%, transparent 70%);
+        }
+
+        .hero .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: var(--radius-full);
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-secondary);
+            margin-bottom: 28px;
+            letter-spacing: 0.01em;
+            animation: fadeInUp 0.8s ease both 0.1s;
+        }
+
+        .hero-badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.5);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(42px, 7vw, 76px);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.08;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease both 0.2s;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(17px, 2.5vw, 20px);
+            font-weight: 400;
+            color: var(--text-secondary);
+            max-width: 620px;
+            margin: 0 auto 38px;
+            letter-spacing: -0.01em;
+            line-height: 1.7;
+            animation: fadeInUp 0.8s ease both 0.3s;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 56px;
+            animation: fadeInUp 0.8s ease both 0.4s;
+        }
+
+        .hero-note-mini {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            font-weight: 400;
+        }
+
+        .hero-mockup-wrap {
+            max-width: 820px;
+            margin: 0 auto;
+            animation: fadeInUp 1s ease both 0.5s;
+            position: relative;
+        }
+
+        .hero-mockup-wrap::before {
+            content: '';
+            position: absolute;
+            inset: -30px;
+            background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(50px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* === APP MOCKUP === */
+        .app-mockup {
+            background: rgba(20, 20, 38, 0.85);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            text-align: left;
+        }
+
+        .app-mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .app-mockup-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .app-mockup-title .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .app-mockup-title .dot:nth-child(2) {
+            background: #f59e0b;
+        }
+
+        .app-mockup-title .dot:nth-child(3) {
+            background: #10b981;
+        }
+
+        .app-mockup-body {
+            display: flex;
+            gap: 0;
+            min-height: 380px;
+        }
+
+        .mockup-sidebar {
+            width: 180px;
+            padding: 20px 16px;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mockup-sidebar-item {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all var(--transition-fast);
+        }
+
+        .mockup-sidebar-item.active {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-secondary);
+        }
+
+        .mockup-sidebar-item:not(.active):hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .mockup-sidebar-item i {
+            font-size: 14px;
+            width: 18px;
+            text-align: center;
+        }
+
+        .mockup-main {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .mockup-search {
+            padding: 11px 16px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mockup-note-card {
+            padding: 16px 18px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all var(--transition-fast);
+            cursor: default;
+        }
+
+        .mockup-note-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .mockup-note-card .note-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .mockup-note-card .note-preview {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .mockup-voice-bar {
+            margin-top: auto;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .mockup-voice-bar .mic-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 14px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+        }
+
+        .mockup-suggestion {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: var(--accent-secondary);
+        }
+
+        /* === SOCIAL PROOF === */
+        .social-proof {
+            padding: 40px 0 60px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(10, 10, 20, 0.6);
+        }
+
+        .social-proof .container {
+            text-align: center;
+        }
+
+        .social-proof-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 24px;
+        }
+
+        .social-proof-logos {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            opacity: 0.6;
+        }
+
+        .social-proof-logos span {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+        }
+
+        /* === SECTIONS === */
+        .section {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto 60px;
+        }
+
+        .section-label {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 14px;
+        }
+
+        .section-title {
+            font-size: clamp(30px, 4.5vw, 44px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 17px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            letter-spacing: -0.01em;
+        }
+
+        /* === FEATURES === */
+        .features-section {
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .features-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            padding: 32px 28px;
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--accent-gradient-soft);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            letter-spacing: -0.005em;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === HOW IT WORKS === */
+        .how-section {
+            background: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .how-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+        }
+
+        .how-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            counter-reset: step;
+        }
+
+        .how-step {
+            text-align: center;
+            padding: 32px 20px;
+            position: relative;
+        }
+
+        .how-step-number {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .how-step h3 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 10px;
+        }
+
+        .how-step p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* === TESTIMONIALS === */
+        .testimonials-section {
+            background: var(--bg-primary);
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .testimonial-card {
+            padding: 28px;
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all var(--transition-base);
+            position: relative;
+        }
+
+        .testimonial-card:hover {
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-3px);
+        }
+
+        .testimonial-quote {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            letter-spacing: -0.005em;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .testimonial-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .testimonial-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .testimonial-info span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .testimonial-stars {
+            color: #f59e0b;
+            font-size: 14px;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        /* === PRICING === */
+        .pricing-section {
+            background: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .pricing-card {
+            padding: 36px 30px;
+            border-radius: var(--radius-lg);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all var(--transition-base);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: var(--shadow-md);
+        }
+
+        .pricing-card.featured {
+            border-color: rgba(139, 92, 246, 0.4);
+            background: rgba(20, 18, 40, 0.9);
+            box-shadow: var(--shadow-glow);
+            transform: scale(1.03);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.03) translateY(-4px);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 18px;
+            border-radius: var(--radius-full);
+            background: var(--accent-gradient);
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+            white-space: nowrap;
+        }
+
+        .pricing-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 6px;
+        }
+
+        .pricing-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .pricing-price {
+            font-size: 44px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .pricing-price .currency {
+            font-size: 20px;
+            font-weight: 600;
+            vertical-align: top;
+            margin-right: 2px;
+        }
+
+        .pricing-period {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 30px;
+            flex: 1;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+            letter-spacing: -0.005em;
+        }
+
+        .pricing-features li i {
+            color: var(--accent-secondary);
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+        }
+
+        /* === FAQ === */
+        .faq-section {
+            background: var(--bg-primary);
+        }
+
+        .faq-list {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .faq-item {
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .faq-item:hover {
+            border-color: rgba(139, 92, 246, 0.25);
+        }
+
+        .faq-item summary {
+            padding: 20px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            list-style: none;
+            transition: color var(--transition-fast);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .faq-item summary:hover {
+            color: var(--accent-secondary);
+        }
+
+        .faq-item summary .faq-toggle {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            transition: all var(--transition-base);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .faq-item[open] summary .faq-toggle {
+            transform: rotate(45deg);
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-secondary);
+        }
+
+        .faq-item .faq-answer {
+            padding: 0 24px 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            letter-spacing: -0.005em;
+        }
+
+        /* === FINAL CTA === */
+        .final-cta {
+            padding: 100px 0;
+            background: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .final-cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .final-cta .container {
+            position: relative;
+            text-align: center;
+            padding: 60px 30px;
+            border-radius: var(--radius-xl);
+            background: rgba(20, 18, 40, 0.7);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-lg);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .final-cta h2 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .final-cta p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+        }
+
+        .final-cta-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* === FOOTER === */
+        .footer {
+            padding: 40px 0;
+            background: var(--bg-primary);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .footer .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: color var(--transition-fast);
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-copyright {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .footer-social {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .footer-social a {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .footer-social a:hover {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: var(--accent-secondary);
+            transform: translateY(-2px);
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 1024px) {
+            .mockup-sidebar {
+                display: none;
+            }
+
+            .app-mockup-body {
+                min-height: 320px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-links {
+                display: none;
+            }
+
+            .navbar-cta .btn {
+                display: none;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .hero {
+                padding: 100px 0 60px;
+                min-height: auto;
+            }
+
+            .hero h1 {
+                font-size: clamp(34px, 8vw, 48px);
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                gap: 12px;
+                width: 100%;
+                max-width: 320px;
+                margin: 0 auto 40px;
+            }
+
+            .hero-actions .btn {
+                width: 100%;
+            }
+
+            .section {
+                padding: 60px 0;
+            }
+
+            .section-header {
+                margin-bottom: 40px;
+            }
+
+            .social-proof-logos {
+                gap: 20px;
+            }
+
+            .social-proof-logos span {
+                font-size: 15px;
+            }
+
+            .mockup-body {
+                padding: 16px;
+            }
+
+            .mockup-note-card {
+                padding: 12px 14px;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .pricing-card.featured:hover {
+                transform: translateY(-4px);
+            }
+
+            .footer .container {
+                flex-direction: column;
+                text-align: center;
+                gap: 16px;
+            }
+
+            .footer-links {
+                justify-content: center;
+                gap: 16px;
+            }
+
+            .final-cta .container {
+                padding: 40px 20px;
+            }
+
+            .app-mockup {
+                border-radius: var(--radius-md);
+            }
+
+            .app-mockup-body {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .mockup-main {
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --container-padding: 16px;
+            }
+
+            .hero h1 {
+                font-size: clamp(28px, 9vw, 36px);
+            }
+
+            .hero-subtitle {
+                font-size: 15px;
+            }
+
+            .btn-lg {
+                padding: 14px 24px;
+                font-size: 15px;
+            }
+
+            .section-title {
+                font-size: clamp(24px, 6vw, 30px);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .how-steps {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .mockup-voice-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                font-size: 12px;
+            }
+
+            .social-proof-logos {
+                gap: 14px;
+            }
+
+            .social-proof-logos span {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav class="navbar" id="navbar" aria-label="Main navigation">
+        <div class="container">
+            <a href="#hero" class="navbar-logo" aria-label="Murmur home">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wave-square"></i>
+                </div>
+                murmur
+            </a>
+            <ul class="navbar-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How it Works</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <div class="navbar-cta">
+                <a href="#pricing" class="btn btn-secondary btn-sm">Sign in</a>
+                <a href="#pricing" class="btn btn-primary btn-sm">Get Started</a>
+                <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it Works</a>
+        <a href="#testimonials">Testimonials</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="#pricing" class="btn btn-primary btn-lg">Get Started</a>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                New: AI voice transcription is here
+            </div>
+            <h1>Think it. <span class="gradient-text">Murmur</span> remembers.</h1>
+            <p class="hero-subtitle">
+                Capture ideas with voice, text, or photos. Murmur's AI organizes everything and helps you recall any thought in seconds — so you can focus on thinking, not filing.
+            </p>
+            <div class="hero-actions">
+                <a href="#pricing" class="btn btn-primary btn-lg">
+                    Start free <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <a href="#how-it-works" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-play"></i> See how it works
+                </a>
+                <span class="hero-note-mini">No credit card required · Free forever plan</span>
+            </div>
+            <div class="hero-mockup-wrap">
+                <div class="app-mockup">
+                    <div class="app-mockup-header">
+                        <div class="app-mockup-title">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                        <span class="mockup-suggestion">
+                            <i class="fa-solid fa-sparkles"></i> AI Active
+                        </span>
+                    </div>
+                    <div class="app-mockup-body">
+                        <div class="mockup-sidebar">
+                            <div class="mockup-sidebar-item active">
+                                <i class="fa-solid fa-inbox"></i> All Notes
+                            </div>
+                            <div class="mockup-sidebar-item">
+                                <i class="fa-solid fa-microphone"></i> Voice Memos
+                            </div>
+                            <div class="mockup-sidebar-item">
+                                <i class="fa-solid fa-tag"></i> Auto-Tagged
+                            </div>
+                            <div class="mockup-sidebar-item">
+                                <i class="fa-solid fa-star"></i> Favorites
+                            </div>
+                            <div class="mockup-sidebar-item">
+                                <i class="fa-solid fa-archive"></i> Archive
+                            </div>
+                        </div>
+                        <div class="mockup-main">
+                            <div class="mockup-search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                Ask anything about your notes...
+                            </div>
+                            <div class="mockup-note-card">
+                                <div class="note-title">💡 Product idea: voice-first journaling</div>
+                                <div class="note-preview">Maybe we could add a daily voice journal that auto-generates a written summary with mood detection...</div>
+                            </div>
+                            <div class="mockup-note-card">
+                                <div class="note-title">📋 Meeting notes — Design sync</div>
+                                <div class="note-preview">Key decisions: simplify onboarding flow, dark mode by default, AI-powered search is a must-have...</div>
+                            </div>
+                            <div class="mockup-note-card">
+                                <div class="note-title">🎯 Quarterly goals</div>
+                                <div class="note-preview">Launch beta by March, secure 100 active users, publish AI research blog post...</div>
+                            </div>
+                            <div class="mockup-voice-bar">
+                                <div class="mic-btn">
+                                    <i class="fa-solid fa-microphone"></i>
+                                </div>
+                                <span>Listening... "<strong>Remind me to follow up with Sarah about the design system</strong>"</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SOCIAL PROOF -->
+    <section class="social-proof">
+        <div class="container">
+            <p class="social-proof-label">Trusted by teams at</p>
+            <div class="social-proof-logos">
+                <span>▲ Acme Corp</span>
+                <span>◆ Vertex</span>
+                <span>● Orbit Labs</span>
+                <span>■ Quantum</span>
+                <span>▲ Zenith</span>
+                <span>● Helix</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section features-section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Features</span>
+                <h2 class="section-title">Everything you need to <span class="gradient-text">capture and connect</span> your thoughts</h2>
+                <p class="section-subtitle">Murmur blends powerful AI with a beautifully simple interface, so your notes work as hard as you do.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                    </div>
+                    <h3>AI Voice Transcription</h3>
+                    <p>Speak naturally and Murmur transcribes in real-time with remarkable accuracy. Perfect for meetings, brainstorms, and late-night ideas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <h3>Smart Auto-Tagging</h3>
+                    <p>Every note is automatically categorized and tagged based on its content. No more manual organizing — your notes sort themselves.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h3>Contextual Recall</h3>
+                    <p>Ask Murmur anything about your notes in plain English. It finds the right information instantly, even across hundreds of entries.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h3>Cross-Device Sync</h3>
+                    <p>Your thoughts are always in sync across phone, tablet, and desktop. Start on one device, keep going on another.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3>Privacy First</h3>
+                    <p>End-to-end encryption keeps your notes private. Your data is yours alone — Murmur never shares or monetizes your thoughts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <h3>Collaborative Spaces</h3>
+                    <p>Share notebooks with your team, brainstorm together in real-time, and let AI summarize group discussions automatically.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section how-section" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">How it Works</span>
+                <h2 class="section-title">Three steps to <span class="gradient-text">clearer thinking</span></h2>
+                <p class="section-subtitle">Murmur does the heavy lifting so you can stay in your flow.</p>
+            </div>
+            <div class="how-steps">
+                <div class="how-step">
+                    <div class="how-step-number">1</div>
+                    <h3>Capture</h3>
+                    <p>Type, talk, or snap a photo. Murmur captures every idea the moment it strikes — no formatting required.</p>
+                </div>
+                <div class="how-step">
+                    <div class="how-step-number">2</div>
+                    <h3>Organize</h3>
+                    <p>AI automatically categorizes, tags, and links related notes. Your knowledge base builds itself.</p>
+                </div>
+                <div class="how-step">
+                    <div class="how-step-number">3</div>
+                    <h3>Recall</h3>
+                    <p>Ask Murmur anything. Get instant, context-aware answers from every note you've ever written.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="section testimonials-section" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Testimonials</span>
+                <h2 class="section-title">Loved by <span class="gradient-text">thinkers and doers</span></h2>
+                <p class="section-subtitle">Join thousands of people who've made Murmur their second brain.</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="testimonial-quote">"Murmur has completely changed how I work. I used to lose ideas in random notebooks and voice memos. Now everything is in one place, and I can actually find things when I need them."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SK</div>
+                        <div class="testimonial-info">
+                            <h4>Sarah Kim</h4>
+                            <span>Product Designer, Acme Corp</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="testimonial-quote">"The AI transcription is shockingly accurate. I record all my client meetings and Murmur captures every detail. The automatic tagging saves me hours every week."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">JD</div>
+                        <div class="testimonial-info">
+                            <h4>James Davis</h4>
+                            <span>Consultant & Entrepreneur</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="testimonial-quote">"I was skeptical about AI note-taking, but Murmur's contextual search is incredible. I can ask 'what was that idea about pricing tiers?' and it finds it immediately."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">MR</div>
+                        <div class="testimonial-info">
+                            <h4>Maya Rodriguez</h4>
+                            <span>Startup Founder, Helix</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="section pricing-section" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Pricing</span>
+                <h2 class="section-title">Simple plans for <span class="gradient-text">every mind</span></h2>
+                <p class="section-subtitle">Start free. Upgrade when you're ready. Cancel anytime.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Free</h3>
+                    <p class="pricing-description">For individuals getting started with AI note-taking.</p>
+                    <div class="pricing-price">
+                        <span class="currency">$</span>0
+                    </div>
+                    <p class="pricing-period">forever</p>
+                    <ul class="pricing-features">
+                        <li><i class="fa-solid fa-check"></i> Up to 100 notes per month</li>
+                        <li><i class="fa-solid fa-check"></i> Basic AI auto-tagging</li>
+                        <li><i class="fa-solid fa-check"></i> Sync across 2 devices</li>
+                        <li><i class="fa-solid fa-check"></i> 1GB secure storage</li>
+                        <li><i class="fa-solid fa-check"></i> Community support</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary">Start Free</a>
+                </div>
+                <div class="pricing-card featured">
+                    <span class="pricing-badge">Most Popular</span>
+                    <h3>Pro</h3>
+                    <p class="pricing-description">For power users who want full AI capabilities.</p>
+                    <div class="pricing-price">
+                        <span class="currency">$</span>8
+                    </div>
+                    <p class="pricing-period">per month, billed annually</p>
+                    <ul class="pricing-features">
+                        <li><i class="fa-solid fa-check"></i> Unlimited notes & voice memos</li>
+                        <li><i class="fa-solid fa-check"></i> Advanced AI transcription</li>
+                        <li><i class="fa-solid fa-check"></i> Contextual AI search & recall</li>
+                        <li><i class="fa-solid fa-check"></i> Unlimited device sync</li>
+                        <li><i class="fa-solid fa-check"></i> 50GB secure storage</li>
+                        <li><i class="fa-solid fa-check"></i> Priority support</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary">Get Pro</a>
+                </div>
+                <div class="pricing-card">
+                    <h3>Team</h3>
+                    <p class="pricing-description">For teams that think and create together.</p>
+                    <div class="pricing-price">
+                        <span class="currency">$</span>16
+                    </div>
+                    <p class="pricing-period">per user / month, billed annually</p>
+                    <ul class="pricing-features">
+                        <li><i class="fa-solid fa-check"></i> Everything in Pro</li>
+                        <li><i class="fa-solid fa-check"></i> Real-time collaboration</li>
+                        <li><i class="fa-solid fa-check"></i> Shared team spaces</li>
+                        <li><i class="fa-solid fa-check"></i> AI meeting summaries</li>
+                        <li><i class="fa-solid fa-check"></i> Admin & access controls</li>
+                        <li><i class="fa-solid fa-check"></i> Dedicated support</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary">Start Team Trial</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section faq-section" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">FAQ</span>
+                <h2 class="section-title">Frequently asked <span class="gradient-text">questions</span></h2>
+                <p class="section-subtitle">Everything you need to know about Murmur.</p>
+            </div>
+            <div class="faq-list">
+                <details class="faq-item">
+                    <summary>
+                        How does the AI transcription work?
+                        <span class="faq-toggle"><i class="fa-solid fa-plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                        Murmur uses state-of-the-art speech recognition to transcribe your voice in real-time. Simply tap the microphone, start speaking, and your words appear as text instantly. The AI automatically adds punctuation, identifies speakers in multi-person conversations, and can even summarize key points afterward.
+                    </div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        Is my data private and secure?
+                        <span class="faq-toggle"><i class="fa-solid fa-plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                        Absolutely. Your notes are end-to-end encrypted, meaning only you can access them. We use industry-standard AES-256 encryption at rest and TLS 1.3 in transit. Murmur never sells your data, never shows ads, and never trains AI models on your private notes without explicit opt-in consent.
+                    </div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        Can I import notes from other apps?
+                        <span class="faq-toggle"><i class="fa-solid fa-plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                        Yes! Murmur supports one-click import from Evernote, Notion, Apple Notes, Google Keep, and Markdown files. Your existing notes will be automatically tagged and organized by the AI, so you can pick up right where you left off.
+                    </div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        What happens if I cancel my subscription?
+                        <span class="faq-toggle"><i class="fa-solid fa-plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                        You can cancel at any time. If you cancel your Pro or Team plan, you'll maintain access until the end of your billing period. After that, your account reverts to the Free plan. All your notes remain safe and accessible — nothing is deleted.
+                    </div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        Does Murmur work offline?
+                        <span class="faq-toggle"><i class="fa-solid fa-plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                        Yes, Murmur works fully offline. You can capture notes, write, and organize without an internet connection. When you reconnect, everything syncs automatically across your devices. AI features that require cloud processing will queue and run when you're back online.
+                    </div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+        <div class="container">
+            <h2>Ready to think <span class="gradient-text">clearer</span>?</h2>
+            <p>Join thousands of people who've made Murmur their trusted second brain. Start capturing, organizing, and recalling your thoughts effortlessly.</p>
+            <div class="final-cta-actions">
+                <a href="#pricing" class="btn btn-primary btn-lg">
+                    Get started free <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <a href="#how-it-works" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-play"></i> Watch demo
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <a href="#hero" class="navbar-logo" aria-label="Murmur home">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wave-square"></i>
+                </div>
+                murmur
+            </a>
+            <div class="footer-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+            <div class="footer-social">
+                <a href="#" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                <a href="#" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            </div>
+        </div>
+        <div class="container" style="margin-top: 24px;">
+            <span class="footer-copyright">© 2025 Murmur, Inc. All rights reserved.</span>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll state
+        const navbar = document.getElementById('navbar');
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        function updateNavbarScroll() {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }
+
+        window.addEventListener('scroll', updateNavbarScroll);
+        updateNavbarScroll();
+
+        // Mobile menu toggle
+        hamburger.addEventListener('click', function() {
+            const isOpen = mobileMenu.classList.contains('open');
+            mobileMenu.classList.toggle('open');
+            hamburger.classList.toggle('active');
+            hamburger.setAttribute('aria-expanded', !isOpen);
+            document.body.style.overflow = isOpen ? '' : 'hidden';
+        });
+
+        // Close mobile menu when a link is clicked
+        document.querySelectorAll('.mobile-menu a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                mobileMenu.classList.remove('open');
+                hamburger.classList.remove('active');
+                hamburger.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // Close mobile menu on resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
+                mobileMenu.classList.remove('open');
+                hamburger.classList.remove('active');
+                hamburger.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Simple scroll-triggered fade-in for sections
+        const fadeElements = document.querySelectorAll('.feature-card, .how-step, .testimonial-card, .pricing-card, .faq-item');
+
+        const fadeObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    fadeObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -40px 0px'
+        });
+
+        fadeElements.forEach(function(el) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            fadeObserver.observe(el);
+        });
+
+        // Smooth scroll for all anchor links (fallback for browsers that don't support CSS scroll-behavior)
+        document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const target = document.querySelector(targetId);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

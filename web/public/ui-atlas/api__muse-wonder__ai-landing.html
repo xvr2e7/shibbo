@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Murmur — AI notes that whisper back</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],serif:['Fraunces','serif'],mono:['JetBrains Mono','monospace']},colors:{ink:'#16130E',cream:'#FAF7F2',violet2:'#7C6CFF',lime2:'#B8F135'}}}}</script>
+<style>
+*{scrollbar-width:thin;scrollbar-color:#16130E #FAF7F2}
+::-webkit-scrollbar{width:9px}::-webkit-scrollbar-thumb{background:#16130E;border-radius:99px}::-webkit-scrollbar-track{background:#EDE8E0}
+html{scroll-behavior:smooth}
+body{background:#FAF7F2;color:#16130E;overflow-x:hidden}
+.grain:before{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.display{font-family:Fraunces,serif;line-height:.85;letter-spacing:-.04em}
+.pill{border:1.5px solid #16130E}
+.card{border:1.5px solid #16130E;box-shadow:6px 6px 0 #16130E;transition:.25s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:10px 10px 0 #16130E}
+.btn-primary{background:#16130E;color:#FAF7F2;box-shadow:5px 5px 0 #7C6CFF;transition:.2s}
+.btn-primary:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 #7C6CFF}
+.btn-lime{background:#B8F135;box-shadow:5px 5px 0 #16130E;border:1.5px solid #16130E;transition:.2s}
+.btn-lime:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 #16130E}
+.marquee{animation:marquee 22s linear infinite}@keyframes marquee{to{transform:translateX(-50%)}}
+.floaty{animation:floaty 5s ease-in-out infinite}@keyframes floaty{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-12px) rotate(1deg)}}
+.spin-slow{animation:spin 14s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.wave-bar{width:5px;border-radius:99px;background:#16130E;transition:height .18s ease,background .2s;min-height:6px}
+.recording .wave-bar{background:#FF4D2E}
+.pulse-dot{animation:pulse 1.2s infinite}@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,46,.5)}100%{box-shadow:0 0 0 12px rgba(255,77,46,0)}}
+.reveal{opacity:0;transform:translateY(28px);transition:all .8s cubic-bezier(.2,.8,.2,1)}
+.reveal.visible{opacity:1;transform:none}
+.transcript-line{animation:slideIn .5s ease both}@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.typing:after{content:"▋";animation:blink 1s infinite;color:#7C6CFF}@keyframes blink{50%{opacity:0}}
+.tab-active{background:#16130E!important;color:#FAF7F2!important}
+.faq-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.faq-open .faq-body{max-height:220px}.faq-open .faq-icon{transform:rotate(45deg)}
+.faq-icon{transition:.3s}
+input:focus,textarea:focus{outline:2px solid #7C6CFF;outline-offset:2px}
+.orb{filter:blur(50px);opacity:.55;position:absolute;border-radius:50%;pointer-events:none}
+.highlight{background:linear-gradient(transparent 55%,#B8F135 55%)}
+.highlight-v{background:linear-gradient(transparent 55%,#CFC8FF 55%)}
+.chip{transition:.2s}.chip:hover{background:#16130E;color:white}
+details-chart-bar{transition:height 1s ease}
+</style>
+</head>
+<body class="grain antialiased">
+
+<!-- NAV -->
+<header class="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-4">
+  <nav class="max-w-7xl mx-auto bg-[#FAF7F2]/90 backdrop-blur-xl border-[1.5px] border-ink rounded-full px-4 sm:px-6 py-3 flex items-center justify-between shadow-[4px_4px_0_#16130E]">
+    <a href="#" class="flex items-center gap-2.5">
+      <span class="w-9 h-9 bg-ink text-[#B8F135] rounded-full grid place-items-center font-black text-lg">m<span class="text-[#7C6CFF]">.</span></span>
+      <span class="font-black text-[22px] tracking-tight">murmur<sup class="text-[10px]">®</sup></span>
+    </a>
+    <div class="hidden md:flex items-center gap-7 text-[13px] font-semibold">
+      <a href="#demo" class="hover:opacity-60">Live Demo</a><a href="#features" class="hover:opacity-60">Features</a><a href="#how" class="hover:opacity-60">How it works</a><a href="#pricing" class="hover:opacity-60">Pricing</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="#pricing" class="hidden sm:block text-[13px] font-bold px-4 py-2">Sign in</a>
+      <a href="#cta" class="btn-primary text-[13px] font-bold px-5 py-2.5 rounded-full">Get Murmur free →</a>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="relative pt-[130px] sm:pt-[150px] pb-16 px-4 sm:px-6 overflow-hidden">
+  <div class="orb w-[420px] h-[420px] bg-[#CFC8FF] -top-20 -left-20"></div>
+  <div class="orb w-[380px] h-[380px] bg-[#FFE29A] top-40 right-[-80px]"></div>
+  <div class="orb w-[260px] h-[260px] bg-[#B8F135] bottom-0 left-[38%] opacity-30"></div>
+
+  <div class="max-w-7xl mx-auto relative">
+    <div class="flex flex-wrap justify-center gap-2 mb-7 reveal visible">
+      <span class="pill bg-white rounded-full px-3 py-1 text-[11px] font-bold tracking-wide">● NOW WITH MURMUR AI 2.0</span>
+      <span class="bg-[#B8F135] pill rounded-full px-3 py-1 text-[11px] font-bold">✦ NO BOT JOINS YOUR MEETINGS</span>
+      <span class="hidden sm:inline pill bg-[#FFD6E8] rounded-full px-3 py-1 text-[11px] font-bold">4.9 ★ — 12,400+ REVIEWS</span>
+    </div>
+
+    <h1 class="display text-center font-semibold text-[62px] sm:text-[96px] lg:text-[128px] reveal visible">
+      You talk.<br>
+      <span class="italic font-normal text-[#7C6CFF]">Murmur</span> <span class="relative inline-block">remembers.<svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none"><path d="M3 9C60 3 180 2 297 8" stroke="#FF4D2E" stroke-width="5" stroke-linecap="round"/></svg></span>
+    </h1>
+    <p class="text-center max-w-2xl mx-auto mt-6 text-[16px] sm:text-lg leading-relaxed text-neutral-600 font-medium reveal visible">The AI note-taker that turns messy conversations into clean summaries, action items, and answers — in <b class="text-ink">under 8 seconds</b>. No typing. No forgetting. Just whisper.</p>
+
+    <!-- EMAIL FORM -->
+    <form id="heroForm" class="mt-8 max-w-xl mx-auto flex flex-col sm:flex-row gap-3 reveal visible">
+      <input id="heroEmail" type="email" placeholder="Enter your work email..." class="flex-1 bg-white pill rounded-full px-6 py-4 text-sm font-medium placeholder:text-neutral-400">
+      <button class="btn-lime rounded-full px-7 py-4 font-extrabold text-sm whitespace-nowrap">Start free — no card →</button>
+    </form>
+    <p id="formMsg" class="text-center text-xs font-bold mt-3 h-4 text-emerald-700"></p>
+    <div class="flex justify-center items-center gap-3 mt-2 reveal visible">
+      <div class="flex -space-x-2"><img class="w-7 h-7 rounded-full border-2 border-white" src="https://i.pravatar.cc/64?img=12"><img class="w-7 h-7 rounded-full border-2 border-white" src="https://i.pravatar.cc/64?img=32"><img class="w-7 h-7 rounded-full border-2 border-white" src="https://i.pravatar.cc/64?img=47"><img class="w-7 h-7 rounded-full border-2 border-white" src="https://i.pravatar.cc/64?img=68"></div>
+      <p class="text-xs font-semibold text-neutral-500"><b class="text-ink" data-count="128000">0</b> people murmur every day &nbsp;•&nbsp; Free 300 mins / mo</p>
+    </div>
+
+    <!-- APP MOCKUP -->
+    <div class="mt-12 relative max-w-5xl mx-auto reveal visible">
+      <div class="absolute -top-6 -left-2 sm:-left-8 z-20 floaty bg-white pill rounded-2xl px-4 py-3 shadow-[4px_4px_0_#16130E] rotate-[-4deg]"><p class="text-[10px] font-black tracking-widest text-neutral-400">ACTION ITEM DETECTED</p><p class="text-xs font-bold">✓ Maya → Send proposal by Fri</p></div>
+      <div class="absolute -bottom-5 -right-2 sm:-right-6 z-20 floaty bg-[#16130E] text-white rounded-2xl px-4 py-3 shadow-[4px_4px_0_#7C6CFF] rotate-[3deg]" style="animation-delay:1.2s"><p class="text-[10px] font-black tracking-widest text-[#B8F135]">✦ AI SUMMARY READY</p><p class="text-xs font-bold">8 sec • 94% less typing</p></div>
+      <div class="absolute top-1/2 -right-10 hidden lg:block spin-slow text-4xl">✦</div>
+
+      <div class="card bg-white rounded-[28px] overflow-hidden text-left">
+        <div class="flex items-center justify-between px-5 sm:px-6 py-4 border-b-[1.5px] border-ink bg-[#FFF8E6]">
+          <div class="flex items-center gap-3">
+            <div class="flex gap-1.5"><span class="w-3 h-3 bg-[#FF5F56] rounded-full border border-ink"></span><span class="w-3 h-3 bg-[#FFBD2E] rounded-full border border-ink"></span><span class="w-3 h-3 bg-[#27CA3F] rounded-full border border-ink"></span></div>
+            <span class="font-mono text-xs font-bold bg-white pill rounded-full px-3 py-1">murmur.app / product-sync</span>
+          </div>
+          <span class="hidden sm:flex items-center gap-2 text-xs font-bold"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span> EN • Auto-detect</span>
+        </div>
+
+        <div class="grid md:grid-cols-[1.25fr_.85fr]">
+          <div class="p-5 sm:p-6">
+            <div class="flex items-start justify-between">
+              <div><p class="font-mono text-[11px] tracking-widest text-neutral-400 font-bold">TUESDAY • 10:24 AM • 4 PEOPLE</p><h3 class="font-serif font-semibold text-2xl sm:text-[28px] leading-none mt-1">Product Sync — Q3 Launch</h3></div>
+              <span id="timer" class="font-mono font-bold text-sm bg-[#FFEDEA] text-[#FF3B1F] pill border-[#FF3B1F] rounded-full px-3 py-1">00:00</span>
+            </div>
+
+            <!-- WAVEFORM -->
+            <div id="waveBox" class="mt-5 bg-[#FAF7F2] pill rounded-2xl px-4 py-4">
+              <div id="waveform" class="flex items-center justify-between h-[52px] gap-[3px]"></div>
+              <div class="flex items-center justify-between mt-3">
+                <button id="recordBtn" onclick="toggleRecording()" class="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-xs px-4 py-2.5 rounded-full border-[1.5px] border-ink shadow-[3px_3px_0_#16130E] active:translate-y-0.5"><span id="recDot" class="w-2.5 h-2.5 bg-white rounded-full pulse-dot"></span><span id="recLabel">● REC — Pause</span></button>
+                <div class="flex gap-1.5"><button onclick="addBookmark()" class="text-[11px] font-bold bg-white pill rounded-full px-3 py-2">🔖 Bookmark</button><button onclick="clearTranscript()" class="text-[11px] font-bold bg-white pill rounded-full px-3 py-2">↺ Restart</button></div>
+                <span class="hidden sm:block font-mono text-[11px] font-bold text-neutral-400">99.1% ACCURACY</span>
+              </div>
+            </div>
+
+            <!-- TRANSCRIPT -->
+            <div id="transcript" class="mt-5 space-y-3 h-[210px] overflow-y-auto pr-1"></div>
+          </div>
+
+          <!-- AI PANEL -->
+          <div class="bg-[#16130E] text-white p-5 sm:p-6 flex flex-col">
+            <div class="flex items-center justify-between"><p class="font-mono text-[11px] tracking-[.2em] text-[#B8F135] font-bold">✦ MURMUR AI</p><span class="text-[10px] font-bold bg-white/10 rounded-full px-2 py-1">LIVE</span></div>
+            <h4 class="font-serif text-[22px] leading-tight mt-3">What matters, <i class="text-[#CFC8FF]">distilled.</i></h4>
+            <div id="aiSummary" class="mt-4 space-y-2.5 text-[13px] leading-relaxed min-h-[118px]"></div>
+            <div class="mt-4 pt-4 border-t border-white/15">
+              <p class="text-[10px] font-black tracking-widest text-white/50 mb-2">NEXT ACTIONS</p>
+              <div id="actionsList" class="space-y-2"></div>
+            </div>
+            <button onclick="generateSummary(true)" class="mt-auto pt-5"><span class="block w-full bg-[#B8F135] text-ink font-extrabold text-sm py-3 rounded-full border border-[#B8F135] hover:bg-white transition">✦ Regenerate summary</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="bg-ink text-[#FAF7F2] py-3.5 -rotate-1 scale-[1.02] overflow-hidden whitespace-nowrap border-y-[1.5px] border-ink">
+  <div class="marquee inline-flex gap-0 font-serif italic text-lg"><span class="pr-2">Meetings ✦ Lectures ✦ Interviews ✦ Brainstorms ✦ Therapy notes ✦ Sales calls ✦ Podcasts ✦ Stand-ups ✦ &nbsp;</span><span class="pr-2">Meetings ✦ Lectures ✦ Interviews ✦ Brainstorms ✦ Therapy notes ✦ Sales calls ✦ Podcasts ✦ Stand-ups ✦ &nbsp;</span></div>
+</div>
+
+<!-- STATS -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="reveal text-center bg-white card rounded-3xl p-6"><p class="display font-semibold text-5xl"><span data-count="8400000">0</span></p><p class="text-xs font-bold tracking-wide text-neutral-500 mt-1">HOURS TRANSCRIBED</p></div>
+    <div class="reveal text-center bg-[#B8F135] card rounded-3xl p-6"><p class="display font-semibold text-5xl"><span data-count="94">0</span>%</p><p class="text-xs font-bold tracking-wide mt-1">LESS NOTE-TAKING TIME</p></div>
+    <div class="reveal text-center bg-[#CFC8FF] card rounded-3xl p-6"><p class="display font-semibold text-5xl"><span data-count="32">0</span></p><p class="text-xs font-bold tracking-wide mt-1">LANGUAGES SUPPORTED</p></div>
+    <div class="reveal text-center bg-[#FFD6E8] card rounded-3xl p-6"><p class="display font-semibold text-5xl"><span data-count="8">0</span>s</p><p class="text-xs font-bold tracking-wide mt-1">AVG. SUMMARY TIME</p></div>
+  </div>
+</section>
+
+<!-- LIVE DEMO -->
+<section id="demo" class="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+  <div class="reveal flex flex-wrap items-end justify-between gap-4 mb-6">
+    <div><p class="font-mono text-xs font-bold tracking-[.2em] text-[#7C6CFF]">01 — TRY IT RIGHT NOW</p><h2 class="display font-semibold text-[44px] sm:text-6xl mt-2">Don't read about it.<br><i class="font-normal">Hear</i> it work.</h2></div>
+    <p class="max-w-sm text-sm text-neutral-500 font-medium leading-relaxed">Pick a conversation, watch Murmur think — or use your own voice. Real speech recognition runs in your browser.</p>
+  </div>
+
+  <div class="reveal grid lg:grid-cols-2 gap-5">
+    <!-- Sample player -->
+    <div class="card bg-white rounded-[24px] p-6">
+      <div class="flex flex-wrap gap-2" id="sampleTabs">
+        <button data-sample="meeting" onclick="loadSample('meeting',this)" class="tab-active pill rounded-full px-4 py-2 text-xs font-extrabold bg-white">💼 Team Meeting</button>
+        <button data-sample="lecture" onclick="loadSample('lecture',this)" class="pill rounded-full px-4 py-2 text-xs font-extrabold bg-white">🎓 Lecture</button>
+        <button data-sample="idea" onclick="loadSample('idea',this)" class="pill rounded-full px-4 py-2 text-xs font-extrabold bg-white">💡 Brainstorm</button>
+      </div>
+      <div class="flex items-center gap-4 mt-6">
+        <button id="playBtn" onclick="playSample()" class="w-14 h-14 shrink-0 bg-ink text-[#B8F135] rounded-full text-xl grid place-items-center border-[1.5px] border-ink shadow-[4px_4px_0_#7C6CFF]">▶</button>
+        <div class="flex-1"><div class="h-2 bg-neutral-100 rounded-full overflow-hidden border border-neutral-200"><div id="progress" class="h-full bg-[#7C6CFF] w-0 transition-all duration-500"></div></div><div class="flex justify-between mt-1.5 text-[11px] font-mono font-bold text-neutral-400"><span id="progLabel">0 / 5 lines</span><span>1.0× • EN-US</span></div></div>
+      </div>
+      <div id="sampleTranscript" class="mt-5 space-y-2.5 h-[220px] overflow-y-auto pr-1"></div>
+    </div>
+
+    <!-- Your voice -->
+    <div class="card bg-[#16130E] text-white rounded-[24px] p-6 relative overflow-hidden">
+      <div class="orb w-64 h-64 bg-[#7C6CFF] -top-20 -right-20"></div>
+      <p class="font-mono text-[11px] tracking-[.2em] text-[#B8F135] font-bold relative">🎙 YOUR VOICE → AI NOTES</p>
+      <h3 class="font-serif text-3xl mt-2 relative">Speak for 20 seconds.<br><i class="text-[#CFC8FF]">Watch the magic.</i></h3>
+      <textarea id="voiceText" rows="4" placeholder="Your words will appear here... or type/paste any messy notes, ramble, or transcript." class="relative w-full mt-5 bg-white/10 border border-white/25 rounded-2xl p-4 text-sm placeholder:text-white/40 resize-none">We need to launch the new onboarding flow by next Friday. Sarah will finish the designs tomorrow, and I will review the pricing page. The main risk is the payment integration, so let's check in on Wednesday.</textarea>
+      <div class="flex flex-wrap gap-2 mt-4 relative">
+        <button id="micBtn" onclick="toggleMic()" class="bg-[#FF4D2E] text-white font-extrabold text-xs px-5 py-3 rounded-full border border-white/20">● Record my voice</button>
+        <button onclick="summarizeVoice()" class="bg-[#B8F135] text-ink font-extrabold text-xs px-5 py-3 rounded-full">✦ Summarize with AI →</button>
+        <button onclick="document.getElementById('voiceText').value=''" class="bg-white/10 font-bold text-xs px-4 py-3 rounded-full">Clear</button>
+      </div>
+      <p id="micStatus" class="text-[11px] font-mono text-white/50 mt-3 h-4"></p>
+      <div id="voiceResult" class="relative mt-2 bg-white text-ink rounded-2xl p-4 hidden"></div>
+    </div>
+  </div>
+
+  <!-- ASK MURMUR -->
+  <div class="reveal card bg-[#FFF3C4] rounded-[24px] mt-5 p-6 sm:p-8 grid lg:grid-cols-[1fr_1.4fr] gap-8 items-center">
+    <div><p class="font-mono text-xs font-bold tracking-[.2em]">02 — ASK ANYTHING</p><h3 class="display font-semibold text-4xl sm:text-5xl mt-2">Your notes,<br><i class="font-normal">now conversational.</i></h3><p class="text-sm text-neutral-600 font-medium mt-3 leading-relaxed">Forget scrolling transcripts. Ask Murmur what was decided, who said what, or what's due — it answers from your conversations.</p><div class="flex flex-wrap gap-2 mt-5"><button onclick="askMurmur(this)" class="chip pill bg-white rounded-full px-4 py-2 text-xs font-bold" data-q="What did we decide about launch date?">What did we decide?</button><button onclick="askMurmur(this)" class="chip pill bg-white rounded-full px-4 py-2 text-xs font-bold" data-q="Who owns the pricing page?">Who owns pricing?</button><button onclick="askMurmur(this)" class="chip pill bg-white rounded-full px-4 py-2 text-xs font-bold" data-q="What are the risks?">What are the risks?</button></div></div>
+    <div class="bg-white pill rounded-[20px] p-5 min-h-[190px]"><p class="text-[10px] font-black tracking-widest text-neutral-400">ASK MURMUR — PRODUCT SYNC</p><div id="askBox" class="mt-3"><p class="text-sm text-neutral-400 font-medium">👆 Tap a question — Murmur answers instantly from the transcript above.</p></div></div>
+  </div>
+</section>
+
+<!-- FEATURES BENTO -->
+<section id="features" class="bg-ink text-[#FAF7F2] py-20 px-4 sm:px-6 rounded-[36px] mx-2 sm:mx-4 relative overflow-hidden">
+  <div class="orb w-[400px] h-[400px] bg-[#7C6CFF] top-0 right-0"></div>
+  <div class="max-w-7xl mx-auto relative">
+    <p class="reveal font-mono text-xs font-bold tracking-[.25em] text-[#B8F135]">03 — WHY MURMUR</p>
+    <h2 class="reveal display font-semibold text-[44px] sm:text-7xl mt-3 max-w-3xl">Everything said, <i class="font-normal text-[#CFC8FF]">nothing lost.</i></h2>
+    <div class="grid md:grid-cols-3 gap-4 mt-10">
+      <div class="reveal md:col-span-2 bg-[#FAF7F2] text-ink rounded-[22px] p-7 border-[1.5px] border-black shadow-[6px_6px_0_#B8F135]"><span class="text-3xl">⚡</span><h3 class="font-serif font-semibold text-3xl mt-3">Real-time transcription, scary-accurate</h3><p class="text-sm text-neutral-500 font-medium mt-2 leading-relaxed max-w-md">99.1% accuracy across accents, crosstalk and chaos. Speaker labels, timestamps and punctuation — as it happens.</p><div class="flex flex-wrap gap-2 mt-5"><span class="pill rounded-full px-3 py-1 text-[11px] font-bold bg-white">Maya — 10:24</span><span class="text-xs bg-[#B8F135] pill rounded-full px-3 py-1 font-bold">"Launch moves to Sept 12..."</span><span class="pill rounded-full px-3 py-1 text-[11px] font-bold bg-white">+ highlight</span></div></div>
+      <div class="reveal bg-[#7C6CFF] rounded-[22px] p-7 border-[1.5px] border-black shadow-[6px_6px_0_#FAF7F2]"><span class="text-3xl">🎯</span><h3 class="font-serif font-semibold text-3xl mt-3">Action items, auto-caught</h3><p class="text-sm text-white/80 font-medium mt-2">Every "I'll do that" becomes a task with an owner and a deadline. Synced to Notion, Slack & Asana.</p><p class="display text-5xl font-semibold mt-5">3,204</p><p class="text-[11px] font-bold tracking-wide">TASKS CAUGHT THIS WEEK</p></div>
+      <div class="reveal bg-[#22201A] rounded-[22px] p-7 border border-white/20"><span class="text-3xl">🔒</span><h3 class="font-bold text-xl mt-3">Private by design</h3><p class="text-sm text-white/60 font-medium mt-2 leading-relaxed">No bot joins your call. On-device capture, SOC 2 Type II, GDPR, and delete-anything-anytime.</p></div>
+      <div class="reveal bg-[#22201A] rounded-[22px] p-7 border border-white/20"><span class="text-3xl">🔍</span><h3 class="font-bold text-xl mt-3">Search every whisper</h3><p class="text-sm text-white/60 font-medium mt-2 leading-relaxed">"That pricing thing from March?" Found in 0.4s — across every meeting you've ever had.</p></div>
+      <div class="reveal bg-[#B8F135] text-ink rounded-[22px] p-7 border-[1.5px] border-black shadow-[6px_6px_0_#FAF7F2]"><span class="text-3xl">🌍</span><h3 class="font-serif font-semibold text-3xl mt-3">32 languages</h3><p class="text-sm font-medium mt-2 text-neutral-600">Speak Spanish, think in English. Murmur transcribes and translates in one pass.</p><p class="font-mono text-xs font-bold mt-4">EN • ES • FR • DE • JA • PT • +26</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how" class="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+  <p class="reveal font-mono text-xs font-bold tracking-[.25em] text-[#7C6CFF] text-center">04 — HOW IT WORKS</p>
+  <h2 class="reveal display font-semibold text-[44px] sm:text-6xl text-center mt-3">Three steps. <i class="font-normal highlight">Zero typing.</i></h2>
+  <div class="grid md:grid-cols-3 gap-4 mt-10">
+    <div class="reveal card bg-white rounded-[22px] p-7"><p class="display text-6xl font-semibold text-[#CFC8FF]">01</p><h3 class="font-bold text-xl mt-4">Tap record 🎙</h3><p class="text-sm text-neutral-500 font-medium mt-2 leading-relaxed">In person, on Zoom, or upload audio. Murmur captures everything — no awkward meeting bot.</p></div>
+    <div class="reveal card bg-[#FFD6E8] rounded-[22px] p-7"><p class="display text-6xl font-semibold text-white" style="-webkit-text-stroke:1.5px #16130E">02</p><h3 class="font-bold text-xl mt-4">Murmur listens ✦</h3><p class="text-sm text-neutral-600 font-medium mt-2 leading-relaxed">It transcribes, labels speakers, and pulls out decisions, deadlines and disagreements.</p></div>
+    <div class="reveal card bg-ink text-white rounded-[22px] p-7 shadow-[6px_6px_0_#B8F135] border-[1.5px] border-ink"><p class="display text-6xl font-semibold text-[#B8F135]">03</p><h3 class="font-bold text-xl mt-4">You get the gist ⚡</h3><p class="text-sm text-white/60 font-medium mt-2 leading-relaxed">A beautiful summary in 8 seconds. Share it, search it, or ask it questions forever.</p></div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="grid md:grid-cols-3 gap-4 mt-5">
+    <figure class="reveal card bg-white rounded-[22px] p-6"><p class="text-[#FFB800]">★★★★★</p><blockquote class="font-serif text-[19px] leading-snug mt-2">"I stopped taking notes entirely. Murmur's summaries are better than mine ever were."</blockquote><figcaption class="flex items-center gap-3 mt-4"><img class="w-10 h-10 rounded-full border border-ink" src="https://i.pravatar.cc/80?img=47"><span class="text-xs"><b class="block text-sm">Priya Nair</b>PM, fintech • 400+ hrs saved</span></figcaption></figure>
+    <figure class="reveal card bg-[#CFC8FF] rounded-[22px] p-6"><p>★★★★★</p><blockquote class="font-serif text-[19px] leading-snug mt-2">"It caught a deadline in a hallway chat that would've cost us a client. Paid for itself day one."</blockquote><figcaption class="flex items-center gap-3 mt-4"><img class="w-10 h-10 rounded-full border border-ink" src="https://i.pravatar.cc/80?img=12"><span class="text-xs"><b class="block text-sm">Marcus Lee</b>Founder, agency of 30</span></figcaption></figure>
+    <figure class="reveal card bg-white rounded-[22px] p-6"><p class="text-[#FFB800]">★★★★★</p><blockquote class="font-serif text-[19px] leading-snug mt-2">"As a med student: lectures → flashcards-ready notes. This app is genuinely unfair advantage."</blockquote><figcaption class="flex items-center gap-3 mt-4"><img class="w-10 h-10 rounded-full border border-ink" src="https://i.pravatar.cc/80?img=32"><span class="text-xs"><b class="block text-sm">Sofia Ramos</b>Med student, Madrid</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+  <div class="reveal bg-white card rounded-[28px] p-6 sm:p-10">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div><p class="font-mono text-xs font-bold tracking-[.25em] text-[#7C6CFF]">05 — PRICING</p><h2 class="display font-semibold text-[42px] sm:text-6xl mt-2">Cheaper than <i class="font-normal highlight-v">forgetting.</i></h2></div>
+      <div class="flex items-center gap-3 bg-[#FAF7F2] pill rounded-full p-1.5"><button id="btnMonthly" onclick="setBilling('m')" class="bg-ink text-white text-xs font-extrabold px-4 py-2 rounded-full">Monthly</button><button id="btnYearly" onclick="setBilling('y')" class="text-xs font-extrabold px-4 py-2 rounded-full">Yearly <span class="text-emerald-600">−25%</span></button></div>
+    </div>
+    <div class="grid md:grid-cols-3 gap-4 mt-8">
+      <div class="pill rounded-[20px] p-6 bg-[#FAF7F2]"><p class="font-black">Whisper</p><p class="display text-5xl font-semibold mt-3">$0</p><p class="text-xs text-neutral-500 font-medium">forever free</p><ul class="text-sm font-medium space-y-2 mt-5 text-neutral-600"><li>✓ 300 mins / month</li><li>✓ AI summaries</li><li>✓ 32 languages</li><li>✓ 7-day history</li></ul><button onclick="choosePlan('Whisper')" class="w-full mt-6 pill bg-white rounded-full py-3 font-extrabold text-sm">Start free</button></div>
+      <div class="rounded-[20px] p-6 bg-ink text-white relative shadow-[6px_6px_0_#B8F135] border-[1.5px] border-ink"><span class="absolute -top-3 right-5 bg-[#B8F135] text-ink text-[10px] font-black px-3 py-1 rounded-full border border-ink">MOST POPULAR</span><p class="font-black">Murmur Pro ✦</p><p class="display text-5xl font-semibold mt-3">$<span class="price" data-m="12" data-y="9">12</span><span class="text-base font-sans font-bold text-white/50">/mo</span></p><p class="text-xs text-white/50 font-medium bill-note">billed monthly</p><ul class="text-sm font-medium space-y-2 mt-5 text-white/80"><li>✓ Unlimited transcription</li><li>✓ Ask Murmur AI chat</li><li>✓ Action items + integrations</li><li>✓ Unlimited history & search</li></ul><button onclick="choosePlan('Pro')" class="w-full mt-6 bg-[#B8F135] text-ink rounded-full py-3 font-extrabold text-sm">Go Pro →</button></div>
+      <div class="pill rounded-[20px] p-6 bg-[#FAF7F2]"><p class="font-black">Team</p><p class="display text-5xl font-semibold mt-3">$<span class="price" data-m="20" data-y="15">20</span><span class="text-base font-sans font-bold text-neutral-400">/user</span></p><p class="text-xs text-neutral-500 font-medium bill-note">billed monthly</p><ul class="text-sm font-medium space-y-2 mt-5 text-neutral-600"><li>✓ Everything in Pro</li><li>✓ Shared workspaces</li><li>✓ Admin & SSO / SAML</li><li>✓ Priority support</li></ul><button onclick="choosePlan('Team')" class="w-full mt-6 pill bg-white rounded-full py-3 font-extrabold text-sm">Talk to sales</button></div>
+    </div>
+    <p id="planMsg" class="text-center text-sm font-bold text-emerald-700 mt-5 h-5"></p>
+  </div>
+
+  <!-- FAQ -->
+  <div class="grid lg:grid-cols-[1fr_1.4fr] gap-8 mt-14 reveal">
+    <div><h3 class="display font-semibold text-4xl sm:text-5xl">Questions,<br><i class="font-normal">whispered answers.</i></h3><p class="text-sm text-neutral-500 font-medium mt-3">Still curious? hello@murmur.app — a human replies within a day.</p></div>
+    <div class="space-y-3" id="faq">
+      <div class="faq-item card bg-white rounded-2xl px-6 py-4 cursor-pointer" onclick="toggleFaq(this)"><div class="flex justify-between items-center font-bold text-[15px]">Does a bot join my meetings?<span class="faq-icon text-xl">+</span></div><div class="faq-body"><p class="text-sm text-neutral-500 font-medium pt-3 leading-relaxed">Never. Murmur captures audio from your device, so there's no awkward "Murmur Bot has joined" moment. Your guests won't even know — though we recommend telling them.</p></div></div>
+      <div class="faq-item card bg-white rounded-2xl px-6 py-4 cursor-pointer" onclick="toggleFaq(this)"><div class="flex justify-between items-center font-bold text-[15px]">How accurate is it, really?<span class="faq-icon text-xl">+</span></div><div class="faq-body"><p class="text-sm text-neutral-500 font-medium pt-3 leading-relaxed">99.1% on clear audio across 32 languages, independently benchmarked. It handles accents, crosstalk and technical jargon — and learns your team's vocabulary over time.</p></div></div>
+      <div class="faq-item card bg-white rounded-2xl px-6 py-4 cursor-pointer" onclick="toggleFaq(this)"><div class="flex justify-between items-center font-bold text-[15px]">Is my data used to train AI?<span class="faq-icon text-xl">+</span></div><div class="faq-body"><p class="text-sm text-neutral-500 font-medium pt-3 leading-relaxed">No. Ever. Your recordings are encrypted, never sold, never used for training, and you can permanently delete everything with one click. SOC 2 Type II & GDPR compliant.</p></div></div>
+      <div class="faq-item card bg-white rounded-2xl px-6 py-4 cursor-pointer" onclick="toggleFaq(this)"><div class="flex justify-between items-center font-bold text-[15px]">Can I cancel anytime?<span class="faq-icon text-xl">+</span></div><div class="faq-body"><p class="text-sm text-neutral-500 font-medium pt-3 leading-relaxed">Yes — two clicks, no retention flows, no guilt trips. You keep free-tier access and all your notes.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" class="mx-2 sm:mx-4 mb-4 bg-[#7C6CFF] rounded-[36px] px-6 py-20 text-center relative overflow-hidden border-[1.5px] border-ink">
+  <div class="orb w-96 h-96 bg-[#B8F135] -top-32 left-1/3"></div>
+  <p class="relative text-6xl spin-slow inline-block">✦</p>
+  <h2 class="relative display font-semibold text-white text-[52px] sm:text-[84px] mt-4">Stop typing.<br><i class="font-normal">Start murmuring.</i></h2>
+  <p class="relative text-white/80 font-medium mt-4">Free for 300 minutes a month. Set up in 40 seconds.</p>
+  <form id="ctaForm" class="relative mt-8 max-w-lg mx-auto flex flex-col sm:flex-row gap-3 px-2">
+    <input required type="email" placeholder="you@company.com" class="flex-1 rounded-full px-6 py-4 text-sm font-medium bg-white border-[1.5px] border-ink">
+    <button class="btn-lime rounded-full px-7 py-4 font-extrabold text-sm">Get Murmur free →</button>
+  </form>
+  <p id="ctaMsg" class="relative text-sm font-bold text-white mt-4 h-5"></p>
+  <div class="relative flex flex-wrap justify-center gap-2 mt-2"><span class="text-[11px] font-bold bg-white/20 text-white rounded-full px-3 py-1.5">🍎 iOS</span><span class="text-[11px] font-bold bg-white/20 text-white rounded-full px-3 py-1.5">🤖 Android</span><span class="text-[11px] font-bold bg-white/20 text-white rounded-full px-3 py-1.5">💻 Mac & Windows</span><span class="text-[11px] font-bold bg-white/20 text-white rounded-full px-3 py-1.5">🌐 Web</span></div>
+</section>
+
+<footer class="max-w-7xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+  <p class="font-black text-xl">murmur<span class="text-[#7C6CFF]">.</span> <span class="font-medium text-sm text-neutral-400">© 2026 — Made for people who'd rather talk.</span></p>
+  <div class="flex gap-5 text-xs font-bold text-neutral-500"><a href="#features" class="hover:text-ink">Features</a><a href="#pricing" class="hover:text-ink">Pricing</a><a href="#demo" class="hover:text-ink">Demo</a><a href="#" class="hover:text-ink">Privacy</a><a href="#" class="hover:text-ink">𝕏 / Twitter</a></div>
+</footer>
+
+<script>
+// ---------- Waveform ----------
+const wave=document.getElementById('waveform');let bars=[];
+for(let i=0;i<44;i++){let b=document.createElement('div');b.className='wave-bar';b.style.height=(8+Math.random()*38)+'px';wave.appendChild(b);bars.push(b)}
+let recording=true,seconds=0,timerInt,waveInt;
+function animateWave(){waveInt=setInterval(()=>{if(!recording)return;bars.forEach(b=>b.style.height=(6+Math.random()*46)+'px')},180)}
+function updateTimer(){timerInt=setInterval(()=>{if(!recording)return;seconds++;let m=String(Math.floor(seconds/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');document.getElementById('timer').textContent=m+':'+s},1000)}
+animateWave();updateTimer();
+
+// ---------- Hero transcript simulation ----------
+const heroLines=[
+ {n:'Maya Chen',c:'#7C6CFF',t:'Okay — launch moves to <span class="highlight font-semibold">September 12</span>. Marketing needs two extra weeks.'},
+ {n:'Jordan',c:'#FF8A00',t:'Agreed. I\'ll own the <b>pricing page</b> and have a draft by Thursday.'},
+ {n:'Priya',c:'#0EAA6E',t:'Big risk: <span class="highlight font-semibold">payment integration</span> is still flaky in staging.'},
+ {n:'Alex (You)',c:'#16130E',t:'Let\'s do a mid-week check-in Wednesday, 30 mins. I\'ll send the invite.'},
+ {n:'Maya Chen',c:'#7C6CFF',t:'Perfect. And let\'s cut the referral feature from v1 — scope is creeping.'},
+];
+const summaries=['<p>📌 <b>Decision:</b> Q3 launch moved to <span class="text-[#B8F135] font-bold">Sept 12</span></p>','<p>✂️ <b>Cut from v1:</b> Referral feature (scope control)</p>','<p>⚠️ <b>Top risk:</b> Payment integration instability in staging</p>'];
+const actions=[['Maya','Send launch timeline to team','Fri'],['Jordan','Pricing page draft','Thu'],['Priya','Payment integration report','Wed']];
+let lineIdx=0,heroInt;
+const tBox=document.getElementById('transcript');
+function addLine(l){let d=document.createElement('div');d.className='transcript-line flex gap-3';d.innerHTML=`<span class="w-8 h-8 shrink-0 rounded-full grid place-items-center text-white text-[11px] font-black border border-ink" style="background:${l.c}">${l.n[0]}</span><div class="bg-[#FAF7F2] pill rounded-2xl rounded-tl-md px-3.5 py-2.5 flex-1"><p class="text-[10px] font-black tracking-wide" style="color:${l.c}">${l.n.toUpperCase()}</p><p class="text-[13px] leading-snug font-medium">${l.t}</p></div>`;tBox.appendChild(d);tBox.scrollTop=tBox.scrollHeight}
+function renderSummary(){let s=document.getElementById('aiSummary');s.innerHTML='';summaries.forEach((x,i)=>setTimeout(()=>{let p=document.createElement('div');p.className='transcript-line bg-white/10 rounded-xl px-3 py-2.5';p.innerHTML=x;s.appendChild(p)},i*350));let a=document.getElementById('actionsList');a.innerHTML='';actions.forEach(x=>{let d=document.createElement('label');d.className='transcript-line flex items-center gap-2.5 bg-white/5 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-white/10';d.innerHTML=`<input type="checkbox" class="accent-[#B8F135] w-4 h-4" onchange="this.parentElement.style.opacity=this.checked?.45:1;this.parentElement.style.textDecoration=this.checked?'line-through':'none'"><span class="flex-1"><b>${x[0]}</b> — ${x[1]}</span><span class="bg-[#B8F135] text-ink text-[10px] font-black px-2 py-0.5 rounded-full">${x[2]}</span>`;a.appendChild(d)})}
+function runHero(){heroInt=setInterval(()=>{if(!recording)return;if(lineIdx<heroLines.length){addLine(heroLines[lineIdx]);lineIdx++;if(lineIdx===3)renderSummary()}else{clearInterval(heroInt)}},1900)}
+function toggleRecording(){recording=!recording;document.getElementById('waveBox').classList.toggle('recording',recording);document.getElementById('recLabel').textContent=recording?'● REC — Pause':'▶ Resume recording';document.getElementById('recordBtn').style.background=recording?'#FF4D2E':'#16130E';if(recording&&lineIdx>=heroLines.length){clearTranscript()}}
+function clearTranscript(){clearInterval(heroInt);lineIdx=0;seconds=0;tBox.innerHTML='';document.getElementById('aiSummary').innerHTML='<p class="text-white/40 text-xs font-mono">Listening… AI summary will appear here.</p>';document.getElementById('actionsList').innerHTML='';recording=true;document.getElementById('recLabel').textContent='● REC — Pause';runHero()}
+function addBookmark(){let d=document.createElement('div');d.className='transcript-line text-center text-[11px] font-black bg-[#FFF3C4] pill rounded-full py-1.5';d.textContent='🔖 BOOKMARKED AT '+document.getElementById('timer').textContent+' — "important moment"';tBox.appendChild(d);tBox.scrollTop=tBox.scrollHeight}
+function generateSummary(manual){let s=document.getElementById('aiSummary');s.innerHTML='<p class="typing font-mono text-xs text-[#B8F135]">Murmur is thinking</p>';setTimeout(renderSummary,900)}
+heroLines.slice(0,2).forEach(l=>{addLine(l);lineIdx++});renderSummary();runHero();
+
+// ---------- Samples ----------
+const samples={
+ meeting:[['Sarah','We need to launch onboarding by next Friday — that\'s the hard deadline.'],['Tom','Designs will be done tomorrow, dev starts Monday.'],['Sarah','Main risk is payment integration. Let\'s check in Wednesday.'],['Lee','I\'ll draft the announcement post and pricing FAQ.'],['Sarah','Decision made: ship v1 without social login.']],
+ lecture:[['Prof. Alvarez','Photosynthesis converts light into chemical energy — this will be on the exam.'],['Prof. Alvarez','Remember: the Calvin cycle fixes carbon in the stroma.'],['Student','Will chapter 7 be covered next week?'],['Prof. Alvarez','Yes — and your lab reports are due Thursday at midnight.'],['Prof. Alvarez','Key takeaway: energy flow drives every ecosystem.']],
+ idea:[['Ana','What if the app summarized your dreams when you wake up?'],['Ben','Ooh — and turned recurring themes into a weekly story.'],['Ana','We could call the first version "Lucid". Test it with 50 users.'],['Ben','I\'ll prototype the voice journal this weekend.'],['Ana','Goal: validate in two weeks, then decide on pricing.']]
+};
+let curSample='meeting',sampleIdx=0,sampleTimer=null,playing=false;
+function loadSample(k,btn){curSample=k;sampleIdx=0;playing=false;document.getElementById('playBtn').textContent='▶';clearInterval(sampleTimer);document.querySelectorAll('#sampleTabs button').forEach(b=>b.classList.remove('tab-active'));if(btn)btn.classList.add('tab-active');else document.querySelector(`[data-sample="${k}"]`).classList.add('tab-active');document.getElementById('sampleTranscript').innerHTML='<p class="text-sm text-neutral-400 font-medium py-6 text-center">Press ▶ to play this conversation through Murmur</p>';document.getElementById('progress').style.width='0%';document.getElementById('progLabel').textContent='0 / '+samples[k].length+' lines'}
+function playSample(){if(playing){playing=false;document.getElementById('playBtn').textContent='▶';clearInterval(sampleTimer);return}playing=true;document.getElementById('playBtn').textContent='❚❚';if(sampleIdx===0)document.getElementById('sampleTranscript').innerHTML='';if(sampleIdx>=samples[curSample].length){sampleIdx=0;document.getElementById('sampleTranscript').innerHTML=''}sampleTimer=setInterval(()=>{let arr=samples[curSample];if(sampleIdx>=arr.length){playing=false;document.getElementById('playBtn').textContent='↺';clearInterval(sampleTimer);let end=document.createElement('div');end.className='transcript-line bg-[#16130E] text-white rounded-xl px-4 py-3 text-xs font-bold';end.innerHTML='✦ Murmur AI: Summary ready — '+(curSample==='meeting'?'Launch Fri, designs tomorrow, risk: payments, check-in Wed.':curSample==='lecture'?'Exam: photosynthesis & Calvin cycle. Lab due Thu.':'Idea "Lucid": prototype this weekend, validate in 2 weeks.');document.getElementById('sampleTranscript').appendChild(end);return}let [n,t]=arr[sampleIdx];let d=document.createElement('div');d.className='transcript-line flex gap-2.5 items-start';d.innerHTML=`<span class="bg-[#CFC8FF] pill rounded-full px-2.5 py-1 text-[10px] font-black shrink-0 mt-0.5">${n}</span><p class="text-[13px] font-medium bg-[#FAF7F2] pill rounded-xl rounded-tl-sm px-3 py-2 flex-1">${t}</p>`;let box=document.getElementById('sampleTranscript');box.appendChild(d);box.scrollTop=box.scrollHeight;sampleIdx++;document.getElementById('progress').style.width=(sampleIdx/arr.length*100)+'%';document.getElementById('progLabel').textContent=sampleIdx+' / '+arr.length+' lines'},1100)}
+loadSample('meeting');
+
+// ---------- Ask Murmur ----------
+const answers={'What did we decide about launch date?':'You moved the Q3 launch to <b>September 12</b>, giving marketing two extra weeks. The referral feature was cut from v1 to protect the date. <span class="text-neutral-400 text-xs">(Maya, 10:24 AM)</span>','Who owns the pricing page?':'<b>Jordan</b> owns the pricing page — first draft due <b>Thursday</b>. Lee is supporting with the pricing FAQ. <span class="text-neutral-400 text-xs">(Jordan, 10:26 AM)</span>','What are the risks?':'Top risk: <b>payment integration instability in staging</b> (Priya). Mitigation: mid-week check-in on Wednesday + Priya\'s report before launch. <span class="text-neutral-400 text-xs">(Priya, 10:27 AM)</span>'};
+function askMurmur(btn){let q=btn.dataset.q;let box=document.getElementById('askBox');box.innerHTML=`<div class="transcript-line flex justify-end"><p class="bg-ink text-white text-[13px] font-semibold rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">${q}</p></div><div class="mt-3 flex gap-2.5"><span class="w-7 h-7 bg-[#7C6CFF] text-white rounded-full grid place-items-center text-xs border border-ink shrink-0">✦</span><p class="typing text-sm font-medium bg-[#FAF7F2] pill rounded-2xl rounded-tl-sm px-4 py-3 flex-1">Searching your murmurs</p></div>`;setTimeout(()=>{box.children[1].querySelector('p').classList.remove('typing');box.children[1].querySelector('p').innerHTML=answers[q]},900)}
+
+// ---------- Voice + summarize ----------
+let recog=null,micOn=false;
+function toggleMic(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;let st=document.getElementById('micStatus');if(!SR){st.textContent='⚠ Speech recognition needs Chrome/Edge — typing works too!';return}if(micOn){recog.stop();return}recog=new SR();recog.continuous=true;recog.interimResults=true;recog.lang='en-US';let base=document.getElementById('voiceText').value;recog.onresult=e=>{let txt='';for(let r of e.results)txt+=r[0].transcript;document.getElementById('voiceText').value=(base+' '+txt).trim()};recog.onstart=()=>{micOn=true;document.getElementById('micBtn').textContent='■ Stop recording';st.textContent='● Listening… speak now (allow mic access)';};recog.onend=()=>{micOn=false;document.getElementById('micBtn').textContent='● Record my voice';st.textContent='Recording stopped. Hit "Summarize with AI" →'};recog.onerror=e=>{st.textContent='Mic error: '+e.error+' — typing works too!'};recog.start()}
+function summarizeVoice(){let txt=document.getElementById('voiceText').value.trim();let out=document.getElementById('voiceResult');if(txt.length<20){out.classList.remove('hidden');out.innerHTML='<p class="text-sm font-bold text-red-600">Add a bit more text first — a few sentences works best.</p>';return}out.classList.remove('hidden');out.innerHTML='<p class="typing font-mono text-xs font-bold">✦ Murmur is distilling</p>';
+ setTimeout(()=>{let sents=txt.replace(/\s+/g,' ').split(/(?<=[.!?])\s+/).filter(s=>s.length>12);let summary=sents.slice(0,2).join(' ');
+ let words=txt.toLowerCase().replace(/[^a-z ]/g,'').split(' ').filter(w=>w.length>4);let freq={};words.forEach(w=>freq[w]=(freq[w]||0)+1);let keys=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
+ let acts=sents.filter(s=>/(will|need to|let's|should|by |due|tomorrow|friday|monday|wednesday|thursday)/i.test(s)).slice(0,3);
+ out.innerHTML=`<p class="text-[10px] font-black tracking-widest text-[#7C6CFF]">✦ MURMUR SUMMARY • ${Math.max(1,Math.round(txt.split(' ').length/2.5))} SEC READ</p><p class="font-serif text-[17px] leading-snug mt-2">${summary}</p>${acts.length?`<p class="text-[10px] font-black tracking-widest mt-4 mb-1.5">ACTION ITEMS</p>`+acts.map(a=>`<p class="text-[13px] font-medium bg-[#FAF7F2] pill rounded-lg px-3 py-2 mb-1.5">✓ ${a}</p>`).join(''):''}<div class="flex flex-wrap gap-1.5 mt-3">${keys.map(k=>`<span class="bg-[#B8F135] pill rounded-full px-2.5 py-1 text-[10px] font-black">#${k}</span>`).join('')}</div><button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('voiceResult').innerText);this.textContent='✓ Copied!'" class="mt-4 text-xs font-extrabold bg-ink text-white rounded-full px-4 py-2">Copy summary</button>`},1000)}
+
+// ---------- Pricing / FAQ / forms ----------
+let billing='m';
+function setBilling(b){billing=b;document.getElementById('btnMonthly').className=b==='m'?'bg-ink text-white text-xs font-extrabold px-4 py-2 rounded-full':'text-xs font-extrabold px-4 py-2 rounded-full';document.getElementById('btnYearly').className=b==='y'?'bg-ink text-white text-xs font-extrabold px-4 py-2 rounded-full':'text-xs font-extrabold px-4 py-2 rounded-full';document.querySelectorAll('.price').forEach(p=>{p.textContent=b==='m'?p.dataset.m:p.dataset.y;p.parentElement.style.transform='scale(1.06)';setTimeout(()=>p.parentElement.style.transform='',200)});document.querySelectorAll('.bill-note').forEach(n=>n.textContent=b==='m'?'billed monthly':'billed yearly — 25% saved 🎉')}
+function choosePlan(p){document.getElementById('planMsg').textContent='🎉 '+p+' selected! Check your inbox to activate your Murmur workspace.';document.getElementById('cta').scrollIntoView({behavior:'smooth'})}
+function toggleFaq(el){document.querySelectorAll('.faq-item').forEach(f=>{if(f!==el)f.classList.remove('faq-open')});el.classList.toggle('faq-open')}
+document.getElementById('heroForm').addEventListener('submit',e=>{e.preventDefault();let em=document.getElementById('heroEmail').value;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){document.getElementById('formMsg').textContent='Please enter a valid email.';document.getElementById('formMsg').style.color='#dc2626';return}document.getElementById('formMsg').style.color='#047857';document.getElementById('formMsg').textContent='🎉 You\'re in! Murmur invite sent to '+em;e.target.reset()});
+document.getElementById('ctaForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('ctaMsg').textContent='🎉 Welcome to Murmur! Your workspace is being created…';e.target.reset()});
+
+// ---------- Reveal + counters ----------
+let io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');e.target.querySelectorAll('[data-count]').forEach(runCount);if(e.target.hasAttribute('data-count'))runCount(e.target);io.unobserve(e.target)}}),{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+function runCount(el){if(el.dataset.done)return;el.dataset.done=1;let target=+el.dataset.count,start=performance.now();function tick(t){let p=Math.min((t-start)/1400,1);let v=Math.floor(target*(1-Math.pow(1-p,3)));el.textContent=v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(v>=10000?0:1)+'k':v;if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick)}
+document.querySelectorAll('[data-count]').forEach(el=>{let o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){runCount(el);o.disconnect()}}));o.observe(el)});
+</script>
+</body>
+</html>

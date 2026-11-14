@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Sales Analytics Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1117;
+    --panel:#161b26;
+    --panel-2:#1b2130;
+    --border:#262d3d;
+    --text:#e8ebf2;
+    --muted:#8891a5;
+    --accent:#7c5cff;
+    --accent-2:#00d4b8;
+    --warn:#ffb648;
+    --bad:#ff6b6b;
+    --good:#3ddc97;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,0.12), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(0,212,184,0.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px 28px 60px;
+  }
+
+  /* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:26px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .logo{
+    width:40px;height:40px;
+    border-radius:11px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;
+    font-size:18px;
+    color:#0e1117;
+    box-shadow:0 6px 18px rgba(124,92,255,0.35);
+  }
+  .brand h1{
+    font-size:18px;
+    margin:0;
+    font-weight:700;
+    letter-spacing:0.2px;
+  }
+  .brand p{
+    margin:0;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .seg{
+    display:flex;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:4px;
+    gap:2px;
+  }
+  .seg button{
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
+    padding:7px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .seg button.active{
+    background:linear-gradient(135deg, var(--accent), #6845ff);
+    color:#fff;
+  }
+  .icon-btn{
+    width:38px;height:38px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--muted);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .avatar{
+    width:38px;height:38px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#ff8a5c,#ff5c8a);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;
+    font-size:13px;
+  }
+
+  /* KPI cards */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:18px;
+    margin-bottom:22px;
+  }
+  .kpi{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi::after{
+    content:'';
+    position:absolute;
+    right:-30px;top:-30px;
+    width:110px;height:110px;
+    border-radius:50%;
+    background:radial-gradient(circle, var(--kcolor, var(--accent)) 0%, transparent 70%);
+    opacity:0.18;
+  }
+  .kpi-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .kpi-label{
+    font-size:12.5px;
+    color:var(--muted);
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .kpi-icon{
+    width:30px;height:30px;
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+    background:rgba(255,255,255,0.05);
+  }
+  .kpi-value{
+    font-size:27px;
+    font-weight:800;
+    letter-spacing:-0.5px;
+  }
+  .kpi-delta{
+    margin-top:8px;
+    font-size:12.5px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-weight:600;
+  }
+  .up{color:var(--good);}
+  .down{color:var(--bad);}
+
+  /* Main grid */
+  .grid{
+    display:grid;
+    grid-template-columns: 2fr 1fr;
+    gap:18px;
+    margin-bottom:18px;
+  }
+  .panel{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .panel-head h3{
+    margin:0;
+    font-size:15px;
+    font-weight:700;
+  }
+  .panel-head span.sub{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:400;
+    margin-top:2px;
+  }
+  .legend-dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    margin-right:6px;
+  }
+  .mini-legend{
+    display:flex;
+    gap:16px;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  canvas{max-width:100%;}
+
+  .row3{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap:18px;
+    margin-bottom:18px;
+  }
+
+  /* Table */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  thead th{
+    text-align:left;
+    color:var(--muted);
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  tbody td{
+    padding:12px;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+  }
+  tbody tr:hover{
+    background:rgba(255,255,255,0.025);
+  }
+  .prod{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .prod-thumb{
+    width:34px;height:34px;
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;
+    background:rgba(124,92,255,0.15);
+  }
+  .status{
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:11.5px;
+    font-weight:600;
+    display:inline-block;
+  }
+  .status.paid{background:rgba(61,220,151,0.15); color:var(--good);}
+  .status.pending{background:rgba(255,182,72,0.15); color:var(--warn);}
+  .status.refunded{background:rgba(255,107,107,0.15); color:var(--bad);}
+
+  .bar-track{
+    height:6px;
+    border-radius:4px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+    margin-top:6px;
+  }
+  .bar-fill{
+    height:100%;
+    border-radius:4px;
+    background:linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+
+  .country-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    font-size:13.5px;
+  }
+  .country-row:last-child{border-bottom:none;}
+  .country-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .flag{
+    width:26px;height:26px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;
+    background:rgba(255,255,255,0.06);
+  }
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    margin-top:20px;
+  }
+
+  @media(max-width:1100px){
+    .grid{grid-template-columns:1fr;}
+    .row3{grid-template-columns:1fr;}
+    .kpis{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:600px){
+    .kpis{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">P</div>
+      <div>
+        <h1>Pulse Analytics</h1>
+        <p>Sales performance overview</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="rangeSeg">
+        <button data-range="7">7D</button>
+        <button data-range="30" class="active">30D</button>
+        <button data-range="90">90D</button>
+        <button data-range="365">1Y</button>
+      </div>
+      <div class="icon-btn" title="Export">⬇</div>
+      <div class="icon-btn" title="Refresh" id="refreshBtn">↻</div>
+      <div class="avatar">SK</div>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="kpis">
+    <div class="kpi" style="--kcolor:#7c5cff;">
+      <div class="kpi-top">
+        <span class="kpi-label">Total Revenue</span>
+        <div class="kpi-icon">💰</div>
+      </div>
+      <div class="kpi-value" id="kpiRevenue">$128,430</div>
+      <div class="kpi-delta up">▲ 12.4% vs last period</div>
+    </div>
+    <div class="kpi" style="--kcolor:#00d4b8;">
+      <div class="kpi-top">
+        <span class="kpi-label">Orders</span>
+        <div class="kpi-icon">🛒</div>
+      </div>
+      <div class="kpi-value" id="kpiOrders">3,284</div>
+      <div class="kpi-delta up">▲ 8.1% vs last period</div>
+    </div>
+    <div class="kpi" style="--kcolor:#ffb648;">
+      <div class="kpi-top">
+        <span class="kpi-label">Avg. Order Value</span>
+        <div class="kpi-icon">📦</div>
+      </div>
+      <div class="kpi-value" id="kpiAov">$39.12</div>
+      <div class="kpi-delta down">▼ 1.8% vs last period</div>
+    </div>
+    <div class="kpi" style="--kcolor:#ff6b6b;">
+      <div class="kpi-top">
+        <span class="kpi-label">Conversion Rate</span>
+        <div class="kpi-icon">📈</div>
+      </div>
+      <div class="kpi-value" id="kpiConv">3.42%</div>
+      <div class="kpi-delta up">▲ 0.4pt vs last period</div>
+    </div>
+  </div>
+
+  <!-- Main charts -->
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Revenue &amp; Orders Trend</h3>
+          <span class="sub">Daily performance over selected period</span>
+        </div>
+        <div class="mini-legend">
+          <span><span class="legend-dot" style="background:#7c5cff;"></span>Revenue</span>
+          <span><span class="legend-dot" style="background:#00d4b8;"></span>Orders</span>
+        </div>
+      </div>
+      <canvas id="trendChart" height="110"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Sales by Category</h3>
+          <span class="sub">Share of total revenue</span>
+        </div>
+      </div>
+      <canvas id="categoryChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <div class="row3">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Top Products</h3>
+          <span class="sub">By units sold</span>
+        </div>
+      </div>
+      <canvas id="productChart" height="190"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Traffic Channels</h3>
+          <span class="sub">Where orders come from</span>
+        </div>
+      </div>
+      <canvas id="channelChart" height="190"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Top Countries</h3>
+          <span class="sub">Revenue share</span>
+        </div>
+      </div>
+      <div class="country-list" id="countryList"></div>
+    </div>
+  </div>
+
+  <!-- Orders table -->
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h3>Recent Orders</h3>
+        <span class="sub">Latest transactions across the store</span>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Product</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody"></tbody>
+    </table>
+  </div>
+
+  <footer>Pulse Analytics Dashboard · Demo data · Updated just now</footer>
+</div>
+
+<script>
+Chart.defaults.color = '#8891a5';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+/* ---------- helpers ---------- */
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function fmtMoney(n){ return '$' + n.toLocaleString(undefined,{maximumFractionDigits:0}); }
+
+function genLabels(days){
+  const labels = [];
+  const now = new Date();
+  for(let i=days-1;i>=0;i--){
+    const d = new Date(now);
+    d.setDate(now.getDate()-i);
+    labels.push(d.toLocaleDateString(undefined,{month:'short', day:'numeric'}));
+  }
+  return labels;
+}
+
+function genSeries(days, base, variance){
+  let val = base;
+  const arr = [];
+  for(let i=0;i<days;i++){
+    val += rand(-variance, variance);
+    val = Math.max(val, base*0.4);
+    arr.push(Math.round(val));
+  }
+  return arr;
+}
+
+/* ---------- Trend chart ---------- */
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+let gradient = trendCtx.createLinearGradient(0,0,0,280);
+gradient.addColorStop(0, 'rgba(124,92,255,0.35)');
+gradient.addColorStop(1, 'rgba(124,92,255,0)');
+
+const trendChart = new Chart(trendCtx, {
+  type:'line',
+  data:{
+    labels:genLabels(30),
+    datasets:[
+      {
+        label:'Revenue',
+        data:genSeries(30, 4200, 600),
+        borderColor:'#7c5cff',
+        backgroundColor:gradient,
+        fill:true,
+        tension:0.4,
+        pointRadius:0,
+        borderWidth:2.5,
+        yAxisID:'y'
+      },
+      {
+        label:'Orders',
+        data:genSeries(30, 110, 20),
+        borderColor:'#00d4b8',
+        backgroundColor:'transparent',
+        fill:false,
+        tension:0.4,
+        pointRadius:0,
+        borderWidth:2,
+        borderDash:[4,3],
+        yAxisID:'y1'
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    interaction:{mode:'index', intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#1b2130',
+        borderColor:'#262d3d',
+        borderWidth:1,
+        padding:10,
+        titleColor:'#e8ebf2',
+        bodyColor:'#c7cce0'
+      }
+    },
+    scales:{
+      x:{ grid:{display:false}, ticks:{maxTicksLimit:8} },
+      y:{ position:'left', grid:{color:'rgba(255,255,255,0.05)'}, ticks:{ callback:v=>'$'+v } },
+      y1:{ position:'right', grid:{display:false}, ticks:{ display:true } }
+    }
+  }
+});
+
+/* ---------- Category doughnut ---------- */
+new Chart(document.getElementById('categoryChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Electronics','Apparel','Home & Kitchen','Beauty','Sports','Other'],
+    datasets:[{
+      data:[32,22,18,12,9,7],
+      backgroundColor:['#7c5cff','#00d4b8','#ffb648','#ff6b6b','#5ca8ff','#8891a5'],
+      borderWidth:0,
+      hoverOffset:6
+    }]
+  },
+  options:{
+    responsive:true,
+    cutout:'68%',
+    plugins:{
+      legend:{
+        position:'bottom',
+        labels:{ boxWidth:8, boxHeight:8, padding:14, usePointStyle:true, pointStyle:'circle' }
+      }
+    }
+  }
+});
+
+/* ---------- Top products bar ---------- */
+new Chart(document.getElementById('productChart'), {
+  type:'bar',
+  data:{
+    labels:['Wireless Earbuds','Yoga Mat','Smart Mug','Desk Lamp','Backpack'],
+    datasets:[{
+      data:[812, 654, 540, 489, 402],
+      backgroundColor:'#7c5cff',
+      borderRadius:6,
+      maxBarThickness:18
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true,
+    plugins:{ legend:{display:false} },
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,0.05)'} },
+      y:{ grid:{display:false} }
+    }
+  }
+});
+
+/* ---------- Channels polar ---------- */
+new Chart(document.getElementById('channelChart'), {
+  type:'polarArea',
+  data:{
+    labels:['Organic Search','Paid Ads','Social','Email','Direct'],
+    datasets:[{
+      data:[28,24,20,16,12],
+      backgroundColor:[
+        'rgba(124,92,255,0.65)',
+        'rgba(0,212,184,0.65)',
+        'rgba(255,182,72,0.65)',
+        'rgba(255,107,107,0.65)',
+        'rgba(92,168,255,0.65)'
+      ],
+      borderWidth:0
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{ position:'bottom', labels:{boxWidth:8, boxHeight:8, padding:12, usePointStyle:true, pointStyle:'circle'} }
+    },
+    scales:{
+      r:{ grid:{color:'rgba(255,255,255,0.06)'}, ticks:{display:false} }
+    }
+  }
+});
+
+/* ---------- Top countries list ---------- */
+const countries = [
+  {flag:'🇺🇸', name:'United States', pct:38},
+  {flag:'🇬🇧', name:'United Kingdom', pct:19},
+  {flag:'🇩🇪', name:'Germany', pct:14},
+  {flag:'🇨🇦', name:'Canada', pct:11},
+  {flag:'🇦🇺', name:'Australia', pct:9},
+  {flag:'🇫🇷', name:'France', pct:9}
+];
+const countryList = document.getElementById('countryList');
+countries.forEach(c=>{
+  const row = document.createElement('div');
+  row.className = 'country-row';
+  row.innerHTML = `
+    <div class="country-left">
+      <div class="flag">${c.flag}</div>
+      <div>
+        <div>${c.name}</div>
+        <div class="bar-track" style="width:120px;"><div class="bar-fill" style="width:${c.pct*2}%;"></div></div>
+      </div>
+    </div>
+    <div style="font-weight:700;">${c.pct}%</div>
+  `;
+  countryList.appendChild(row);
+});
+
+/* ---------- Orders table ---------- */
+const products = [
+  {icon:'🎧', name:'Wireless Earbuds'},
+  {icon:'🧘', name:'Yoga Mat'},
+  {icon:'☕', name:'Smart Mug'},
+  {icon:'💡', name:'Desk Lamp'},
+  {icon:'🎒', name:'Backpack'},
+  {icon:'⌚', name:'Smart Watch'},
+  {icon:'👟', name:'Running Shoes'},
+];
+const names = ['Ava Thompson','Liam Chen','Sofia García','Noah Müller','Isabella Rossi','Mateo Silva','Emma Dubois','Lucas Kim','Mia Johansson','Ethan Novak'];
+const statuses = [['paid','Paid'],['pending','Pending'],['refunded','Refunded']];
+
+const ordersBody = document.getElementById('ordersBody');
+let html = '';
+for(let i=0;i<8;i++){
+  const p = products[Math.floor(rand(0,products.length))];
+  const n = names[Math.floor(rand(0,names.length))];
+  const s = statuses[Math.floor(rand(0, i===2?3: i===5?3:1.6))] || statuses[0];
+  const amount = (rand(18,220)).toFixed(2);
+  const d = new Date();
+  d.setDate(d.getDate() - Math.floor(rand(0,14)));
+  const dateStr = d.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+  html += `
+    <tr>
+      <td>#${10452+i}</td>
+      <td>
+        <div class="prod">
+          <div class="prod-thumb">${p.icon}</div>
+          <span>${p.name}</span>
+        </div>
+      </td>
+      <td>${n}</td>
+      <td>${dateStr}</td>
+      <td>$${amount}</td>
+      <td><span class="status ${s[0]}">${s[1]}</span></td>
+    </tr>
+  `;
+}
+ordersBody.innerHTML = html;
+
+/* ---------- Range segment interactivity ---------- */
+document.querySelectorAll('#rangeSeg button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#rangeSeg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const days = parseInt(btn.dataset.range, 10);
+    const displayDays = Math.min(days, 90); // cap points for readability
+    trendChart.data.labels = genLabels(displayDays);
+    trendChart.data.datasets[0].data = genSeries(displayDays, 4200, 600);
+    trendChart.data.datasets[1].data = genSeries(displayDays, 110, 20);
+    trendChart.update();
+  });
+});
+
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  const activeBtn = document.querySelector('#rangeSeg button.active');
+  activeBtn.click();
+});
+</script>
+</body>
+</html>

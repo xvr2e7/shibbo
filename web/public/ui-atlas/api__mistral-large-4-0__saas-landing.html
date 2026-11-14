@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay — Your support tickets, turned into a weekly product report</title>
+<meta name="description" content="Relay reads every support ticket and delivers a weekly product report: top themes, sentiment, revenue at stake, and a draft brief for the #1 signal.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C9F455'/%3E%3Ccircle cx='9' cy='16' r='3.4' fill='%23181A10'/%3E%3Ccircle cx='23' cy='16' r='3.4' fill='%23181A10' opacity='.35'/%3E%3Cpath d='M12.5 16h7m0 0-3-3m3 3-3 3' stroke='%23181A10' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0B08; --bg2:#0E100A; --surface:#12140D; --surface2:#171A10;
+  --line:rgba(233,240,214,.08); --line2:rgba(233,240,214,.16);
+  --text:#EEF1E3; --muted:#A6AC93; --faint:#6E7460;
+  --lime:#C9F455; --lime-hov:#D9FA7C; --lime-soft:rgba(201,244,85,.12);
+  --ink:#181A10; --paper:#F6F7EF; --paper2:#FFFFFF; --pline:#E3E5D6; --pmut:#62675A; --pfaint:#8B9078; --plime:#65A30D;
+  --coral:#FF8A70;
+  --fd:'Space Grotesk',sans-serif; --fb:'Instrument Sans',sans-serif; --fs:'Instrument Serif',serif; --fm:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;z-index:2000;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")}
+::selection{background:var(--lime);color:var(--ink)}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#242819;border-radius:8px;border:2px solid var(--bg)}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+img,svg{display:block}
+.container{max-width:1180px;margin:0 auto;padding:0 24px}
+section{scroll-margin-top:96px}
+.section{padding:110px 0}
+
+/* ---------- type helpers ---------- */
+.serif{font-family:var(--fs);font-style:italic;font-weight:400;letter-spacing:-.01em;color:var(--lime);font-size:1.05em}
+h1,h2,h3{font-family:var(--fd);font-weight:600;letter-spacing:-.03em}
+.eyebrow{display:flex;align-items:center;gap:8px;font:500 11px var(--fm);letter-spacing:.18em;color:var(--lime);margin-bottom:20px}
+.eyebrow svg{flex:none}
+.sec-head h2{font-size:clamp(34px,4.2vw,54px);line-height:1.06}
+.sec-sub{color:var(--muted);font-size:17px;line-height:1.65;max-width:600px;margin-top:18px}
+.sec-head{margin-bottom:56px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:9px;font:600 15px var(--fb);padding:13px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:transform .18s,background .18s,border-color .18s,box-shadow .18s;white-space:nowrap}
+.btn svg{transition:transform .18s}
+.btn:hover svg{transform:translateX(2px)}
+.btn-primary{background:var(--lime);color:#141608}
+.btn-primary:hover{background:var(--lime-hov);transform:translateY(-1px);box-shadow:0 10px 34px rgba(201,244,85,.28)}
+.btn-ghost{border-color:var(--line2);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:rgba(233,240,214,.32);background:rgba(255,255,255,.05);transform:translateY(-1px)}
+.btn-sm{padding:9px 16px;font-size:13.5px;border-radius:10px}
+.btn:focus-visible,a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+
+/* ---------- nav ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;transition:background .3s,border-color .3s,backdrop-filter .3s;border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(10,11,8,.78);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+.nav-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:24px}
+.logo{display:flex;align-items:center;gap:10px;font:600 18px var(--fd);letter-spacing:-.02em}
+.logo-mark{width:27px;height:27px;border-radius:8px;background:var(--lime);display:grid;place-items:center;flex:none}
+.nav-links{display:flex;gap:28px}
+.nav-links a{color:var(--muted);font:500 14px var(--fb);transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.menu-btn{display:none;width:40px;height:40px;border:1px solid var(--line2);background:none;border-radius:10px;color:var(--text);cursor:pointer;place-items:center}
+.mobile-menu{position:fixed;inset:0;z-index:99;background:rgba(10,11,8,.96);backdrop-filter:blur(12px);display:flex;flex-direction:column;justify-content:center;padding:0 32px;gap:6px;opacity:0;pointer-events:none;transform:translateY(-10px);transition:.3s}
+.mobile-menu.open{opacity:1;pointer-events:auto;transform:none}
+.mobile-menu a{font:600 32px var(--fd);letter-spacing:-.02em;padding:12px 0;border-bottom:1px solid var(--line);color:var(--text)}
+.mobile-menu a.mm-cta{color:var(--lime);border-bottom:0}
+
+/* ---------- hero ---------- */
+.hero{padding:168px 0 90px;position:relative}
+.hero-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;
+  background-image:linear-gradient(rgba(233,240,214,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(233,240,214,.045) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(75% 62% at 62% 18%,#000 0%,transparent 100%);
+  mask-image:radial-gradient(75% 62% at 62% 18%,#000 0%,transparent 100%)}
+.hero-glow{position:absolute;top:-180px;left:50%;transform:translateX(-50%);width:900px;height:520px;pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(201,244,85,.09),transparent 70%)}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;position:relative}
+.announce{display:inline-flex;align-items:center;gap:9px;font:500 12px var(--fm);color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:8px 15px 8px 12px;transition:.2s;margin-bottom:28px}
+.announce:hover{color:var(--text);border-color:rgba(201,244,85,.45)}
+.announce .star{color:var(--lime)}
+.announce .arr{color:var(--faint)}
+.hero h1{font-size:clamp(42px,5.8vw,76px);line-height:1.02;letter-spacing:-.038em}
+.line{display:block;overflow:hidden;padding-bottom:.06em;margin-bottom:-.06em}
+.line>span{display:inline-block;transform:translateY(112%);animation:rise .85s cubic-bezier(.2,.75,.2,1) forwards}
+.line:nth-child(2)>span{animation-delay:.13s}
+@keyframes rise{to{transform:none}}
+.hero-sub{color:var(--muted);font-size:17.5px;line-height:1.68;max-width:530px;margin-top:24px}
+.hero-cta{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap}
+.hero-micro{font:400 12px var(--fm);color:var(--faint);margin-top:16px;letter-spacing:.02em}
+.hero-int{display:flex;align-items:center;gap:18px;margin-top:34px;flex-wrap:wrap}
+.hero-int .lbl{font:500 10px var(--fm);letter-spacing:.16em;color:var(--faint)}
+.hero-int b{font:600 13.5px var(--fb);color:var(--muted)}
+.fade-up{opacity:0;transform:translateY(16px);animation:fadeUp .7s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--fd,0s)}
+@keyframes fadeUp{to{opacity:1;transform:none}}
+
+/* hero machine */
+.hero-visual{position:relative}
+.hero-visual::before{content:"";position:absolute;inset:-50px -70px;background:radial-gradient(50% 50% at 50% 45%,rgba(201,244,85,.08),transparent 70%);z-index:-1}
+.hv-stack{max-width:440px;margin-left:auto;display:flex;flex-direction:column}
+.hv-card{background:var(--surface);border:1px solid var(--line2);border-radius:18px;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.hv-source-head{display:flex;align-items:center;gap:8px;font:500 11px var(--fm);letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.hv-dot{width:7px;height:7px;border-radius:50%;background:#7ED9A0;animation:blinkDot 2s infinite}
+.hv-live{margin-left:auto;color:var(--lime);font-size:10px;letter-spacing:.14em}
+@keyframes blinkDot{0%,100%{opacity:1}50%{opacity:.35}}
+.hv-ticket{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--muted);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);margin-top:8px;transition:transform .6s cubic-bezier(.5,0,.8,.4),opacity .6s}
+.hv-ticket b{font:500 11.5px var(--fm);color:var(--text)}
+.hv-ticket em{margin-left:auto;font:600 9.5px var(--fm);font-style:normal;letter-spacing:.08em;padding:3px 8px;border-radius:99px}
+.hv-ticket em.req{background:var(--lime-soft);color:var(--lime)}
+.hv-ticket em.bug{background:rgba(255,138,112,.12);color:var(--coral)}
+.hv-ticket.fly{transform:translate(34px,16px) scale(.92);opacity:0}
+.hv-pipe{height:46px;width:0;margin-left:34px;border-left:2px dashed var(--line2);position:relative}
+.hv-pulse{position:absolute;left:-5px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 14px rgba(201,244,85,.9);opacity:0}
+.hv-pulse.go{animation:pulseDown 1.8s cubic-bezier(.45,0,.55,1) forwards}
+@keyframes pulseDown{0%{top:-4px;opacity:0}12%{opacity:1}82%{opacity:1}100%{top:calc(100% - 4px);opacity:0}}
+.hv-report{opacity:0;transform:translateY(14px) scale(.97);transition:opacity .55s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.hv-report.show{opacity:1;transform:none}
+.hv-report-head{display:flex;align-items:center;gap:9px;font:600 14.5px var(--fd);margin-bottom:6px}
+.hv-badge{margin-left:auto;font:600 9.5px var(--fm);letter-spacing:.1em;color:#141608;background:var(--lime);padding:4px 10px;border-radius:99px;opacity:0;transform:scale(.6);transition:.35s cubic-bezier(.3,1.6,.4,1)}
+.hv-badge.on{opacity:1;transform:scale(1)}
+.hv-bar-row{display:grid;grid-template-columns:96px 1fr 28px;align-items:center;gap:10px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.hv-bar{height:7px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.hv-bar i{display:block;height:100%;width:0;background:var(--lime);border-radius:99px;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.hv-bar-row b{font:500 11.5px var(--fm);color:var(--text);text-align:right}
+.hv-report-foot{margin-top:15px;padding-top:13px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
+.hv-report-foot b{color:var(--muted);font-weight:500}
+.hv-chip{position:absolute;font:500 11.5px var(--fm);padding:9px 13px;border-radius:12px;background:rgba(18,20,13,.92);border:1px solid var(--line2);backdrop-filter:blur(6px);box-shadow:0 12px 32px rgba(0,0,0,.45);animation:floaty 5.5s ease-in-out infinite alternate;white-space:nowrap}
+.hv-chip.c1{top:-20px;right:-8px;color:var(--lime);animation-delay:.2s}
+.hv-chip.c2{left:-38px;top:37%;animation-delay:1.5s}
+.hv-chip.c3{bottom:-18px;right:6%;animation-delay:2.7s}
+@keyframes floaty{from{transform:translateY(-5px)}to{transform:translateY(6px)}}
+
+/* ---------- marquee ---------- */
+.trust{padding:44px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.trust-lbl{text-align:center;font:500 10.5px var(--fm);letter-spacing:.2em;color:var(--faint);margin-bottom:26px}
+.marquee{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee-track{display:flex;gap:64px;width:max-content;animation:scrollX 34s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+@keyframes scrollX{to{transform:translateX(-50%)}}
+.mq-item{display:flex;align-items:center;color:#7B8168;white-space:nowrap;font-size:17px}
+.sh{width:10px;height:10px;background:currentColor;display:inline-block;margin-right:11px}
+.sh-c{border-radius:50%}.sh-d{transform:rotate(45deg);border-radius:2px}.sh-t{clip-path:polygon(50% 0,100% 100%,0 100%)}.sh-s{border-radius:3px}
+.f-grot{font-family:var(--fd);font-weight:600;letter-spacing:-.01em}
+.f-serif{font-family:var(--fs);font-style:italic;font-size:19px}
+.f-mono{font-family:var(--fm);font-weight:500;font-size:14px;letter-spacing:.08em}
+
+/* ---------- how it works ---------- */
+.steps{display:grid;grid-template-columns:5fr 7fr;gap:80px;align-items:start}
+.steps-left{position:sticky;top:110px}
+.steps-left p{color:var(--muted);font-size:16.5px;line-height:1.65;margin-top:18px;max-width:420px}
+.steps-left .btn{margin-top:28px}
+.step{display:grid;grid-template-columns:52px 1fr;gap:22px;padding:38px 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:0;padding-top:6px}
+.step-num{width:44px;height:44px;border:1px solid var(--line2);border-radius:12px;display:grid;place-items:center;font:500 13px var(--fm);color:var(--lime);background:var(--lime-soft)}
+.step h3{font-size:21px;letter-spacing:-.02em}
+.step p{color:var(--muted);font-size:15px;line-height:1.65;margin-top:10px;max-width:520px}
+.int-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.int-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:7px 13px;font:500 12.5px var(--fb);color:var(--muted);background:var(--bg2)}
+.int-pill svg{color:var(--lime)}
+.theme-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.tchip{border:1px solid rgba(201,244,85,.3);background:var(--lime-soft);color:var(--text);border-radius:99px;padding:7px 13px;font:500 12.5px var(--fb)}
+.tchip b{color:var(--lime);font:600 11.5px var(--fm);margin-left:5px}
+.mini-slack{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:15px 17px;margin-top:18px;max-width:480px}
+.ms-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.ms-av{width:22px;height:22px;border-radius:6px;background:var(--lime);color:#141608;font:600 11px var(--fd);display:grid;place-items:center}
+.ms-head b{font:600 13px var(--fb)}
+.ms-app{font:600 8.5px var(--fm);letter-spacing:.08em;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:2px 5px}
+.ms-time{margin-left:auto;font:400 11px var(--fm);color:var(--faint)}
+.mini-slack p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0}
+.mini-slack p b{color:var(--text)}
+.ms-link{display:inline-block;margin-top:9px;font:600 12.5px var(--fb);color:var(--lime)}
+
+/* ---------- report section ---------- */
+.report-layout{display:grid;grid-template-columns:236px 1fr;gap:26px;align-items:start;position:relative}
+.week-rail{position:sticky;top:104px;display:flex;flex-direction:column;gap:10px}
+.wr-title{font:500 10px var(--fm);letter-spacing:.18em;color:var(--faint);margin-bottom:4px}
+.week-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:transparent;color:var(--muted);cursor:pointer;transition:.2s;font-family:var(--fb)}
+.week-btn .wb-l b{display:block;font:600 14px var(--fb);color:inherit}
+.week-btn .wb-l i{display:block;font:400 11.5px var(--fm);font-style:normal;color:var(--faint);margin-top:2px}
+.week-btn .wb-n{font:500 11.5px var(--fm);color:var(--faint)}
+.week-btn:hover{border-color:var(--line2);color:var(--text)}
+.week-btn.active{border-color:rgba(201,244,85,.5);background:var(--lime-soft);color:var(--text)}
+.week-btn.active .wb-n{color:var(--lime)}
+.wr-note{display:flex;gap:9px;margin-top:14px;padding:14px;border:1px dashed var(--line2);border-radius:13px;font-size:12.5px;line-height:1.55;color:var(--faint)}
+.wr-note svg{flex:none;color:var(--lime);margin-top:2px}
+.wr-note b{color:var(--muted);font-weight:600}
+.paper-frame{background:#0F110A;border:1px solid var(--line2);border-radius:24px;padding:10px;box-shadow:0 40px 100px rgba(0,0,0,.55)}
+.paper-bar{display:flex;align-items:center;gap:10px;padding:8px 10px 14px}
+.paper-dots{display:flex;gap:6px}
+.paper-dots span{width:10px;height:10px;border-radius:50%;background:#2A2D1F}
+.paper-url{flex:1;max-width:340px;margin:0 auto;background:#171A10;border:1px solid var(--line);border-radius:8px;font:400 12px var(--fm);color:var(--faint);padding:6px 14px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper{background:var(--paper);color:var(--ink);border-radius:16px;padding:30px 32px 32px}
+.paper-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid var(--pline)}
+.p-title{font:600 21px var(--fd);letter-spacing:-.02em}
+.p-meta{font:400 12.5px var(--fm);color:var(--pmut);margin-top:6px}
+.p-meta span{color:var(--ink);font-weight:500}
+.p-head-right{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.p-pill{display:inline-flex;align-items:center;gap:7px;font:500 11.5px var(--fm);color:var(--pmut);border:1px solid var(--pline);border-radius:99px;padding:7px 13px;background:var(--paper2)}
+.p-pill.ok i{width:7px;height:7px;border-radius:50%;background:var(--plime);animation:blinkDot 2s infinite}
+.pbtn{display:inline-flex;align-items:center;gap:7px;font:600 12.5px var(--fb);padding:9px 14px;border-radius:10px;border:1px solid var(--pline);background:var(--paper2);color:var(--ink);cursor:pointer;transition:.18s}
+.pbtn:hover{border-color:#C4C7B2;transform:translateY(-1px)}
+.pbtn.dark{background:var(--ink);border-color:var(--ink);color:#F2F4E8}
+.pbtn.dark:hover{background:#2A2D1B}
+.paper-grid{display:grid;grid-template-columns:5fr 7fr;gap:16px;margin-top:18px}
+.p-col{display:flex;flex-direction:column;gap:16px}
+.p-block{background:var(--paper2);border:1px solid var(--pline);border-radius:16px;padding:20px 22px}
+.p-h{display:flex;align-items:center;gap:10px;font:600 14px var(--fd);letter-spacing:-.01em;margin-bottom:16px}
+.p-h-sub{font:500 9.5px var(--fm);letter-spacing:.12em;color:var(--pfaint);text-transform:uppercase;margin-left:auto}
+.th-row{opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s;padding:9px 0;border-top:1px solid #EFF1E3}
+.th-row:first-child{border-top:0;padding-top:0}
+.th-row.in{opacity:1;transform:none}
+.th-top{display:flex;align-items:center;gap:9px}
+.th-name{font:500 13.5px var(--fb);color:var(--ink)}
+.top-tag{font:600 8.5px var(--fm);letter-spacing:.1em;background:var(--plime);color:#fff;padding:2.5px 6px;border-radius:6px;vertical-align:2px;margin-left:2px}
+.th-n{margin-left:auto;font:500 12px var(--fm);color:var(--pmut)}
+.th-bar{height:8px;background:#EBEDDD;border-radius:99px;margin-top:8px;overflow:hidden}
+.th-bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:99px;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.th-row:first-child .th-bar i{background:var(--plime)}
+.chip{font:600 10.5px var(--fm);padding:3.5px 9px;border-radius:99px;white-space:nowrap}
+.chip.up{background:#E6F3CD;color:#3F6212}
+.chip.down{background:#FBE5E0;color:#B42318}
+.chip.new{background:var(--ink);color:var(--lime)}
+.sent-row{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.sent-num b{font:600 34px var(--fd);letter-spacing:-.03em}
+.sent-num span{font:400 13px var(--fm);color:var(--pfaint)}
+#spark{width:100%;height:84px;display:block}
+#spark .gridline{stroke:#E7E9DA;stroke-dasharray:3 5}
+.rq-head,.rq-row{display:grid;grid-template-columns:1fr 78px 62px 58px;gap:10px;align-items:center}
+.rq-head{font:500 9.5px var(--fm);letter-spacing:.1em;color:var(--pfaint);text-transform:uppercase;padding-bottom:9px;border-bottom:1px solid var(--pline)}
+.rq-row{padding:11px 0;border-bottom:1px solid #F0F2E4;opacity:0;transform:translateY(8px);transition:.5s}
+.rq-row:last-child{border-bottom:0}
+.rq-row.in{opacity:1;transform:none}
+.rq-name{font:500 13.5px var(--fb);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rq-acc{font:400 11.5px var(--fm);color:var(--pfaint)}
+.rq-arr{font:600 13px var(--fm);color:var(--ink);text-align:right}
+.rq-row .chip{justify-self:end}
+.p-brief{grid-column:1/-1}
+.brief-text{font-size:14px;line-height:1.7;color:#3A3E2E;min-height:72px}
+.caret{display:inline-block;width:8px;height:15px;background:var(--ink);margin-left:3px;vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.brief-actions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+
+/* ---------- bento ---------- */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.cell{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:28px;overflow:hidden;position:relative;transition:border-color .25s}
+.cell:hover{border-color:var(--line2)}
+.cell-head{display:flex;align-items:center;gap:13px;margin-bottom:12px}
+.cell-ic{width:36px;height:36px;border-radius:10px;background:var(--lime-soft);color:var(--lime);display:grid;place-items:center;flex:none}
+.cell h3{font-size:18.5px;letter-spacing:-.02em}
+.cell>p{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:520px}
+.c-a{grid-column:span 7}.c-b{grid-column:span 5}.c-c{grid-column:span 4}.c-d{grid-column:span 5}.c-e{grid-column:span 3}
+.cell-cap{display:flex;align-items:center;gap:8px;font:400 11px var(--fm);color:var(--faint);margin-top:14px}
+.cell-cap i{width:6px;height:6px;border-radius:50%;background:var(--lime)}
+.cluster-svg{width:100%;height:auto;margin-top:16px}
+.cdot{animation:gather 5s ease-in-out infinite alternate;transform-box:fill-box}
+.cdot circle{fill:#4A503C;animation:dotfill 5s ease-in-out infinite alternate}
+@keyframes gather{from{transform:translate(0,0)}to{transform:translate(var(--tx),var(--ty))}}
+@keyframes dotfill{from{fill:#4A503C}to{fill:var(--c)}}
+.ring{stroke:var(--c);stroke-dasharray:3 5;fill:none;opacity:.25;transform-box:fill-box;transform-origin:center;animation:ringp 5s ease-in-out infinite alternate}
+@keyframes ringp{from{opacity:.1;transform:scale(.92)}to{opacity:.42;transform:scale(1.06)}}
+.clabel{font:500 10px var(--fm);letter-spacing:.14em;text-anchor:middle;animation:labp 5s ease-in-out infinite alternate}
+@keyframes labp{from{opacity:.15}to{opacity:.9}}
+.flow{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+.flow-card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:12.5px;color:var(--muted);line-height:1.5;flex:1;min-width:210px}
+.flow-card b{display:block;color:var(--text);font-size:13.5px;margin-top:3px}
+.fc-tag{font:600 9px var(--fm);letter-spacing:.14em;color:var(--faint)}
+.fc-tag.lime{color:var(--lime)}
+.fc-meta{display:block;font:400 10.5px var(--fm);color:var(--faint);margin-top:7px}
+.flow-arrow{color:var(--lime);flex:none}
+.int-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.int{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;font:500 13px var(--fb);color:var(--muted);background:var(--bg2)}
+.int-ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font:600 12px var(--fd);background:var(--surface2);border:1px solid var(--line);flex:none}
+.int-note{font:400 11px var(--fm);color:var(--faint);margin-top:14px}
+.arr-row{display:grid;grid-template-columns:120px 1fr 62px;gap:12px;align-items:center;margin-top:15px;font-size:13px;color:var(--muted)}
+.arr-bar{height:8px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.arr-bar i{display:block;height:100%;width:0;background:var(--lime);border-radius:99px;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.reveal.in .arr-bar i{width:var(--w)}
+.arr-row b{font:500 12.5px var(--fm);color:var(--text);text-align:right}
+.sec-list{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:11px}
+.sec-list li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;color:var(--muted);line-height:1.5}
+.sec-list svg{color:var(--lime);flex:none;margin-top:2px}
+
+/* ---------- metrics ---------- */
+.metrics{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.metrics-inner{display:grid;grid-template-columns:repeat(4,1fr)}
+.metric{padding:48px 34px}
+.metric+.metric{border-left:1px solid var(--line)}
+.metric b{font:600 46px var(--fd);letter-spacing:-.035em;display:flex;align-items:baseline;gap:5px}
+.metric b i{font:500 17px var(--fm);font-style:normal;color:var(--lime)}
+.metric span{display:block;color:var(--muted);font-size:14px;margin-top:8px;line-height:1.5}
+
+/* ---------- quotes ---------- */
+.quotes{display:grid;grid-template-columns:7fr 5fr;gap:22px;align-items:start}
+.quote{border:1px solid var(--line);background:var(--surface);border-radius:22px;padding:38px 40px;position:relative}
+.quote-big blockquote{font:400 clamp(21px,2.4vw,29px)/1.42 var(--fs);letter-spacing:-.01em}
+.quote-big .qmark{color:var(--lime);margin-bottom:18px}
+.quote-sm{margin-top:44px;padding:30px 32px}
+.quote-sm blockquote{font:400 18px/1.55 var(--fs)}
+.q-who{display:flex;align-items:center;gap:13px;margin-top:26px}
+.q-av{width:42px;height:42px;border-radius:50%;background:var(--lime-soft);border:1px solid rgba(201,244,85,.35);color:var(--lime);display:grid;place-items:center;font:600 13px var(--fd)}
+.quote-sm .q-av{background:rgba(124,196,255,.1);border-color:rgba(124,196,255,.35);color:#7CC4FF}
+.q-who b{display:block;font:600 14.5px var(--fb)}
+.q-who span{font:400 12.5px var(--fm);color:var(--faint)}
+
+/* ---------- faq ---------- */
+.faq-wrap{max-width:780px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;background:none;border:0;color:var(--text);font:600 17px var(--fb);letter-spacing:-.01em;cursor:pointer;text-align:left}
+.faq-icon{width:30px;height:30px;border:1px solid var(--line2);border-radius:9px;display:grid;place-items:center;color:var(--muted);flex:none;transition:.3s}
+.faq-item.open .faq-icon{transform:rotate(45deg);color:var(--lime);border-color:rgba(201,244,85,.5)}
+.faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+.faq-a>div{overflow:hidden}
+.faq-a p{color:var(--muted);font-size:15px;line-height:1.7;padding-bottom:26px;max-width:660px}
+.faq-item.open .faq-a{grid-template-rows:1fr}
+
+/* ---------- cta ---------- */
+.cta{padding:150px 0 140px;text-align:center;position:relative;overflow:hidden}
+.cta-glow{position:absolute;left:50%;bottom:-320px;transform:translateX(-50%);width:900px;height:560px;background:radial-gradient(50% 50% at 50% 50%,rgba(201,244,85,.1),transparent 70%);pointer-events:none}
+.cta h2{font-size:clamp(40px,5.2vw,66px);line-height:1.04;letter-spacing:-.035em}
+.cta-sub{color:var(--muted);font-size:17px;line-height:1.65;max-width:520px;margin:22px auto 0}
+.cta-form{display:flex;gap:8px;max-width:470px;margin:38px auto 0;background:var(--surface);border:1px solid var(--line2);padding:6px;border-radius:15px;transition:border-color .2s}
+.cta-form.bad{border-color:rgba(255,138,112,.7);animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.cta-form input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);padding:0 15px;font:400 15px var(--fb)}
+.cta-form input::placeholder{color:var(--faint)}
+.cta-err{display:none;color:var(--coral);font-size:13px;margin-top:12px}
+.cta-err.show{display:block}
+.cta-micro{font:400 11px var(--fm);letter-spacing:.14em;color:var(--faint);margin-top:26px}
+.cta-success{display:flex;gap:15px;align-items:center;text-align:left;background:var(--surface);border:1px solid rgba(201,244,85,.4);border-radius:15px;padding:18px 22px;max-width:470px;margin:38px auto 0;animation:fadeUp .5s cubic-bezier(.2,.7,.2,1)}
+.cta-success .ck{width:36px;height:36px;border-radius:50%;background:var(--lime);color:#141608;display:grid;place-items:center;flex:none}
+.cta-success b{display:block;font:600 15px var(--fb)}
+.cta-success span{display:block;color:var(--muted);font-size:13.5px;margin-top:3px;line-height:1.5}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);padding:64px 0 34px}
+.foot-grid{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr 1fr;gap:36px}
+.foot-brand p{color:var(--muted);font-size:14px;line-height:1.65;margin-top:16px;max-width:260px}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:22px;font:500 11.5px var(--fm);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:7px 13px}
+.status i{width:7px;height:7px;border-radius:50%;background:#7ED9A0;animation:blinkDot 2s infinite}
+.foot-col h4{font:500 10.5px var(--fm);letter-spacing:.18em;color:var(--faint);margin-bottom:16px}
+.foot-col a{display:block;color:var(--muted);font-size:14px;padding:5.5px 0;transition:color .2s}
+.foot-col a:hover{color:var(--text)}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-top:58px;padding-top:26px;border-top:1px solid var(--line);color:var(--faint);font-size:13px}
+.foot-social{display:flex;gap:10px}
+.foot-social a{width:34px;height:34px;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;color:var(--muted);transition:.2s}
+.foot-social a:hover{color:var(--lime);border-color:rgba(201,244,85,.4)}
+
+/* ---------- toasts ---------- */
+.toasts{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none}
+.toast{display:flex;gap:10px;align-items:center;background:#1A1D11;border:1px solid var(--line2);color:var(--text);padding:12px 17px;border-radius:13px;font:500 13.5px var(--fb);box-shadow:0 14px 44px rgba(0,0,0,.55);animation:toastIn .35s cubic-bezier(.2,.9,.3,1.2);white-space:nowrap}
+.toast svg{color:var(--lime);flex:none}
+.toast.out{animation:toastOut .3s forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.94)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(10px) scale(.94)}}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .75s ease,transform .75s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0s)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media(max-width:1100px){.hv-chip{display:none}}
+@media(max-width:1024px){
+  .hero{padding-top:140px}
+  .hero-grid{grid-template-columns:1fr;gap:56px}
+  .hv-stack{margin:0 auto}
+  .report-layout{grid-template-columns:1fr}
+  .week-rail{position:static;flex-direction:row;overflow-x:auto;padding-bottom:6px}
+  .week-btn{width:auto;white-space:nowrap;flex:none}
+  .wr-note{display:none}
+  .wr-title{display:none}
+  .c-a,.c-b,.c-d{grid-column:span 12}
+  .c-c,.c-e{grid-column:span 6}
+  .steps{grid-template-columns:1fr;gap:40px}
+  .steps-left{position:static}
+}
+@media(max-width:880px){
+  .nav-links,.nav-cta .btn-ghost{display:none}
+  .menu-btn{display:grid}
+  .quotes{grid-template-columns:1fr}
+  .quote-sm{margin-top:0}
+  .metrics-inner{grid-template-columns:1fr 1fr}
+  .metric{border-left:0!important;border-top:1px solid var(--line);padding:34px 26px}
+  .metric:nth-child(-n+2){border-top:0}
+  .paper-grid{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr 1fr}
+  .foot-brand{grid-column:1/-1}
+}
+@media(max-width:640px){
+  .section{padding:80px 0}
+  .hero{padding:124px 0 70px}
+  .c-c,.c-e{grid-column:span 12}
+  .paper{padding:22px 18px}
+  .rq-head{grid-template-columns:1fr 58px 54px}
+  .rq-head .rq-acc-h{display:none}
+  .rq-row{grid-template-columns:1fr 58px 54px}
+  .rq-acc{display:none}
+  .arr-row{grid-template-columns:1fr 56px}
+  .arr-bar{display:none}
+  .int-grid{grid-template-columns:1fr 1fr}
+  .step{grid-template-columns:1fr;gap:14px}
+  .metric b{font-size:36px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  .reveal,.fade-up,.line>span{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#top" aria-label="Relay home">
+      <span class="logo-mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="5.5" cy="12" r="2.7" fill="#181A10"/><circle cx="18.5" cy="12" r="2.7" fill="#181A10" opacity=".35"/><path d="M8.6 12h6.6m0 0-2.7-2.7M15.2 12l-2.7 2.7" stroke="#181A10" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      Relay
+    </a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#report">The report</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost btn-sm soon">Sign in</a>
+      <a href="#cta" class="btn btn-primary btn-sm">Get started</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">
+        <svg id="icMenu" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
+        <svg id="icClose" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#how">How it works</a>
+  <a href="#report">The report</a>
+  <a href="#features">Features</a>
+  <a href="#faq">FAQ</a>
+  <a href="#cta" class="mm-cta">Get started</a>
+</div>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-glow"></div>
+    <div class="container hero-grid">
+      <div>
+        <a href="#report" class="announce fade-up" style="--fd:.05s">
+          <svg class="star" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          New — Relay now drafts a brief for your #1 weekly signal
+          <svg class="arr" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
+        </a>
+        <h1>
+          <span class="line"><span>Your customers file tickets.</span></span>
+          <span class="line"><span class="serif">Relay files the report.</span></span>
+        </h1>
+        <p class="hero-sub fade-up" style="--fd:.3s">Relay connects to your helpdesk, reads every ticket, and every Friday at 9:00 delivers a product report to Slack and email — top themes, sentiment shifts, requests ranked by revenue at stake, and a draft brief for the loudest signal.</p>
+        <div class="hero-cta fade-up" style="--fd:.42s">
+          <a href="#cta" class="btn btn-primary">Start free
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
+          </a>
+          <a href="#report" class="btn btn-ghost">See a live report
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0-6-6m6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="hero-micro fade-up" style="--fd:.52s">FREE UP TO 100 TICKETS/MO &nbsp;·&nbsp; NO CREDIT CARD &nbsp;·&nbsp; 2-MIN SETUP</div>
+        <div class="hero-int fade-up" style="--fd:.6s">
+          <span class="lbl">WORKS WITH</span>
+          <b>Zendesk</b><b>Intercom</b><b>Help Scout</b><b>Gmail</b><b>Front</b><b>Slack</b>
+        </div>
+      </div>
+
+      <!-- hero machine -->
+      <div class="hero-visual fade-up" style="--fd:.35s">
+        <div class="hv-chip c1">+41% WoW · dark mode</div>
+        <div class="hv-chip c2">bug · safari export ×17</div>
+        <div class="hv-chip c3">sso · $54k arr at stake</div>
+        <div class="hv-stack">
+          <div class="hv-card">
+            <div class="hv-source-head"><span class="hv-dot"></span>Zendesk · 128 new tickets<span class="hv-live">● LIVE</span></div>
+            <div class="hv-ticket"><b>#4821</b> “Dark mode for the dashboard, please”<em class="req">REQ</em></div>
+            <div class="hv-ticket"><b>#4822</b> “CSV export fails on Safari 17.4”<em class="bug">BUG</em></div>
+            <div class="hv-ticket"><b>#4823</b> “Can we get SSO on the Starter plan?”<em class="req">REQ</em></div>
+          </div>
+          <div class="hv-pipe"><span class="hv-pulse" id="hvPulse"></span></div>
+          <div class="hv-card hv-report" id="hvReport">
+            <div class="hv-report-head">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="5.5" cy="12" r="2.7" fill="#C9F455"/><circle cx="18.5" cy="12" r="2.7" fill="#C9F455" opacity=".4"/><path d="M8.6 12h6.6m0 0-2.7-2.7M15.2 12l-2.7 2.7" stroke="#C9F455" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Weekly report — Week 42
+              <span class="hv-badge" id="hvBadge">READY ✓</span>
+            </div>
+            <div class="hv-bar-row"><span>Dark mode</span><div class="hv-bar"><i data-w="88%"></i></div><b>38</b></div>
+            <div class="hv-bar-row"><span>SSO · Starter</span><div class="hv-bar"><i data-w="48%"></i></div><b>21</b></div>
+            <div class="hv-bar-row"><span>Safari export</span><div class="hv-bar"><i data-w="39%"></i></div><b>17</b></div>
+            <div class="hv-bar-row"><span>Onboarding</span><div class="hv-bar"><i data-w="27%"></i></div><b>12</b></div>
+            <div class="hv-report-foot">→ Delivered to <b>#product</b> on Slack · Fri 9:00 AM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST MARQUEE ============ -->
+  <div class="trust">
+    <div class="trust-lbl">TRUSTED BY PRODUCT TEAMS AT</div>
+    <div class="marquee">
+      <div class="marquee-track" id="mqTrack">
+        <span class="mq-item f-grot"><i class="sh sh-c"></i>Northwind</span>
+        <span class="mq-item f-mono"><i class="sh sh-d"></i>HEXLAB</span>
+        <span class="mq-item f-serif"><i class="sh sh-t"></i>Fern &amp; Co</span>
+        <span class="mq-item f-grot"><i class="sh sh-s"></i>Arcadia</span>
+        <span class="mq-item f-mono"><i class="sh sh-c"></i>LOOPWORK</span>
+        <span class="mq-item f-serif"><i class="sh sh-d"></i>Papercrane</span>
+        <span class="mq-item f-grot"><i class="sh sh-t"></i>Statmill</span>
+        <span class="mq-item f-mono"><i class="sh sh-s"></i>BODE+FRANK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how">
+    <div class="container steps">
+      <div class="steps-left reveal">
+        <div class="eyebrow">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          HOW IT WORKS
+        </div>
+        <h2>From raw tickets to a <em class="serif">report your CEO reads.</em></h2>
+        <p>No dashboards to configure, no SQL, no tagging rituals for your support team. Connect your helpdesk once and Relay runs itself — most teams see their first report the very first Friday.</p>
+        <a href="#report" class="btn btn-ghost">See a sample report
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0-6-6m6 6 6-6"/></svg>
+        </a>
+      </div>
+      <div>
+        <div class="step reveal">
+          <div class="step-num">01</div>
+          <div>
+            <h3>Connect your helpdesk</h3>
+            <p>One-click OAuth for Zendesk, Intercom, Help Scout, Front or Gmail. Relay syncs new tickets continuously and backfills up to 24 months of history — no CSV exports, no Zapier spaghetti.</p>
+            <div class="int-pills">
+              <span class="int-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Zendesk</span>
+              <span class="int-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Intercom</span>
+              <span class="int-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Help Scout</span>
+              <span class="int-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Gmail</span>
+              <span class="int-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Front</span>
+              <span class="int-pill">+ 40 more</span>
+            </div>
+          </div>
+        </div>
+        <div class="step reveal" style="--d:.08s">
+          <div class="step-num">02</div>
+          <div>
+            <h3>Relay clusters by intent, not keywords</h3>
+            <p>An LLM reads every ticket and groups it into living themes — “dark mode pls” and “need a night theme for the dashboard” count as one signal. Duplicates merge; noise, password resets and “thanks!” get filtered out.</p>
+            <div class="theme-chips">
+              <span class="tchip">Dark mode<b>38</b></span>
+              <span class="tchip">SSO on Starter<b>21</b></span>
+              <span class="tchip">Safari export bug<b>17</b></span>
+              <span class="tchip">Onboarding<b>12</b></span>
+            </div>
+          </div>
+        </div>
+        <div class="step reveal" style="--d:.16s">
+          <div class="step-num">03</div>
+          <div>
+            <h3>Friday, 9:00 — the report ships itself</h3>
+            <p>Themes ranked by volume and revenue at stake, sentiment trend vs. last week, and a draft brief for the #1 signal — delivered to Slack, email, and Notion. You just read it and decide.</p>
+            <div class="mini-slack">
+              <div class="ms-head"><span class="ms-av">R</span><b>Relay</b><span class="ms-app">APP</span><span class="ms-time">9:00 AM</span></div>
+              <p>Weekly product report <b>#42</b> is ready — 128 tickets → 14 themes. Top signal: <b>dark mode</b> (38 tickets, +41% WoW, $86.4k ARR).</p>
+              <span class="ms-link">Open full report →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE REPORT ============ -->
+  <section class="section" id="report" style="padding-top:40px">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="eyebrow">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          THE WEEKLY REPORT
+        </div>
+        <h2>Friday, 9:00 AM.<br><em class="serif">The report ships itself.</em></h2>
+        <p class="sec-sub">Every week, Relay reads every new ticket and delivers one report — themes ranked by volume and revenue, sentiment vs. last week, and a draft brief for the loudest signal. Click through the weeks:</p>
+      </div>
+
+      <div class="report-layout reveal">
+        <aside class="week-rail">
+          <div class="wr-title">RECENT REPORTS</div>
+          <button class="week-btn active" data-week="42"><span class="wb-l"><b>Week 42</b><i>Nov 3 – 7</i></span><span class="wb-n">128</span></button>
+          <button class="week-btn" data-week="41"><span class="wb-l"><b>Week 41</b><i>Oct 27 – 31</i></span><span class="wb-n">116</span></button>
+          <button class="week-btn" data-week="40"><span class="wb-l"><b>Week 40</b><i>Oct 20 – 24</i></span><span class="wb-n">104</span></button>
+          <button class="week-btn" data-week="39"><span class="wb-l"><b>Week 39</b><i>Oct 13 – 17</i></span><span class="wb-n">97</span></button>
+          <div class="wr-note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 4 7 20M17 4l-2 16M4 9h17M3 15h17"/></svg>
+            <span>Auto-delivered to <b>#product</b> on Slack + email every Friday, 9:00.</span>
+          </div>
+        </aside>
+
+        <div class="paper-frame">
+          <div class="paper-bar">
+            <div class="paper-dots"><span></span><span></span><span></span></div>
+            <div class="paper-url" id="pUrl">relay.app/reports/week-42</div>
+          </div>
+          <div class="paper">
+            <div class="paper-head">
+              <div>
+                <div class="p-title" id="pTitle">Weekly product report — Week 42</div>
+                <div class="p-meta"><span id="pRange">Nov 3 – 7</span> · <span id="pTickets">128</span> tickets analyzed · generated in <span id="pGen">41</span>s</div>
+              </div>
+              <div class="p-head-right">
+                <span class="p-pill ok"><i></i>Delivered to #product</span>
+                <span class="p-pill">Fri 9:00</span>
+                <button class="pbtn" id="copySummary">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  Copy summary
+                </button>
+                <button class="pbtn dark" id="exportLinear">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4 10 14M9 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg>
+                  Export to Linear
+                </button>
+              </div>
+            </div>
+
+            <div class="paper-grid">
+              <section class="p-block">
+                <div class="p-h">Top themes <span class="p-h-sub">by volume</span></div>
+                <div id="themeList"></div>
+              </section>
+              <div class="p-col">
+                <section class="p-block">
+                  <div class="p-h">Sentiment <span class="p-h-sub">vs. last week</span></div>
+                  <div class="sent-row">
+                    <div class="sent-num"><b id="sentScore">71</b><span>/100</span></div>
+                    <span class="chip up" id="sentDelta">+4 vs last week</span>
+                  </div>
+                  <svg id="spark" viewBox="0 0 280 80" preserveAspectRatio="none">
+                    <line class="gridline" x1="0" y1="18" x2="280" y2="18"/>
+                    <line class="gridline" x1="0" y1="42" x2="280" y2="42"/>
+                    <line class="gridline" x1="0" y1="66" x2="280" y2="66"/>
+                    <path id="sparkArea" fill="rgba(101,163,13,.15)"/>
+                    <path id="sparkLine" fill="none" stroke="#1B1D12" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+                    <circle id="sparkDot" r="4" fill="#65A30D" stroke="#F6F7EF" stroke-width="2"/>
+                  </svg>
+                </section>
+                <section class="p-block">
+                  <div class="p-h">Requests · revenue at stake <span class="p-h-sub">from your CRM</span></div>
+                  <div class="rq-head"><span>Request</span><span class="rq-acc-h">Accounts</span><span style="text-align:right">ARR</span><span style="text-align:right">Trend</span></div>
+                  <div id="reqList"></div>
+                </section>
+              </div>
+              <section class="p-block p-brief">
+                <div class="p-h">Draft brief <span class="p-h-sub">auto-written from the #1 signal</span></div>
+                <p class="brief-text"><span id="briefText"></span><span class="caret"></span></p>
+                <div class="brief-actions">
+                  <button class="pbtn" id="copyBrief">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                    Copy brief
+                  </button>
+                  <button class="pbtn dark" id="createIssue">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Create Linear issue
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BENTO FEATURES ============ -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="eyebrow">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          UNDER THE HOOD
+        </div>
+        <h2>Signals, not <em class="serif">noise.</em></h2>
+        <p class="sec-sub">Relay does the reading, grouping and prioritizing your team used to do by hand — then hands it over in the tools you already live in.</p>
+      </div>
+
+      <div class="bento">
+        <div class="cell c-a reveal">
+          <div class="cell-head">
+            <span class="cell-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M8 7.5 10.5 16M16 7.5 13.5 16M8.4 6h7.2"/></svg></span>
+            <h3>Clustering that understands intent</h3>
+          </div>
+          <p>Not keyword matching. Relay reads context, sentiment and account value, so “dark mode pls” and “we need a night theme” land in the same bucket — and “how do I reset my password” never reaches your roadmap.</p>
+          <svg class="cluster-svg" viewBox="0 0 560 230" fill="none" aria-hidden="true">
+            <circle class="ring" cx="110" cy="78" r="36" style="--c:#C9F455"/>
+            <circle class="ring" cx="300" cy="150" r="36" style="--c:#7CC4FF"/>
+            <circle class="ring" cx="470" cy="62" r="36" style="--c:#FFB86B"/>
+            <text class="clabel" x="110" y="134" fill="#C9F455">BILLING</text>
+            <text class="clabel" x="300" y="208" fill="#7CC4FF">ONBOARDING</text>
+            <text class="clabel" x="470" y="118" fill="#FFB86B">PERFORMANCE</text>
+            <g class="cdot" style="--tx:80px;--ty:38px;--c:#C9F455;animation-duration:5.2s;animation-delay:-.4s"><circle cx="30" cy="40" r="5"/></g>
+            <g class="cdot" style="--tx:12px;--ty:-138px;--c:#C9F455;animation-duration:4.6s;animation-delay:-1.8s"><circle cx="80" cy="200" r="5"/></g>
+            <g class="cdot" style="--tx:-14px;--ty:-32px;--c:#C9F455;animation-duration:5.6s;animation-delay:-3s"><circle cx="140" cy="120" r="5"/></g>
+            <g class="cdot" style="--tx:-96px;--ty:50px;--c:#C9F455;animation-duration:4.9s;animation-delay:-.9s"><circle cx="200" cy="40" r="5"/></g>
+            <g class="cdot" style="--tx:58px;--ty:-54px;--c:#C9F455;animation-duration:5.4s;animation-delay:-2.4s"><circle cx="60" cy="120" r="5"/></g>
+            <g class="cdot" style="--tx:50px;--ty:-50px;--c:#7CC4FF;animation-duration:5s;animation-delay:-1.2s"><circle cx="250" cy="200" r="5"/></g>
+            <g class="cdot" style="--tx:-32px;--ty:74px;--c:#7CC4FF;animation-duration:4.5s;animation-delay:-2.8s"><circle cx="320" cy="90" r="5"/></g>
+            <g class="cdot" style="--tx:-66px;--ty:-54px;--c:#7CC4FF;animation-duration:5.8s;animation-delay:-.6s"><circle cx="380" cy="190" r="5"/></g>
+            <g class="cdot" style="--tx:-114px;--ty:122px;--c:#7CC4FF;animation-duration:5.1s;animation-delay:-3.4s"><circle cx="420" cy="40" r="5"/></g>
+            <g class="cdot" style="--tx:112px;--ty:-14px;--c:#7CC4FF;animation-duration:4.8s;animation-delay:-2s"><circle cx="180" cy="160" r="5"/></g>
+            <g class="cdot" style="--tx:-30px;--ty:-118px;--c:#FFB86B;animation-duration:5.5s;animation-delay:-1.5s"><circle cx="500" cy="180" r="5"/></g>
+            <g class="cdot" style="--tx:-54px;--ty:-44px;--c:#FFB86B;animation-duration:4.7s;animation-delay:-3.1s"><circle cx="540" cy="120" r="5"/></g>
+          </svg>
+          <div class="cell-cap"><i></i>2,431 tickets → 14 themes · clustered in 41s</div>
+        </div>
+
+        <div class="cell c-b reveal" style="--d:.08s">
+          <div class="cell-head">
+            <span class="cell-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+            <h3>From report to issue in one click</h3>
+          </div>
+          <p>Push any ranked request straight to Linear or Jira with the ticket evidence, account list and ARR attached — no copy-pasting context.</p>
+          <div class="flow">
+            <div class="flow-card"><span class="fc-tag">REPORT · WK 42</span><b>Dark mode — 38 tickets, +41%</b></div>
+            <div class="flow-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg></div>
+            <div class="flow-card"><span class="fc-tag lime">LINEAR · REL-241</span><b>Dark mode for dashboard</b><span class="fc-meta">P2 · @mira · 12 accounts · $86.4k ARR</span></div>
+          </div>
+        </div>
+
+        <div class="cell c-c reveal">
+          <div class="cell-head">
+            <span class="cell-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg></span>
+            <h3>Plays nice with your stack</h3>
+          </div>
+          <p>Two-way sync with the tools your team already lives in.</p>
+          <div class="int-grid">
+            <div class="int"><span class="int-ic" style="color:#C9F455">Z</span>Zendesk</div>
+            <div class="int"><span class="int-ic" style="color:#7CC4FF">I</span>Intercom</div>
+            <div class="int"><span class="int-ic" style="color:#FFB86B">H</span>Help Scout</div>
+            <div class="int"><span class="int-ic" style="color:#F47FB0">G</span>Gmail</div>
+            <div class="int"><span class="int-ic" style="color:#9EE6B8">F</span>Front</div>
+            <div class="int"><span class="int-ic" style="color:#D8DABF">S</span>Slack</div>
+          </div>
+          <div class="int-note">+ REST API, webhooks &amp; Zapier</div>
+        </div>
+
+        <div class="cell c-d reveal" style="--d:.08s">
+          <div class="cell-head">
+            <span class="cell-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 1.8 2.6 5 3.3 5 1.6 5 3.7-2.2 3-5 3-5-1.1-5-3"/></svg></span>
+            <h3>Know what a request is worth</h3>
+          </div>
+          <p>Relay joins tickets with your CRM, so every theme shows the revenue riding on it — prioritization stops being a vibes exercise.</p>
+          <div class="arr-row"><span>Dark mode</span><div class="arr-bar"><i style="--w:86%"></i></div><b>$86.4k</b></div>
+          <div class="arr-row"><span>SSO on Starter</span><div class="arr-bar"><i style="--w:54%"></i></div><b>$54.2k</b></div>
+          <div class="arr-row"><span>API rate limits</span><div class="arr-bar"><i style="--w:31%"></i></div><b>$31.0k</b></div>
+        </div>
+
+        <div class="cell c-e reveal" style="--d:.16s">
+          <div class="cell-head">
+            <span class="cell-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.6 3 7.6 7 9 4-1.4 7-4.4 7-9V6l-7-3z"/><path d="m9.3 12 2 2 3.6-4.2"/></svg></span>
+            <h3>Private by default</h3>
+          </div>
+          <p>Your tickets are evidence, not training data.</p>
+          <ul class="sec-list">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>SOC 2 Type II certified</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>GDPR · DPA on any plan</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>Zero retention — never trained on your data</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ METRICS ============ -->
+  <div class="metrics" id="metrics">
+    <div class="container metrics-inner">
+      <div class="metric"><b><span data-count="12480">0</span></b><span>tickets read and clustered every week</span></div>
+      <div class="metric"><b><span data-count="6.5" data-dec="1">0</span><i>hrs</i></b><span>saved per PM on manual triage, weekly</span></div>
+      <div class="metric"><b><span data-count="41" data-suffix="%">0</span></b><span>of roadmap items now trace back to a ticket</span></div>
+      <div class="metric"><b><span data-count="3.1" data-dec="1">0</span><i>days</i></b><span>median time from signal to shipped</span></div>
+    </div>
+  </div>
+
+  <!-- ============ QUOTES ============ -->
+  <section class="section">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="eyebrow">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          TEAMS SHIPPING WITH RELAY
+        </div>
+        <h2>The Friday report everyone <em class="serif">actually reads.</em></h2>
+      </div>
+      <div class="quotes">
+        <div class="quote quote-big reveal">
+          <svg class="qmark" width="34" height="26" viewBox="0 0 34 26" fill="currentColor"><path d="M0 26V14.6C0 6.5 4.8 1.2 13 0l1.6 4.6C9.4 6 7 8.8 6.8 12H14v14H0zm20 0V14.6C20 6.5 24.8 1.2 33 0l1 4.6c-5.2 1.4-7.6 4.2-7.8 7.4H34v14H20z" transform="scale(.9)"/></svg>
+          <blockquote>Relay paid for itself in week one. Our Friday report is the most-read document in the company — and the last three things we shipped came straight out of it.</blockquote>
+          <div class="q-who">
+            <span class="q-av">LO</span>
+            <div><b>Lena Ortiz</b><span>VP Product · Northwind</span></div>
+          </div>
+        </div>
+        <div class="quote quote-sm reveal" style="--d:.12s">
+          <blockquote>“Support finally has a seat at the product table. We walk into prioritization with evidence, not anecdotes.”</blockquote>
+          <div class="q-who">
+            <span class="q-av">MC</span>
+            <div><b>Marco Chen</b><span>Head of Support · Hexlab</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq" style="padding-top:30px">
+    <div class="container">
+      <div class="sec-head reveal" style="text-align:center">
+        <div class="eyebrow" style="justify-content:center">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.9 5.4 4.6 9.1 10 10-5.4.9-9.1 4.6-10 10-.9-5.4-4.6-9.1-10-10 5.4-.9 9.1-4.6 10-10z"/></svg>
+          FAQ
+        </div>
+        <h2>Questions, <em class="serif">answered.</em></h2>
+      </div>
+      <div class="faq-wrap reveal">
+        <div class="faq-item">
+          <button class="faq-q">Which tools does Relay connect to?
+            <span class="faq-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          </button>
+          <div class="faq-a"><div><p>Zendesk, Intercom, Help Scout, Front, Gmail and Slack today, plus a REST API and Zapier for everything else. Setup is one OAuth click and takes about two minutes; historical tickets are backfilled up to 24 months so your first report already has trend lines.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Do you train models on our ticket data?
+            <span class="faq-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          </button>
+          <div class="faq-a"><div><p>Never. Relay runs on zero-retention inference: your tickets are processed in an isolated environment, used only to build your report, and deleted within 24 hours. We're SOC 2 Type II certified and GDPR compliant, and we'll sign a DPA on any plan.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How is this different from the analytics in our helpdesk?
+            <span class="faq-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          </button>
+          <div class="faq-a"><div><p>Helpdesk analytics count tags and macros — they tell you what agents did. Relay reads what customers actually said and turns it into product decisions: themes, sentiment, revenue at stake, and a draft brief. It's the difference between a queue report and a roadmap input.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Can I customize themes, recipients and timing?
+            <span class="faq-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          </button>
+          <div class="faq-a"><div><p>Yes. Define custom themes, merge or exclude tags, choose exactly who gets the report (a Slack channel, an email group, or a Notion database), and pick any delivery day and time. Most teams start with Friday 9:00 and adjust from there.</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What does it cost?
+            <span class="faq-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          </button>
+          <div class="faq-a"><div><p>Free while you're under 100 tickets a month. Growth is $79/mo per connected helpdesk with unlimited seats and reports; Enterprise adds SSO/SAML, custom retention and a dedicated CSM. Every plan starts with a 14-day trial of Growth — no credit card required.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta" id="cta">
+    <div class="cta-glow"></div>
+    <div class="container" style="position:relative">
+      <h2 class="reveal">Ship what they're <em class="serif">already asking for.</em></h2>
+      <p class="cta-sub reveal" style="--d:.08s">Connect your helpdesk and read your first report this Friday. It takes two minutes — the tickets are already there.</p>
+      <div id="ctaFormWrap" class="reveal" style="--d:.16s">
+        <form class="cta-form" id="ctaForm" novalidate>
+          <input type="email" id="ctaEmail" placeholder="you@company.com" aria-label="Work email" autocomplete="email">
+          <button type="submit" class="btn btn-primary">Get started
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
+          </button>
+        </form>
+        <div class="cta-err" id="ctaErr">That doesn't look like a valid work email — try again.</div>
+      </div>
+      <div class="cta-micro reveal" style="--d:.22s">SOC 2 TYPE II &nbsp;·&nbsp; GDPR &nbsp;·&nbsp; FREE UP TO 100 TICKETS/MO</div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="logo" href="#top">
+          <span class="logo-mark">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="5.5" cy="12" r="2.7" fill="#181A10"/><circle cx="18.5" cy="12" r="2.7" fill="#181A10" opacity=".35"/><path d="M8.6 12h6.6m0 0-2.7-2.7M15.2 12l-2.7 2.7" stroke="#181A10" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          Relay
+        </a>
+        <p>Turns support noise into product signal — one Friday report at a time.</p>
+        <span class="status"><i></i>All systems operational</span>
+      </div>
+      <div class="foot-col">
+        <h4>PRODUCT</h4>
+        <a href="#how">How it works</a>
+        <a href="#report">The weekly report</a>
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+        <a href="#" class="soon">Changelog</a>
+      </div>
+      <div class="foot-col">
+        <h4>COMPANY</h4>
+        <a href="#" class="soon">About</a>
+        <a href="#" class="soon">Blog</a>
+        <a href="#" class="soon">Careers</a>
+        <a href="#" class="soon">Contact</a>
+      </div>
+      <div class="foot-col">
+        <h4>RESOURCES</h4>
+        <a href="#report">Sample report</a>
+        <a href="#" class="soon">API docs</a>
+        <a href="#" class="soon">Community</a>
+        <a href="#" class="soon">Status</a>
+      </div>
+      <div class="foot-col">
+        <h4>LEGAL</h4>
+        <a href="#" class="soon">Privacy</a>
+        <a href="#" class="soon">Terms</a>
+        <a href="#" class="soon">DPA</a>
+        <a href="#" class="soon">Security</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2025 Relay Labs, Inc. — made for teams who listen.</span>
+      <div class="foot-social">
+        <a href="#" class="soon" aria-label="X / Twitter"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1.6 2H8l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z"/></svg></a>
+        <a href="#" class="soon" aria-label="GitHub"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.2.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg></a>
+        <a href="#" class="soon" aria-label="LinkedIn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 1 1 0 3.5a2.5 2.5 0 0 1 4.98 0zM.2 8.3h4.6V24H.2V8.3zm7.6 0h4.4v2.1h.1c.6-1.2 2.1-2.4 4.4-2.4 4.7 0 5.6 3.1 5.6 7.1V24h-4.6v-7.9c0-1.9 0-4.3-2.6-4.3s-3 2-3 4.2V24H7.8V8.3z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+function toast(msg){
+  const c = $('#toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg><span></span>';
+  t.querySelector('span').textContent = msg;
+  c.appendChild(t);
+  while(c.children.length > 3) c.firstChild.remove();
+  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(), 320); }, 2700);
+}
+
+async function copyText(str){
+  try{ await navigator.clipboard.writeText(str); }
+  catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = str; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    ta.remove();
+  }
+}
+
+function countUp(el, to, opt={}){
+  const dec = opt.dec||0, suf = opt.suffix||'';
+  const from = parseFloat(el.dataset.cur || '0');
+  const t0 = performance.now(), dur = opt.dur||1100;
+  function fr(t){
+    const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3), v = from+(to-from)*e;
+    el.textContent = v.toLocaleString('en-US',{minimumFractionDigits:dec, maximumFractionDigits:dec}) + suf;
+    if(p<1) requestAnimationFrame(fr); else el.dataset.cur = to;
+  }
+  requestAnimationFrame(fr);
+}
+
+/* ================= nav ================= */
+const nav = $('#nav');
+addEventListener('scroll', ()=> nav.classList.toggle('scrolled', scrollY > 24), {passive:true});
+
+const menuBtn = $('#menuBtn'), mobileMenu = $('#mobileMenu');
+const icMenu = $('#icMenu'), icClose = $('#icClose');
+function setMenu(open){
+  mobileMenu.classList.toggle('open', open);
+  icMenu.style.display = open ? 'none' : 'block';
+  icClose.style.display = open ? 'block' : 'none';
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+menuBtn.addEventListener('click', ()=> setMenu(!mobileMenu.classList.contains('open')));
+$$('#mobileMenu a').forEach(a => a.addEventListener('click', ()=> setMenu(false)));
+
+/* ================= reveal on scroll ================= */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+}), {threshold:.14});
+$$('.reveal').forEach(el => io.observe(el));
+
+/* ================= hero machine loop ================= */
+(function(){
+  const tickets = $$('.hv-ticket');
+  const report = $('#hvReport'), pulse = $('#hvPulse'), badge = $('#hvBadge');
+  const bars = [...report.querySelectorAll('.hv-bar i')];
+  function loop(){
+    report.classList.remove('show');
+    badge.classList.remove('on');
+    pulse.classList.remove('go');
+    tickets.forEach(t => t.classList.remove('fly'));
+    bars.forEach(b => b.style.width = '0');
+    tickets.forEach((t,i)=> setTimeout(()=> t.classList.add('fly'), 500 + i*520));
+    setTimeout(()=> pulse.classList.add('go'), 450);
+    setTimeout(()=> report.classList.add('show'), 2500);
+    bars.forEach((b,i)=> setTimeout(()=> b.style.width = b.dataset.w, 2950 + i*170));
+    setTimeout(()=> badge.classList.add('on'), 4100);
+    setTimeout(loop, 8400);
+  }
+  loop();
+})();
+
+/* ================= marquee: duplicate track ================= */
+(function(){
+  const track = $('#mqTrack');
+  track.innerHTML += track.innerHTML;
+})();
+
+/* ================= weekly report data ================= */
+const WEEKS = {
+  42:{ range:'Nov 3 – 7', tickets:128, gen:41,
+    themes:[['Dark mode',38,'+41%',88],['SSO on Starter',21,'+9%',48],['CSV export broken on Safari',17,'+12%',39],['Onboarding checklist',12,'-6%',27]],
+    sent:{score:71, delta:'+4', vals:[48,52,50,55,53,58,57,61,60,65,68,71]},
+    reqs:[['Dark mode for dashboards','12 accounts','$86.4k','+41%'],['SAML SSO on Starter','8 accounts','$54.2k','+9%'],['Slack alerts on SLA breach','5 accounts','$23.8k','new']],
+    brief:'Dark mode is the loudest signal this week: 38 tickets (+41% WoW) from 12 accounts, including 3 enterprise workspaces worth $86.4k ARR. The Safari CSV export bug is the top issue (17 tickets, all on Pro plans). Suggested move: spec dark mode first — the draft brief is ready, owner @mira.' },
+  41:{ range:'Oct 27 – 31', tickets:116, gen:38,
+    themes:[['Dark mode',27,'+6%',84],['SSO on Starter',19,'+22%',59],['API rate limits',14,'+30%',43],['Mobile app crashes',9,'-18%',28]],
+    sent:{score:67, delta:'-2', vals:[58,60,57,61,59,62,60,58,61,59,63,67]},
+    reqs:[['SAML SSO on Starter','8 accounts','$54.2k','+22%'],['Dark mode for dashboards','9 accounts','$61.0k','+6%'],['API rate limits','4 accounts','$18.5k','new']],
+    brief:'SSO on Starter jumped this week — 19 tickets (+22% WoW), mostly mid-market accounts comparing us to Okta. Dark mode keeps climbing (27). Two enterprise deals ($54.2k ARR) explicitly asked for SSO before renewal. Suggested move: pull SSO forward, owner @devon.' },
+  40:{ range:'Oct 20 – 24', tickets:104, gen:44,
+    themes:[['Dark mode',24,'+14%',75],['API rate limits',11,'+38%',34],['Mobile app crashes',10,'+25%',31],['Invoice PDF formatting',8,'new',25]],
+    sent:{score:69, delta:'+1', vals:[55,57,54,58,56,60,59,62,61,64,66,69]},
+    reqs:[['Dark mode for dashboards','8 accounts','$58.1k','+14%'],['Higher API rate limits','4 accounts','$18.5k','+38%'],['Mobile crash on upload','3 accounts','$12.2k','new']],
+    brief:'A steady week. Dark mode still #1 (24 tickets, +14%). API rate limits spiked +38% — small volume, but 3 of the 4 accounts are on Scale plans, so it is a pricing-page fix before it becomes churn. Draft brief ready, owner @mira.' },
+  39:{ range:'Oct 13 – 17', tickets:97, gen:39,
+    themes:[['Dark mode',18,'+29%',56],['Onboarding checklist',14,'+8%',44],['Invoice PDF formatting',9,'-11%',28],['Zapier triggers',7,'new',22]],
+    sent:{score:68, delta:'+6', vals:[50,54,52,56,55,58,57,60,59,62,65,68]},
+    reqs:[['Dark mode for dashboards','6 accounts','$44.7k','+29%'],['Guided onboarding checklist','5 accounts','$19.3k','+8%'],['Zapier: new-ticket trigger','2 accounts','$8.9k','new']],
+    brief:'Dark mode crossed into enterprise this week — 18 tickets, and for the first time two of them are accounts above $10k ARR. Onboarding requests are steady at 14. Suggest pulling the dark-mode spec forward; draft brief ready, owner @mira.' }
+};
+
+const ORDER = [42,41,40,39];
+let currentWeek = 42, userLocked = false, reportVisible = false, typeTimer = null;
+
+const themeList = $('#themeList'), reqList = $('#reqList');
+const sentScore = $('#sentScore'), sentDelta = $('#sentDelta');
+const sparkLine = $('#sparkLine'), sparkArea = $('#sparkArea'), sparkDot = $('#sparkDot');
+const pTitle = $('#pTitle'), pRange = $('#pRange'), pTickets = $('#pTickets'), pGen = $('#pGen'), pUrl = $('#pUrl');
+const briefText = $('#briefText');
+
+function chipFor(d){
+  if(d.startsWith('+')) return `<span class="chip up">${d}</span>`;
+  if(d.startsWith('-')) return `<span class="chip down">${d}</span>`;
+  return `<span class="chip new">${d}</span>`;
+}
+
+function sparkPath(vals, w, h, pad){
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const pts = vals.map((v,i)=>[ pad + i*(w-2*pad)/(vals.length-1), h-pad - (v-min)/((max-min)||1)*(h-2*pad) ]);
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0 = pts[Math.max(0,i-1)], p1 = pts[i], p2 = pts[i+1], p3 = pts[Math.min(pts.length-1,i+2)];
+    const c1 = [p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6];
+    const c2 = [p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return { d, last: pts[pts.length-1] };
+}
+
+function typeBrief(text){
+  clearInterval(typeTimer);
+  briefText.textContent = '';
+  const words = text.split(' ');
+  let i = 0;
+  typeTimer = setInterval(()=>{
+    if(i >= words.length){ clearInterval(typeTimer); return; }
+    briefText.textContent += (i ? ' ' : '') + words[i++];
+  }, 26);
+}
+
+function renderWeek(n){
+  currentWeek = n;
+  const w = WEEKS[n];
+  $$('.week-btn').forEach(b => b.classList.toggle('active', +b.dataset.week === n));
+  pTitle.textContent = `Weekly product report — Week ${n}`;
+  pUrl.textContent = `relay.app/reports/week-${n}`;
+  pRange.textContent = w.range;
+  countUp(pTickets, w.tickets, {dur:700});
+  pGen.textContent = w.gen;
+
+  themeList.innerHTML = w.themes.map((t,i)=>`
+    <div class="th-row" style="transition-delay:${i*70}ms">
+      <div class="th-top">
+        <span class="th-name">${t[0]}${i===0 ? '<span class="top-tag">TOP</span>' : ''}</span>
+        ${chipFor(t[2])}
+        <span class="th-n">${t[1]}</span>
+      </div>
+      <div class="th-bar"><i data-w="${t[3]}%"></i></div>
+    </div>`).join('');
+
+  reqList.innerHTML = w.reqs.map((r,i)=>`
+    <div class="rq-row" style="transition-delay:${i*70}ms">
+      <span class="rq-name">${r[0]}</span><span class="rq-acc">${r[1]}</span><b class="rq-arr">${r[2]}</b>${chipFor(r[3])}
+    </div>`).join('');
+
+  requestAnimationFrame(()=> requestAnimationFrame(()=>{
+    themeList.querySelectorAll('.th-row').forEach(r => r.classList.add('in'));
+    themeList.querySelectorAll('.th-bar i').forEach((b,i)=> setTimeout(()=> b.style.width = b.dataset.w, 180 + i*90));
+    reqList.querySelectorAll('.rq-row').forEach(r => r.classList.add('in'));
+  }));
+
+  countUp(sentScore, w.sent.score, {dur:800});
+  sentDelta.textContent = w.sent.delta + ' vs last week';
+  sentDelta.className = 'chip ' + (w.sent.delta.startsWith('+') ? 'up' : 'down');
+
+  const { d, last } = sparkPath(w.sent.vals, 280, 80, 6);
+  sparkLine.setAttribute('d', d);
+  sparkArea.setAttribute('d', d + `L${last[0].toFixed(1)},78 L6,78 Z`);
+  sparkDot.setAttribute('cx', last[0]); sparkDot.setAttribute('cy', last[1]);
+  const len = sparkLine.getTotalLength();
+  sparkLine.style.transition = 'none';
+  sparkLine.style.strokeDasharray = len;
+  sparkLine.style.strokeDashoffset = len;
+  sparkArea.style.transition = 'none';
+  sparkArea.style.opacity = 0;
+  requestAnimationFrame(()=> requestAnimationFrame(()=>{
+    sparkLine.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)';
+    sparkLine.style.strokeDashoffset = 0;
+    sparkArea.style.transition = 'opacity .8s ease .5s';
+    sparkArea.style.opacity = 1;
+  }));
+
+  typeBrief(w.brief);
+}
+
+$$('.week-btn').forEach(b => b.addEventListener('click', ()=>{
+  userLocked = true;
+  renderWeek(+b.dataset.week);
+}));
+
+new IntersectionObserver(es => es.forEach(e => reportVisible = e.isIntersecting), {threshold:.25})
+  .observe($('#report'));
+
+setInterval(()=>{
+  if(userLocked || !reportVisible || document.hidden) return;
+  const next = ORDER[(ORDER.indexOf(currentWeek)+1) % ORDER.length];
+  renderWeek(next);
+}, 6000);
+
+renderWeek(42);
+
+/* ---- report actions ---- */
+function summaryText(n){
+  const w = WEEKS[n];
+  const th = w.themes.map(t=>`${t[0]} ${t[1]} (${t[2]})`).join(', ');
+  const rq = w.reqs.map(r=>`${r[0]} ${r[2]}`).join(', ');
+  return `Relay · Weekly product report — Week ${n} (${w.range})\n${w.tickets} tickets analyzed · sentiment ${w.sent.score}/100 (${w.sent.delta} vs last week)\n\nTop themes: ${th}\nTop requests by ARR: ${rq}\n\nDraft brief: ${w.brief}`;
+}
+$('#copySummary').addEventListener('click', async ()=>{
+  await copyText(summaryText(currentWeek));
+  toast('Report summary copied to clipboard');
+});
+$('#copyBrief').addEventListener('click', async ()=>{
+  await copyText(WEEKS[currentWeek].brief);
+  toast('Draft brief copied — paste it into your spec');
+});
+$('#exportLinear').addEventListener('click', ()=> toast('3 issues exported to Linear with ticket evidence attached'));
+$('#createIssue').addEventListener('click', ()=> toast('REL-242 created in Linear · assigned to @mira'));
+
+/* ================= metrics count-up ================= */
+new IntersectionObserver((es, obs) => es.forEach(e => {
+  if(!e.isIntersecting) return;
+  e.target.querySelectorAll('[data-count]').forEach(el =>
+    countUp(el, parseFloat(el.dataset.count), {dec:+(el.dataset.dec||0), suffix:el.dataset.suffix||'', dur:1400}));
+  obs.unobserve(e.target);
+}), {threshold:.35}).observe($('#metrics'));
+
+/* ================= faq ================= */
+$$('.faq-q').forEach(btn => btn.addEventListener('click', ()=>{
+  const item = btn.parentElement;
+  const wasOpen = item.classList.contains('open');
+  $$('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if(!wasOpen) item.classList.add('open');
+}));
+
+/* ================= cta form ================= */
+const ctaForm = $('#ctaForm'), ctaErr = $('#ctaErr');
+ctaForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const em = $('#ctaEmail').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){
+    ctaErr.classList.add('show');
+    ctaForm.classList.add('bad');
+    setTimeout(()=> ctaForm.classList.remove('bad'), 450);
+    return;
+  }
+  ctaErr.classList.remove('show');
+  $('#ctaFormWrap').innerHTML = `
+    <div class="cta-success">
+      <span class="ck"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+      <div><b>You're on the list.</b><span>Workspace invite sent to ${em.replace(/</g,'&lt;')} — your first report lands Friday, 9:00.</span></div>
+    </div>`;
+  toast('Invite sent to ' + em);
+});
+$('#ctaEmail').addEventListener('input', ()=> ctaErr.classList.remove('show'));
+
+/* ================= placeholder links ================= */
+$$('.soon').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  toast("That page isn't wired up in this demo");
+}));
+</script>
+</body>
+</html>

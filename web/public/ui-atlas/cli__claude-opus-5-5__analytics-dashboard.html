@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Analytics — Storefront Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f1ea;
+    --panel:#fffdf8;
+    --ink:#1d1b16;
+    --muted:#7a7468;
+    --line:#e6e0d3;
+    --accent:#e2552d;
+    --accent-soft:#fbe3d9;
+    --teal:#1f7a6d;
+    --teal-soft:#d7ece8;
+    --gold:#d9a227;
+    --plum:#6b4c9a;
+    --sky:#3b82c4;
+    --up:#1f7a6d;
+    --down:#c2412d;
+    --radius:16px;
+    --shadow:0 1px 0 rgba(29,27,22,.04),0 8px 24px -12px rgba(29,27,22,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Manrope',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:232px 1fr;
+  }
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* Sidebar */
+  aside{
+    background:var(--ink);
+    color:#efe9dc;
+    padding:28px 20px;
+    display:flex;flex-direction:column;gap:32px;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em}
+  .brand-mark{
+    width:34px;height:34px;border-radius:10px;background:var(--accent);
+    display:grid;place-items:center;color:#fff;font-size:16px;
+  }
+  nav{display:flex;flex-direction:column;gap:4px}
+  nav .label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#8f887a;margin:8px 12px 6px}
+  nav a{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;
+    color:#cfc8b8;text-decoration:none;font-weight:500;font-size:14px;transition:.15s;
+  }
+  nav a:hover{background:#2c2a24;color:#fff}
+  nav a.active{background:#2f2c25;color:#fff}
+  nav a.active::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:-2px}
+  nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .side-card{
+    margin-top:auto;background:#2a2721;border-radius:14px;padding:16px;font-size:13px;color:#cfc8b8;line-height:1.5;
+  }
+  .side-card strong{color:#fff;display:block;margin-bottom:4px}
+  .side-card .bar{height:6px;background:#3b382f;border-radius:6px;margin-top:12px;overflow:hidden}
+  .side-card .bar span{display:block;height:100%;width:72%;background:var(--gold);border-radius:6px}
+
+  /* Main */
+  main{padding:28px 36px 48px;display:flex;flex-direction:column;gap:24px;min-width:0}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
+  .seg button{
+    border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);
+    padding:8px 14px;border-radius:9px;cursor:pointer;transition:.15s;
+  }
+  .seg button.active{background:var(--ink);color:#fff}
+  .btn{
+    border:1px solid var(--line);background:var(--panel);font:inherit;font-weight:600;font-size:13px;
+    padding:10px 14px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--ink);
+  }
+  .btn:hover{border-color:#cfc6b4}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .kpi{padding:20px 20px 14px;position:relative;overflow:hidden}
+  .kpi .k-label{font-size:13px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+  .kpi .dot{width:8px;height:8px;border-radius:3px}
+  .kpi .k-value{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:10px 0 6px}
+  .kpi .k-foot{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
+  .delta{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;padding:3px 8px;border-radius:999px}
+  .delta.up{color:var(--up);background:var(--teal-soft)}
+  .delta.down{color:var(--down);background:#f8dcd5}
+  .kpi canvas{position:absolute;right:0;bottom:0;width:46%!important;height:56px!important;opacity:.9;pointer-events:none}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  .grid-3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px}
+  .panel{padding:20px 22px}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}
+  .panel-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .panel-head p{font-size:12px;color:var(--muted);margin-top:2px}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);font-weight:600}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .chart-wrap{position:relative;height:290px}
+  .chart-sm{position:relative;height:220px}
+
+  .donut-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;text-align:center}
+  .donut-center b{font-size:22px;font-weight:800;display:block;letter-spacing:-.02em}
+  .donut-center small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .cat-list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .cat-row{display:grid;grid-template-columns:12px 1fr auto auto;gap:10px;align-items:center;font-size:13px}
+  .cat-row i{width:10px;height:10px;border-radius:3px}
+  .cat-row .pct{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;width:44px;text-align:right}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;padding:0 8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:11px 8px;border-bottom:1px dashed var(--line);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:right;font-family:'JetBrains Mono',monospace}
+  .prod{display:flex;align-items:center;gap:10px;font-weight:600}
+  .thumb{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+  .prod small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+  .meter{height:6px;background:#efe9dc;border-radius:6px;overflow:hidden;width:80px;margin-left:auto}
+  .meter span{display:block;height:100%;background:var(--accent);border-radius:6px}
+  .status{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;display:inline-block}
+  .s-paid{background:var(--teal-soft);color:var(--teal)}
+  .s-pending{background:#f7ecd0;color:#9a6f0e}
+  .s-refunded{background:#f8dcd5;color:var(--down)}
+  .s-shipped{background:#dde9f6;color:#2a6aa6}
+
+  /* Funnel */
+  .funnel{display:flex;flex-direction:column;gap:12px}
+  .f-row .f-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .f-row .f-top b{font-family:'JetBrains Mono',monospace;font-weight:600}
+  .f-bar{height:28px;background:#f2ede2;border-radius:8px;overflow:hidden;position:relative}
+  .f-bar span{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#f08a5d);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .f-bar em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+
+  /* Heatmap */
+  .heat{display:grid;grid-template-columns:28px repeat(12,1fr);gap:3px;font-size:10px;color:var(--muted)}
+  .heat .cell{aspect-ratio:1;border-radius:4px;background:#f2ede2;position:relative;cursor:default}
+  .heat .cell:hover{outline:2px solid var(--ink);outline-offset:-1px}
+  .heat .lab{display:flex;align-items:center;font-weight:600}
+  .heat .hlab{text-align:center;font-weight:600}
+  .heat-legend{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:11px;color:var(--muted);margin-top:10px}
+  .heat-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  .tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:6px 10px;border-radius:8px;opacity:0;transition:opacity .1s;z-index:10;font-family:'JetBrains Mono',monospace}
+
+  footer{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+
+  @media (max-width:1200px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid,.grid-3{grid-template-columns:1fr}
+  }
+  @media (max-width:860px){
+    body{grid-template-columns:1fr}
+    aside{display:none}
+    main{padding:20px 16px 40px}
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><div class="brand-mark">◆</div> Larkspur Goods</div>
+  <nav>
+    <div class="label">Analytics</div>
+    <a href="#" class="active"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Overview</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l3 12h11l2-8H6"/></svg>Orders</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 7v10l8 4 8-4V7"/></svg>Products</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg>Customers</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 12h4l3-8 4 16 3-8h2"/></svg>Marketing</a>
+    <div class="label">Store</div>
+    <a href="#"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Reports</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</a>
+  </nav>
+  <div class="side-card">
+    <strong>Q4 revenue goal</strong>
+    <span id="goalText">$—</span>
+    <div class="bar"><span id="goalBar"></span></div>
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <div>
+      <div class="eyebrow" id="dateLabel">Overview</div>
+      <h1>Sales performance</h1>
+    </div>
+    <div class="controls">
+      <div class="seg" id="rangeSeg">
+        <button data-r="7">7D</button>
+        <button data-r="30" class="active">30D</button>
+        <button data-r="90">90D</button>
+      </div>
+      <button class="btn" id="exportBtn"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export CSV</button>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="card kpi">
+      <div class="k-label"><span class="dot" style="background:var(--accent)"></span>Gross revenue</div>
+      <div class="k-value mono" id="kRev">—</div>
+      <div class="k-foot"><span class="delta" id="dRev"></span><span>vs prev. period</span></div>
+      <canvas id="sRev"></canvas>
+    </div>
+    <div class="card kpi">
+      <div class="k-label"><span class="dot" style="background:var(--teal)"></span>Orders</div>
+      <div class="k-value mono" id="kOrd">—</div>
+      <div class="k-foot"><span class="delta" id="dOrd"></span><span>vs prev. period</span></div>
+      <canvas id="sOrd"></canvas>
+    </div>
+    <div class="card kpi">
+      <div class="k-label"><span class="dot" style="background:var(--gold)"></span>Avg. order value</div>
+      <div class="k-value mono" id="kAov">—</div>
+      <div class="k-foot"><span class="delta" id="dAov"></span><span>vs prev. period</span></div>
+      <canvas id="sAov"></canvas>
+    </div>
+    <div class="card kpi">
+      <div class="k-label"><span class="dot" style="background:var(--plum)"></span>Conversion rate</div>
+      <div class="k-value mono" id="kCvr">—</div>
+      <div class="k-foot"><span class="delta" id="dCvr"></span><span>vs prev. period</span></div>
+      <canvas id="sCvr"></canvas>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card panel">
+      <div class="panel-head">
+        <div><h2>Revenue over time</h2><p>Daily gross revenue with previous-period comparison</p></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Current</span><span><i style="background:#c9c1b0"></i>Previous</span></div>
+      </div>
+      <div class="chart-wrap"><canvas id="revChart"></canvas></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><div><h2>Sales by category</h2><p>Share of revenue</p></div></div>
+      <div class="chart-sm"><canvas id="catChart"></canvas>
+        <div class="donut-center"><div><b class="mono" id="catTotal">—</b><small>Total</small></div></div>
+      </div>
+      <div class="cat-list" id="catList"></div>
+    </div>
+  </section>
+
+  <section class="grid-3">
+    <div class="card panel">
+      <div class="panel-head"><div><h2>Top products</h2><p>Ranked by revenue</p></div></div>
+      <table>
+        <thead><tr><th>Product</th><th class="num">Units</th><th class="num">Revenue</th><th></th></tr></thead>
+        <tbody id="topProducts"></tbody>
+      </table>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><div><h2>Traffic channels</h2><p>Revenue by acquisition source</p></div></div>
+      <div class="chart-sm" style="height:280px"><canvas id="chanChart"></canvas></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><div><h2>Checkout funnel</h2><p>Sessions → purchase</p></div></div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card panel">
+      <div class="panel-head">
+        <div><h2>Recent orders</h2><p>Latest transactions across all channels</p></div>
+        <button class="btn" id="refreshBtn"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Refresh</button>
+      </div>
+      <table>
+        <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Status</th><th class="num">Total</th></tr></thead>
+        <tbody id="orders"></tbody>
+      </table>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><div><h2>When customers buy</h2><p>Orders by weekday & hour</p></div></div>
+      <div class="heat" id="heat"></div>
+      <div class="heat-legend">Less <i style="background:#f2ede2"></i><i style="background:#f7c7b4"></i><i style="background:#ef9a78"></i><i style="background:#e2552d"></i><i style="background:#a63a1b"></i> More</div>
+    </div>
+  </section>
+
+  <footer>Demo data generated locally · Last updated <span id="updated"></span></footer>
+</main>
+
+<div class="tip" id="tip"></div>
+
+<script>
+// ---------- Seeded random for stable demo data ----------
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rand = mulberry32(20261110);
+const rr = (min,max)=>min+rand()*(max-min);
+const pick = arr=>arr[Math.floor(rand()*arr.length)];
+
+// ---------- Generate 180 days of daily data ----------
+const DAYS = 180;
+const today = new Date(); today.setHours(0,0,0,0);
+const daily = [];
+for(let i=DAYS-1;i>=0;i--){
+  const d = new Date(today); d.setDate(d.getDate()-i);
+  const t = (DAYS-1-i)/DAYS;
+  const dow = d.getDay();
+  const weekend = (dow===0||dow===6) ? 1.18 : 1;
+  const trend = 1 + t*0.45;
+  const season = 1 + 0.12*Math.sin(t*Math.PI*3);
+  const sessions = Math.round(rr(3600,4400)*trend*weekend*season);
+  const cvr = rr(0.024,0.034)*(1+t*0.12);
+  const orders = Math.round(sessions*cvr);
+  const aov = rr(68,86)*(1+t*0.06);
+  daily.push({date:d, sessions, orders, revenue:orders*aov});
+}
+
+// ---------- Static dimensions ----------
+const categories = [
+  {name:'Apparel', share:.34, color:'#e2552d'},
+  {name:'Home & Living', share:.24, color:'#1f7a6d'},
+  {name:'Accessories', share:.18, color:'#d9a227'},
+  {name:'Beauty', share:.14, color:'#6b4c9a'},
+  {name:'Stationery', share:.10, color:'#3b82c4'},
+];
+const products = [
+  {name:'Linen Overshirt', cat:'Apparel', price:89, icon:'👕', bg:'#fbe3d9', w:1.0},
+  {name:'Stoneware Mug Set', cat:'Home & Living', price:42, icon:'☕', bg:'#d7ece8', w:.92},
+  {name:'Waxed Canvas Tote', cat:'Accessories', price:64, icon:'👜', bg:'#f7ecd0', w:.78},
+  {name:'Merino Crew Sweater', cat:'Apparel', price:128, icon:'🧶', bg:'#fbe3d9', w:.6},
+  {name:'Botanical Face Oil', cat:'Beauty', price:38, icon:'🌿', bg:'#e8e0f3', w:.71},
+  {name:'Dot-Grid Notebook', cat:'Stationery', price:18, icon:'📓', bg:'#dde9f6', w:.85},
+];
+const channels = [
+  {name:'Organic search', share:.31},
+  {name:'Paid social', share:.22},
+  {name:'Email', share:.18},
+  {name:'Direct', share:.15},
+  {name:'Referral', share:.09},
+  {name:'Affiliates', share:.05},
+];
+const firstNames=['Maya','Jonah','Priya','Theo','Amara','Lucas','Sofia','Kenji','Elena','Omar','Ruth','Dev','Ines','Felix','Noor','Aiden'];
+const lastInitials='ABCDEFGHJKLMNPRSTW';
+const statuses=[['Paid','s-paid',.45],['Shipped','s-shipped',.33],['Pending','s-pending',.16],['Refunded','s-refunded',.06]];
+
+// ---------- Helpers ----------
+const fmtMoney = (n,dec=0)=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const fmtShort = n=> n>=1e6? '$'+(n/1e6).toFixed(2)+'M' : n>=1e3? '$'+(n/1e3).toFixed(1)+'k' : '$'+n.toFixed(0);
+const fmtNum = n=>Math.round(n).toLocaleString('en-US');
+const fmtDate = d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const sum = (a,k)=>a.reduce((s,x)=>s+x[k],0);
+function weightedStatus(){let r=rand(),acc=0;for(const s of statuses){acc+=s[2];if(r<=acc)return s}return statuses[0]}
+
+function setDelta(el,cur,prev){
+  const pct = prev? (cur-prev)/prev*100 : 0;
+  el.textContent = (pct>=0?'▲ ':'▼ ')+Math.abs(pct).toFixed(1)+'%';
+  el.className = 'delta '+(pct>=0?'up':'down');
+}
+
+// ---------- Chart defaults ----------
+Chart.defaults.font.family = "'Manrope', system-ui, sans-serif";
+Chart.defaults.color = '#7a7468';
+Chart.defaults.plugins.legend.display = false;
+const tooltipStyle = {
+  backgroundColor:'#1d1b16', titleColor:'#fff', bodyColor:'#efe9dc', padding:10, cornerRadius:8,
+  titleFont:{weight:'700'}, bodyFont:{family:"'JetBrains Mono', monospace"}, displayColors:false
+};
+
+let charts = {};
+function sparkline(id,data,color){
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const g = ctx.createLinearGradient(0,0,0,56);
+  g.addColorStop(0,color+'55'); g.addColorStop(1,color+'00');
+  charts[id] = new Chart(ctx,{
+    type:'line',
+    data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:color,backgroundColor:g,fill:true,borderWidth:2,pointRadius:0,tension:.4}]},
+    options:{responsive:false,animation:false,plugins:{tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
+  });
+}
+
+// ---------- Render ----------
+let range = 30;
+
+function render(){
+  const cur = daily.slice(-range);
+  const prev = daily.slice(-range*2,-range);
+
+  const rev=sum(cur,'revenue'), prevRev=sum(prev,'revenue');
+  const ord=sum(cur,'orders'), prevOrd=sum(prev,'orders');
+  const ses=sum(cur,'sessions'), prevSes=sum(prev,'sessions');
+  const aov=rev/ord, prevAov=prevRev/prevOrd;
+  const cvr=ord/ses*100, prevCvr=prevOrd/prevSes*100;
+
+  document.getElementById('kRev').textContent = fmtMoney(rev);
+  document.getElementById('kOrd').textContent = fmtNum(ord);
+  document.getElementById('kAov').textContent = fmtMoney(aov,2);
+  document.getElementById('kCvr').textContent = cvr.toFixed(2)+'%';
+  setDelta(document.getElementById('dRev'),rev,prevRev);
+  setDelta(document.getElementById('dOrd'),ord,prevOrd);
+  setDelta(document.getElementById('dAov'),aov,prevAov);
+  setDelta(document.getElementById('dCvr'),cvr,prevCvr);
+
+  sparkline('sRev',cur.map(d=>d.revenue),'#e2552d');
+  sparkline('sOrd',cur.map(d=>d.orders),'#1f7a6d');
+  sparkline('sAov',cur.map(d=>d.revenue/d.orders),'#d9a227');
+  sparkline('sCvr',cur.map(d=>d.orders/d.sessions),'#6b4c9a');
+
+  document.getElementById('dateLabel').textContent =
+    fmtDate(cur[0].date)+' – '+fmtDate(cur[cur.length-1].date)+', '+cur[cur.length-1].date.getFullYear();
+
+  // Revenue chart
+  if(charts.rev) charts.rev.destroy();
+  const rctx = document.getElementById('revChart').getContext('2d');
+  const grad = rctx.createLinearGradient(0,0,0,290);
+  grad.addColorStop(0,'rgba(226,85,45,.28)'); grad.addColorStop(1,'rgba(226,85,45,0)');
+  charts.rev = new Chart(rctx,{
+    type:'line',
+    data:{
+      labels:cur.map(d=>fmtDate(d.date)),
+      datasets:[
+        {label:'Current',data:cur.map(d=>d.revenue),borderColor:'#e2552d',backgroundColor:grad,fill:true,borderWidth:2.5,tension:.35,pointRadius:range<=7?4:0,pointHoverRadius:5,pointBackgroundColor:'#e2552d'},
+        {label:'Previous',data:prev.map(d=>d.revenue),borderColor:'#c9c1b0',borderDash:[5,5],borderWidth:2,tension:.35,pointRadius:0,fill:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{tooltip:{...tooltipStyle,displayColors:true,callbacks:{label:c=>' '+c.dataset.label+': '+fmtMoney(c.parsed.y)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{maxTicksLimit:range<=7?7:8,font:{size:11}}},
+        y:{grid:{color:'#efe9dc'},border:{display:false},ticks:{callback:v=>fmtShort(v),font:{family:"'JetBrains Mono', monospace",size:11}}}
+      }
+    }
+  });
+
+  // Category donut
+  const catVals = categories.map((c,i)=>rev*c.share*(1+(Math.sin(range+i)*.05)));
+  const catSum = catVals.reduce((a,b)=>a+b,0);
+  if(charts.cat) charts.cat.destroy();
+  charts.cat = new Chart(document.getElementById('catChart'),{
+    type:'doughnut',
+    data:{labels:categories.map(c=>c.name),datasets:[{data:catVals,backgroundColor:categories.map(c=>c.color),borderColor:'#fffdf8',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{tooltip:{...tooltipStyle,callbacks:{label:c=>' '+fmtMoney(c.parsed)}}}}
+  });
+  document.getElementById('catTotal').textContent = fmtShort(catSum);
+  document.getElementById('catList').innerHTML = categories.map((c,i)=>`
+    <div class="cat-row"><i style="background:${c.color}"></i><span>${c.name}</span>
+    <span class="mono">${fmtShort(catVals[i])}</span><span class="pct">${(catVals[i]/catSum*100).toFixed(1)}%</span></div>`).join('');
+
+  // Top products
+  const prodRows = products.map(p=>{
+    const units = Math.round(ord*0.09*p.w*(0.9+((p.name.length*range)%7)/30));
+    return {...p,units,revenue:units*p.price};
+  }).sort((a,b)=>b.revenue-a.revenue);
+  const maxRev = prodRows[0].revenue;
+  document.getElementById('topProducts').innerHTML = prodRows.map(p=>`
+    <tr>
+      <td><div class="prod"><div class="thumb" style="background:${p.bg}">${p.icon}</div><div>${p.name}<small>${p.cat}</small></div></div></td>
+      <td class="num">${fmtNum(p.units)}</td>
+      <td class="num">${fmtShort(p.revenue)}</td>
+      <td><div class="meter"><span style="width:${(p.revenue/maxRev*100).toFixed(0)}%"></span></div></td>
+    </tr>`).join('');
+
+  // Channels
+  if(charts.chan) charts.chan.destroy();
+  charts.chan = new Chart(document.getElementById('chanChart'),{
+    type:'bar',
+    data:{labels:channels.map(c=>c.name),datasets:[{data:channels.map((c,i)=>rev*c.share*(1+Math.cos(range*i)*.04)),backgroundColor:['#1d1b16','#e2552d','#1f7a6d','#d9a227','#6b4c9a','#3b82c4'],borderRadius:6,barThickness:18}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{tooltip:{...tooltipStyle,callbacks:{label:c=>' '+fmtMoney(c.parsed.x)}}},
+      scales:{
+        x:{grid:{color:'#efe9dc'},border:{display:false},ticks:{callback:v=>fmtShort(v),maxTicksLimit:5,font:{family:"'JetBrains Mono', monospace",size:10}}},
+        y:{grid:{display:false},border:{display:false},ticks:{font:{size:12,weight:'600'},color:'#1d1b16'}}
+      }
+    }
+  });
+
+  // Funnel
+  const steps = [
+    ['Sessions',ses],
+    ['Viewed product',ses*.58],
+    ['Added to cart',ses*.17],
+    ['Reached checkout',ses*.072],
+    ['Purchased',ord],
+  ];
+  document.getElementById('funnel').innerHTML = steps.map(([label,v],i)=>`
+    <div class="f-row">
+      <div class="f-top"><span>${label}</span><b>${fmtNum(v)}</b></div>
+      <div class="f-bar"><span style="width:0%" data-w="${Math.max(v/ses*100,2.5)}"></span><em>${i===0?'100%':(v/ses*100).toFixed(1)+'%'}</em></div>
+    </div>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.f-bar span').forEach(s=>s.style.width=s.dataset.w+'%'));
+
+  // Goal
+  const goal = 1250000;
+  const q = daily.slice(-Math.min(41,DAYS));
+  const qRev = sum(q,'revenue');
+  document.getElementById('goalText').textContent = fmtShort(qRev)+' of '+fmtShort(goal)+' · '+(qRev/goal*100).toFixed(0)+'%';
+  document.getElementById('goalBar').style.width = Math.min(qRev/goal*100,100)+'%';
+}
+
+// ---------- Orders (independent of range) ----------
+let orderSeq = 48213;
+function renderOrders(){
+  const rows=[];
+  for(let i=0;i<7;i++){
+    const st = weightedStatus();
+    const items = 1+Math.floor(rand()*4);
+    rows.push(`<tr>
+      <td class="mono">#${orderSeq-i}</td>
+      <td>${pick(firstNames)} ${pick(lastInitials)}.</td>
+      <td>${items} item${items>1?'s':''}</td>
+      <td><span class="status ${st[1]}">${st[0]}</span></td>
+      <td class="num">${fmtMoney(rr(24,320),2)}</td>
+    </tr>`);
+  }
+  document.getElementById('orders').innerHTML = rows.join('');
+  document.getElementById('updated').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+// ---------- Heatmap ----------
+function renderHeat(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const hours=[0,2,4,6,8,10,12,14,16,18,20,22];
+  const el=document.getElementById('heat');
+  let html='<div></div>'+hours.map(h=>`<div class="hlab">${h}</div>`).join('');
+  const vals=[];
+  days.forEach((d,di)=>{
+    hours.forEach(h=>{
+      const curve = Math.exp(-Math.pow((h-20)/4.5,2))*1 + Math.exp(-Math.pow((h-12)/2.5,2))*.55 + .06;
+      const wk = di>=5 ? 1.2 : 1;
+      vals.push(Math.round(curve*wk*rr(80,120)));
+    });
+  });
+  const max=Math.max(...vals);
+  const scale=['#f2ede2','#f7c7b4','#ef9a78','#e2552d','#a63a1b'];
+  let k=0;
+  days.forEach(d=>{
+    html+=`<div class="lab">${d}</div>`;
+    hours.forEach(h=>{
+      const v=vals[k++];
+      const idx=Math.min(4,Math.floor(v/max*5));
+      html+=`<div class="cell" style="background:${scale[idx]}" data-t="${d} ${h}:00 · ${v} orders"></div>`;
+    });
+  });
+  el.innerHTML=html;
+  const tip=document.getElementById('tip');
+  el.addEventListener('mousemove',e=>{
+    const c=e.target.closest('.cell');
+    if(!c){tip.style.opacity=0;return}
+    tip.textContent=c.dataset.t; tip.style.opacity=1;
+    tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-30)+'px';
+  });
+  el.addEventListener('mouseleave',()=>tip.style.opacity=0);
+}
+
+// ---------- Interactions ----------
+document.getElementById('rangeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#rangeSeg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  range=+b.dataset.r;
+  render();
+});
+document.getElementById('refreshBtn').addEventListener('click',()=>{orderSeq+=Math.ceil(rand()*3);renderOrders()});
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const cur=daily.slice(-range);
+  const csv=['date,sessions,orders,revenue,aov,conversion_rate',
+    ...cur.map(d=>[d.date.toISOString().slice(0,10),d.sessions,d.orders,d.revenue.toFixed(2),(d.revenue/d.orders).toFixed(2),(d.orders/d.sessions*100).toFixed(3)].join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`sales_${range}d.csv`; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+render();
+renderOrders();
+renderHeat();
+</script>
+</body>
+</html>

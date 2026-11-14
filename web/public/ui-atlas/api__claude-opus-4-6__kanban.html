@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(108, 92, 231, 0.3);
+        }
+
+        header h1 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header h1 span {
+            font-size: 1.6rem;
+        }
+
+        .team-avatars {
+            display: flex;
+            gap: -8px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            margin-left: -8px;
+            cursor: default;
+            position: relative;
+        }
+
+        .avatar:first-child {
+            margin-left: 0;
+        }
+
+        .avatar.pink { background: #e84393; }
+        .avatar.blue { background: #0984e3; }
+        .avatar.green { background: #00b894; }
+        .avatar.orange { background: #e17055; }
+
+        .board {
+            display: flex;
+            gap: 24px;
+            padding: 30px;
+            overflow-x: auto;
+            min-height: calc(100vh - 80px);
+            align-items: flex-start;
+        }
+
+        .column {
+            background: #e8eaef;
+            border-radius: 16px;
+            min-width: 320px;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 140px);
+        }
+
+        .column-header {
+            padding: 20px 20px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+        }
+
+        .column-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .column-title h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            background: rgba(0,0,0,0.15);
+            color: #555;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .column-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-backlog { background: #a29bfe; }
+        .dot-progress { background: #fdcb6e; }
+        .dot-review { background: #e17055; }
+        .dot-done { background: #00b894; }
+
+        .add-card-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #888;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .add-card-btn:hover {
+            background: rgba(0,0,0,0.1);
+            color: #555;
+        }
+
+        .cards-container {
+            padding: 0 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 60px;
+        }
+
+        .cards-container.drag-over {
+            background: rgba(108, 92, 231, 0.05);
+            border-radius: 12px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            cursor: grab;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-1px);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+            cursor: grabbing;
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .tag-ui { background: #dfe6fd; color: #6c5ce7; }
+        .tag-ux { background: #ffeaa7; color: #d68910; }
+        .tag-branding { background: #fab1a0; color: #d63031; }
+        .tag-illustration { background: #c7ecee; color: #0984e3; }
+        .tag-motion { background: #e0d7ff; color: #6c5ce7; }
+        .tag-research { background: #d5f5e3; color: #00b894; }
+        .tag-icon { background: #fad7a0; color: #e17055; }
+
+        .card-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .card-description {
+            font-size: 0.8rem;
+            color: #777;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-assignee {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .card-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .priority {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .priority-high { background: #e74c3c; }
+        .priority-medium { background: #f39c12; }
+        .priority-low { background: #27ae60; }
+
+        .card-image {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            object-fit: cover;
+        }
+
+        .card-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .preview-gradient-1 { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
+        .preview-gradient-2 { background: linear-gradient(135deg, #fd79a8, #e84393); }
+        .preview-gradient-3 { background: linear-gradient(135deg, #55efc4, #00b894); }
+        .preview-gradient-4 { background: linear-gradient(135deg, #ffeaa7, #fdcb6e); }
+
+        .due-date {
+            font-size: 0.72rem;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .due-date.overdue {
+            color: #e74c3c;
+        }
+
+        .checklist-progress {
+            width: 100%;
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .checklist-bar {
+            height: 100%;
+            border-radius: 2px;
+            background: #00b894;
+            transition: width 0.3s;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #1a1a2e;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e8eaef;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #6c5ce7;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #6c5ce7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a4bd1;
+        }
+
+        .btn-secondary {
+            background: #e8eaef;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .card-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
+
+        .card {
+            position: relative;
+        }
+
+        .card:hover .card-actions {
+            opacity: 1;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #ccc;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #fee;
+            color: #e74c3c;
+        }
+
+        /* Scrollbar */
+        .cards-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .cards-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .cards-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                padding: 16px;
+                gap: 16px;
+            }
+
+            .column {
+                min-width: 280px;
+                max-width: 280px;
+            }
+
+            header {
+                padding: 16px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><span>◆</span> Design Team Board</h1>
+        <div class="team-avatars" style="display:flex;">
+            <div class="avatar pink" title="Alice">AL</div>
+            <div class="avatar blue" title="Ben">BE</div>
+            <div class="avatar green" title="Cara">CA</div>
+            <div class="avatar orange" title="Dan">DA</div>
+        </div>
+    </header>
+
+    <div class="board" id="board">
+        <!-- Backlog Column -->
+        <div class="column" data-column="backlog">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-backlog"></div>
+                    <h2>Backlog</h2>
+                    <span class="column-count" data-count>0</span>
+                </div>
+                <button class="add-card-btn" onclick="openModal('backlog')">+</button>
+            </div>
+            <div class="cards-container" data-column-id="backlog"></div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="column" data-column="progress">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-progress"></div>
+                    <h2>In Progress</h2>
+                    <span class="column-count" data-count>0</span>
+                </div>
+                <button class="add-card-btn" onclick="openModal('progress')">+</button>
+            </div>
+            <div class="cards-container" data-column-id="progress"></div>
+        </div>
+
+        <!-- In Review Column -->
+        <div class="column" data-column="review">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-review"></div>
+                    <h2>In Review</h2>
+                    <span class="column-count" data-count>0</span>
+                </div>
+                <button class="add-card-btn" onclick="openModal('review')">+</button>
+            </div>
+            <div class="cards-container" data-column-id="review"></div>
+        </div>
+
+        <!-- Done Column -->
+        <div class="column" data-column="done">
+            <div class="column-header">
+                <div class="column-title">
+                    <div class="column-dot dot-done"></div>
+                    <h2>Done</h2>
+                    <span class="column-count" data-count>0</span>
+                </div>
+                <button class="add-card-btn" onclick="openModal('done')">+</button>
+            </div>
+            <div class="cards-container" data-column-id="done"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3>✦ New Task</h3>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="cardTitle" placeholder="e.g. Redesign onboarding flow">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="cardDesc" placeholder="Brief description..."></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tag</label>
+                    <select id="cardTag">
+                        <option value="ui">UI Design</option>
+                        <option value="ux">UX Research</option>
+                        <option value="branding">Branding</option>
+                        <option value="illustration">Illustration</option>
+                        <option value="motion">Motion</option>
+                        <option value="research">Research</option>
+                        <option value="icon">Iconography</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="cardPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Assignee</label>
+                    <select id="cardAssignee">
+                        <option value="AL">Alice</option>
+                        <option value="BE">Ben</option>
+                        <option value="CA">Cara</option>
+                        <option value="DA">Dan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="cardDue">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addCard()">Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentColumn = 'backlog';
+        let draggedCard = null;
+
+        const tagLabels = {
+            ui: 'UI Design',
+            ux: 'UX Research',
+            branding: 'Branding',
+            illustration: 'Illustration',
+            motion: 'Motion',
+            research: 'Research',
+            icon: 'Iconography'
+        };
+
+        const assigneeColors = {
+            AL: 'pink',
+            BE: 'blue',
+            CA: 'green',
+            DA: 'orange'
+        };
+
+        // Sample data
+        const initialCards = {
+            backlog: [
+                {
+                    title: 'Design new landing page hero section',
+                    description: 'Create a compelling hero section with animated illustrations for the marketing site.',
+                    tag: 'ui',
+                    priority: 'high',
+                    assignee: 'AL',
+                    due: '2025-02-15',
+                    preview: 'preview-gradient-1',
+                    comments: 3,
+                    attachments: 2
+                },
+                {
+                    title: 'User persona research',
+                    description: 'Interview 10 users and create detailed persona documents.',
+                    tag: 'research',
+                    priority: 'medium',
+                    assignee: 'CA',
+                    due: '2025-02-20',
+                    comments: 1,
+                    attachments: 0
+                },
+                {
+                    title: 'Icon set for settings panel',
+                    description: 'Design 24 icons for the new settings panel, following our design system.',
+                    tag: 'icon',
+                    priority: 'low',
+                    assignee: 'DA',
+                    due: '2025-02-28',
+                    comments: 0,
+                    attachments: 1
+                }
+            ],
+            progress: [
+                {
+                    title: 'Mobile app onboarding redesign',
+                    description: 'Revamp the onboarding flow with new illustrations and micro-interactions.',
+                    tag: 'ux',
+                    priority: 'high',
+                    assignee: 'BE',
+                    due: '2025-02-10',
+                    preview: 'preview-gradient-2',
+                    comments: 7,
+                    attachments: 4,
+                    checklist: { done: 3, total: 5 }
+                },
+                {
+                    title: 'Loading animation for dashboard',
+                    description: 'Create a smooth skeleton loading animation.',
+                    tag: 'motion',
+                    priority: 'medium',
+                    assignee: 'AL',
+                    due: '2025-02-12',
+                    comments: 2,
+                    attachments: 1
+                }
+            ],
+            review: [
+                {
+                    title: 'Brand guidelines v2.0',
+                    description: 'Updated brand guidelines including new color palette and typography.',
+                    tag: 'branding',
+                    priority: 'high',
+                    assignee: 'CA',
+                    due: '2025-02-08',
+                    preview: 'preview-gradient-4',
+                    comments: 12,
+                    attachments: 3,
+                    checklist: { done: 8, total: 8 }
+                },
+                {
+                    title: 'Empty state illustrations',
+                    description: 'Four illustrations for different empty states in the app.',
+                    tag: 'illustration',
+                    priority: 'medium',
+                    assignee: 'DA',
+                    due: '2025-02-09',
+                    comments: 5,
+                    attachments: 4,
+                    checklist: { done: 3, total: 4 }
+                }
+            ],
+            done: [
+                {
+                    title: 'Design system component audit',
+                    description: 'Audited all 120 components and documented inconsistencies.',
+                    tag: 'ui',
+                    priority: 'medium',
+                    assignee: 'BE',
+                    due: '2025-02-01',
+                    preview: 'preview-gradient-3',
+                    comments: 8,
+                    attachments: 2,
+                    checklist: { done: 12, total: 12 }
+                },
+                {
+                    title: 'Competitive analysis report',
+                    description: 'Analyzed 8 competitors and created a detailed report.',
+                    tag: 'research',
+                    priority: 'low',
+                    assignee: 'CA',
+                    due: '2025-01-30',
+                    comments: 4,
+                    attachments: 1
+                }
+            ]
+        };
+
+        function createCardElement(card) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.draggable = true;
+
+            const isOverdue = card.due && new Date(card.due) < new Date();
+            const formattedDate = card.due ? new Date(card.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+            let previewHTML = '';
+            if (card.preview) {
+                previewHTML = `<div class="card-preview ${card.preview}"></div>`;
+            }
+
+            let checklistHTML = '';
+            if (card.checklist) {
+                const pct = (card.checklist.done / card.checklist.total) * 100;
+                checklistHTML = `
+                    <div class="checklist-progress">
+                        <div class="checklist-bar" style="width: ${pct}%"></div>
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="card-actions">
+                    <button class="delete-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+                </div>
+                ${previewHTML}
+                <div class="card-tags">
+                    <span class="tag tag-${card.tag}">${tagLabels[card.tag]}</span>
+                    <span class="priority priority-${card.priority}" title="${card.priority} priority"></span>
+                </div>
+                <div class="card-title">${card.title}</div>
+                ${card.description ? `<div class="card-description">${card.description}</div>` : ''}
+                ${checklistHTML}
+                <div class="card-footer">
+                    <div class="card-assignee ${assigneeColors[card.assignee]}" style="background:var(--c)">${card.assignee}</div>
+                    <div class="card-meta">
+                        ${card.comments ? `<span>💬 ${card.comments}</span>` : ''}
+                        ${card.attachments ? `<span>📎 ${card.attachments}</span>` : ''}
+                        ${formattedDate ? `<span class="due-date ${isOverdue ? 'overdue' : ''}">📅 ${formattedDate}</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Set assignee color
+            const assigneeEl = div.querySelector('.card-assignee');
+            const colors = { pink: '#e84393', blue: '#0984e3', green: '#00b894', orange: '#e17055' };
+            assigneeEl.style.background = colors[assigneeColors[card.assignee]];
+
+            // Drag events
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragend', handleDragEnd);
+
+            return div;
+        }
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', '');
+        }
+
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            draggedCard = null;
+            document.querySelectorAll('.cards-container').forEach(c => c.classList.remove('drag-over'));
+            updateAllCounts();
+        }
+
+        function deleteCard(btn) {
+            const card = btn.closest('.card');
+            card.style.transform = 'scale(0.8)';
+            card.style.opacity = '0';
+            card.style.transition = 'all 0.2s ease';
+            setTimeout(() => {
+                card.remove();
+                updateAllCounts();
+            }, 200);
+        }
+
+        // Setup drop zones
+        document.querySelectorAll('.cards-container').forEach(container => {
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                container.classList.add('drag-over');
+
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (draggedCard) {
+                    if (afterElement == null) {
+                        container.appendChild(draggedCard);
+                    } else {
+                        container.insertBefore(draggedCard, afterElement);
+                    }
+                }
+            });
+
+            container.addEventListener('dragleave', (e) => {
+                if (!container.contains(e.relatedTarget)) {
+                    container.classList.remove('drag-over');
+                }
+            });
+
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                container.classList.remove('drag-over');
+                updateAllCounts();
+            });
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateAllCounts() {
+            document.querySelectorAll('.column').forEach(col => {
+                const count = col.querySelector('.cards-container').children.length;
+                col.querySelector('[data-count]').textContent = count;
+            });
+        }
+
+        function openModal(column) {
+            currentColumn = column;
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('cardTitle').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('cardTitle').value = '';
+            document.getElementById('cardDesc').value = '';
+            document.getElementById('cardDue').value = '';
+        }
+
+        function addCard() {
+            const title = document.getElementById('cardTitle').value.trim();
+            if (!title) {
+                document.getElementById('cardTitle').style.borderColor = '#e74c3c';
+                setTimeout(() => {
+                    document.getElementById('cardTitle').style.borderColor = '#e8eaef';
+                }, 1500);
+                return;
+            }
+
+            const card = {
+                title: title,
+                description: document.getElementById('cardDesc').value.trim(),
+                tag: document.getElementById('cardTag').value,
+                priority: document.getElementById('cardPriority').value,
+                assignee: document.getElementById('cardAssignee').value,
+                due: document.getElementById('cardDue').value,
+                comments: 0,
+                attachments: 0
+            };
+
+            const container = document.querySelector(`[data-column-id="${currentColumn}"]`);
+            const cardEl = createCardElement(card);
+            cardEl.style.animation = 'slideUp 0.3s ease';
+            container.prepend(cardEl);
+            updateAllCounts();
+            closeModal();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal')) {
+                closeModal();
+            }
+        });
+
+        // Close modal on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Enter' && document.getElementById('modal').classList.contains('active')) {
+                addCard();
+            }
+        });
+
+        // Initialize board with sample data
+        function initBoard() {
+            Object.entries(initialCards).forEach(([column, cards]) => {
+                const container = document.querySelector(`[data-column-id="${column}"]`);
+                cards.forEach(card => {
+                    container.appendChild(createCardElement(card));
+                });
+            });
+            updateAllCounts();
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>

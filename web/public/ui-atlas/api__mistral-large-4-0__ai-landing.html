@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmur — AI notes for spoken minds</title>
+<meta name="description" content="Murmur listens to your voice memos, meetings and half-formed ideas — and hands back clean notes, decisions and action items.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231B1712'/%3E%3Crect x='14' y='26' width='5' height='12' rx='2.5' fill='%23F4EFE4'/%3E%3Crect x='23' y='18' width='5' height='28' rx='2.5' fill='%23E8490F'/%3E%3Crect x='32' y='24' width='5' height='16' rx='2.5' fill='%23F4EFE4'/%3E%3Crect x='41' y='14' width='5' height='36' rx='2.5' fill='%23F4EFE4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4EFE4; --card:#FBF8F0; --butter:#F1E6CC;
+  --ink:#1B1712; --dark:#171310; --dark-2:#241D16;
+  --muted:#6F6757; --line:rgba(27,23,18,.14);
+  --accent:#E8490F; --accent-d:#C93C0A; --pine:#22422F;
+  --cream:#F4EFE4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+html,body{overflow-x:clip}
+body{
+  font-family:'Instrument Sans',system-ui,sans-serif;
+  background:var(--paper);color:var(--ink);
+  -webkit-font-smoothing:antialiased;line-height:1.5;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:2000;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+}
+::selection{background:var(--accent);color:var(--cream)}
+[hidden]{display:none!important}
+a{color:inherit}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.wrap-wide{max-width:1250px;margin:0 auto;padding:0 24px}
+.mono{font-family:'IBM Plex Mono',monospace}
+.ic{width:1.05em;height:1.05em;fill:currentColor;display:inline-block;vertical-align:-.12em;flex:none}
+
+/* ---------- type ---------- */
+.eyebrow{
+  display:flex;align-items:center;gap:10px;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--accent)}
+.eyebrow.center{justify-content:center}
+.eyebrow.center::after{content:"";width:26px;height:2px;background:var(--accent)}
+h1{font-family:'Fraunces',serif;font-weight:520;font-size:clamp(3.1rem,8.2vw,6.7rem);line-height:.98;letter-spacing:-.028em;margin:26px 0 22px}
+h1 em,h2 em{font-style:italic;color:var(--accent);font-weight:480}
+.lede{color:var(--muted);font-size:17.5px;line-height:1.62;max-width:58ch}
+.sec-head{max-width:760px;margin-bottom:20px}
+.sec-head h2{font-family:'Fraunces',serif;font-weight:530;font-size:clamp(2.3rem,4.6vw,3.6rem);line-height:1.05;letter-spacing:-.022em;margin:18px 0 16px}
+.sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
+.sec-head.center .lede{margin:0 auto}
+section{padding:104px 0}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  font-weight:600;font-size:15px;padding:14px 26px;border-radius:999px;
+  border:1px solid transparent;cursor:pointer;text-decoration:none;
+  transition:transform .22s,background .22s,color .22s,box-shadow .22s,border-color .22s;
+  white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#FFF7EC}
+.btn-primary:hover{background:var(--ink);transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(27,23,18,.5)}
+.btn-ghost{border-color:var(--line);color:var(--ink);background:transparent}
+.btn-ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px)}
+.btn-accent{background:var(--accent);color:#FFF7EC}
+.btn-accent:hover{background:var(--cream);color:var(--ink);transform:translateY(-2px)}
+.btn-lg{padding:17px 30px;font-size:16px}
+.btn-sm{padding:9px 18px;font-size:13.5px}
+.btn-block{width:100%}
+
+/* ---------- nav ---------- */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;transition:background .3s,border-color .3s,backdrop-filter .3s;border-bottom:1px solid transparent}
+nav.scrolled,body.menu-open nav{background:rgba(244,239,228,.84);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:72px;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:'Fraunces',serif;font-weight:600;font-size:22px;letter-spacing:-.02em}
+.logo .ic{font-size:24px;color:var(--ink)}
+.nav-links{display:flex;gap:30px}
+.nav-links a{text-decoration:none;font-size:14.5px;font-weight:550;position:relative;padding:4px 0}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-2px;height:2px;width:100%;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .25s}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-cta{display:flex;align-items:center;gap:18px}
+.signin{font-size:14.5px;font-weight:550;text-decoration:none;color:var(--muted)}
+.signin:hover{color:var(--ink)}
+.burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px}
+.burger span{width:22px;height:2px;background:var(--ink);display:block;transition:.3s}
+body.menu-open .burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+body.menu-open .burger span:nth-child(2){opacity:0}
+body.menu-open .burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.mnav{display:none;position:fixed;top:72px;left:0;right:0;z-index:98;background:var(--paper);border-bottom:1px solid var(--line);padding:10px 24px 28px;flex-direction:column}
+body.menu-open .mnav{display:flex}
+.mnav a{text-decoration:none;font-weight:600;font-size:17px;padding:15px 0;border-bottom:1px solid var(--line)}
+.mnav .btn{margin-top:20px}
+
+/* ---------- hero ---------- */
+.hero{padding:176px 0 96px;position:relative}
+.hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(27,23,18,.13) 1px,transparent 1.4px);
+  background-size:26px 26px;
+  -webkit-mask-image:radial-gradient(ellipse 75% 62% at 50% 0%,#000 25%,transparent 74%);
+  mask-image:radial-gradient(ellipse 75% 62% at 50% 0%,#000 25%,transparent 74%);
+}
+.hero .wrap{position:relative}
+.hero-inner{text-align:center;max-width:940px;margin:0 auto}
+[data-hero]{animation:rise .95s cubic-bezier(.16,.7,.2,1) both;animation-delay:var(--d,0s)}
+@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+.hero .lede{margin:0 auto}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.trust{margin-top:24px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;color:var(--muted)}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.5s ease-in-out infinite;flex:none}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.78)}}
+
+/* hero mock window */
+.mock{
+  position:relative;max-width:880px;margin:72px auto 0;text-align:left;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  box-shadow:0 40px 90px -38px rgba(27,23,18,.35),0 2px 0 rgba(27,23,18,.03);
+}
+.mock-bar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:6px}
+.dots i{width:10px;height:10px;border-radius:50%}
+.dots i:nth-child(1){background:#E0655A}.dots i:nth-child(2){background:#E3B94E}.dots i:nth-child(3){background:#8CBF7A}
+.mock-title{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.rec{display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;color:var(--muted)}
+.rec .pulse-dot{background:var(--accent)}
+.mock-body{padding:20px 22px 26px}
+.wave-wrap{display:flex;align-items:center;gap:16px;height:66px;border-bottom:1px dashed var(--line);padding-bottom:14px}
+.wave{display:flex;align-items:center;justify-content:space-between;width:100%;height:100%;color:rgba(27,23,18,.75)}
+.wave span{width:3px;height:calc(var(--h)*1%);min-height:3px;border-radius:3px;background:currentColor;transform:scaleY(.22);flex:none}
+.wave.live span{animation:wob var(--d) ease-in-out var(--dl) infinite alternate}
+@keyframes wob{from{transform:scaleY(.16)}to{transform:scaleY(1)}}
+.listen-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.hero-transcript{margin-top:18px;min-height:208px;transition:opacity .5s}
+.hero-transcript.fade{opacity:0}
+.msg{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;opacity:0;transform:translateY(8px);transition:.45s}
+.msg.show{opacity:1;transform:none}
+.who-tag{flex:none;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10px;letter-spacing:.1em;background:rgba(27,23,18,.08);padding:5px 9px;border-radius:999px;margin-top:2px}
+.ai-tag{flex:none;display:inline-flex;gap:6px;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10px;letter-spacing:.1em;color:var(--pine);background:rgba(34,66,47,.1);padding:5px 10px;border-radius:999px;margin-top:2px}
+.msg .txt{font-size:15px;line-height:1.55;flex:1}
+.msg.ai .txt{background:#EDF2E9;border-radius:4px 14px 14px 14px;padding:10px 14px}
+.w{opacity:0;display:inline-block;transform:translateY(6px);transition:opacity .3s,transform .3s}
+.w.in{opacity:1;transform:none}
+.chip-float{
+  position:absolute;display:flex;align-items:center;gap:9px;z-index:3;
+  background:var(--ink);color:var(--paper);font-size:12.5px;font-weight:600;
+  padding:10px 15px;border-radius:13px;box-shadow:0 20px 44px -16px rgba(27,23,18,.5);
+  animation:floaty 6s ease-in-out infinite;
+}
+.chip-float .ic{color:#FF8A5C}
+.c1{top:-20px;right:-30px}
+.c2{bottom:48px;left:-56px;background:var(--pine);color:#EAF2E6;font-family:'IBM Plex Mono',monospace;font-weight:500;animation-delay:-2s}
+.c3{top:118px;left:-70px;animation-delay:-4s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+/* ---------- logos ---------- */
+.logos{padding:20px 0 88px}
+.logos-label{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:32px}
+.marquee{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee-track{display:flex;align-items:center;width:max-content;animation:scrollx 32s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+.marquee-track>*{margin-right:72px;flex:none}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+.lg{white-space:nowrap;opacity:.5;transition:opacity .25s;font-size:19px}
+.lg:hover{opacity:1}
+.lg-serif{font-family:'Fraunces',serif;font-style:italic;font-size:23px}
+.lg-mono{font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:.22em;font-size:14px;text-transform:uppercase}
+.lg-sans{font-weight:700;letter-spacing:-.02em}
+.lg-wide{font-weight:600;letter-spacing:.32em;font-size:14px;text-transform:uppercase}
+
+/* ---------- how it works ---------- */
+.step{display:grid;grid-template-columns:1fr 1fr;gap:76px;align-items:center;padding:66px 0}
+.step+.step{border-top:1px solid var(--line)}
+.step-num{display:block;font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:58px;line-height:1;color:var(--accent);margin-bottom:16px}
+.step-text h3{font-family:'Fraunces',serif;font-weight:560;font-size:30px;letter-spacing:-.015em;margin-bottom:12px}
+.step-text p{color:var(--muted);font-size:16.5px;line-height:1.65;max-width:48ch}
+.ticks{list-style:none;margin-top:20px}
+.ticks li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:15px;font-weight:550}
+.ticks .ic{color:var(--accent);margin-top:4px;font-size:14px}
+.vcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 26px 64px -36px rgba(27,23,18,.32)}
+.vcard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;font-weight:600}
+.vcard-head .mono{font-size:12px;color:var(--muted);font-weight:400}
+.wave-wrap.tall{height:112px;margin-top:18px}
+.src-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.schip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--paper)}
+/* transform visual */
+.transform{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;min-height:280px}
+.raw-line{background:var(--butter);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--muted);margin-bottom:10px;transition:opacity .7s,transform .7s}
+.r1{transform:rotate(-1.4deg)}.r2{transform:rotate(1deg)}.r3{transform:rotate(-.6deg)}
+.raw-line:nth-child(2){transition-delay:.15s}.raw-line:nth-child(3){transition-delay:.3s}
+.step-visual.in .raw-line{opacity:.38}
+.step-visual.in .r2{text-decoration:line-through}
+.tr-arrow{color:var(--accent);font-size:26px;display:grid;place-items:center}
+.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 16px 40px -20px rgba(27,23,18,.35);opacity:0;transform:translateX(16px);transition:.7s .3s}
+.step-visual.in .note{opacity:1;transform:none}
+.note-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;margin-bottom:10px}
+.note ul{list-style:none}
+.note li{font-size:13.5px;color:var(--muted);padding:4px 0 4px 16px;position:relative}
+.note li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:2px;background:var(--accent)}
+.note li b{color:var(--ink)}
+.tags{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.tags span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+/* recall visual */
+.recall-head{display:flex;align-items:center;gap:10px;font-weight:650;font-size:15px}
+.recall-head .ic{color:var(--accent);font-size:18px}
+.recall-form{display:flex;align-items:center;gap:10px;margin:18px 0 14px;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:4px 4px 4px 14px}
+.recall-form .ic{color:var(--muted);font-size:17px}
+.recall-form input{flex:1;border:none;background:none;outline:none;font:400 15px 'Instrument Sans',sans-serif;color:var(--ink);padding:11px 0;min-width:0}
+.recall-go{width:40px;height:40px;border-radius:11px;border:none;background:var(--ink);color:var(--paper);display:grid;place-items:center;cursor:pointer;transition:.2s;flex:none}
+.recall-go:hover{background:var(--accent)}
+.recall-answer{min-height:128px}
+.recall-hint{font-style:italic;color:var(--muted);font-size:14px}
+.thinking{display:flex;gap:7px;padding:14px 2px}
+.thinking i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:tb 1s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes tb{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+.ans p{font-size:15px;line-height:1.62}
+.ans b{color:var(--accent-d)}
+.srcs{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.srcs span{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--paper)}
+
+/* ---------- demo band ---------- */
+.band-wrap{padding:26px 0}
+.band{background:var(--dark);color:var(--paper);border-radius:38px;padding:92px 62px}
+.band .eyebrow{color:rgba(244,239,228,.55)}
+.band .lede{color:rgba(244,239,228,.62)}
+.demo-card{margin-top:52px;background:var(--dark-2);border:1px solid rgba(244,239,228,.14);border-radius:22px;overflow:hidden}
+.demo-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;border-bottom:1px solid rgba(244,239,228,.12)}
+.file{display:flex;align-items:center;gap:9px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:rgba(244,239,228,.7)}
+.file .ic{color:#FF8A5C}
+.status{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:rgba(244,239,228,.6)}
+.status i{width:8px;height:8px;border-radius:50%;background:rgba(244,239,228,.3)}
+.status.listening i{background:var(--accent);animation:pulse 1s infinite}
+.status.listening b{color:#FF9B7A}
+.status.summarized i{background:#7FC98F}
+.status.summarized b{color:#9FD8AC}
+.demo-body{display:grid;grid-template-columns:1.15fr 1fr}
+.demo-left{display:flex;flex-direction:column;height:396px}
+.wave-strip{display:flex;align-items:center;height:52px;padding:0 22px;border-bottom:1px solid rgba(244,239,228,.1);flex:none}
+.wave-strip .wave{color:rgba(244,239,228,.6);height:60%}
+.demo-transcript{flex:1;overflow-y:auto;padding:20px 22px;scrollbar-width:thin;scrollbar-color:rgba(244,239,228,.25) transparent}
+.demo-transcript::-webkit-scrollbar{width:8px}
+.demo-transcript::-webkit-scrollbar-thumb{background:rgba(244,239,228,.22);border-radius:8px}
+.t-empty{font-family:'IBM Plex Mono',monospace;font-size:12px;color:rgba(244,239,228,.35);padding:6px 0}
+.tline{display:flex;gap:12px;margin-bottom:16px;opacity:0;transform:translateY(8px);transition:.4s}
+.tline.show{opacity:1;transform:none}
+.tava{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff}
+.tname{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(244,239,228,.5);margin-bottom:3px}
+.ttext{font-size:14.5px;line-height:1.55;color:rgba(244,239,228,.92)}
+.ai-panel{border-left:1px solid rgba(244,239,228,.12);background:rgba(244,239,228,.03);height:396px;overflow-y:auto;scrollbar-width:thin}
+.ai-empty{height:100%;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;padding:30px}
+.ai-empty .ic{font-size:30px;color:var(--accent)}
+.ai-empty p{font-size:14px;color:rgba(244,239,228,.55);max-width:32ch}
+.ai-content{padding:24px 26px}
+.ai-content .stag{opacity:0;transform:translateY(12px);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i)*110ms + 120ms)}
+.ai-content.show .stag{opacity:1;transform:none}
+.ai-head{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.14em;color:rgba(244,239,228,.6)}
+.ai-head .ic{color:var(--accent);font-size:14px}
+.ai-pill{margin-left:auto;border:1px solid rgba(244,239,228,.25);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em}
+.ai-content h4{font-family:'Fraunces',serif;font-weight:560;font-size:22px;letter-spacing:-.01em;margin:12px 0 14px}
+.ai-bullets{list-style:none;margin-bottom:18px}
+.ai-bullets li{font-size:14px;line-height:1.55;color:rgba(244,239,228,.85);padding:5px 0 5px 18px;position:relative}
+.ai-bullets li::before{content:"";position:absolute;left:0;top:13px;width:9px;height:2px;background:var(--accent)}
+.ai-bullets b{color:#fff}
+.ai-actions{background:rgba(244,239,228,.05);border:1px solid rgba(244,239,228,.1);border-radius:14px;padding:15px 16px}
+.ai-actions-head{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,239,228,.6)}
+.act-bar{height:3px;background:rgba(244,239,228,.14);border-radius:3px;margin:9px 0 12px;overflow:hidden}
+.act-bar i{display:block;height:100%;width:0;background:#7FC98F;transition:width .35s}
+.act{display:flex;gap:11px;align-items:flex-start;padding:7px 0;cursor:pointer;font-size:13.5px;line-height:1.45;color:rgba(244,239,228,.9);position:relative}
+.act input{position:absolute;opacity:0;pointer-events:none}
+.act .box{width:19px;height:19px;flex:none;border-radius:6px;border:1.5px solid rgba(244,239,228,.4);display:grid;place-items:center;margin-top:1px;transition:.2s}
+.act .box .ic{font-size:11px;color:#14210f;opacity:0;transition:.2s}
+.act input:checked ~ .box{background:#7FC98F;border-color:#7FC98F}
+.act input:checked ~ .box .ic{opacity:1}
+.act input:checked ~ .act-t{text-decoration:line-through;color:rgba(244,239,228,.45)}
+.act-t b{color:#FFB59A}
+.ai-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.ai-tags span{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 11px;border:1px solid rgba(244,239,228,.22);border-radius:999px;color:rgba(244,239,228,.7)}
+.demo-controls{display:flex;align-items:center;gap:16px;padding:16px 22px;border-top:1px solid rgba(244,239,228,.12)}
+.play-btn{width:52px;height:52px;flex:none;border-radius:50%;border:none;background:var(--accent);color:#FFF7EC;display:grid;place-items:center;cursor:pointer;transition:.2s}
+.play-btn:hover{transform:scale(1.07);background:var(--accent-d)}
+.play-btn .ic{font-size:20px}
+.track{flex:1;height:4px;background:rgba(244,239,228,.15);border-radius:4px;overflow:hidden}
+.track i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:12px;color:rgba(244,239,228,.6);min-width:96px;text-align:right}
+.skip-btn{display:flex;align-items:center;gap:7px;background:none;border:1px solid rgba(244,239,228,.22);color:rgba(244,239,228,.8);border-radius:999px;padding:9px 15px;font-weight:600;font-size:12.5px;cursor:pointer;transition:.2s}
+.skip-btn:hover{background:rgba(244,239,228,.1)}
+.skip-btn:disabled{opacity:.35;cursor:default}
+
+/* ---------- features bento ---------- */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:46px}
+.bcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px;display:flex;flex-direction:column;transition:transform .3s,box-shadow .3s,border-color .3s;position:relative;overflow:hidden}
+.bcard:hover{transform:translateY(-5px);box-shadow:0 28px 60px -34px rgba(27,23,18,.4);border-color:rgba(27,23,18,.3)}
+.bcard h3{font-family:'Fraunces',serif;font-weight:560;font-size:23px;letter-spacing:-.012em;margin-bottom:8px}
+.bcard>p{color:var(--muted);font-size:15px;line-height:1.6;max-width:54ch}
+.s7{grid-column:span 7}.s5{grid-column:span 5}.s4{grid-column:span 4}.s3{grid-column:span 3}.s8{grid-column:span 8}
+.seg{display:inline-flex;background:rgba(27,23,18,.06);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px;margin-top:20px;align-self:flex-start}
+.seg button{border:none;background:none;padding:8px 17px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;transition:.2s}
+.seg button.active{background:var(--ink);color:var(--paper)}
+.tone-note{margin-top:auto;padding-top:20px}
+.tone-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+#toneOut{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px 18px;font-size:14.5px;line-height:1.62;min-height:118px;transition:opacity .18s,transform .18s}
+#toneOut.swap{opacity:0;transform:translateY(6px)}
+.lang-big{margin:auto 0;padding:26px 0 12px}
+#langWord{font-family:'Fraunces',serif;font-weight:520;font-size:clamp(2.3rem,3.6vw,3.3rem);letter-spacing:-.02em;line-height:1.05;transition:opacity .25s,transform .25s;display:block}
+#langName{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:block;margin-top:10px;transition:opacity .25s}
+.lang-swap{opacity:0;transform:translateY(10px)}
+.chip-cloud{display:flex;flex-wrap:wrap;gap:9px;margin-top:auto;padding-top:22px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:600;background:var(--paper)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.chip.pine i{background:var(--pine)}
+.ic-circle{width:44px;height:44px;border-radius:13px;background:rgba(34,66,47,.1);color:var(--pine);display:grid;place-items:center;font-size:20px;margin-bottom:16px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:22px}
+.switch-row label{font-size:14px;font-weight:600;line-height:1.35}
+.switch{width:46px;height:27px;flex:none;border-radius:999px;background:rgba(27,23,18,.18);border:none;position:relative;cursor:pointer;transition:.25s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:.25s}
+.switch.on{background:var(--pine)}
+.switch.on::after{left:22px}
+#privStatus{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+#privStatus.warn{color:#A34A0E}
+.replay-row{display:flex;align-items:center;gap:14px;margin-top:auto;padding-top:24px}
+#miniWave{flex:1;height:46px;color:rgba(27,23,18,.7)}
+.mini-play{width:46px;height:46px;flex:none;border-radius:50%;border:none;background:var(--ink);color:var(--paper);display:grid;place-items:center;cursor:pointer;transition:.2s;font-size:17px}
+.mini-play:hover,.mini-play.on{background:var(--accent)}
+.time-chip{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);border:1px solid var(--line);padding:6px 11px;border-radius:999px;white-space:nowrap}
+.mini-marquee{overflow:hidden;margin-top:auto;padding-top:22px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.mini-marquee .marquee-track{animation-duration:26s}
+.mini-marquee .chip{flex:none;margin-right:12px}
+
+/* ---------- quotes ---------- */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:46px;align-items:start}
+.qcol{display:flex;flex-direction:column;gap:18px}
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:27px;transition:transform .3s,box-shadow .3s}
+.qcard:hover{transform:translateY(-4px);box-shadow:0 24px 50px -30px rgba(27,23,18,.35)}
+.qcard>p{font-family:'Fraunces',serif;font-size:19px;line-height:1.45;letter-spacing:-.01em}
+.qcard.dark{background:var(--ink);color:var(--paper);border-color:transparent}
+.qfoot{display:flex;align-items:center;gap:12px;margin-top:22px}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.av1{background:#F3D9CB;color:#8A3A12}.av2{background:#DDE7DA;color:#2C4A33}.av3{background:#EFE3C2;color:#7A5B14}
+.av4{background:#E3DDEA;color:#4A3E75}.av5{background:#F6CFCF;color:#8F2F2F}.av6{background:#D6E4EC;color:#2F5A74}
+.qname{font-weight:650;font-size:14px}
+.qrole{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.qcard.dark .qrole{color:rgba(244,239,228,.55)}
+@media (min-width:1001px){.qcol:nth-child(2){margin-top:46px}.qcol:nth-child(3){margin-top:92px}}
+
+/* ---------- pricing ---------- */
+.pricing-head{text-align:center}
+.bill-toggle{display:inline-flex;background:rgba(27,23,18,.06);border:1px solid var(--line);border-radius:999px;padding:4px;margin-top:28px}
+.bill-btn{border:none;background:none;padding:9px 21px;border-radius:999px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;transition:.2s}
+.bill-btn.active{background:var(--ink);color:var(--paper)}
+.bill-btn em{font-style:normal;color:var(--accent);font-size:12px;margin-left:5px;font-weight:700}
+.bill-btn.active em{color:#FFB59A}
+.plans{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:18px;margin-top:52px;align-items:stretch}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px 30px;display:flex;flex-direction:column;position:relative;transition:transform .3s,box-shadow .3s}
+.plan:hover{transform:translateY(-5px);box-shadow:0 28px 60px -34px rgba(27,23,18,.4)}
+.plan h3{font-family:'Fraunces',serif;font-weight:560;font-size:25px;letter-spacing:-.015em}
+.plan-sub{color:var(--muted);font-size:14px;margin-top:4px}
+.price{display:flex;align-items:baseline;gap:11px;margin:22px 0 4px;flex-wrap:wrap}
+.amount{font-family:'Fraunces',serif;font-weight:540;font-size:52px;letter-spacing:-.03em;line-height:1;display:inline-block}
+.amount.pop{animation:pop .45s}
+@keyframes pop{40%{transform:scale(1.14);color:var(--accent)}}
+.bill-note{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)}
+.plan .ticks{margin:22px 0 28px}
+.plan .ticks li{font-weight:500;font-size:14.5px}
+.plan .btn{margin-top:auto}
+.plan.pro{background:var(--dark);color:var(--paper);border-color:transparent;transform:translateY(-16px)}
+.plan.pro:hover{transform:translateY(-21px)}
+.plan.pro .plan-sub,.plan.pro .bill-note{color:rgba(244,239,228,.55)}
+.plan.pro .ticks li{color:rgba(244,239,228,.85)}
+.plan.pro .ticks .ic{color:#FF8A5C}
+.pop-tag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--accent);color:#FFF7EC;font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.16em;padding:7px 16px;border-radius:999px;white-space:nowrap}
+.pricing-foot{text-align:center;margin-top:36px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.04em}
+
+/* ---------- faq ---------- */
+.faq-grid{display:grid;grid-template-columns:5fr 7fr;gap:70px;align-items:start}
+.faq-left{position:sticky;top:104px}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-item:first-child{border-top:1px solid var(--line)}
+.q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:25px 0;background:none;border:none;cursor:pointer;text-align:left;font-family:'Fraunces',serif;font-weight:560;font-size:20px;letter-spacing:-.01em;color:var(--ink)}
+.q .ic{color:var(--accent);font-size:19px;transition:transform .35s;flex:none}
+.faq-item.open .q .ic{transform:rotate(45deg)}
+.a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.7,.2,1)}
+.a>div{overflow:hidden}
+.a p{padding:0 40px 26px 0;color:var(--muted);font-size:15.5px;line-height:1.68;max-width:64ch}
+.faq-item.open .a{grid-template-rows:1fr}
+
+/* ---------- dark zone: cta + footer ---------- */
+.dark-zone{margin-top:118px;background:var(--dark);color:var(--paper);border-radius:42px 42px 0 0;position:relative}
+#get{position:relative;padding:148px 0 150px;text-align:center;overflow:hidden}
+#ctaWave{position:absolute;left:0;right:0;bottom:-8px;height:150px;color:rgba(244,239,228,.07);pointer-events:none}
+#get .wrap{position:relative;z-index:1}
+#get h2{font-family:'Fraunces',serif;font-weight:520;font-size:clamp(2.9rem,6.6vw,5.3rem);line-height:1;letter-spacing:-.028em;margin:24px 0 18px}
+#get .lede{margin:0 auto;color:rgba(244,239,228,.62)}
+.capture{display:flex;gap:8px;align-items:center;background:rgba(244,239,228,.07);border:1px solid rgba(244,239,228,.2);border-radius:999px;padding:7px 7px 7px 22px;max-width:540px;margin:38px auto 0}
+.capture input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:400 15.5px 'Instrument Sans',sans-serif}
+.capture input::placeholder{color:rgba(244,239,228,.42)}
+.capture.shake{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.form-err{min-height:24px;margin-top:14px;font-size:14px;color:#FF9B7A}
+.form-note{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,239,228,.42)}
+.ok{display:flex;align-items:center;gap:11px;padding:13px 20px;font-size:15px;text-align:left}
+.ok .ic{color:#7FC98F;font-size:19px;flex:none}
+.dark-zone footer{border-top:1px solid rgba(244,239,228,.12)}
+.foot-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;gap:36px;padding:62px 0 52px}
+.foot-brand .logo .ic{color:var(--paper)}
+.foot-brand p{color:rgba(244,239,228,.55);font-size:14px;line-height:1.6;margin-top:14px;max-width:30ch}
+.status-line{display:flex;align-items:center;gap:9px;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:rgba(244,239,228,.6)}
+.status-line i{width:8px;height:8px;border-radius:50%;background:#7FC98F;animation:pulse 2s infinite}
+.foot-grid h5{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,239,228,.42);margin-bottom:16px}
+.foot-grid nav{position:static;display:block}
+.foot-grid a{display:block;text-decoration:none;color:rgba(244,239,228,.62);font-size:14px;padding:5px 0;transition:color .2s}
+.foot-grid a:hover{color:var(--paper)}
+.foot-bottom{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border-top:1px solid rgba(244,239,228,.1);padding:24px 0 36px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:rgba(244,239,228,.45)}
+.socials{display:flex;gap:20px}
+.socials a{display:inline-flex;align-items:center;gap:5px;color:rgba(244,239,228,.6);text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.socials a:hover{color:var(--paper)}
+.socials .ic{transform:rotate(-45deg);font-size:11px}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .85s ease,transform .85s cubic-bezier(.16,.7,.2,1);transition-delay:var(--d,0s)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){.chip-float{display:none}}
+@media (max-width:1000px){
+  .nav-links,.signin{display:none}
+  .burger{display:flex}
+  .step{grid-template-columns:1fr;gap:36px;padding:52px 0}
+  .step.flip .step-visual{order:0}
+  .s7,.s8{grid-column:span 12}
+  .s5,.s4,.s3{grid-column:span 6}
+  .band{padding:64px 26px;border-radius:28px}
+  .demo-body{grid-template-columns:1fr}
+  .demo-left{height:auto}
+  .demo-transcript{height:300px;flex:none}
+  .ai-panel{border-left:none;border-top:1px solid rgba(244,239,228,.12);height:auto;max-height:440px}
+  .plans{grid-template-columns:1fr;max-width:470px;margin-left:auto;margin-right:auto}
+  .plan.pro{transform:none}
+  .plan.pro:hover{transform:translateY(-5px)}
+  .faq-grid{grid-template-columns:1fr;gap:34px}
+  .faq-left{position:static}
+  .foot-grid{grid-template-columns:1fr 1fr;row-gap:42px}
+  .foot-brand{grid-column:span 2}
+}
+@media (max-width:640px){
+  section{padding:76px 0}
+  .hero{padding:146px 0 70px}
+  .hero-cta .btn{width:100%}
+  .s5,.s4,.s3{grid-column:span 12}
+  .quotes{grid-template-columns:1fr}
+  .transform{grid-template-columns:1fr}
+  .tr-arrow{transform:rotate(90deg)}
+  .capture{flex-direction:column;border-radius:22px;padding:10px}
+  .capture input{width:100%;padding:12px 14px}
+  .capture .btn{width:100%}
+  .demo-controls{flex-wrap:wrap}
+  .clock{min-width:0}
+  .mock-body{padding:16px 16px 20px}
+  .wave span{width:2.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-logo" viewBox="0 0 32 32"><rect x="4" y="12" width="4" height="8" rx="2" fill="currentColor"/><rect x="10.5" y="6" width="4" height="20" rx="2" fill="#E8490F"/><rect x="17" y="10" width="4" height="12" rx="2" fill="currentColor"/><rect x="23.5" y="4" width="4" height="24" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L19.5 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1.4"/><rect x="13.5" y="5" width="4" height="14" rx="1.4"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 3v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 16l5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 5.5L19.5 12 13 18.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ff" viewBox="0 0 24 24"><path d="M5 5.5l7 6.5-7 6.5M12.5 5.5l7 6.5-7 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-wifioff" viewBox="0 0 24 24"><path d="M2.5 9a15 15 0 0 1 19 0M6 12.5a10 10 0 0 1 12 0M9.5 16a5 5 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="19.4" r="1.6"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top"><svg class="ic"><use href="#i-logo"/></svg>Murmur</a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#demo">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a class="signin" href="#get">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="#get">Get the app</a>
+      <button class="burger" id="burger" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mnav">
+    <a href="#how">How it works</a>
+    <a href="#demo">Demo</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn btn-primary" href="#get">Get the app</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-inner">
+      <p class="eyebrow center" data-hero style="--d:.05s"><span class="pulse-dot"></span>AI notes for spoken minds</p>
+      <h1 data-hero style="--d:.15s">Think out loud.<br><em>Murmur</em> keeps the notes.</h1>
+      <p class="lede" data-hero style="--d:.25s">Murmur listens to your voice memos, your meetings, and your half-formed 2&nbsp;a.m. ideas — then hands back clean notes, decisions, and action items before you've even closed the app.</p>
+      <div class="hero-cta" data-hero style="--d:.35s">
+        <a class="btn btn-primary btn-lg" href="#get">Start murmuring free <svg class="ic"><use href="#i-arrow"/></svg></a>
+        <a class="btn btn-ghost btn-lg" href="#demo"><svg class="ic"><use href="#i-play"/></svg> Watch it work</a>
+      </div>
+      <p class="trust" data-hero style="--d:.45s">100 free min / month &nbsp;·&nbsp; no credit card &nbsp;·&nbsp; audio deleted after transcription</p>
+    </div>
+
+    <div class="mock" data-hero style="--d:.55s">
+      <div class="mock-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="mock-title">murmur — quick capture</span>
+        <span class="rec"><span class="pulse-dot"></span>REC <span class="recclock">00:00</span></span>
+      </div>
+      <div class="mock-body">
+        <div class="wave-wrap">
+          <div class="wave live" data-bars="54"></div>
+          <span class="listen-label">listening…</span>
+        </div>
+        <div class="hero-transcript" id="heroTranscript"></div>
+      </div>
+      <div class="chip-float c1"><svg class="ic"><use href="#i-check"/></svg>Action item · “Draft 3 email variants”</div>
+      <div class="chip-float c2">#launch &nbsp;#onboarding</div>
+      <div class="chip-float c3"><svg class="ic"><use href="#i-spark"/></svg>Summary ready · 3 bullets</div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ LOGOS ============ -->
+<section class="logos">
+  <div class="wrap">
+    <p class="logos-label reveal">Powering notes at teams who think out loud</p>
+  </div>
+  <div class="marquee reveal" style="--d:.1s">
+    <div class="marquee-track">
+      <span class="lg lg-sans">Hexlab</span>
+      <span class="lg lg-serif">Papercrane</span>
+      <span class="lg lg-mono">Fieldnotes</span>
+      <span class="lg lg-sans">arcadia</span>
+      <span class="lg lg-wide">Studio M</span>
+      <span class="lg lg-serif">Northwind</span>
+      <span class="lg lg-mono">osmo&amp;co</span>
+      <span class="lg lg-sans">Brightside</span>
+      <span class="lg lg-wide">Kernel</span>
+      <span class="lg lg-serif">Longform</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">How it works</p>
+      <h2>From murmur to memo<br>in <em>three moves</em>.</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-text reveal">
+        <span class="step-num">01</span>
+        <h3>Capture anything</h3>
+        <p>Open Murmur and just talk — a voice memo on your watch, a ramble on a walk, a meeting it joins by itself. Transcription happens live, speakers are labeled, and everything works even with zero signal.</p>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Live transcription in 40+ languages</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Speaker detection — it knows who said what</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Offline-first: records now, transcribes when you land</li>
+        </ul>
+      </div>
+      <div class="step-visual reveal" style="--d:.12s">
+        <div class="vcard">
+          <div class="vcard-head">
+            <span class="rec" style="color:var(--ink);font-weight:600"><span class="pulse-dot"></span>Recording · team standup</span>
+            <span class="mono recclock">00:00</span>
+          </div>
+          <div class="wave-wrap tall"><div class="wave live" data-bars="50"></div></div>
+          <div class="src-chips">
+            <span class="schip">Mic</span><span class="schip">Zoom</span><span class="schip">Google Meet</span><span class="schip">Teams</span><span class="schip">Phone call</span><span class="schip">Watch</span><span class="schip">In person</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step flip">
+      <div class="step-text reveal">
+        <span class="step-num">02</span>
+        <h3>It structures itself</h3>
+        <p>While you're still talking, Murmur drafts the note: title, summary, decisions, and action items with names attached. Pick a tone — concise, detailed, or poetic — and it rewrites itself to match.</p>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Summaries, decisions &amp; to-dos, auto-detected</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Tags and filing that match how your brain works</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Every line links back to the exact audio moment</li>
+        </ul>
+      </div>
+      <div class="step-visual reveal" style="--d:.12s">
+        <div class="vcard transform">
+          <div class="tr-col">
+            <p class="raw-line r1">um so beta is thursday right?</p>
+            <p class="raw-line r2">design handoff done but emails??</p>
+            <p class="raw-line r3">also retro should move to fri</p>
+          </div>
+          <div class="tr-arrow"><svg class="ic"><use href="#i-arrow"/></svg></div>
+          <div class="note">
+            <p class="note-title">Standup — Tue</p>
+            <ul>
+              <li>Beta ships <b>Thursday</b></li>
+              <li>Onboarding emails still open</li>
+              <li>Retro moved to <b>Friday 10:00</b></li>
+            </ul>
+            <div class="tags"><span>#launch</span><span>#standup</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-text reveal">
+        <span class="step-num">03</span>
+        <h3>Ask your notes anything</h3>
+        <p>Every murmur becomes searchable memory. Ask in plain words and get a real answer — with a link back to the exact second it was said. Try it right here:</p>
+      </div>
+      <div class="step-visual reveal" style="--d:.12s">
+        <div class="vcard">
+          <div class="recall-head"><svg class="ic"><use href="#i-spark"/></svg>Ask your notes</div>
+          <form class="recall-form" id="recallForm">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input id="recallInput" type="text" autocomplete="off" placeholder="What did we decide about pricing?">
+            <button class="recall-go" type="submit" aria-label="Ask"><svg class="ic"><use href="#i-arrow"/></svg></button>
+          </form>
+          <div class="recall-answer" id="recallAnswer">
+            <p class="recall-hint">Try asking about the beta, pricing, onboarding — or what Sam said about the API.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DEMO ============ -->
+<section id="demo" class="band-wrap">
+  <div class="wrap-wide">
+    <div class="band">
+      <div class="sec-head center reveal">
+        <p class="eyebrow center">Live demo</p>
+        <h2>Press play. Watch a mess<br>become a <em>memo</em>.</h2>
+        <p class="lede">A real capture — two people, one rambling sync, zero notes taken by hand.</p>
+      </div>
+
+      <div class="demo-card reveal" style="--d:.12s">
+        <div class="demo-head">
+          <span class="file"><svg class="ic"><use href="#i-mic"/></svg>launch-sync.m4a · 24 min</span>
+          <span class="status" id="demoStatus"><i></i><b>ready</b></span>
+        </div>
+        <div class="demo-body">
+          <div class="demo-left">
+            <div class="wave-strip"><div class="wave" id="demoWave" data-bars="46"></div></div>
+            <div class="demo-transcript" id="demoTranscript">
+              <p class="t-empty">— transcript will appear here —</p>
+            </div>
+          </div>
+          <aside class="ai-panel">
+            <div class="ai-empty" id="aiEmpty">
+              <svg class="ic"><use href="#i-spark"/></svg>
+              <p>Press play — Murmur will summarize as it listens.</p>
+            </div>
+            <div class="ai-content" id="aiContent" hidden>
+              <div class="ai-head stag" style="--i:0"><svg class="ic"><use href="#i-spark"/></svg>MURMUR AI · SUMMARY<span class="ai-pill">auto</span></div>
+              <h4 class="stag" style="--i:1">Launch sync — beta Thursday</h4>
+              <ul class="ai-bullets">
+                <li class="stag" style="--i:2">Beta ships <b>Thursday</b>; design handoff is done.</li>
+                <li class="stag" style="--i:3">Onboarding emails still open — Alex drafting today.</li>
+                <li class="stag" style="--i:4">Team retro moved to <b>Friday, 10:00</b>.</li>
+                <li class="stag" style="--i:5">Pricing page copy — Alex, tonight.</li>
+              </ul>
+              <div class="ai-actions stag" style="--i:6">
+                <div class="ai-actions-head"><span>Action items</span><span id="actCount">0 of 3 done</span></div>
+                <div class="act-bar"><i id="actBar"></i></div>
+                <label class="act"><input type="checkbox"><span class="box"><svg class="ic"><use href="#i-check"/></svg></span><span class="act-t">Draft onboarding emails — <b>Alex</b> · today</span></label>
+                <label class="act"><input type="checkbox"><span class="box"><svg class="ic"><use href="#i-check"/></svg></span><span class="act-t">Review emails by Wed noon — <b>Priya</b></span></label>
+                <label class="act"><input type="checkbox"><span class="box"><svg class="ic"><use href="#i-check"/></svg></span><span class="act-t">Move retro to Fri 10:00 — <b>team</b></span></label>
+              </div>
+              <div class="ai-tags stag" style="--i:7"><span>#launch</span><span>#beta</span><span>#sync</span></div>
+            </div>
+          </aside>
+        </div>
+        <div class="demo-controls">
+          <button class="play-btn" id="playBtn" aria-label="Play demo"></button>
+          <div class="track"><i id="progFill"></i></div>
+          <span class="clock" id="demoClock">00:00 / 00:00</span>
+          <button class="skip-btn" id="skipBtn"><svg class="ic"><use href="#i-ff"/></svg>Fast-forward</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Why Murmur</p>
+      <h2>Small app. <em>Loud</em> output.</h2>
+      <p class="lede">Everything below runs on your device or in our SOC&nbsp;2-audited cloud. Your words are never sold and never train anyone else's model.</p>
+    </div>
+
+    <div class="bento">
+      <div class="bcard s7 reveal">
+        <h3>Summaries in your voice</h3>
+        <p>Same meeting, three outputs. Pick a tone and Murmur rewrites the summary to match — because a standup and a board update shouldn't sound alike.</p>
+        <div class="seg" role="tablist">
+          <button class="active" data-tone="concise">Concise</button>
+          <button data-tone="detailed">Detailed</button>
+          <button data-tone="poetic">Poetic</button>
+        </div>
+        <div class="tone-note">
+          <p class="tone-label">note · launch-sync</p>
+          <div id="toneOut">Beta ships Thursday. Alex drafts the onboarding emails today; Priya reviews by Wednesday noon. Retro moves to Friday, 10:00.</div>
+        </div>
+      </div>
+
+      <div class="bcard s5 reveal" style="--d:.08s">
+        <h3>Fluent in 40+ languages</h3>
+        <p>Auto-detected mid-sentence. Code-switching between languages in one breath? That's a feature, not a bug.</p>
+        <div class="lang-big">
+          <span id="langWord">Hello</span>
+          <span id="langName">English</span>
+        </div>
+      </div>
+
+      <div class="bcard s5 reveal">
+        <h3>Everywhere you talk</h3>
+        <p>One memory, every source. Murmur captures audio from wherever your mouth is.</p>
+        <div class="chip-cloud">
+          <span class="chip"><i></i>iOS</span><span class="chip"><i></i>Android</span><span class="chip"><i></i>Web</span><span class="chip"><i></i>watchOS</span>
+          <span class="chip pine"><i></i>Zoom</span><span class="chip pine"><i></i>Meet</span><span class="chip pine"><i></i>Teams</span><span class="chip pine"><i></i>Slack huddles</span>
+          <span class="chip"><i></i>Phone calls</span><span class="chip"><i></i>In person</span>
+        </div>
+      </div>
+
+      <div class="bcard s3 reveal" style="--d:.06s">
+        <div class="ic-circle"><svg class="ic"><use href="#i-lock"/></svg></div>
+        <h3>Private by default</h3>
+        <p>SOC 2 Type II. No ads, no data brokers, ever.</p>
+        <div class="switch-row">
+          <label for="privSwitch">Delete audio after transcription</label>
+          <button class="switch on" id="privSwitch" role="switch" aria-checked="true" aria-label="Delete audio after transcription"></button>
+        </div>
+        <p id="privStatus">Audio is deleted the moment transcription finishes — only your text is kept.</p>
+      </div>
+
+      <div class="bcard s4 reveal" style="--d:.12s">
+        <h3>Tap a bullet, hear the moment</h3>
+        <p>Every summary line links to the exact second of audio. This one lives at 14:22.</p>
+        <div class="replay-row">
+          <div class="wave" id="miniWave" data-bars="26"></div>
+          <button class="mini-play" id="miniPlay" aria-label="Play audio moment"><svg class="ic"><use href="#i-play"/></svg></button>
+          <span class="time-chip">0:07 · 14:22</span>
+        </div>
+      </div>
+
+      <div class="bcard s8 reveal">
+        <h3>Notes land where you work</h3>
+        <p>Two-way sync, not a dead export. Summaries and action items flow into the tools your team already lives in.</p>
+        <div class="mini-marquee">
+          <div class="marquee-track">
+            <span class="chip"><i></i>Notion</span><span class="chip"><i></i>Slack</span><span class="chip"><i></i>Linear</span><span class="chip"><i></i>Todoist</span><span class="chip"><i></i>Google Docs</span><span class="chip"><i></i>Obsidian</span><span class="chip"><i></i>Apple Notes</span><span class="chip"><i></i>Calendar</span><span class="chip"><i></i>Email drafts</span><span class="chip"><i></i>Zapier</span><span class="chip"><i></i>HubSpot</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bcard s4 reveal" style="--d:.06s">
+        <div class="ic-circle"><svg class="ic"><use href="#i-wifioff"/></svg></div>
+        <h3>Offline-first</h3>
+        <p>Airplane mode, basement, mountains — Murmur records locally and transcribes when you're back. Nothing gets lost at 30,000 feet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUOTES ============ -->
+<section id="love">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Field notes</p>
+      <h2>Loved by people who<br><em>think out loud</em>.</h2>
+    </div>
+    <div class="quotes">
+      <div class="qcol">
+        <div class="qcard reveal">
+          <p>“I stopped writing meeting notes in March. Nobody has noticed — including me.”</p>
+          <div class="qfoot"><span class="avatar av1">DK</span><div><div class="qname">Dana Kessler</div><div class="qrole">PRODUCT LEAD · HEXLAB</div></div></div>
+        </div>
+        <div class="qcard dark reveal" style="--d:.1s">
+          <p>“The recall feature is unfair. I asked ‘what did Sam say about the API timeline’ and it just… knew. With a timestamp.”</p>
+          <div class="qfoot"><span class="avatar av2">MT</span><div><div class="qname">Marcus Tran</div><div class="qrole">FOUNDER · PAPERCRANE</div></div></div>
+        </div>
+      </div>
+      <div class="qcol">
+        <div class="qcard reveal" style="--d:.06s">
+          <p>“I murmur ideas into my watch on walks. By the time I'm home, they're structured docs with to-dos.”</p>
+          <div class="qfoot"><span class="avatar av3">PS</span><div><div class="qname">Priya Sharma</div><div class="qrole">DESIGN DIRECTOR</div></div></div>
+        </div>
+        <div class="qcard reveal" style="--d:.16s">
+          <p>“Our standups got ten minutes shorter because Murmur's summary literally is the standup.”</p>
+          <div class="qfoot"><span class="avatar av4">JW</span><div><div class="qname">Jonas Weber</div><div class="qrole">ENG MANAGER · NORTHWIND</div></div></div>
+        </div>
+      </div>
+      <div class="qcol">
+        <div class="qcard reveal" style="--d:.12s">
+          <p>“Poetic mode is my party trick. My team now asks for notes ‘in verse’.”</p>
+          <div class="qfoot"><span class="avatar av5">AR</span><div><div class="qname">Alba Ruiz</div><div class="qrole">WRITER · LONGFORM</div></div></div>
+        </div>
+        <div class="qcard reveal" style="--d:.22s">
+          <p>“Security reviewed it in a week. ‘Audio deleted after transcription’ is what sealed it.”</p>
+          <div class="qfoot"><span class="avatar av6">TB</span><div><div class="qname">Tom Becker</div><div class="qrole">CTO · FIELDNOTES</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head center reveal" style="text-align:center">
+      <p class="eyebrow center">Pricing</p>
+      <h2>Start free. Upgrade when<br>it <em>talks back</em>.</h2>
+      <p class="lede" style="margin:0 auto">Every plan includes unlimited note storage and one-click export. Cancel anytime — your notes stay yours.</p>
+      <div class="bill-toggle">
+        <button class="bill-btn active" data-mode="monthly">Monthly</button>
+        <button class="bill-btn" data-mode="yearly">Yearly <em>−25%</em></button>
+      </div>
+    </div>
+
+    <div class="plans">
+      <div class="plan reveal">
+        <h3>Free</h3>
+        <p class="plan-sub">For the casually verbal</p>
+        <div class="price"><span class="amount" data-plan="free">$0</span><span class="bill-note">free forever · no card</span></div>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>100 transcription min / month</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>50 AI summaries / month</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>iOS, Android &amp; web</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Instant share links</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Community support</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="#get">Start free</a>
+      </div>
+
+      <div class="plan pro reveal" style="--d:.1s">
+        <span class="pop-tag">MOST POPULAR</span>
+        <h3>Pro</h3>
+        <p class="plan-sub">For daily thinkers</p>
+        <div class="price"><span class="amount" data-plan="pro">$12</span><span class="bill-note" data-swap>per month · billed monthly</span></div>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Unlimited minutes &amp; summaries</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Recall — ask your notes anything</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>40+ languages, live translation</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Meeting notetaker (Zoom / Meet / Teams)</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>All integrations &amp; API</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Priority support</li>
+        </ul>
+        <a class="btn btn-accent btn-block" href="#get">Go Pro</a>
+      </div>
+
+      <div class="plan reveal" style="--d:.2s">
+        <h3>Team</h3>
+        <p class="plan-sub">For companies that talk a lot</p>
+        <div class="price"><span class="amount" data-plan="team">$20</span><span class="bill-note" data-swap>per seat / month · billed monthly</span></div>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Everything in Pro</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Shared team memory</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Roles, guests &amp; permissions</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>SSO / SAML &amp; audit log</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Admin dashboard</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="#get">Talk to us</a>
+      </div>
+    </div>
+    <p class="pricing-foot reveal">Prices in USD · your notes are exportable in one click on every plan, forever</p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap faq-grid">
+    <div class="faq-left reveal">
+      <p class="eyebrow">FAQ</p>
+      <h2 style="font-family:'Fraunces',serif;font-weight:530;font-size:clamp(2.2rem,4vw,3.2rem);line-height:1.06;letter-spacing:-.02em;margin-top:18px">Questions, <em style="font-style:italic;color:var(--accent)">murmured</em> and answered.</h2>
+    </div>
+    <div class="faq-list reveal" style="--d:.1s">
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">How accurate is the transcription?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>Across 40+ languages we average around 95% word accuracy — and it climbs as Murmur learns your custom vocabulary. Add names, jargon, and acronyms once and it spells them right forever. Correct any word inline and it learns from the fix instantly.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">Is my audio stored?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>By default, no. Audio is deleted the moment transcription finishes — only your text is kept. If you enable “keep audio” for re-transcription, it's encrypted at rest, never used to train models, and deletable by you at any time. We're SOC 2 Type II audited.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">Can Murmur join my meetings?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>Yes — paste a Zoom, Google Meet, or Teams link and Murmur's notetaker joins, records (with a clear spoken and visual consent prompt), and posts a structured note to your workspace about a minute after the call ends. You can also capture system audio from any app on desktop.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">What can the AI actually do with my notes?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>Summarize in any tone, extract decisions and action items with owners attached, tag and file automatically, draft follow-up emails, translate between languages — and answer questions across everything you've ever murmured, always linking to the exact moment it was said.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">Can I import existing notes and audio?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>Drop in exports from Notion, Evernote, Apple Notes, Obsidian, or Google Docs — plus raw audio files in any format. Murmur transcribes the audio and weaves everything into one searchable memory. Export back out to any of them in one click, anytime.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="q" aria-expanded="false">What happens when I hit my monthly limit?<svg class="ic"><use href="#i-plus"/></svg></button>
+        <div class="a"><div><p>Nothing dramatic. Your existing notes stay fully accessible and exportable forever — you just can't record new minutes until your cycle resets or you upgrade. We never auto-delete anything, and we never hold your notes hostage.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA + FOOTER ============ -->
+<div class="dark-zone">
+  <section id="get">
+    <div class="wave live" id="ctaWave" data-bars="90" data-slow></div>
+    <div class="wrap">
+      <p class="eyebrow center reveal" style="color:rgba(244,239,228,.55)">Get Murmur</p>
+      <h2 class="reveal" style="--d:.08s">Ready to think<br><em>out loud</em>?</h2>
+      <p class="lede reveal" style="--d:.16s">Join 40,000+ people whose best ideas no longer evaporate in the shower.</p>
+      <form class="capture reveal" id="ctaForm" style="--d:.24s" novalidate>
+        <input type="email" id="ctaEmail" placeholder="you@thinkingoutloud.com" aria-label="Email address">
+        <button class="btn btn-accent" type="submit">Get early access</button>
+      </form>
+      <p class="form-err" id="ctaErr"></p>
+      <p class="form-note reveal" style="--d:.3s">Free plan · 2-minute setup · export everything, always</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="logo" href="#top"><svg class="ic"><use href="#i-logo"/></svg>Murmur</a>
+          <p>Notes for noisy minds. Say it once — Murmur remembers everything.</p>
+          <div class="status-line"><i></i>All systems murmuring</div>
+        </div>
+        <div>
+          <h5>Product</h5>
+          <a href="#features">Features</a><a href="#demo">Live demo</a><a href="#pricing">Pricing</a><a href="#how">How it works</a><a href="#get">Download</a>
+        </div>
+        <div>
+          <h5>Company</h5>
+          <a href="#top">About</a><a href="#love">Field notes</a><a href="#top">Careers</a><a href="#top">Press kit</a>
+        </div>
+        <div>
+          <h5>Resources</h5>
+          <a href="#faq">Help center</a><a href="#top">Community</a><a href="#top">API docs</a><a href="#top">Status</a>
+        </div>
+        <div>
+          <h5>Legal</h5>
+          <a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Security</a><a href="#top">DPA</a>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© <span id="year"></span> Murmur Labs, Inc. — made for people who think out loud</span>
+        <div class="socials">
+          <a href="#top">X <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <a href="#top">LinkedIn <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <a href="#top">YouTube <svg class="ic"><use href="#i-arrow"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=(s,c=document)=>c.querySelector(s);
+const $$=(s,c=document)=>Array.from(c.querySelectorAll(s));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+$('#year').textContent=new Date().getFullYear();
+
+/* nav */
+const nav=$('#nav');
+const onScroll=()=>nav.classList.toggle('scrolled',window.scrollY>12);
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+$('#burger').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
+$$('.mnav a').forEach(a=>a.addEventListener('click',()=>document.body.classList.remove('menu-open')));
+
+/* build waveforms */
+$$('.wave').forEach(w=>{
+  const n=+(w.dataset.bars||48),slow=w.hasAttribute('data-slow');
+  for(let i=0;i<n;i++){
+    const s=document.createElement('span');
+    s.style.setProperty('--h',(16+Math.random()*84).toFixed(0));
+    s.style.setProperty('--d',(slow?1.6+Math.random()*1.6:0.5+Math.random()*0.9).toFixed(2)+'s');
+    s.style.setProperty('--dl',(-Math.random()*2).toFixed(2)+'s');
+    s.style.opacity=(0.55+Math.random()*0.45).toFixed(2);
+    w.appendChild(s);
+  }
+});
+
+/* reveal on scroll */
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+},{threshold:.13,rootMargin:'0px 0px -40px 0px'});
+$$('.reveal').forEach(el=>io.observe(el));
+
+/* marquees: duplicate for seamless loop */
+$$('.marquee-track').forEach(t=>{t.innerHTML+=t.innerHTML;});
+
+/* recording clocks */
+const t0=Date.now();
+setInterval(()=>{
+  const s=Math.floor((Date.now()-t0)/1000);
+  const str=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  $$('.recclock').forEach(e=>e.textContent=str);
+},1000);
+
+/* hero live transcript loop */
+const SPARK='<svg class="ic"><use href="#i-spark"/></svg>';
+const heroScript=[
+  {who:'you',text:'Okay — idea: what if onboarding was just a conversation instead of a docs page?'},
+  {who:'ai', text:'Noted. Added to “Launch ideas”: conversational onboarding. Tagged #product · 1 action item: draft 3 email variants.'},
+  {who:'you',text:'Yes. And the beta still ships Thursday — Priya has the design handoff.'},
+  {who:'ai', text:'Updated “Launch sync”: beta Thursday confirmed · action item added: Priya — design handoff, due Thu.'}
+];
+const heroBox=$('#heroTranscript');
+async function typeInto(el,text,ms){
+  for(const word of text.split(' ')){
+    const s=document.createElement('span');s.className='w';s.textContent=word;
+    el.appendChild(s);el.appendChild(document.createTextNode(' '));
+    requestAnimationFrame(()=>s.classList.add('in'));
+    await sleep(ms);
+  }
+}
+(async function heroLoop(){
+  for(;;){
+    for(const m of heroScript){
+      const row=document.createElement('div');row.className='msg '+m.who;
+      row.innerHTML=m.who==='ai'
+        ?'<span class="ai-tag">'+SPARK+'MURMUR AI</span><span class="txt"></span>'
+        :'<span class="who-tag">YOU</span><span class="txt"></span>';
+      heroBox.appendChild(row);
+      requestAnimationFrame(()=>row.classList.add('show'));
+      await sleep(380);
+      await typeInto(row.querySelector('.txt'),m.text,58);
+      await sleep(1900);
+    }
+    await sleep(2400);
+    heroBox.classList.add('fade');
+    await sleep(560);
+    heroBox.innerHTML='';heroBox.classList.remove('fade');
+  }
+})();
+
+/* ---------- demo player ---------- */
+const DEMO=[
+  {a:'Alex', c:'#E8490F', text:'Okay, quick sync — beta goes out Thursday, right?'},
+  {a:'Priya',c:'#5B8C6E', text:'Thursday. Design handoff is done, but we still need the onboarding emails.'},
+  {a:'Alex', c:'#E8490F', text:'I\u2019ll draft those today. Can you review them by Wednesday noon?'},
+  {a:'Priya',c:'#5B8C6E', text:'Works for me. And let\u2019s move the retro to Friday morning.'},
+  {a:'Alex', c:'#E8490F', text:'Done. I\u2019ll also take a pass at the pricing page copy tonight.'}
+];
+const WORD=150,GAP=430,SUMGAP=900;
+const totalMs=DEMO.reduce((a,l)=>a+l.text.split(' ').length*WORD+GAP,0)+SUMGAP;
+const fmt=ms=>{const s=Math.max(0,Math.round(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+const dTrans=$('#demoTranscript'),dWave=$('#demoWave'),playBtn=$('#playBtn'),skipBtn=$('#skipBtn'),
+      fill=$('#progFill'),clock=$('#demoClock'),statusEl=$('#demoStatus'),
+      aiEmpty=$('#aiEmpty'),aiContent=$('#aiContent');
+let token=0,playing=false,paused=false,skip=false,done=false;
+const PLAY_IC='<svg class="ic"><use href="#i-play"/></svg>',
+      PAUSE_IC='<svg class="ic"><use href="#i-pause"/></svg>',
+      REPLAY_IC='<svg class="ic"><use href="#i-replay"/></svg>';
+function setProg(p){fill.style.width=(p*100).toFixed(1)+'%';clock.textContent=fmt(p*totalMs)+' / '+fmt(totalMs);}
+function setStatus(s){
+  statusEl.className='status'+(s?' '+s:'');
+  statusEl.querySelector('b').textContent=s==='listening'?'listening…':s==='summarized'?'summarized':'ready';
+}
+function setBtn(){playBtn.innerHTML=playing?(paused?PLAY_IC:PAUSE_IC):(done?REPLAY_IC:PLAY_IC);}
+async function wait(ms){
+  let rem=skip?8:ms;
+  while(rem>0){const s=Math.min(40,rem);await sleep(paused?90:s);if(!paused)rem-=s;}
+}
+const scrollT=()=>{dTrans.scrollTop=dTrans.scrollHeight;};
+function addLine(l){
+  const em=$('.t-empty',dTrans);if(em)em.remove();
+  const row=document.createElement('div');row.className='tline';
+  row.innerHTML='<span class="tava" style="background:'+l.c+'">'+l.a[0]+'</span><div class="tbody"><span class="tname">'+l.a+'</span><span class="ttext"></span></div>';
+  dTrans.appendChild(row);
+  requestAnimationFrame(()=>row.classList.add('show'));
+  scrollT();
+  return row.querySelector('.ttext');
+}
+function resetDemo(){
+  token++;
+  dTrans.innerHTML='<p class="t-empty">— transcript will appear here —</p>';
+  aiContent.classList.remove('show');aiContent.hidden=true;aiEmpty.hidden=false;
+  setProg(0);setStatus('ready');
+  done=false;playing=false;paused=false;skip=false;skipBtn.disabled=false;
+  $$('.act input').forEach(i=>{i.checked=false;});
+  $('#actCount').textContent='0 of 3 done';$('#actBar').style.width='0%';
+  setBtn();
+}
+async function playDemo(){
+  if(playing){paused=!paused;setBtn();return;}
+  if(done)resetDemo();
+  token++;const tk=token;
+  playing=true;done=false;paused=false;skip=false;skipBtn.disabled=false;
+  setBtn();setStatus('listening');dWave.classList.add('live');
+  for(let i=0;i<DEMO.length;i++){
+    if(tk!==token)return;
+    const l=DEMO[i],words=l.text.split(' ');
+    const t=addLine(l);
+    await sleep(260);
+    for(let wI=0;wI<words.length;wI++){
+      if(tk!==token)return;
+      const s=document.createElement('span');s.className='w';s.textContent=words[wI];
+      t.appendChild(s);t.appendChild(document.createTextNode(' '));
+      requestAnimationFrame(()=>s.classList.add('in'));
+      setProg((i+(wI+1)/words.length)/DEMO.length*0.9);
+      scrollT();
+      await wait(WORD);
+    }
+    if(tk!==token)return;
+    await wait(GAP);
+  }
+  if(tk!==token)return;
+  setProg(0.97);await wait(320);
+  if(tk!==token)return;
+  aiEmpty.hidden=true;aiContent.hidden=false;
+  void aiContent.offsetWidth;
+  aiContent.classList.add('show');
+  setProg(1);setStatus('summarized');
+  playing=false;done=true;skipBtn.disabled=true;
+  dWave.classList.remove('live');
+  setBtn();
+}
+playBtn.addEventListener('click',playDemo);
+skipBtn.addEventListener('click',()=>{skip=true;});
+setProg(0);setStatus('ready');setBtn();
+clock.textContent='00:00 / '+fmt(totalMs);
+$$('.act input').forEach(inp=>inp.addEventListener('change',()=>{
+  const n=$$('.act input:checked').length;
+  $('#actCount').textContent=n+' of 3 done';
+  $('#actBar').style.width=(n/3*100)+'%';
+}));
+
+/* ---------- recall search ---------- */
+const QA=[
+  {k:['pric','cost','plan','$','subscription','pay'],a:'On May 14 the team agreed: Pro launches at <b>$12/mo</b> with a 14-day free trial. Annual billing waits until after launch.',s:['Launch sync · May 14','Pricing chat · May 9']},
+  {k:['beta','launch','thursday','ship'],a:'The beta ships <b>Thursday</b>. Design handoff is complete; the only open item is the onboarding emails.',s:['Launch sync · May 14']},
+  {k:['retro','friday','standup','move'],a:'The team retro moved from Wednesday to <b>Friday, 10:00 AM</b> — Priya\u2019s request in the launch sync.',s:['Launch sync · May 14']},
+  {k:['onboard','email','welcome','draft'],a:'Alex is drafting <b>three onboarding email variants</b> today; Priya reviews them by Wednesday noon.',s:['Launch sync · May 14','Design handoff · May 12']},
+  {k:['api','sam','timeline','slip'],a:'Sam said the API timeline \u201cslips to June, no drama\u201d — captured in your 1:1 on May 8 at 14:22.',s:['1:1 with Sam · May 8']}
+];
+const FALLBACK={a:'I found 3 notes touching on that — most recently <b>\u201cLaunch sync\u201d</b> (May 14). Open a source to jump to the exact moment.',s:['Launch sync · May 14','Design crit · May 11','1:1 with Sam · May 8']};
+const rForm=$('#recallForm'),rInput=$('#recallInput'),rBox=$('#recallAnswer');
+rForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const q=rInput.value.trim()||'What did we decide about pricing?';
+  rBox.innerHTML='<div class="thinking"><i></i><i></i><i></i></div>';
+  await sleep(750);
+  const ql=q.toLowerCase();
+  const hit=QA.find(x=>x.k.some(k=>ql.includes(k)))||FALLBACK;
+  rBox.innerHTML='<div class="ans"><p>'+hit.a+'</p><div class="srcs">'+hit.s.map(s=>'<span>'+s+'</span>').join('')+'</div></div>';
+});
+const QS=['What did we decide about pricing?','When exactly is the beta shipping?','What did Sam say about the API?','Summarize last week\u2019s design crit\u2026','What are my open action items?'];
+let qi=0,ci=0,del=false,hold=0;
+setInterval(()=>{
+  if(document.activeElement===rInput&&rInput.value)return;
+  const q=QS[qi];
+  if(hold>0){hold--;return;}
+  if(!del){ci++;if(ci>=q.length){ci=q.length;del=true;hold=22;}}
+  else{ci--;if(ci<=0){ci=0;del=false;qi=(qi+1)%QS.length;hold=8;}}
+  rInput.setAttribute('placeholder',q.slice(0,ci));
+},62);
+
+/* tone switcher */
+const TONES={
+  concise:'Beta ships Thursday. Alex drafts the onboarding emails today; Priya reviews by Wednesday noon. Retro moves to Friday, 10:00.',
+  detailed:'The team confirmed the beta ships Thursday and the design handoff is complete. The remaining open item is onboarding: Alex will draft three email variants today, and Priya will review them by Wednesday noon. The team retro moves from Wednesday to Friday at 10:00. Alex will also take a first pass at the pricing page copy tonight.',
+  poetic:'Thursday, the beta sets sail. Alex writes the welcome words by dusk; Priya reads them by Wednesday\u2019s noon bell. On Friday morning, the team gathers to look back at what the week made.'
+};
+$$('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  $$('.seg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const out=$('#toneOut');
+  out.classList.add('swap');
+  setTimeout(()=>{out.textContent=TONES[b.dataset.tone];out.classList.remove('swap');},180);
+}));
+
+/* language rotator */
+const LANGS=[['Hello','English'],['Bonjour','French'],['こんにちは','Japanese'],['Hola','Spanish'],['Ciao','Italian'],['안녕하세요','Korean'],['Olá','Portuguese'],['Merhaba','Turkish'],['Namaste','Hindi'],['Hallo','German']];
+let li=0;const lw=$('#langWord'),ln=$('#langName');
+setInterval(()=>{
+  lw.classList.add('lang-swap');ln.style.opacity='0';
+  setTimeout(()=>{
+    li=(li+1)%LANGS.length;
+    lw.textContent=LANGS[li][0];ln.textContent=LANGS[li][1];
+    lw.classList.remove('lang-swap');ln.style.opacity='1';
+  },260);
+},2100);
+ln.style.transition='opacity .25s';
+
+/* privacy switch */
+const sw=$('#privSwitch'),ps=$('#privStatus');
+sw.addEventListener('click',()=>{
+  const on=sw.classList.toggle('on');
+  sw.setAttribute('aria-checked',on);
+  ps.textContent=on
+    ?'Audio is deleted the moment transcription finishes — only your text is kept.'
+    :'Audio is kept encrypted for 30 days in case you want to re-transcribe. Text is always kept.';
+  ps.classList.toggle('warn',!on);
+});
+
+/* mini replay wave */
+const mw=$('#miniWave'),mb=$('#miniPlay');
+mb.addEventListener('click',()=>{
+  if(mw.classList.contains('live'))return;
+  mw.classList.add('live');mb.classList.add('on');
+  setTimeout(()=>{mw.classList.remove('live');mb.classList.remove('on');},1600);
+});
+
+/* pricing toggle */
+const PRICES={free:[0,0],pro:[12,9],team:[20,16]};
+$$('.bill-btn').forEach(b=>b.addEventListener('click',()=>{
+  $$('.bill-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const yearly=b.dataset.mode==='yearly';
+  $$('.amount').forEach(a=>{
+    a.textContent='$'+PRICES[a.dataset.plan][yearly?1:0];
+    a.classList.remove('pop');void a.offsetWidth;a.classList.add('pop');
+  });
+  $$('.bill-note[data-swap]').forEach(n=>n.textContent=yearly?'per month · billed yearly':'per month · billed monthly');
+}));
+
+/* faq accordion */
+$$('.faq-item').forEach(item=>{
+  const btn=$('.q',item);
+  btn.addEventListener('click',()=>{
+    const was=item.classList.contains('open');
+    $$('.faq-item.open').forEach(o=>{o.classList.remove('open');$('.q',o).setAttribute('aria-expanded','false');});
+    if(!was){item.classList.add('open');btn.setAttribute('aria-expanded','true');}
+  });
+});
+
+/* cta form */
+const cForm=$('#ctaForm'),cEmail=$('#ctaEmail'),cErr=$('#ctaErr');
+cForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=cEmail.value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){
+    cErr.textContent='That email looks a little off — mind double-checking it?';
+    cForm.classList.add('shake');setTimeout(()=>cForm.classList.remove('shake'),480);
+    return;
+  }
+  cErr.textContent='';
+  const safe=v.replace(/[<>&"]/g,'');
+  cForm.innerHTML='<span class="ok"><svg class="ic"><use href="#i-check"/></svg><span>You\u2019re in — magic link sent to <b>'+safe+'</b>. First murmur\u2019s on us.</span></span>';
+});
+})();
+</script>
+</body>
+</html>

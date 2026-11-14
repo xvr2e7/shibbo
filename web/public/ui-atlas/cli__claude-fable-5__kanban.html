@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Board — Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f1ee;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --ink-soft: #6b7280;
+    --ink-faint: #9aa0a6;
+    --line: #e5e3de;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --radius: 12px;
+    --shadow-card: 0 1px 2px rgba(31,35,40,.06), 0 2px 8px rgba(31,35,40,.05);
+    --shadow-lift: 0 4px 10px rgba(31,35,40,.10), 0 12px 28px rgba(31,35,40,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .logo {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #4f46e5, #a855f7);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 800; font-size: 15px;
+    letter-spacing: -.5px;
+    flex-shrink: 0;
+  }
+  .board-title h1 { font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  .board-title p { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+  .spacer { flex: 1; }
+  .team {
+    display: flex; align-items: center;
+  }
+  .team .avatar { margin-left: -8px; border: 2px solid var(--surface); cursor: default; }
+  .team .avatar:first-child { margin-left: 0; }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: inline-grid; place-items: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .btn {
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    border: none; border-radius: 9px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-ghost { background: transparent; color: var(--ink-soft); }
+  .btn-ghost:hover { background: #f1f0ed; color: var(--ink); }
+  .btn-danger { background: transparent; color: #dc2626; }
+  .btn-danger:hover { background: #fef2f2; }
+
+  /* ---------- Board ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    gap: 18px;
+    padding: 22px 28px 26px;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+  .column {
+    width: 296px;
+    min-width: 296px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #eae8e3;
+    border-radius: 16px;
+    padding: 6px;
+  }
+  .col-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px 8px;
+    flex-shrink: 0;
+  }
+  .col-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .col-head h2 { font-size: 13px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; color: #43484e; }
+  .col-count {
+    font-size: 11.5px; font-weight: 700;
+    color: var(--ink-soft);
+    background: rgba(31,35,40,.07);
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+  .col-add {
+    margin-left: auto;
+    width: 26px; height: 26px;
+    border: none; border-radius: 7px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 17px; line-height: 1;
+    cursor: pointer;
+  }
+  .col-add:hover { background: rgba(31,35,40,.08); color: var(--ink); }
+  .cards {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 6px 8px;
+    min-height: 60px;
+    border-radius: 12px;
+    transition: background .15s;
+  }
+  .cards.drag-over { background: rgba(79,70,229,.08); outline: 2px dashed rgba(79,70,229,.4); outline-offset: -2px; }
+  .cards::-webkit-scrollbar { width: 8px; }
+  .cards::-webkit-scrollbar-thumb { background: rgba(31,35,40,.15); border-radius: 99px; }
+  .cards::-webkit-scrollbar-track { background: transparent; }
+
+  /* ---------- Card ---------- */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 14px 12px;
+    box-shadow: var(--shadow-card);
+    cursor: grab;
+    transition: box-shadow .15s, transform .15s;
+    border: 1px solid transparent;
+  }
+  .card:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+  .card.dragging { opacity: .45; transform: rotate(2deg); cursor: grabbing; }
+  .tag {
+    display: inline-block;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: .3px; text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 99px;
+    margin-bottom: 8px;
+  }
+  .card h3 { font-size: 14px; font-weight: 600; line-height: 1.35; letter-spacing: -.1px; }
+  .card .desc {
+    font-size: 12.5px; color: var(--ink-soft);
+    line-height: 1.45;
+    margin-top: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-foot {
+    display: flex; align-items: center;
+    margin-top: 12px;
+    gap: 8px;
+  }
+  .due {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ink-faint);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .due.soon { color: #d97706; }
+  .due.late { color: #dc2626; }
+  .card-foot .avatar { margin-left: auto; width: 26px; height: 26px; font-size: 10px; }
+
+  .empty-hint {
+    font-size: 12px; color: var(--ink-faint);
+    text-align: center; padding: 14px 8px;
+    border: 1.5px dashed #d6d3cc;
+    border-radius: 10px;
+    margin: 2px 2px;
+  }
+
+  /* ---------- Modal ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(24,24,27,.42);
+    display: none;
+    place-items: center;
+    z-index: 50;
+    backdrop-filter: blur(2px);
+  }
+  .overlay.open { display: grid; }
+  .modal {
+    width: 440px; max-width: calc(100vw - 32px);
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 26px 26px 22px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.25);
+    animation: pop .18s ease;
+  }
+  @keyframes pop { from { transform: scale(.96) translateY(8px); opacity: 0; } }
+  .modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 18px; letter-spacing: -.2px; }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 11.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .field input[type="text"], .field textarea, .field select, .field input[type="date"] {
+    width: 100%;
+    font: inherit; font-size: 14px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 9px;
+    background: #fbfaf8;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+  .field :is(input, textarea, select):focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: #fff;
+  }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+  .modal-actions {
+    display: flex; gap: 8px;
+    margin-top: 20px;
+    align-items: center;
+  }
+  .modal-actions .btn-primary { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SB</div>
+  <div class="board-title">
+    <h1>Studio Board</h1>
+    <p>Design team · Q4 sprint</p>
+  </div>
+  <div class="spacer"></div>
+  <div class="team" id="teamStrip" title="Team"></div>
+  <button class="btn btn-primary" onclick="openModal()">+ New task</button>
+</header>
+
+<main id="board"></main>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="modalTitle">New task</h2>
+    <form id="taskForm">
+      <div class="field">
+        <label for="fTitle">Title</label>
+        <input type="text" id="fTitle" required maxlength="120" placeholder="e.g. Refresh onboarding illustrations">
+      </div>
+      <div class="field">
+        <label for="fDesc">Description</label>
+        <textarea id="fDesc" maxlength="500" placeholder="Optional details…"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fTag">Tag</label>
+          <select id="fTag"></select>
+        </div>
+        <div class="field">
+          <label for="fAssignee">Assignee</label>
+          <select id="fAssignee"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fCol">Column</label>
+          <select id="fCol"></select>
+        </div>
+        <div class="field">
+          <label for="fDue">Due date</label>
+          <input type="date" id="fDue">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none" onclick="deleteCard()">Delete</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Add task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const COLUMNS = [
+  { id: 'todo',     name: 'To do',       dot: '#9ca3af' },
+  { id: 'progress', name: 'In progress', dot: '#4f46e5' },
+  { id: 'review',   name: 'In review',   dot: '#d97706' },
+  { id: 'done',     name: 'Done',        dot: '#16a34a' },
+];
+
+const TAGS = {
+  'UI':           { bg: '#eef2ff', fg: '#4f46e5' },
+  'UX':           { bg: '#ecfeff', fg: '#0e7490' },
+  'Branding':     { bg: '#fdf2f8', fg: '#be185d' },
+  'Illustration': { bg: '#fff7ed', fg: '#c2410c' },
+  'Research':     { bg: '#f0fdf4', fg: '#15803d' },
+  'Handoff':      { bg: '#f5f3ff', fg: '#7c3aed' },
+};
+
+const TEAM = [
+  { id: 'mk', name: 'Mara K.',  color: '#4f46e5' },
+  { id: 'jt', name: 'Jonah T.', color: '#0e7490' },
+  { id: 'pl', name: 'Priya L.', color: '#be185d' },
+  { id: 'sd', name: 'Sam D.',   color: '#c2410c' },
+];
+
+const SEED = [
+  { id: 't1', col: 'todo',     title: 'Audit empty states across app',          desc: 'Catalogue every empty state and flag inconsistent copy and illustration styles.', tag: 'UX',           assignee: 'pl', due: '2026-11-18' },
+  { id: 't2', col: 'todo',     title: 'Icon set v2 — settings & billing',       desc: 'Extend the duotone set with 14 new glyphs, keep 1.5px stroke grid.',               tag: 'UI',           assignee: 'sd', due: '2026-11-21' },
+  { id: 't3', col: 'todo',     title: 'Competitive teardown: onboarding flows', desc: 'Screens + notes for 5 competitors, focus on activation moments.',                  tag: 'Research',     assignee: 'jt', due: '' },
+  { id: 't4', col: 'progress', title: 'Refresh onboarding illustrations',        desc: 'Three hero scenes in the new brand palette. Blocked on final color tokens.',      tag: 'Illustration', assignee: 'sd', due: '2026-11-13' },
+  { id: 't5', col: 'progress', title: 'Dashboard redesign — hi-fi pass',         desc: 'Apply new type scale and spacing tokens to the analytics dashboard.',             tag: 'UI',           assignee: 'mk', due: '2026-11-14' },
+  { id: 't6', col: 'review',   title: 'Brand guidelines PDF, pages 1–12',        desc: 'Logo usage, color, type. Waiting on feedback from marketing.',                     tag: 'Branding',     assignee: 'pl', due: '2026-11-11' },
+  { id: 't7', col: 'review',   title: 'Mobile nav prototype',                    desc: 'Figma prototype of the new tab bar + sheet pattern for usability testing.',       tag: 'UX',           assignee: 'jt', due: '2026-11-12' },
+  { id: 't8', col: 'done',     title: 'Design tokens → dev handoff',             desc: 'Color, radius and shadow tokens exported and documented in the repo.',            tag: 'Handoff',      assignee: 'mk', due: '' },
+  { id: 't9', col: 'done',     title: 'User interviews, round 3',                desc: 'Six sessions complete; highlights clipped and shared in the research hub.',       tag: 'Research',     assignee: 'jt', due: '' },
+];
+
+const STORE_KEY = 'studio-board-v1';
+let cards = load();
+let editingId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) { const p = JSON.parse(raw); if (Array.isArray(p)) return p; }
+  } catch (e) {}
+  return SEED.map(c => ({ ...c }));
+}
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(cards)); }
+
+const esc = s => String(s).replace(/[&<>"']/g, m =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m]);
+
+const initials = name => name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const member = id => TEAM.find(m => m.id === id) || TEAM[0];
+
+function dueInfo(due) {
+  if (!due) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due + 'T00:00:00');
+  const days = Math.round((d - today) / 86400000);
+  const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  let cls = '';
+  if (days < 0) cls = 'late'; else if (days <= 3) cls = 'soon';
+  return { label, cls };
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (const col of COLUMNS) {
+    const items = cards.filter(c => c.col === col.id);
+    const colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.innerHTML = `
+      <div class="col-head">
+        <span class="col-dot" style="background:${col.dot}"></span>
+        <h2>${esc(col.name)}</h2>
+        <span class="col-count">${items.length}</span>
+        <button class="col-add" title="Add task here" onclick="openModal(null,'${col.id}')">+</button>
+      </div>
+      <div class="cards" data-col="${col.id}"></div>`;
+    const list = colEl.querySelector('.cards');
+
+    if (!items.length) {
+      list.innerHTML = '<div class="empty-hint">Drop cards here</div>';
+    }
+    for (const c of items) {
+      const tag = TAGS[c.tag] || TAGS['UI'];
+      const m = member(c.assignee);
+      const due = dueInfo(c.due);
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.draggable = true;
+      el.dataset.id = c.id;
+      el.innerHTML = `
+        <span class="tag" style="background:${tag.bg};color:${tag.fg}">${esc(c.tag)}</span>
+        <h3>${esc(c.title)}</h3>
+        ${c.desc ? `<div class="desc">${esc(c.desc)}</div>` : ''}
+        <div class="card-foot">
+          ${due ? `<span class="due ${due.cls}">📅 ${due.label}</span>` : ''}
+          <span class="avatar" style="background:${m.color}" title="${esc(m.name)}">${initials(m.name)}</span>
+        </div>`;
+      el.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', c.id);
+        e.dataTransfer.effectAllowed = 'move';
+        requestAnimationFrame(() => el.classList.add('dragging'));
+      });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+      el.addEventListener('click', () => openModal(c.id));
+      list.appendChild(el);
+    }
+
+    list.addEventListener('dragover', e => { e.preventDefault(); list.classList.add('drag-over'); });
+    list.addEventListener('dragleave', e => { if (!list.contains(e.relatedTarget)) list.classList.remove('drag-over'); });
+    list.addEventListener('drop', e => {
+      e.preventDefault();
+      list.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      card.col = col.id;
+      cards = cards.filter(c => c.id !== id).concat([]); // keep order, then reinsert by drop position
+      const after = [...list.querySelectorAll('.card:not(.dragging)')].find(el =>
+        e.clientY < el.getBoundingClientRect().top + el.offsetHeight / 2);
+      cards = cards.filter(c => c.id !== id);
+      if (after) {
+        const idx = cards.findIndex(c => c.id === after.dataset.id);
+        cards.splice(idx, 0, card);
+      } else {
+        let lastIdx = -1;
+        cards.forEach((c, i) => { if (c.col === col.id) lastIdx = i; });
+        cards.splice(lastIdx + 1, 0, card);
+      }
+      save();
+      render();
+    });
+
+    board.appendChild(colEl);
+  }
+}
+
+/* ---------- Modal ---------- */
+const overlay = document.getElementById('overlay');
+const form = document.getElementById('taskForm');
+
+function fillSelect(id, entries) {
+  document.getElementById(id).innerHTML =
+    entries.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+}
+fillSelect('fTag', Object.keys(TAGS).map(t => [t, t]));
+fillSelect('fAssignee', TEAM.map(m => [m.id, m.name]));
+fillSelect('fCol', COLUMNS.map(c => [c.id, c.name]));
+
+function openModal(cardId = null, col = 'todo') {
+  editingId = cardId;
+  const c = cardId ? cards.find(x => x.id === cardId) : null;
+  document.getElementById('modalTitle').textContent = c ? 'Edit task' : 'New task';
+  document.getElementById('saveBtn').textContent = c ? 'Save changes' : 'Add task';
+  document.getElementById('deleteBtn').style.display = c ? '' : 'none';
+  document.getElementById('fTitle').value = c ? c.title : '';
+  document.getElementById('fDesc').value = c ? c.desc : '';
+  document.getElementById('fTag').value = c ? c.tag : 'UI';
+  document.getElementById('fAssignee').value = c ? c.assignee : TEAM[0].id;
+  document.getElementById('fCol').value = c ? c.col : col;
+  document.getElementById('fDue').value = c ? c.due : '';
+  overlay.classList.add('open');
+  document.getElementById('fTitle').focus();
+}
+function closeModal() { overlay.classList.remove('open'); editingId = null; }
+overlay.addEventListener('mousedown', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const data = {
+    title: document.getElementById('fTitle').value.trim(),
+    desc: document.getElementById('fDesc').value.trim(),
+    tag: document.getElementById('fTag').value,
+    assignee: document.getElementById('fAssignee').value,
+    col: document.getElementById('fCol').value,
+    due: document.getElementById('fDue').value,
+  };
+  if (!data.title) return;
+  if (editingId) {
+    Object.assign(cards.find(c => c.id === editingId), data);
+  } else {
+    cards.push({ id: 'c' + Date.now().toString(36), ...data });
+  }
+  save();
+  render();
+  closeModal();
+});
+
+function deleteCard() {
+  if (!editingId) return;
+  cards = cards.filter(c => c.id !== editingId);
+  save();
+  render();
+  closeModal();
+}
+
+/* ---------- Team strip ---------- */
+document.getElementById('teamStrip').innerHTML = TEAM.map(m =>
+  `<span class="avatar" style="background:${m.color}" title="${esc(m.name)}">${initials(m.name)}</span>`
+).join('');
+
+render();
+</script>
+</body>
+</html>

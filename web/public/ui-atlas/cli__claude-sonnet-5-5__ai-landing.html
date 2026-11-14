@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — Notes that listen</title>
+<meta name="description" content="Murmur is the AI note-taking app that listens, transcribes, and turns your conversations into clear, searchable notes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf7f2;
+  --surface:#ffffff;
+  --ink:#1d1b1a;
+  --muted:#6b6560;
+  --line:#e8e1d6;
+  --accent:#d9573b;
+  --accent-ink:#ffffff;
+  --soft:#f2ebe0;
+  --deep:#1f1a17;
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:500;letter-spacing:-0.02em;line-height:1.1}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:10;background:rgba(250,247,242,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-size:22px;font-weight:600}
+.logo i{display:flex;align-items:center;gap:2px;height:20px}
+.logo i b{display:block;width:3px;border-radius:2px;background:var(--accent)}
+.logo i b:nth-child(1){height:8px}.logo i b:nth-child(2){height:18px}.logo i b:nth-child(3){height:12px}.logo i b:nth-child(4){height:16px}
+.links{display:flex;gap:28px;font-size:15px;color:var(--muted)}
+.links a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;font-weight:500;font-size:15px;border:1px solid transparent;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px -6px rgba(217,87,59,.6)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -6px rgba(217,87,59,.7)}
+.btn-ghost{border-color:var(--line);background:var(--surface)}
+.btn-ghost:hover{background:var(--soft)}
+.btn-sm{padding:8px 16px;font-size:14px}
+
+/* hero */
+.hero{padding:88px 0 64px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:13px;color:var(--muted);margin-bottom:28px}
+.pill span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.3;transform:scale(1.5)}}
+.hero h1{font-size:clamp(44px,7vw,84px);max-width:860px;margin:0 auto 24px}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero p.lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:600px;margin:0 auto 36px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.fine{margin-top:18px;font-size:13px;color:var(--muted)}
+
+/* demo */
+.demo{margin:64px auto 0;max-width:920px;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:0 40px 80px -40px rgba(60,40,20,.35);overflow:hidden;text-align:left}
+.demo-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid var(--line);background:#fdfbf8}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.demo-bar .title{margin-left:12px;font-size:13px;color:var(--muted)}
+.rec{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--accent);font-weight:500}
+.rec::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite}
+.demo-body{display:grid;grid-template-columns:1fr 1fr}
+.pane{padding:28px}
+.pane+.pane{border-left:1px solid var(--line);background:#fffdfa}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600;margin-bottom:16px}
+.wave{display:flex;align-items:center;gap:3px;height:44px;margin-bottom:20px}
+.wave b{flex:1;background:var(--accent);border-radius:3px;opacity:.85;animation:wave 1.1s ease-in-out infinite}
+@keyframes wave{0%,100%{height:20%}50%{height:100%}}
+.line{font-size:15px;margin-bottom:12px;color:var(--ink)}
+.line small{color:var(--muted);font-weight:600;margin-right:6px}
+.note h3{font-size:22px;margin-bottom:12px}
+.note ul{list-style:none}
+.note li{padding:8px 0 8px 26px;position:relative;font-size:15px;border-bottom:1px dashed var(--line)}
+.note li:last-child{border:0}
+.note li::before{content:"";position:absolute;left:0;top:14px;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--accent)}
+.note li.done::before{background:var(--accent)}
+.tag{display:inline-block;margin-top:14px;padding:4px 10px;border-radius:999px;background:var(--soft);font-size:12px;color:var(--muted);margin-right:6px}
+
+/* logos */
+.trust{padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
+.trust .row{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:16px;font-family:'Fraunces',serif;font-size:22px;color:#a39b91}
+
+/* sections */
+section{padding:88px 0}
+.eyebrow{font-size:13px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);font-weight:600;margin-bottom:14px}
+.sec-head{max-width:640px;margin-bottom:48px}
+.sec-head h2{font-size:clamp(32px,4.5vw,50px);margin-bottom:16px}
+.sec-head p{color:var(--muted);font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 20px 40px -24px rgba(60,40,20,.3)}
+.icon{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:20px;margin-bottom:18px}
+.card h3{font-size:22px;margin-bottom:8px}
+.card p{color:var(--muted);font-size:15px}
+
+/* steps */
+.steps{background:var(--deep);color:#f5efe6;border-radius:32px;margin:0 24px}
+.steps .eyebrow{color:#f08c74}
+.steps .sec-head p{color:#b9afa3}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.step .n{font-family:'Fraunces',serif;font-size:56px;color:#f08c74;line-height:1;margin-bottom:12px}
+.step h3{font-size:24px;margin-bottom:8px}
+.step p{color:#b9afa3;font-size:15px}
+
+/* quotes */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.quote{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px}
+.quote p{font-family:'Fraunces',serif;font-size:19px;line-height:1.4;margin-bottom:20px}
+.who{display:flex;align-items:center;gap:12px;font-size:14px}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600}
+.who span{display:block;color:var(--muted);font-size:13px}
+
+/* pricing */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:32px;display:flex;flex-direction:column}
+.plan.pop{border:2px solid var(--accent);position:relative}
+.plan.pop::before{content:"Most popular";position:absolute;top:-13px;left:28px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px}
+.plan h3{font-size:24px}
+.amt{font-family:'Fraunces',serif;font-size:48px;margin:12px 0 4px}
+.amt small{font-family:'Inter';font-size:15px;color:var(--muted)}
+.plan .desc{color:var(--muted);font-size:14px;margin-bottom:20px}
+.plan ul{list-style:none;margin-bottom:28px;flex:1}
+.plan li{padding:6px 0 6px 26px;position:relative;font-size:15px}
+.plan li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.plan .btn{justify-content:center}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto}
+.faq h2{font-size:clamp(32px,4.5vw,46px);text-align:center;margin-bottom:36px}
+details{border-bottom:1px solid var(--line);padding:20px 0}
+summary{cursor:pointer;font-weight:500;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:24px;color:var(--accent);line-height:1}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin-top:12px}
+
+/* final cta */
+.final{text-align:center;padding:96px 24px;background:var(--accent);color:#fff;border-radius:32px;margin:0 24px 24px}
+.final h2{font-size:clamp(36px,5.5vw,64px);max-width:720px;margin:0 auto 16px}
+.final p{opacity:.9;margin-bottom:32px;font-size:18px}
+.final .btn{background:#fff;color:var(--accent);font-weight:600}
+
+footer{padding:40px 0 56px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer nav,footer .fl{display:flex;gap:24px}
+
+@media(max-width:860px){
+  .links{display:none}
+  .grid,.steps-grid,.quotes,.price-grid{grid-template-columns:1fr}
+  .demo-body{grid-template-columns:1fr}
+  .pane+.pane{border-left:0;border-top:1px solid var(--line)}
+  section{padding:64px 0}
+  .steps,.final{margin:0 12px;border-radius:24px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#" class="logo"><i><b></b><b></b><b></b><b></b></i>Murmur</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#love">Reviews</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a href="#pricing" class="btn btn-primary btn-sm">Get Murmur free</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="pill"><span></span> New: Murmur 2.0 with live meeting summaries</div>
+    <h1>Just talk. Murmur writes <em>the notes.</em></h1>
+    <p class="lead">Murmur listens to your meetings, lectures, and half-formed ideas, then turns them into clean, searchable notes with action items already pulled out.</p>
+    <div class="cta">
+      <a href="#pricing" class="btn btn-primary">Start for free</a>
+      <a href="#how" class="btn btn-ghost">See how it works</a>
+    </div>
+    <p class="fine">Free forever for personal use · No credit card · iOS, Android, Mac &amp; Web</p>
+
+    <div class="demo" aria-label="Product preview">
+      <div class="demo-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="title">Product sync — Tuesday</span>
+        <span class="rec">Listening · 14:32</span>
+      </div>
+      <div class="demo-body">
+        <div class="pane">
+          <div class="label">Live transcript</div>
+          <div class="wave" id="wave"></div>
+          <p class="line"><small>Maya</small>Let's push the onboarding launch to the 18th so design can finish the new flow.</p>
+          <p class="line"><small>Dev</small>Works. I'll update the API docs by Friday.</p>
+          <p class="line"><small>Maya</small>Great, and someone should email beta users about the change.</p>
+        </div>
+        <div class="pane note">
+          <div class="label">Murmur notes</div>
+          <h3>Onboarding launch moves to the 18th</h3>
+          <ul>
+            <li class="done">Launch date shifted to Nov 18 for design polish</li>
+            <li>Dev: update API docs by Friday</li>
+            <li>Maya: email beta users about the delay</li>
+          </ul>
+          <span class="tag">#product</span><span class="tag">3 decisions</span><span class="tag">2 action items</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="trust">
+  <div class="wrap">
+    Loved by 240,000+ students, founders, and researchers
+    <div class="row"><span>Northwind</span><span>Lumen Labs</span><span>Paperkite</span><span>Halcyon</span><span>Fernway</span></div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Features</div>
+      <h2>Everything you'd write down, without writing it down.</h2>
+      <p>Be present in the conversation. Murmur handles the remembering.</p>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="icon">🎙️</div><h3>Accurate transcription</h3><p>Industry-leading speech recognition in 40+ languages, with speaker labels that tell everyone apart.</p></div>
+      <div class="card"><div class="icon">✨</div><h3>Instant summaries</h3><p>Get a tidy summary the moment you stop recording: key points, decisions, and open questions.</p></div>
+      <div class="card"><div class="icon">✅</div><h3>Action items, found</h3><p>Murmur spots tasks and who owns them, then sends them to Todoist, Linear, or your calendar.</p></div>
+      <div class="card"><div class="icon">🔎</div><h3>Ask your notes</h3><p>"What did we decide about pricing in March?" Get an answer with a link to the exact moment.</p></div>
+      <div class="card"><div class="icon">🔒</div><h3>Private by design</h3><p>Encrypted end to end. Your recordings are never used to train models, and you can delete anytime.</p></div>
+      <div class="card"><div class="icon">🔗</div><h3>Works with your tools</h3><p>Sync to Notion, Slack, Google Docs, and Obsidian. Zoom, Meet, and Teams join automatically.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="steps" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">How it works</div>
+      <h2>From conversation to clarity in three steps.</h2>
+      <p>No setup, no templates, no typing.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step"><div class="n">1</div><h3>Press record</h3><p>Tap once in the app, or let Murmur auto-join your calendar meetings.</p></div>
+      <div class="step"><div class="n">2</div><h3>Keep talking</h3><p>Murmur transcribes live and quietly highlights what matters as you go.</p></div>
+      <div class="step"><div class="n">3</div><h3>Get your notes</h3><p>Share a polished summary in seconds, or search it all later.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="love">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Reviews</div>
+      <h2>People stopped dreading the follow-up.</h2>
+    </div>
+    <div class="quotes">
+      <div class="quote"><p>"I used to spend an hour after every call writing recap emails. Now it's a copy and paste."</p><div class="who"><div class="av" style="background:#d9573b">A</div><div>Amara Okafor<span>Head of Product, Paperkite</span></div></div></div>
+      <div class="quote"><p>"Murmur got me through organic chemistry. I search my lectures like I search the web."</p><div class="who"><div class="av" style="background:#3b7ed9">J</div><div>Jonah Reyes<span>Pre-med student</span></div></div></div>
+      <div class="quote"><p>"The 'ask your notes' feature is wild. It found a decision from four months ago in two seconds."</p><div class="who"><div class="av" style="background:#4a9a6b">P</div><div>Priya Nair<span>Founder, Fernway</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" style="padding-top:24px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Pricing</div>
+      <h2>Simple plans that grow with you.</h2>
+      <p>Start free. Upgrade when your calendar fills up.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan"><h3>Free</h3><div class="amt">$0</div><p class="desc">For trying things out</p>
+        <ul><li>5 hours of transcription / month</li><li>AI summaries</li><li>Search across notes</li><li>Mobile &amp; web apps</li></ul>
+        <a href="#" class="btn btn-ghost">Get started</a></div>
+      <div class="plan pop"><h3>Pro</h3><div class="amt">$12<small> / month</small></div><p class="desc">For people who live in meetings</p>
+        <ul><li>Unlimited transcription</li><li>Auto-join calendar meetings</li><li>Ask your notes (AI chat)</li><li>Action item integrations</li><li>Export to Notion, Docs, Slack</li></ul>
+        <a href="#" class="btn btn-primary">Start 14-day trial</a></div>
+      <div class="plan"><h3>Team</h3><div class="amt">$24<small> / user / month</small></div><p class="desc">For teams that share context</p>
+        <ul><li>Everything in Pro</li><li>Shared workspaces</li><li>Admin controls &amp; SSO</li><li>Team-wide search</li><li>Priority support</li></ul>
+        <a href="#" class="btn btn-ghost">Contact sales</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="padding-top:24px">
+  <div class="wrap faq">
+    <h2>Questions, answered.</h2>
+    <details><summary>Does Murmur record without people knowing?</summary><p>No. Murmur shows a clear recording indicator and can post a notice in meetings. You're responsible for getting consent where the law requires it, and we make that easy.</p></details>
+    <details><summary>Is my data used to train AI models?</summary><p>Never. Your audio and notes are encrypted and belong to you. Delete them any time and they're gone from our servers.</p></details>
+    <details><summary>Which languages are supported?</summary><p>Over 40 languages for transcription, with summaries available in the language of your choice.</p></details>
+    <details><summary>Can I use Murmur offline?</summary><p>Yes. Record offline on mobile and Murmur will transcribe and summarize as soon as you're back online.</p></details>
+    <details><summary>Can I cancel anytime?</summary><p>Of course. Cancel in two clicks from settings and keep access through the end of your billing period.</p></details>
+  </div>
+</section>
+
+<div class="final">
+  <h2>Your next meeting deserves better notes.</h2>
+  <p>Join 240,000+ people who just talk, and let Murmur do the rest.</p>
+  <a href="#" class="btn">Download Murmur free</a>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Murmur, Inc.</div>
+    <div class="fl"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a><a href="#">Contact</a></div>
+  </div>
+</footer>
+
+<script>
+  const w=document.getElementById('wave');
+  for(let i=0;i<48;i++){
+    const b=document.createElement('b');
+    b.style.animationDelay=(-Math.random()*1.1).toFixed(2)+'s';
+    b.style.animationDuration=(0.7+Math.random()*0.8).toFixed(2)+'s';
+    w.appendChild(b);
+  }
+</script>
+</body>
+</html>

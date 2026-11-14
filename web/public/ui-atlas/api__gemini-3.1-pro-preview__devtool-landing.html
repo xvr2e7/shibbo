@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tern | Find Slow Database Queries Fast</title>
+    <meta name="description" content="Tern is a blazing fast command-line tool that analyzes your database and pinpoints slow queries before they hit production.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Colors */
+            --bg-dark: #050505;
+            --bg-card: #111111;
+            --bg-border: #222222;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            
+            /* Terminal Colors */
+            --term-bg: #0a0a0a;
+            --term-header: #171717;
+            --c-green: #10b981;
+            --c-red: #ef4444;
+            --c-yellow: #f59e0b;
+            --c-blue: #3b82f6;
+            --c-purple: #8b5cf6;
+
+            /* Typography */
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        a {
+            color: var(--text-main);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--bg-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -0.025em;
+        }
+
+        .logo svg {
+            width: 28px;
+            height: 28px;
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .btn-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--text-main);
+            color: var(--bg-dark);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .btn-github:hover {
+            background: #e5e7eb;
+            color: var(--bg-dark);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 100px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+        }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 500px;
+        }
+
+        .install-box {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-border);
+            padding: 16px 24px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+
+        .install-box .command {
+            color: var(--text-main);
+        }
+
+        .install-box .command::before {
+            content: '$ ';
+            color: var(--text-muted);
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-main);
+            background: var(--bg-border);
+        }
+
+        .hero-links {
+            display: flex;
+            gap: 16px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Terminal Window */
+        .terminal {
+            background: var(--term-bg);
+            border: 1px solid var(--bg-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .terminal-header {
+            background: var(--term-header);
+            padding: 12px 16px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--bg-border);
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .t-cmd { color: var(--c-blue); }
+        .t-arg { color: var(--text-main); }
+        .t-muted { color: var(--text-muted); }
+        .t-success { color: var(--c-green); }
+        .t-error { color: var(--c-red); }
+        .t-warn { color: var(--c-yellow); }
+        .t-purple { color: var(--c-purple); }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            border-top: 1px solid var(--bg-border);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 64px;
+            letter-spacing: -0.025em;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-border);
+            padding: 32px;
+            border-radius: 12px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Demo Section */
+        .demo-section {
+            padding: 80px 0 120px;
+            border-top: 1px solid var(--bg-border);
+        }
+        
+        .demo-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--bg-border);
+            padding: 40px 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                padding: 60px 0;
+            }
+            .hero-content p {
+                margin: 0 auto 40px;
+            }
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-links {
+                display: none;
+            }
+        }
+
+        /* Typing animation */
+        .typing {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid var(--text-main);
+            animation: typing 2s steps(40, end), blink-caret .75s step-end infinite;
+            max-width: fit-content;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--text-main); }
+        }
+
+        .delay-1 { animation-delay: 2s; opacity: 0; animation-fill-mode: forwards; }
+        .delay-2 { animation-delay: 2.5s; opacity: 0; animation-fill-mode: forwards; }
+        .delay-3 { animation-delay: 3s; opacity: 0; animation-fill-mode: forwards; }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container" style="display: flex; justify-content: space-between; width: 100%;">
+            <a href="#" class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                    <line x1="4" y1="22" x2="4" y2="15"></line>
+                    <polyline points="10 10 12 12 14 10"></polyline>
+                </svg>
+                Tern
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#docs">Documentation</a>
+                <a href="https://github.com" class="btn-github">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    Star on GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero container">
+            <div class="hero-content">
+                <h1>Spot slow queries before they sink your app.</h1>
+                <p>Tern is a blazing fast, zero-config CLI tool that analyzes your database traffic and pinpoints performance bottlenecks instantly.</p>
+                
+                <div class="install-box">
+                    <span class="command">brew install tern-cli</span>
+                    <button class="copy-btn" aria-label="Copy to clipboard" onclick="navigator.clipboard.writeText('brew install tern-cli'); this.innerHTML='<svg width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'var(--c-green)\' stroke-width=\'2\'><polyline points=\'20 6 9 17 4 12\'></polyline></svg>'; setTimeout(()=>this.innerHTML='<svg width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'><rect x=\'9\' y=\'9\' width=\'13\' height=\'13\' rx=\'2\' ry=\'2\'></rect><path d=\'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\'></path></svg>', 2000);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="hero-links">
+                    <span>Supports PostgreSQL, MySQL, and SQLite.</span>
+                    <a href="#docs" style="text-decoration: underline;">View Docs</a>
+                </div>
+            </div>
+
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="dot dot-red"></div>
+                    <div class="dot dot-yellow"></div>
+                    <div class="dot dot-green"></div>
+                </div>
+                <div class="terminal-body">
+                    <div style="margin-bottom: 16px;">
+                        <span class="t-muted">$</span>
+                        <span class="t-cmd typing">tern analyze pg://user@localhost/db</span>
+                    </div>
+                    
+                    <div class="fade-in delay-1" style="margin-bottom: 24px;">
+                        <span class="t-muted">Analyzing 14,203 query logs...</span> <span class="t-success">100% [████████████]</span><br>
+                        <span class="t-muted">Generating execution plans...</span> <span class="t-success">Done</span>
+                    </div>
+
+                    <div class="fade-in delay-2">
+                        <span class="t-error" style="font-weight: bold;">⚠ Found 2 critical bottlenecks:</span><br><br>
+                        
+                        <span class="t-error">[985ms]</span> <span class="t-purple">N+1 Query Detected</span><br>
+                        <span class="t-arg">SELECT * FROM orders WHERE user_id = $1;</span><br>
+                        <span class="t-muted">↳ Executed 450 times in a single request (src/controllers/users.js:42)</span><br><br>
+                        
+                        <span class="t-error">[1.24s]</span> <span class="t-yellow">Missing Index</span><br>
+                        <span class="t-arg">SELECT * FROM users u JOIN events e ON u.id = e.user_id WHERE e.status = 'active';</span><br>
+                        <span class="t-muted">↳ Sequential scan on 'events' table. Consider:</span><br>
+                        <span class="t-success">  CREATE INDEX idx_events_status ON events(status);</span>
+                    </div>
+                    
+                    <div class="fade-in delay-3" style="margin-top: 24px;">
+                        <span class="t-muted">$</span> <span class="typing" style="animation-delay: 3.5s; border-right-color: transparent;">_</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features container">
+            <h2 class="section-title">Why use Tern?</h2>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                    </div>
+                    <h3>Multi-Database Support</h3>
+                    <p>Works seamlessly with PostgreSQL, MySQL, and SQLite. Just point Tern to your connection string or query log file and let it run.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Automated EXPLAINs</h3>
+                    <p>Tern automatically runs EXPLAIN ANALYZE on your slowest queries and translates the complex output into human-readable advice.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3>CI/CD Integration</h3>
+                    <p>Add Tern to your GitHub Actions or GitLab CI. Configure it to fail the build if it detects N+1 queries or queries exceeding a latency threshold.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <h3>Blazing Fast</h3>
+                    <p>Written in Rust, Tern parses thousands of query logs per second with virtually zero memory overhead.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                    </div>
+                    <h3>Zero Configuration</h3>
+                    <p>No agents to install, no complicated config files. Download the binary and start analyzing your local or staging database immediately.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3>Export Formats</h3>
+                    <p>Output findings directly to the terminal, or export to JSON, CSV, or HTML to share with your team or integrate with other tools.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo-section container">
+            <h2 class="section-title">Catch issues in PRs, not production.</h2>
+            <div class="demo-container">
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <div class="dot dot-red"></div>
+                        <div class="dot dot-yellow"></div>
+                        <div class="dot dot-green"></div>
+                    </div>
+                    <div class="terminal-body" style="padding-bottom: 40px;">
+                        <span class="t-muted">$</span> <span class="t-cmd">tern ci --threshold=500ms --fail-on-n-plus-one ./test.log</span><br><br>
+                        <span class="t-muted">Running in CI mode...</span><br><br>
+                        <span class="t-error">✖ Build Failed: Performance Regression Detected</span><br>
+                        <span class="t-muted">---------------------------------------------------</span><br>
+                        <span class="t-arg">Total Queries:</span> 1,432<br>
+                        <span class="t-arg">Average Latency:</span> 42ms<br>
+                        <span class="t-arg">Violations:</span><br>
+                        <span class="t-error">  - 1 query exceeded 500ms threshold (850ms)</span><br>
+                        <span class="t-error">  - 2 N+1 query patterns detected in '/api/v1/dashboard'</span><br><br>
+                        <span class="t-muted">View full report:</span> <span style="text-decoration: underline; color: var(--c-blue); cursor: pointer;">https://tern.dev/r/ab8c9f2</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="#">GitHub</a>
+                <a href="#">Documentation</a>
+                <a href="#">Twitter</a>
+                <a href="#">Discord</a>
+            </div>
+            <p>&copy; 2023 Tern CLI. Open Source under the MIT License.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

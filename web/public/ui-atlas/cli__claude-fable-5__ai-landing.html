@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmur — Notes that listen</title>
+<meta name="description" content="Murmur is an AI note-taking app that captures your thoughts, organizes them quietly, and surfaces them exactly when you need them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1f1d1a;
+    --ink-soft: #5c574f;
+    --ink-faint: #8a847a;
+    --paper: #faf7f2;
+    --paper-raised: #ffffff;
+    --line: #e7e1d8;
+    --accent: #4a6b5d;
+    --accent-ink: #ffffff;
+    --accent-soft: #e3ece7;
+    --radius: 14px;
+    --max: 1080px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  a { color: inherit; }
+
+  .wrap {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(250, 247, 242, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-family: "Fraunces", serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
+  .logo svg { display: block; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 0.925rem;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: var(--ink-soft);
+    transition: color 0.15s ease;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.925rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .btn-primary:hover {
+    background: #3d5a4e;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(74, 107, 93, 0.25);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--line);
+    color: var(--ink);
+    background: var(--paper-raised);
+  }
+
+  .btn-ghost:hover { border-color: var(--ink-faint); }
+
+  .btn-lg { padding: 14px 30px; font-size: 1rem; }
+
+  @media (max-width: 640px) {
+    .nav-links a:not(.btn) { display: none; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 96px 0 72px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: -40% -20% auto;
+    height: 480px;
+    background: radial-gradient(ellipse at 50% 0%, var(--accent-soft) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    max-width: 16ch;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+
+  .hero p.lede {
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0 auto 36px;
+    position: relative;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .hero-note {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    position: relative;
+  }
+
+  /* ---------- App mock ---------- */
+  .mock {
+    margin: 64px auto 0;
+    max-width: 860px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px -20px rgba(31, 29, 26, 0.18);
+    text-align: left;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .mock-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mock-bar span {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--line);
+  }
+
+  .mock-body {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: 320px;
+  }
+
+  .mock-side {
+    border-right: 1px solid var(--line);
+    padding: 18px 14px;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    background: #fcfaf6;
+  }
+
+  .mock-side div {
+    padding: 7px 10px;
+    border-radius: 8px;
+    margin-bottom: 2px;
+  }
+
+  .mock-side div.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .mock-main { padding: 28px 32px; }
+
+  .mock-main h3 {
+    font-size: 1.35rem;
+    margin-bottom: 14px;
+  }
+
+  .mock-main p {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+    max-width: 48ch;
+  }
+
+  .mock-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 5px 12px;
+    margin: 6px 6px 0 0;
+  }
+
+  @media (max-width: 640px) {
+    .mock-body { grid-template-columns: 1fr; }
+    .mock-side { display: none; }
+  }
+
+  /* ---------- Sections ---------- */
+  section { padding: 88px 0; }
+
+  .section-head {
+    text-align: center;
+    max-width: 58ch;
+    margin: 0 auto 56px;
+  }
+
+  .section-head h2 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    margin-bottom: 14px;
+  }
+
+  .section-head p { color: var(--ink-soft); }
+
+  /* ---------- Features ---------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 30px 26px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px -18px rgba(31, 29, 26, 0.2);
+  }
+
+  .card .icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    display: grid;
+    place-items: center;
+    margin-bottom: 18px;
+  }
+
+  .card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+
+  .card p {
+    font-size: 0.925rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 860px) {
+    .features { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- How it works ---------- */
+  .how { background: var(--paper-raised); border-block: 1px solid var(--line); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    counter-reset: step;
+  }
+
+  .step { counter-increment: step; }
+
+  .step::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: "Fraunces", serif;
+    font-size: 2.4rem;
+    color: var(--accent);
+    opacity: 0.45;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .step h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  .step p { font-size: 0.925rem; color: var(--ink-soft); }
+
+  @media (max-width: 860px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Quote ---------- */
+  .quote {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .quote blockquote {
+    font-family: "Fraunces", serif;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 22px;
+  }
+
+  .quote cite {
+    font-style: normal;
+    font-size: 0.9rem;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- Pricing ---------- */
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .plan {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plan.featured {
+    border-color: var(--accent);
+    box-shadow: 0 18px 44px -20px rgba(74, 107, 93, 0.35);
+  }
+
+  .plan h3 { font-size: 1.15rem; margin-bottom: 4px; }
+
+  .plan .price {
+    font-family: "Fraunces", serif;
+    font-size: 2.4rem;
+    margin: 10px 0 2px;
+  }
+
+  .plan .price small {
+    font-family: "Inter", sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+
+  .plan ul {
+    list-style: none;
+    margin: 22px 0 28px;
+    flex: 1;
+  }
+
+  .plan li {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    padding: 7px 0 7px 26px;
+    position: relative;
+  }
+
+  .plan li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 13px;
+    width: 14px; height: 14px;
+    background: var(--accent-soft);
+    border-radius: 50%;
+  }
+
+  .plan li::after {
+    content: "";
+    position: absolute;
+    left: 4px; top: 17px;
+    width: 6px; height: 3px;
+    border-left: 1.5px solid var(--accent);
+    border-bottom: 1.5px solid var(--accent);
+    transform: rotate(-45deg);
+  }
+
+  .plan .btn { text-align: center; }
+
+  .tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  @media (max-width: 860px) {
+    .pricing { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Final CTA ---------- */
+  .cta {
+    text-align: center;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 22px;
+    padding: 72px 32px;
+    margin-bottom: 88px;
+  }
+
+  .cta h2 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    margin-bottom: 14px;
+  }
+
+  .cta p {
+    color: #b8b2a8;
+    max-width: 48ch;
+    margin: 0 auto 32px;
+  }
+
+  .cta .btn-primary { background: var(--paper); color: var(--ink); }
+  .cta .btn-primary:hover { background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 36px 0;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .foot nav { display: flex; gap: 22px; }
+  .foot a { text-decoration: none; }
+  .foot a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <circle cx="13" cy="13" r="12" stroke="#4a6b5d" stroke-width="2"/>
+        <path d="M7 16c1.5-2 2.5-6 3.5-6s1.5 6 3 6 2-6 3.5-6 2 4 2.5 6" stroke="#4a6b5d" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+      Murmur
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a class="btn btn-primary" href="#get-started">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Now with voice capture</span>
+      <h1>Notes that <em>listen</em>, so you can keep thinking.</h1>
+      <p class="lede">Murmur captures whatever crosses your mind — typed, spoken, or pasted — then quietly files, links, and summarizes it for you. No folders to manage. No tags to remember.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary btn-lg" href="#get-started">Start writing free</a>
+        <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+      </div>
+      <p class="hero-note">Free forever for personal use · No credit card required</p>
+
+      <div class="mock" role="img" aria-label="Screenshot of the Murmur app showing an automatically organized note">
+        <div class="mock-bar"><span></span><span></span><span></span></div>
+        <div class="mock-body">
+          <div class="mock-side">
+            <div class="active">Today</div>
+            <div>Product ideas</div>
+            <div>Reading notes</div>
+            <div>Meetings</div>
+            <div>Someday / maybe</div>
+          </div>
+          <div class="mock-main">
+            <h3>Thoughts on the onboarding redesign</h3>
+            <p>Users drop off at step three. What if the walkthrough adapted to how they signed up instead of showing everyone the same flow?</p>
+            <p>Reminds me of the Basecamp essay on defaults — worth re-reading before Thursday's review.</p>
+            <span class="mock-chip">✦ Linked to “Q3 activation metrics”</span>
+            <span class="mock-chip">✦ Summarized · 2 action items</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Your second memory, minus the upkeep</h2>
+        <p>Most note apps make you do the organizing. Murmur does it the moment you stop typing.</p>
+      </div>
+      <div class="features">
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <rect x="8" y="2" width="6" height="11" rx="3" stroke="#4a6b5d" stroke-width="2"/>
+              <path d="M4 10a7 7 0 0 0 14 0M11 17v3" stroke="#4a6b5d" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Capture at the speed of thought</h3>
+          <p>Type, dictate, or forward an email. Murmur transcribes voice notes instantly and cleans up your half-finished sentences without losing your voice.</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <circle cx="6" cy="6" r="3" stroke="#4a6b5d" stroke-width="2"/>
+              <circle cx="16" cy="16" r="3" stroke="#4a6b5d" stroke-width="2"/>
+              <circle cx="16" cy="5" r="2" stroke="#4a6b5d" stroke-width="2"/>
+              <path d="M8.5 8l5 6M14 6.5l-5.5-.3" stroke="#4a6b5d" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <h3>Organized while you sleep</h3>
+          <p>Notes are automatically grouped, titled, and cross-linked by meaning — not keywords. Related ideas find each other, even weeks apart.</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <circle cx="10" cy="10" r="6" stroke="#4a6b5d" stroke-width="2"/>
+              <path d="M14.5 14.5L19 19" stroke="#4a6b5d" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Ask instead of search</h3>
+          <p>“What did I decide about pricing in March?” Murmur answers in plain language and cites the exact notes, so you can trust what it tells you.</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <path d="M4 17V9m7 8V5m7 12v-6" stroke="#4a6b5d" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Daily digest</h3>
+          <p>Every morning, a two-minute summary of yesterday's notes: decisions made, loose threads, and the action items you promised yourself.</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <rect x="4" y="9" width="14" height="10" rx="2" stroke="#4a6b5d" stroke-width="2"/>
+              <path d="M7 9V7a4 4 0 0 1 8 0v2" stroke="#4a6b5d" stroke-width="2"/>
+            </svg>
+          </div>
+          <h3>Private by design</h3>
+          <p>Your notes are encrypted at rest and never used to train models. Export everything as plain Markdown anytime — your words stay yours.</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+              <rect x="3" y="4" width="16" height="12" rx="2" stroke="#4a6b5d" stroke-width="2"/>
+              <path d="M8 20h6" stroke="#4a6b5d" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Everywhere you think</h3>
+          <p>Mac, Windows, iOS, Android, and the web — with offline capture that syncs the moment you're back online.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Three steps, zero ceremony</h2>
+        <p>Murmur works the way scattered thoughts actually arrive.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <h3>Murmur it</h3>
+          <p>Hit the hotkey or just start talking. Capture takes two seconds, from anywhere, without breaking your flow.</p>
+        </div>
+        <div class="step">
+          <h3>Let it settle</h3>
+          <p>Murmur titles the note, files it with its relatives, and links it to everything it echoes — past meetings, old ideas, saved reading.</p>
+        </div>
+        <div class="step">
+          <h3>Ask it back</h3>
+          <p>When you need it, ask in plain language. Murmur retrieves the thought, the context around it, and what you said you'd do about it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap quote">
+      <blockquote>“I stopped organizing my notes in April. Somehow they've never been easier to find. Murmur is the first tool that works with my brain instead of against it.”</blockquote>
+      <cite>— Priya N., product designer</cite>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Simple pricing, quiet like the app</h2>
+        <p>Start free. Upgrade when your second memory starts doing serious work.</p>
+      </div>
+      <div class="pricing">
+        <div class="plan">
+          <h3>Whisper</h3>
+          <div class="price">$0 <small>forever</small></div>
+          <ul>
+            <li>Unlimited typed notes</li>
+            <li>30 voice captures / month</li>
+            <li>Auto-organization &amp; linking</li>
+            <li>Search across everything</li>
+          </ul>
+          <a class="btn btn-ghost" href="#get-started">Start free</a>
+        </div>
+        <div class="plan featured">
+          <span class="tag">Most popular</span>
+          <h3>Murmur Pro</h3>
+          <div class="price">$8 <small>/ month</small></div>
+          <ul>
+            <li>Everything in Whisper</li>
+            <li>Unlimited voice capture</li>
+            <li>Ask-your-notes AI answers</li>
+            <li>Daily digest &amp; action items</li>
+            <li>Priority support</li>
+          </ul>
+          <a class="btn btn-primary" href="#get-started">Try Pro free for 14 days</a>
+        </div>
+        <div class="plan">
+          <h3>Chorus</h3>
+          <div class="price">$14 <small>/ user / month</small></div>
+          <ul>
+            <li>Everything in Pro</li>
+            <li>Shared team spaces</li>
+            <li>Meeting capture &amp; recaps</li>
+            <li>Admin controls &amp; SSO</li>
+          </ul>
+          <a class="btn btn-ghost" href="#get-started">Contact sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap" id="get-started">
+    <div class="cta">
+      <h2>Think out loud. We'll take it from here.</h2>
+      <p>Join 40,000 people who capture first and never organize. Your first note takes ten seconds.</p>
+      <a class="btn btn-primary btn-lg" href="#">Get Murmur free</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 Murmur Labs</span>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

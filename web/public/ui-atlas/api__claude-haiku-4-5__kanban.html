@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .column {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+
+        .column-header {
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            background: #fafafa;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-count {
+            font-size: 0.9rem;
+            background: #e0e0e0;
+            color: #666;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .column-title.todo .column-count {
+            background: #ffe0e0;
+            color: #d32f2f;
+        }
+
+        .column-title.in-progress .column-count {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .column-title.review .column-count {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .column-title.done .column-count {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .cards-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cards-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .cards-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+
+        .cards-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+
+        .cards-container::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            border-color: #d0d0d0;
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .card-priority {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        .priority-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .priority-medium {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .priority-low {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .card-assignee {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .assignee-a {
+            background: #667eea;
+        }
+
+        .assignee-b {
+            background: #764ba2;
+        }
+
+        .assignee-c {
+            background: #f093fb;
+        }
+
+        .add-card-btn {
+            margin: 15px;
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            color: #666;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .add-card-btn:hover {
+            background: #e8e8e8;
+            border-color: #999;
+            color: #333;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .column {
+                max-height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Design Team Kanban</h1>
+            <p class="subtitle">Track design projects and collaborate seamlessly</p>
+        </header>
+
+        <div class="board">
+            <!-- TO DO Column -->
+            <div class="column">
+                <div class="column-header">
+                    <div class="column-title todo">
+                        <span>📋 To Do</span>
+                        <span class="column-count">3</span>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card">
+                        <div class="card-title">Design new landing page</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-high">High</span>
+                            <div class="card-assignee assignee-a">AA</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Create icon set for dashboard</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-medium">Medium</span>
+                            <div class="card-assignee assignee-b">BB</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Brand guidelines update</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-low">Low</span>
+                            <div class="card-assignee assignee-c">CC</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-card-btn">+ Add Card</button>
+            </div>
+
+            <!-- IN PROGRESS Column -->
+            <div class="column">
+                <div class="column-header">
+                    <div class="column-title in-progress">
+                        <span>🔨 In Progress</span>
+                        <span class="column-count">2</span>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card">
+                        <div class="card-title">Mobile app UI mockups</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-high">High</span>
+                            <div class="card-assignee assignee-a">AA</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Refine checkout flow</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-medium">Medium</span>
+                            <div class="card-assignee assignee-c">CC</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-card-btn">+ Add Card</button>
+            </div>
+
+            <!-- REVIEW Column -->
+            <div class="column">
+                <div class="column-header">
+                    <div class="column-title review">
+                        <span>👀 Review</span>
+                        <span class="column-count">2</span>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card">
+                        <div class="card-title">Email template designs</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-medium">Medium</span>
+                            <div class="card-assignee assignee-b">BB</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Social media graphics pack</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-low">Low</span>
+                            <div class="card-assignee assignee-a">AA</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-card-btn">+ Add Card</button>
+            </div>
+
+            <!-- DONE Column -->
+            <div class="column">
+                <div class="column-header">
+                    <div class="column-title done">
+                        <span>✅ Done</span>
+                        <span class="column-count">5</span>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card">
+                        <div class="card-title">Competitor analysis report</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-high">High</span>
+                            <div class="card-assignee assignee-b">BB</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Color palette exploration</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-medium">Medium</span>
+                            <div class="card-assignee assignee-c">CC</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">User research presentation</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-high">High</span>
+                            <div class="card-assignee assignee-a">AA</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Homepage wireframes</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-medium">Medium</span>
+                            <div class="card-assignee assignee-b">BB</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Design system v2.0</div>
+                        <div class="card-meta">
+                            <span class="card-priority priority-high">High</span>
+                            <div class="card-assignee assignee-c">CC</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-card-btn">+ Add Card</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add interactivity for cards and buttons
+        document.querySelectorAll('.add-card-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const title = prompt('Enter card title:');
+                if (title && title.trim()) {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const priorities = ['High', 'Medium', 'Low'];
+                    const assignees = ['assignee-a', 'assignee-b', 'assignee-c'];
+                    const initials = ['AA', 'BB', 'CC'];
+                    const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
+                    const randomAssignee = assignees[Math.floor(Math.random() * assignees.length)];
+                    const randomInitial = initials[assignees.indexOf(randomAssignee)];
+                    const priorityClass = 'priority-' + randomPriority.toLowerCase();
+
+                    card.innerHTML = `
+                        <div class="card-title">${title}</div>
+                        <div class="card-meta">
+                            <span class="card-priority ${priorityClass}">${randomPriority}</span>
+                            <div class="card-assignee ${randomAssignee}">${randomInitial}</div>
+                        </div>
+                    `;
+
+                    const container = this.previousElementSibling;
+                    container.appendChild(card);
+                    updateCounts();
+                }
+            });
+        });
+
+        // Update column counts
+        function updateCounts() {
+            document.querySelectorAll('.column').forEach(column => {
+                const count = column.querySelectorAll('.card').length;
+                const countElement = column.querySelector('.column-count');
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+            });
+        }
+
+        // Simple drag and drop
+        let draggedCard = null;
+
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('card')) {
+                draggedCard = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const container = e.target.closest('.cards-container');
+            if (container && draggedCard) {
+                container.appendChild(draggedCard);
+                draggedCard = null;
+                updateCounts();
+            }
+        });
+
+        // Make cards draggable
+        document.querySelectorAll('.card').forEach(card => {
+            card.draggable = true;
+        });
+
+        // Update observer for new cards
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.classList && node.classList.contains('card')) {
+                        node.draggable = true;
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.cards-container').forEach(container => {
+            observer.observe(container, { childList: true });
+        });
+    </script>
+</body>
+</html>

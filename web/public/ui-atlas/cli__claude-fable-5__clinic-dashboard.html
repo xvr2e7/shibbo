@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cedar Lane Clinic — Front Desk Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --ink: #1c2434;
+    --ink-soft: #5b6676;
+    --ink-faint: #8a94a6;
+    --line: #e5e9f0;
+    --accent: #2563eb;
+    --accent-soft: #eff4ff;
+    --green: #15803d;
+    --green-soft: #e7f6ec;
+    --amber: #b45309;
+    --amber-soft: #fdf3e1;
+    --red: #b91c1c;
+    --red-soft: #fdeaea;
+    --violet: #6d28d9;
+    --violet-soft: #f1ecfd;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 4px 16px rgba(16, 24, 40, .06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 800; font-size: 18px;
+    flex: none;
+  }
+  .clinic-name { font-weight: 700; font-size: 16px; }
+  .clinic-sub { color: var(--ink-faint); font-size: 12.5px; }
+  .header-right { margin-left: auto; text-align: right; }
+  .header-date { font-weight: 600; }
+  .header-clock { color: var(--ink-faint); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 28px 48px; }
+
+  /* ---------- Stat cards ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stat-value { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .stat-note { font-size: 12.5px; color: var(--ink-soft); }
+  .stat-note strong { font-weight: 600; }
+  .up { color: var(--green); } .down { color: var(--red); }
+
+  /* ---------- Layout grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .panel + .panel { margin-top: 20px; }
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-title { font-size: 15px; font-weight: 700; }
+  .panel-meta { font-size: 12.5px; color: var(--ink-faint); }
+
+  /* ---------- Schedule table ---------- */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--ink-faint);
+    padding: 10px 20px;
+    background: #fafbfd;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody td {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfd; }
+  .time { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .patient { font-weight: 600; }
+  .mrn { color: var(--ink-faint); font-size: 12px; }
+  .provider, .reason { color: var(--ink-soft); }
+  .room-cell { font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+  tr.now td { background: var(--accent-soft); }
+  tr.now td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .b-done     { background: var(--green-soft);  color: var(--green); }
+  .b-inroom   { background: var(--accent-soft); color: var(--accent); }
+  .b-waiting  { background: var(--amber-soft);  color: var(--amber); }
+  .b-noshow   { background: var(--red-soft);    color: var(--red); }
+  .b-upcoming { background: #f1f3f7;            color: var(--ink-soft); }
+  .b-checkout { background: var(--violet-soft); color: var(--violet); }
+
+  /* ---------- Rooms ---------- */
+  .rooms {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px 20px 20px;
+  }
+  .room {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .room-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .room-name { font-weight: 700; font-size: 13.5px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .room.busy  { background: #fdfbf5; border-color: #f0e3c4; }
+  .room.busy .dot  { background: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+  .room.free .dot  { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.15); }
+  .room.clean { background: #f8f9fb; }
+  .room.clean .dot { background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,.18); }
+  .room-info { font-size: 12.5px; color: var(--ink-soft); }
+  .room-info strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- No-shows ---------- */
+  .noshow-list { list-style: none; }
+  .noshow-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .noshow-list li:last-child { border-bottom: none; }
+  .ns-time {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--red);
+    background: var(--red-soft);
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 12.5px;
+    flex: none;
+  }
+  .ns-body { min-width: 0; }
+  .ns-name { font-weight: 600; }
+  .ns-detail { font-size: 12.5px; color: var(--ink-soft); }
+  .ns-action {
+    margin-left: auto;
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ns-action:hover { background: #e0eaff; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--line);
+    background: #fafbfd;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CL</div>
+  <div>
+    <div class="clinic-name">Cedar Lane Family Clinic</div>
+    <div class="clinic-sub">Front Desk · Appointment Dashboard</div>
+  </div>
+  <div class="header-right">
+    <div class="header-date" id="date">Monday, November 10, 2026</div>
+    <div class="header-clock" id="clock">—</div>
+  </div>
+</header>
+
+<main>
+  <!-- Summary stats -->
+  <section class="stats" aria-label="Today at a glance">
+    <div class="stat">
+      <span class="stat-label">Appointments Today</span>
+      <span class="stat-value">26</span>
+      <span class="stat-note"><strong>11 seen</strong> · 15 remaining</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Currently Waiting</span>
+      <span class="stat-value">3</span>
+      <span class="stat-note">Avg. wait <strong>9 min</strong></span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">No-Shows</span>
+      <span class="stat-value">3</span>
+      <span class="stat-note"><span class="down">11.5%</span> of today's bookings</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Rooms In Use</span>
+      <span class="stat-value">4<span style="font-size:18px; color:var(--ink-faint); font-weight:600;"> / 6</span></span>
+      <span class="stat-note"><span class="up">2 available</span> · 1 being turned over</span>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- Left column: schedule -->
+    <section class="panel" aria-label="Today's schedule">
+      <div class="panel-head">
+        <h2 class="panel-title">Today's Schedule</h2>
+        <span class="panel-meta">Showing 10:30 AM – 1:30 PM</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Patient</th>
+            <th>Provider</th>
+            <th>Reason</th>
+            <th>Room</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="time">10:30 AM</td>
+            <td><div class="patient">Marisol Ferreira</div><div class="mrn">MRN 48-2217</div></td>
+            <td class="provider">Dr. Okafor</td>
+            <td class="reason">Annual physical</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-done">Completed</span></td>
+          </tr>
+          <tr>
+            <td class="time">10:45 AM</td>
+            <td><div class="patient">Dmitri Kovач</div><div class="mrn">MRN 51-0094</div></td>
+            <td class="provider">PA Lindqvist</td>
+            <td class="reason">Suture removal</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-done">Completed</span></td>
+          </tr>
+          <tr>
+            <td class="time">11:00 AM</td>
+            <td><div class="patient">Harold Nkemdirim</div><div class="mrn">MRN 39-7761</div></td>
+            <td class="provider">Dr. Okafor</td>
+            <td class="reason">Diabetes follow-up</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-noshow">No-show</span></td>
+          </tr>
+          <tr class="now">
+            <td class="time">11:15 AM</td>
+            <td><div class="patient">Priya Raghunathan</div><div class="mrn">MRN 50-3318</div></td>
+            <td class="provider">Dr. Castillo</td>
+            <td class="reason">Hypertension check</td>
+            <td class="room-cell">Room 2</td>
+            <td><span class="badge b-inroom">In room</span></td>
+          </tr>
+          <tr class="now">
+            <td class="time">11:15 AM</td>
+            <td><div class="patient">Owen Bradshaw</div><div class="mrn">MRN 44-1852</div></td>
+            <td class="provider">PA Lindqvist</td>
+            <td class="reason">Flu symptoms</td>
+            <td class="room-cell">Room 4</td>
+            <td><span class="badge b-inroom">In room</span></td>
+          </tr>
+          <tr>
+            <td class="time">11:30 AM</td>
+            <td><div class="patient">Celeste Duval</div><div class="mrn">MRN 47-9023</div></td>
+            <td class="provider">Dr. Okafor</td>
+            <td class="reason">Lab results review</td>
+            <td class="room-cell">Room 5</td>
+            <td><span class="badge b-checkout">Checking out</span></td>
+          </tr>
+          <tr>
+            <td class="time">11:45 AM</td>
+            <td><div class="patient">Tomás Herrera-Lin</div><div class="mrn">MRN 52-4470</div></td>
+            <td class="provider">Dr. Castillo</td>
+            <td class="reason">Knee pain, new</td>
+            <td class="room-cell">Lobby</td>
+            <td><span class="badge b-waiting">Waiting · 12m</span></td>
+          </tr>
+          <tr>
+            <td class="time">11:45 AM</td>
+            <td><div class="patient">Agnes Thistlewood</div><div class="mrn">MRN 36-1108</div></td>
+            <td class="provider">NP Marchetti</td>
+            <td class="reason">Medication review</td>
+            <td class="room-cell">Lobby</td>
+            <td><span class="badge b-waiting">Waiting · 7m</span></td>
+          </tr>
+          <tr>
+            <td class="time">12:00 PM</td>
+            <td><div class="patient">Jun-ho Baek</div><div class="mrn">MRN 53-2290</div></td>
+            <td class="provider">Dr. Okafor</td>
+            <td class="reason">Vaccination</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-upcoming">Scheduled</span></td>
+          </tr>
+          <tr>
+            <td class="time">12:15 PM</td>
+            <td><div class="patient">Rosalind Achebe</div><div class="mrn">MRN 41-6634</div></td>
+            <td class="provider">Dr. Castillo</td>
+            <td class="reason">Prenatal visit</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-upcoming">Scheduled</span></td>
+          </tr>
+          <tr>
+            <td class="time">1:00 PM</td>
+            <td><div class="patient">Felix Montagne</div><div class="mrn">MRN 49-8812</div></td>
+            <td class="provider">NP Marchetti</td>
+            <td class="reason">Allergy consult</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-upcoming">Scheduled</span></td>
+          </tr>
+          <tr>
+            <td class="time">1:15 PM</td>
+            <td><div class="patient">Imogen Vasquez</div><div class="mrn">MRN 45-0371</div></td>
+            <td class="provider">Dr. Okafor</td>
+            <td class="reason">Well-child, 4 yr</td>
+            <td class="room-cell">—</td>
+            <td><span class="badge b-upcoming">Scheduled</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="legend">
+        <span><i style="background:#15803d"></i> Completed</span>
+        <span><i style="background:#2563eb"></i> In room</span>
+        <span><i style="background:#b45309"></i> Waiting</span>
+        <span><i style="background:#6d28d9"></i> Checking out</span>
+        <span><i style="background:#b91c1c"></i> No-show</span>
+      </div>
+    </section>
+
+    <!-- Right column -->
+    <div>
+      <!-- Rooms -->
+      <section class="panel" aria-label="Exam room status">
+        <div class="panel-head">
+          <h2 class="panel-title">Exam Rooms</h2>
+          <span class="panel-meta">4 of 6 in use</span>
+        </div>
+        <div class="rooms">
+          <div class="room busy">
+            <div class="room-top"><span class="room-name">Room 1</span><span class="dot"></span></div>
+            <div class="room-info"><strong>Vitals in progress</strong><br>MA Soto · 4 min</div>
+          </div>
+          <div class="room busy">
+            <div class="room-top"><span class="room-name">Room 2</span><span class="dot"></span></div>
+            <div class="room-info"><strong>P. Raghunathan</strong><br>Dr. Castillo · 11 min</div>
+          </div>
+          <div class="room free">
+            <div class="room-top"><span class="room-name">Room 3</span><span class="dot"></span></div>
+            <div class="room-info">Available</div>
+          </div>
+          <div class="room busy">
+            <div class="room-top"><span class="room-name">Room 4</span><span class="dot"></span></div>
+            <div class="room-info"><strong>O. Bradshaw</strong><br>PA Lindqvist · 6 min</div>
+          </div>
+          <div class="room busy">
+            <div class="room-top"><span class="room-name">Room 5</span><span class="dot"></span></div>
+            <div class="room-info"><strong>C. Duval</strong><br>Wrapping up</div>
+          </div>
+          <div class="room clean">
+            <div class="room-top"><span class="room-name">Room 6</span><span class="dot"></span></div>
+            <div class="room-info">Turnover · ready ~5 min</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- No-shows -->
+      <section class="panel" aria-label="Today's no-shows">
+        <div class="panel-head">
+          <h2 class="panel-title">No-Shows Today</h2>
+          <span class="panel-meta">3 patients</span>
+        </div>
+        <ul class="noshow-list">
+          <li>
+            <span class="ns-time">8:30 AM</span>
+            <div class="ns-body">
+              <div class="ns-name">Beatrix Oyelaran</div>
+              <div class="ns-detail">Dr. Castillo · Thyroid follow-up · 2nd miss</div>
+            </div>
+            <button class="ns-action" type="button">Call</button>
+          </li>
+          <li>
+            <span class="ns-time">9:45 AM</span>
+            <div class="ns-body">
+              <div class="ns-name">Caspian Wrenfield</div>
+              <div class="ns-detail">NP Marchetti · New patient intake</div>
+            </div>
+            <button class="ns-action" type="button">Call</button>
+          </li>
+          <li>
+            <span class="ns-time">11:00 AM</span>
+            <div class="ns-body">
+              <div class="ns-name">Harold Nkemdirim</div>
+              <div class="ns-detail">Dr. Okafor · Diabetes follow-up · 1st miss</div>
+            </div>
+            <button class="ns-action" type="button">Call</button>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Live header clock; date line stays in sync with the viewer's system date.
+  function tick() {
+    var now = new Date();
+    document.getElementById('date').textContent = now.toLocaleDateString('en-US',
+      { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-US',
+      { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>

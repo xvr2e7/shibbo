@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lakeside Family Clinic — Today's Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f6f9;
+    --surface:#ffffff;
+    --ink:#0f1b2a;
+    --ink-2:#36465c;
+    --muted:#6b7a90;
+    --line:#e2e8f0;
+    --line-2:#eef2f7;
+    --teal:#0d7680;
+    --teal-soft:#e2f2f3;
+    --amber:#9a6209;
+    --amber-soft:#fdf1dd;
+    --red:#b4302b;
+    --red-soft:#fceceb;
+    --green:#1a7a52;
+    --green-soft:#e6f4ed;
+    --slate-soft:#eef1f6;
+    --violet:#5b4bb5;
+    --shadow:0 1px 2px rgba(15,27,42,.05), 0 6px 16px -8px rgba(15,27,42,.14);
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    padding:14px 24px;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .mark{
+    width:34px;height:34px;border-radius:9px;flex:none;
+    background:linear-gradient(145deg,#0d7680,#115e67);
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;
+  }
+  .brand h1{font-size:15px;font-weight:650;margin:0;letter-spacing:-.1px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  .topbar-spacer{flex:1}
+  .clock{
+    display:flex;align-items:center;gap:10px;
+    background:var(--slate-soft);border:1px solid var(--line);
+    border-radius:10px;padding:6px 12px;
+  }
+  .clock .t{font-size:17px;font-weight:600;letter-spacing:-.3px}
+  .clock .d{font-size:11px;color:var(--muted);line-height:1.2}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .btn{
+    font:inherit;font-size:12.5px;font-weight:550;
+    background:var(--surface);color:var(--ink-2);
+    border:1px solid var(--line);border-radius:8px;
+    padding:7px 13px;cursor:pointer;transition:.14s;
+  }
+  .btn:hover{border-color:#c9d3e0;background:#fafbfd}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .btn.primary:hover{background:#0b666f}
+  .btn:focus-visible,.chip:focus-visible,.row:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+  /* ---------- layout ---------- */
+  .wrap{padding:20px 24px 40px;max-width:1560px;margin:0 auto}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .kpi{padding:15px 16px 14px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+  .kpi.k-teal::before{background:var(--teal)}
+  .kpi.k-green::before{background:var(--green)}
+  .kpi.k-amber::before{background:#d99b2b}
+  .kpi.k-red::before{background:var(--red)}
+  .kpi.k-violet::before{background:var(--violet)}
+  .kpi .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+  .kpi .val{font-size:30px;font-weight:650;letter-spacing:-1px;line-height:1.1;margin:7px 0 2px}
+  .kpi .val small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+  .kpi .sub{font-size:12px;color:var(--muted)}
+  .kpi .sub b{color:var(--ink-2);font-weight:600}
+  .bar{height:5px;border-radius:3px;background:var(--line-2);margin-top:10px;overflow:hidden;display:flex}
+  .bar i{display:block;height:100%}
+
+  .columns{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(330px,.9fr);gap:16px;align-items:start}
+  .stack{display:flex;flex-direction:column;gap:16px}
+
+  .card-head{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:14px 16px;border-bottom:1px solid var(--line-2);
+  }
+  .card-head h2{font-size:13.5px;font-weight:650;margin:0;letter-spacing:-.05px}
+  .card-head .meta{font-size:12px;color:var(--muted)}
+  .card-head .grow{flex:1}
+
+  /* ---------- filter chips ---------- */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    font:inherit;font-size:12px;font-weight:550;cursor:pointer;
+    border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+    border-radius:999px;padding:4px 11px;transition:.14s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .chip:hover{background:#f7f9fc}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .chip .n{font-size:11px;opacity:.65;font-variant-numeric:tabular-nums}
+
+  /* ---------- schedule ---------- */
+  .sched{max-height:min(68vh,760px);overflow:auto}
+  .sched-grid{width:100%;border-collapse:collapse}
+  .sched-grid thead th{
+    position:sticky;top:0;z-index:5;background:#fbfcfe;
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    text-align:left;font-weight:650;padding:8px 14px;border-bottom:1px solid var(--line);
+  }
+  .row td{padding:10px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+  .row{cursor:pointer;transition:background .12s}
+  .row:hover{background:#f8fafc}
+  .row.is-past td:not(.c-status){opacity:.62}
+  .row.sel{background:var(--teal-soft)}
+  .row.sel td{border-bottom-color:#cfe6e8}
+  .c-time{width:84px;white-space:nowrap}
+  .c-time .hm{font-size:13px;font-weight:600}
+  .c-time .dur{font-size:10.5px;color:var(--muted)}
+  .c-pat{min-width:170px}
+  .c-pat .nm{font-weight:580}
+  .c-pat .id{font-size:11px;color:var(--muted)}
+  .c-type{color:var(--ink-2);min-width:150px}
+  .c-type .flag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--violet);background:#efedfa;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+  .c-prov{white-space:nowrap;color:var(--ink-2)}
+  .c-room{width:104px;white-space:nowrap;color:var(--ink-2);font-size:12.5px}
+  .c-room .none{color:#aab5c4}
+  .c-status{width:128px;white-space:nowrap}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px 3px 7px;
+    border:1px solid transparent;
+  }
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .p-completed{background:var(--green-soft);color:var(--green);border-color:#cce6da}
+  .p-inroom{background:var(--teal-soft);color:var(--teal);border-color:#c6e2e4}
+  .p-waiting{background:var(--amber-soft);color:var(--amber);border-color:#f2e0c0}
+  .p-noshow{background:var(--red-soft);color:var(--red);border-color:#f3d4d2}
+  .p-scheduled{background:var(--slate-soft);color:#5b6b81;border-color:#dfe5ee}
+  .wait-note{font-size:10.5px;color:var(--amber);font-weight:600;margin-top:2px}
+
+  .nowrow td{padding:0;border:0;background:transparent}
+  .nowline{display:flex;align-items:center;gap:9px;padding:3px 14px;background:#fff6f5}
+  .nowline .lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--red);text-transform:uppercase}
+  .nowline .ln{flex:1;height:2px;background:linear-gradient(90deg,var(--red),rgba(180,48,43,.15))}
+  .nowline .bb{width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+  /* ---------- rooms ---------- */
+  .rooms{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-2)}
+  .room{background:var(--surface);padding:12px 13px;min-height:92px;position:relative}
+  .room .rtop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .room .rname{font-size:12.5px;font-weight:650}
+  .room .state{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .room.occupied{background:#f4fbfb}
+  .room.occupied .state{color:var(--teal)}
+  .room.turnover{background:#fffaf0}
+  .room.turnover .state{color:var(--amber)}
+  .room.open .state{color:#9aa6b6}
+  .room .who{font-size:13px;font-weight:550;margin-top:7px}
+  .room .det{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .room .timer{font-size:11.5px;font-weight:600;color:var(--ink-2);margin-top:5px}
+  .room .timer.over{color:var(--red)}
+  .room .empty{font-size:12px;color:#9aa6b6;margin-top:9px}
+  .room .edge{position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
+  .room.occupied .edge{background:var(--teal)}
+  .room.turnover .edge{background:#d99b2b}
+
+  /* ---------- no-shows ---------- */
+  .ns-item{padding:12px 14px;border-bottom:1px solid var(--line-2);display:flex;gap:11px;align-items:flex-start}
+  .ns-item:last-child{border-bottom:0}
+  .ns-time{font-size:11.5px;font-weight:650;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 7px;flex:none;margin-top:1px}
+  .ns-body{flex:1;min-width:0}
+  .ns-body .nm{font-weight:580}
+  .ns-body .dt{font-size:11.5px;color:var(--muted)}
+  .ns-body .tel{font-size:12px;color:var(--ink-2);margin-top:3px}
+  .ns-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .ns-actions .btn{padding:4px 10px;font-size:11.5px}
+  .ns-log{font-size:11.5px;font-weight:600;color:var(--green);margin-top:7px;display:none}
+  .ns-log.show{display:block}
+  .repeat{display:inline-block;font-size:10px;font-weight:700;color:var(--red);background:#fff;border:1px solid #f0cfcd;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+
+  /* ---------- providers ---------- */
+  .prov{padding:12px 14px;border-bottom:1px solid var(--line-2)}
+  .prov:last-child{border-bottom:0}
+  .prov .ptop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .prov .pn{font-weight:580;font-size:13px}
+  .prov .ps{font-size:11.5px;font-weight:650}
+  .ps.ontime{color:var(--green)}
+  .ps.behind{color:var(--amber)}
+  .prov .pm{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .track{height:6px;border-radius:3px;background:var(--line-2);margin-top:8px;display:flex;overflow:hidden;gap:1px}
+  .track i{display:block;height:100%}
+
+  /* ---------- hourly chart ---------- */
+  .chartbox{padding:14px 16px 10px}
+  .chart{display:flex;align-items:flex-end;gap:7px;height:96px}
+  .hcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+  .hbar{width:100%;max-width:38px;border-radius:5px 5px 2px 2px;background:var(--line-2);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;position:relative}
+  .hbar i{display:block;width:100%}
+  .hbar .done{background:var(--teal)}
+  .hbar .miss{background:var(--red)}
+  .hbar .book{background:#cfdbe8}
+  .hcol.nowcol .hlab{color:var(--red);font-weight:700}
+  .hlab{font-size:10.5px;color:var(--muted);font-weight:550}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 16px 14px;border-top:1px solid var(--line-2);font-size:11.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+  .footnote{margin-top:16px;font-size:11.5px;color:#8b98a9;text-align:center}
+
+  @media (max-width:1180px){
+    .kpis{grid-template-columns:repeat(3,1fr)}
+    .columns{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    .wrap{padding:16px 14px 32px}
+    .topbar{padding:12px 14px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .rooms{grid-template-columns:1fr}
+    .c-prov,.c-type{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">L</div>
+    <div>
+      <h1>Lakeside Family Clinic</h1>
+      <p>Front desk · Main dashboard</p>
+    </div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <span class="live"><span class="dot"></span>Live</span>
+  <div class="clock">
+    <div>
+      <div class="t mono" id="clock">10:42:17</div>
+      <div class="d" id="today">Tuesday, November 10, 2026</div>
+    </div>
+  </div>
+  <button class="btn">Print day sheet</button>
+  <button class="btn primary">Check in patient</button>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= KPI ROW ================= -->
+  <section class="kpis" aria-label="Today at a glance">
+    <div class="card kpi k-teal">
+      <div class="label">Appointments today</div>
+      <div class="val" id="kpi-total">36</div>
+      <div class="sub"><b id="kpi-remaining">14</b> still to come · 2 walk-ins</div>
+      <div class="bar" id="kpi-total-bar"></div>
+    </div>
+    <div class="card kpi k-green">
+      <div class="label">Seen / completed</div>
+      <div class="val" id="kpi-done">12</div>
+      <div class="sub"><b id="kpi-done-pct">55%</b> of elapsed slots</div>
+      <div class="bar"><i style="width:55%;background:var(--green)"></i></div>
+    </div>
+    <div class="card kpi k-amber">
+      <div class="label">In clinic now</div>
+      <div class="val" id="kpi-inclinic">7</div>
+      <div class="sub"><b id="kpi-inroom">5</b> in room · <b id="kpi-waiting">2</b> in waiting area</div>
+      <div class="bar" id="kpi-inclinic-bar"></div>
+    </div>
+    <div class="card kpi k-red">
+      <div class="label">No-shows</div>
+      <div class="val" id="kpi-noshow">3</div>
+      <div class="sub"><b id="kpi-noshow-rate">13.6%</b> of 22 elapsed slots</div>
+      <div class="bar"><i id="kpi-noshow-bar" style="width:14%;background:var(--red)"></i></div>
+    </div>
+    <div class="card kpi k-violet">
+      <div class="label">Rooms in use</div>
+      <div class="val"><span id="kpi-rooms">5</span><small> / 8</small></div>
+      <div class="sub"><b>1</b> in turnover · avg wait <b>11 min</b></div>
+      <div class="bar" id="kpi-rooms-bar"></div>
+    </div>
+  </section>
+
+  <div class="columns">
+
+    <!-- ================= LEFT: SCHEDULE ================= -->
+    <div class="stack">
+      <section class="card" aria-label="Today's schedule">
+        <div class="card-head">
+          <h2>Today's schedule</h2>
+          <span class="meta" id="sched-count">36 appointments · 8:00 AM – 4:30 PM</span>
+          <span class="grow"></span>
+          <div class="chips" id="filters" role="group" aria-label="Filter by status"></div>
+        </div>
+        <div class="sched">
+          <table class="sched-grid">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Patient</th>
+                <th scope="col">Visit type</th>
+                <th scope="col">Provider</th>
+                <th scope="col">Room</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="sched-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Appointment volume by hour">
+        <div class="card-head">
+          <h2>Volume by hour</h2>
+          <span class="meta">Completed, missed and booked slots</span>
+        </div>
+        <div class="chartbox"><div class="chart" id="chart"></div></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--teal)"></i>Completed</span>
+          <span><i class="sw" style="background:var(--red)"></i>No-show</span>
+          <span><i class="sw" style="background:#cfdbe8"></i>Booked / upcoming</span>
+          <span style="margin-left:auto">Lunch block 12:00 – 1:00 PM</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= RIGHT COLUMN ================= -->
+    <div class="stack">
+
+      <section class="card" aria-label="Rooms in use">
+        <div class="card-head">
+          <h2>Rooms in use</h2>
+          <span class="meta" id="rooms-meta">5 of 8 occupied</span>
+        </div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="card" aria-label="No-shows">
+        <div class="card-head">
+          <h2>No-shows &amp; missed slots</h2>
+          <span class="meta">Needs front-desk follow-up</span>
+        </div>
+        <div id="noshows"></div>
+      </section>
+
+      <section class="card" aria-label="Provider status">
+        <div class="card-head">
+          <h2>Providers</h2>
+          <span class="meta">Load &amp; running status</span>
+        </div>
+        <div id="providers"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="footnote">Demo dashboard with sample data · all patient names and details are fictional</p>
+</div>
+
+<script>
+/* ===================== data ===================== */
+const NOW = 10 * 60 + 42;                 // simulated clinic time: 10:42
+const S = {
+  completed:{cls:'p-completed', label:'Completed'},
+  inroom:   {cls:'p-inroom',    label:'In room'},
+  waiting:  {cls:'p-waiting',   label:'Waiting'},
+  noshow:   {cls:'p-noshow',    label:'No-show'},
+  scheduled:{cls:'p-scheduled', label:'Scheduled'}
+};
+
+const appts = [
+  {t:480, dur:20, name:'Marcus Bell',       mrn:'MRN 40219', age:54, type:'Hypertension follow-up', prov:'Dr. Okafor',  room:'Exam 2',     st:'completed'},
+  {t:480, dur:15, name:'Priya Raghavan',    mrn:'MRN 38802', age:31, type:'Lab draw',               prov:'RN Patel',    room:'Lab Draw',   st:'completed'},
+  {t:495, dur:20, name:'Danielle Fox',      mrn:'MRN 51774', age:8,  type:'Well-child visit',       prov:'Dr. Lin',     room:'Exam 4',     st:'completed'},
+  {t:510, dur:15, name:'Harold Jennings',   mrn:'MRN 22096', age:72, type:'BP check',               prov:'NP Alvarez',  room:'Vitals Bay', st:'completed'},
+  {t:510, dur:20, name:'Yusuf Karim',       mrn:'MRN 47318', age:39, type:'Sick visit',             prov:'NP Alvarez',  room:'Exam 1',     st:'completed'},
+  {t:525, dur:30, name:'Tomás Delgado',     mrn:'MRN 30551', age:45, type:'Annual physical',        prov:'Dr. Okafor',  room:'Exam 2',     st:'completed'},
+  {t:540, dur:25, name:'Keisha Brown',      mrn:'MRN 49620', age:28, type:'Prenatal visit',         prov:'Dr. Lin',     room:'Exam 4',     st:'completed'},
+  {t:540, dur:20, name:'Walter Simms',      mrn:'MRN 18440', age:66, type:'Skin lesion check',      prov:'Dr. Okafor',  room:null,         st:'noshow', tel:'(503) 884-1172', repeat:true},
+  {t:555, dur:20, name:'Amy Nguyen',        mrn:'MRN 52013', age:37, type:'Sick visit',             prov:'NP Alvarez',  room:'Exam 1',     st:'completed'},
+  {t:555, dur:15, name:'Benji Carter',      mrn:'MRN 53891', age:3,  type:'Immunizations',          prov:'RN Patel',    room:'Vitals Bay', st:'completed'},
+  {t:570, dur:25, name:'Robert Castellano', mrn:'MRN 27745', age:59, type:'Diabetes management',    prov:'Dr. Okafor',  room:'Exam 2',     st:'completed'},
+  {t:570, dur:20, name:'Lena Markovic',     mrn:'MRN 44160', age:41, type:'Low back pain',          prov:'Dr. Lin',     room:'Exam 4',     st:'completed'},
+  {t:585, dur:20, name:'Sofia Herrera',     mrn:'MRN 50902', age:23, type:'Contraception consult',  prov:'NP Alvarez',  room:'Exam 1',     st:'completed'},
+  {t:585, dur:20, name:'Dana Whitfield',    mrn:'MRN 33628', age:50, type:'Imaging referral',       prov:'Dr. Lin',     room:null,         st:'noshow', tel:'(503) 219-7740'},
+  {t:600, dur:30, name:'Jordan Pike',       mrn:'MRN 48855', age:34, type:'Knee injury',            prov:'Dr. Lin',     room:'Exam 4',     st:'inroom', since:601},
+  {t:600, dur:30, name:'Elaine Dubois',     mrn:'MRN 19073', age:78, type:'Medication review',      prov:'Dr. Okafor',  room:'Exam 2',     st:'inroom', since:600, flag:'Interpreter'},
+  {t:600, dur:15, name:'Hassan Ali',        mrn:'MRN 46291', age:47, type:'Lab draw',               prov:'RN Patel',    room:'Lab Draw',   st:'inroom', since:634},
+  {t:615, dur:20, name:'Nadia Farouk',      mrn:'MRN 41508', age:52, type:'Thyroid follow-up',      prov:'NP Alvarez',  room:'Exam 1',     st:'inroom', since:615},
+  {t:615, dur:20, name:'Chris Mwangi',      mrn:'MRN 54110', age:19, type:'Travel vaccines',        prov:'RN Patel',    room:'Vitals Bay', st:'inroom', since:628},
+  {t:630, dur:30, name:'Gregory Hahn',      mrn:'MRN 25884', age:61, type:'EKG',                    prov:'Dr. Okafor',  room:'Procedure A',st:'waiting', arrived:621},
+  {t:630, dur:30, name:'Olivia Trent',      mrn:'MRN 43377', age:44, type:'Annual physical',        prov:'Dr. Lin',     room:null,         st:'waiting', arrived:626},
+  {t:630, dur:20, name:'Peter Vallance',    mrn:'MRN 39012', age:35, type:'Follow-up',              prov:'NP Alvarez',  room:null,         st:'noshow', tel:'(503) 445-8061'},
+  {t:660, dur:20, name:'Grace Okonkwo',     mrn:'MRN 29584', age:67, type:'Post-op check',          prov:'Dr. Okafor',  room:'Exam 2',     st:'scheduled'},
+  {t:660, dur:20, name:'Henry Lau',         mrn:'MRN 50448', age:12, type:'Asthma follow-up',       prov:'Dr. Lin',     room:'Exam 4',     st:'scheduled'},
+  {t:675, dur:40, name:'Marisol Reyes',     mrn:'MRN 54602', age:29, type:'New patient intake',     prov:'NP Alvarez',  room:'Exam 1',     st:'scheduled', flag:'New'},
+  {t:690, dur:30, name:'Arthur Pennington', mrn:'MRN 16329', age:81, type:'Fall risk assessment',   prov:'Dr. Okafor',  room:'Exam 2',     st:'scheduled'},
+  {t:705, dur:20, name:'Tasha Holloway',    mrn:'MRN 52780', age:26, type:'Sick visit',             prov:'NP Alvarez',  room:'Exam 1',     st:'scheduled'},
+  {t:780, dur:45, name:'Felix Brenner',     mrn:'MRN 31166', age:58, type:'Skin biopsy',            prov:'Dr. Okafor',  room:'Procedure A',st:'scheduled'},
+  {t:795, dur:30, name:'Jun Park',          mrn:'MRN 42019', age:44, type:'Annual physical',        prov:'Dr. Lin',     room:'Exam 4',     st:'scheduled'},
+  {t:810, dur:25, name:'Imani Clarke',      mrn:'MRN 51235', age:33, type:'Prenatal visit',         prov:'Dr. Lin',     room:'Exam 4',     st:'scheduled'},
+  {t:840, dur:20, name:'Donald Freitag',    mrn:'MRN 20887', age:70, type:'Hearing complaint',      prov:'NP Alvarez',  room:'Exam 1',     st:'scheduled'},
+  {t:870, dur:20, name:'Rosa Giménez',      mrn:'MRN 35504', age:62, type:'Hypertension follow-up', prov:'Dr. Okafor',  room:'Exam 2',     st:'scheduled', flag:'Interpreter'},
+  {t:900, dur:25, name:'Ezra Lindqvist',    mrn:'MRN 53047', age:16, type:'Sports physical',        prov:'Dr. Lin',     room:'Exam 4',     st:'scheduled'},
+  {t:930, dur:30, name:'Maya Thorne',       mrn:'MRN 45723', age:38, type:'Anxiety follow-up',      prov:'NP Alvarez',  room:'Exam 1',     st:'scheduled'},
+  {t:960, dur:25, name:'Clyde Watanabe',    mrn:'MRN 28615', age:55, type:'Diabetes management',    prov:'Dr. Okafor',  room:'Exam 2',     st:'scheduled'},
+  {t:990, dur:15, name:'Lucia Ferrante',    mrn:'MRN 54988', age:21, type:'Lab draw',               prov:'RN Patel',    room:'Lab Draw',   st:'scheduled'}
+];
+
+const rooms = [
+  {name:'Exam 1',      state:'occupied', who:'Nadia Farouk',  det:'NP Alvarez · Thyroid follow-up', since:615, limit:30},
+  {name:'Exam 2',      state:'occupied', who:'Elaine Dubois', det:'Dr. Okafor · Medication review', since:600, limit:30},
+  {name:'Exam 3',      state:'turnover', who:'Turnover',      det:'Housekeeping requested 10:35',   since:635, limit:15},
+  {name:'Exam 4',      state:'occupied', who:'Jordan Pike',   det:'Dr. Lin · Knee injury',          since:601, limit:30},
+  {name:'Exam 5',      state:'open',     who:null,            det:'Ready · next use 11:15'},
+  {name:'Procedure A', state:'open',     who:null,            det:'EKG prepped · G. Hahn waiting'},
+  {name:'Lab Draw',    state:'occupied', who:'Hassan Ali',    det:'RN Patel · Lab draw',            since:634, limit:15},
+  {name:'Vitals Bay',  state:'occupied', who:'Chris Mwangi',  det:'RN Patel · Travel vaccines',     since:628, limit:20}
+];
+
+const providers = [
+  {name:'Dr. Amara Okafor', role:'Family medicine', status:'behind', note:'running 14 min behind'},
+  {name:'Dr. Wei Lin',      role:'Pediatrics & family', status:'ontime', note:'on time'},
+  {name:'NP Carla Alvarez', role:'Nurse practitioner', status:'ontime', note:'on time'},
+  {name:'RN Devi Patel',    role:'Treatment & labs', status:'ontime', note:'on time'}
+];
+
+/* ===================== helpers ===================== */
+const fmt = m => {
+  const h24 = Math.floor(m/60), mm = String(m%60).padStart(2,'0');
+  const h = h24%12===0 ? 12 : h24%12;
+  return `${h}:${mm} ${h24<12?'AM':'PM'}`;
+};
+const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n; };
+
+/* ===================== KPIs ===================== */
+const count = s => appts.filter(a=>a.st===s).length;
+const done = count('completed'), inroom = count('inroom'), waiting = count('waiting'),
+      noshow = count('noshow'), upcoming = count('scheduled'), total = appts.length;
+const elapsed = done + inroom + waiting + noshow;
+
+document.getElementById('kpi-total').textContent = total;
+document.getElementById('kpi-remaining').textContent = upcoming;
+document.getElementById('kpi-done').textContent = done;
+document.getElementById('kpi-done-pct').textContent = Math.round(done/elapsed*100) + '%';
+document.getElementById('kpi-inclinic').textContent = inroom + waiting;
+document.getElementById('kpi-inroom').textContent = inroom;
+document.getElementById('kpi-waiting').textContent = waiting;
+document.getElementById('kpi-noshow').textContent = noshow;
+document.getElementById('kpi-noshow-rate').textContent = (noshow/elapsed*100).toFixed(1) + '%';
+document.getElementById('kpi-noshow-bar').style.width = Math.max(6, noshow/elapsed*100) + '%';
+document.getElementById('kpi-noshow').closest('.kpi').querySelector('.sub').innerHTML =
+  `<b>${(noshow/elapsed*100).toFixed(1)}%</b> of ${elapsed} elapsed slots`;
+
+const occupied = rooms.filter(r=>r.state==='occupied').length;
+document.getElementById('kpi-rooms').textContent = occupied;
+document.getElementById('rooms-meta').textContent = `${occupied} of ${rooms.length} occupied`;
+
+document.getElementById('kpi-total-bar').innerHTML =
+  `<i style="width:${done/total*100}%;background:var(--teal)"></i>
+   <i style="width:${(inroom+waiting)/total*100}%;background:#d99b2b"></i>
+   <i style="width:${noshow/total*100}%;background:var(--red)"></i>`;
+document.getElementById('kpi-inclinic-bar').innerHTML =
+  `<i style="width:${inroom/(inroom+waiting)*100}%;background:var(--teal)"></i>
+   <i style="width:${waiting/(inroom+waiting)*100}%;background:#d99b2b"></i>`;
+document.getElementById('kpi-rooms-bar').innerHTML =
+  `<i style="width:${occupied/rooms.length*100}%;background:var(--violet)"></i>
+   <i style="width:${1/rooms.length*100}%;background:#d99b2b"></i>`;
+document.getElementById('sched-count').textContent =
+  `${total} appointments · ${fmt(appts[0].t)} – ${fmt(appts[total-1].t)}`;
+
+/* ===================== schedule ===================== */
+let filter = 'all';
+const filterDefs = [
+  ['all','All',total], ['waiting','Waiting',waiting], ['inroom','In room',inroom],
+  ['scheduled','Upcoming',upcoming], ['completed','Completed',done], ['noshow','No-show',noshow]
+];
+const chipBox = document.getElementById('filters');
+filterDefs.forEach(([key,label,n])=>{
+  const c = el('button','chip',`${label}<span class="n">${n}</span>`);
+  c.type='button'; c.setAttribute('aria-pressed', key==='all');
+  c.onclick = ()=>{
+    filter = key;
+    [...chipBox.children].forEach(x=>x.setAttribute('aria-pressed','false'));
+    c.setAttribute('aria-pressed','true');
+    renderSchedule();
+  };
+  chipBox.appendChild(c);
+});
+
+function renderSchedule(){
+  const body = document.getElementById('sched-body');
+  body.innerHTML = '';
+  const list = appts.filter(a => filter==='all' || a.st===filter);
+  let nowPlaced = filter!=='all';
+
+  list.forEach(a=>{
+    if(!nowPlaced && a.t > NOW){
+      const nr = el('tr','nowrow');
+      nr.innerHTML = `<td colspan="6"><div class="nowline"><span class="bb"></span>
+        <span class="lbl">Now · ${fmt(NOW)}</span><span class="ln"></span></div></td>`;
+      body.appendChild(nr);
+      nowPlaced = true;
+    }
+    const past = a.st==='completed' || a.st==='noshow';
+    const tr = el('tr','row' + (past?' is-past':''));
+    tr.tabIndex = 0;
+    const st = S[a.st];
+    const extra = a.st==='waiting'
+      ? `<div class="wait-note">waiting ${NOW - a.arrived} min</div>`
+      : a.st==='inroom' ? `<div class="wait-note" style="color:var(--teal)">in room ${NOW - a.since} min</div>` : '';
+    tr.innerHTML = `
+      <td class="c-time"><div class="hm mono">${fmt(a.t)}</div><div class="dur">${a.dur} min</div></td>
+      <td class="c-pat"><div class="nm">${a.name}</div><div class="id mono">${a.mrn} · ${a.age}y</div></td>
+      <td class="c-type">${a.type}${a.flag?`<span class="flag">${a.flag}</span>`:''}</td>
+      <td class="c-prov">${a.prov}</td>
+      <td class="c-room">${a.room ? a.room : '<span class="none">—</span>'}</td>
+      <td class="c-status"><span class="pill ${st.cls}">${st.label}</span>${extra}</td>`;
+    tr.onclick = ()=>{
+      const was = tr.classList.contains('sel');
+      body.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));
+      if(!was) tr.classList.add('sel');
+    };
+    tr.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); } };
+    body.appendChild(tr);
+  });
+
+  if(!list.length) body.innerHTML = `<tr><td colspan="6" style="padding:26px;text-align:center;color:var(--muted)">No appointments with this status.</td></tr>`;
+}
+renderSchedule();
+
+/* ===================== rooms ===================== */
+const roomBox = document.getElementById('rooms');
+rooms.forEach(r=>{
+  const mins = r.since!=null ? NOW - r.since : null;
+  const over = mins!=null && r.limit && mins > r.limit;
+  const stateLabel = r.state==='occupied' ? 'In use' : r.state==='turnover' ? 'Turnover' : 'Open';
+  const d = el('div','room '+r.state);
+  d.innerHTML = `<span class="edge"></span>
+    <div class="rtop"><span class="rname">${r.name}</span><span class="state">${stateLabel}</span></div>
+    ${r.who ? `<div class="who">${r.who}</div>` : `<div class="empty">Unoccupied</div>`}
+    <div class="det">${r.det}</div>
+    ${mins!=null ? `<div class="timer mono${over?' over':''}">${mins} min${over?` · over ${r.limit} min slot`:''}</div>` : ''}`;
+  roomBox.appendChild(d);
+});
+
+/* ===================== no-shows ===================== */
+const nsBox = document.getElementById('noshows');
+appts.filter(a=>a.st==='noshow').forEach(a=>{
+  const d = el('div','ns-item');
+  d.innerHTML = `
+    <span class="ns-time mono">${fmt(a.t)}</span>
+    <div class="ns-body">
+      <div class="nm">${a.name}${a.repeat?'<span class="repeat">3rd this year</span>':''}</div>
+      <div class="dt">${a.type} · ${a.prov} · ${a.mrn}</div>
+      <div class="tel mono">${a.tel}</div>
+      <div class="ns-actions">
+        <button class="btn" type="button" data-act="Call logged">Log call</button>
+        <button class="btn" type="button" data-act="Marked for reschedule">Reschedule</button>
+      </div>
+      <div class="ns-log"></div>
+    </div>`;
+  const log = d.querySelector('.ns-log');
+  d.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{ log.textContent = `✓ ${b.dataset.act} at ${fmt(NOW)}`; log.classList.add('show'); };
+  });
+  nsBox.appendChild(d);
+});
+
+/* ===================== providers ===================== */
+const provBox = document.getElementById('providers');
+providers.forEach(p=>{
+  const short = p.name.replace(/^(Dr\.|NP|RN)\s/, m=>m).split(' ').filter((w,i)=>i===0||i===2).join(' ');
+  const key = p.name.includes('Okafor') ? 'Dr. Okafor' : p.name.includes('Lin') ? 'Dr. Lin'
+            : p.name.includes('Alvarez') ? 'NP Alvarez' : 'RN Patel';
+  const mine = appts.filter(a=>a.prov===key);
+  const c = s => mine.filter(a=>a.st===s).length;
+  const n = mine.length;
+  const seg = (v,color) => v ? `<i style="width:${v/n*100}%;background:${color}"></i>` : '';
+  const d = el('div','prov');
+  d.innerHTML = `
+    <div class="ptop"><span class="pn">${p.name}</span><span class="ps ${p.status}">${p.note}</span></div>
+    <div class="pm">${p.role} · ${n} booked · ${c('completed')} seen · ${c('scheduled')} to come${c('noshow')?` · ${c('noshow')} no-show`:''}</div>
+    <div class="track">
+      ${seg(c('completed'),'var(--teal)')}
+      ${seg(c('inroom')+c('waiting'),'#d99b2b')}
+      ${seg(c('noshow'),'var(--red)')}
+      ${seg(c('scheduled'),'#cfdbe8')}
+    </div>`;
+  provBox.appendChild(d);
+});
+
+/* ===================== hourly chart ===================== */
+const chart = document.getElementById('chart');
+const hours = [8,9,10,11,12,13,14,15,16];
+const maxH = Math.max(...hours.map(h=>appts.filter(a=>Math.floor(a.t/60)===h).length));
+hours.forEach(h=>{
+  const inH = appts.filter(a=>Math.floor(a.t/60)===h);
+  const d = inH.filter(a=>a.st==='completed').length;
+  const m = inH.filter(a=>a.st==='noshow').length;
+  const b = inH.length - d - m;
+  const hgt = inH.length ? (inH.length/maxH)*80 : 3;
+  const lab = (h%12===0?12:h%12) + (h<12?'a':'p');
+  const col = el('div','hcol' + (h===Math.floor(NOW/60)?' nowcol':''));
+  col.innerHTML = `
+    <div class="hbar" style="height:${hgt}px" title="${lab} — ${inH.length} appointments">
+      ${b?`<i class="book" style="height:${b/inH.length*100}%"></i>`:''}
+      ${m?`<i class="miss" style="height:${m/inH.length*100}%"></i>`:''}
+      ${d?`<i class="done" style="height:${d/inH.length*100}%"></i>`:''}
+    </div>
+    <div class="hlab mono">${lab}</div>`;
+  chart.appendChild(col);
+});
+
+/* ===================== ticking clock ===================== */
+let secs = NOW*60 + 17;
+const clockEl = document.getElementById('clock');
+function tick(){
+  const h24 = Math.floor(secs/3600)%24, m = Math.floor(secs/60)%60, s = secs%60;
+  const h = h24%12===0?12:h24%12;
+  clockEl.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${h24<12?'AM':'PM'}`;
+  secs++;
+}
+tick(); setInterval(tick,1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plotix — Modern Charting for the Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-elevated: #11141b;
+    --bg-card: #12151d;
+    --border: #1f2430;
+    --border-soft: #191c25;
+    --text: #e7e9ee;
+    --text-dim: #9aa2b1;
+    --text-faint: #5c6473;
+    --accent: #7c5cff;
+    --accent-2: #38e0c8;
+    --accent-soft: rgba(124, 92, 255, 0.12);
+    --radius: 10px;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .noise-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(124,92,255,0.14), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(56,224,200,0.08), transparent 60%),
+      var(--bg);
+  }
+
+  /* ---------- Top bar ---------- */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px;
+    background: rgba(11,13,18,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .brand-mark svg { width: 15px; height: 15px; }
+
+  nav.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  nav.main-nav a {
+    color: var(--text-dim);
+    transition: color 0.15s ease;
+    position: relative;
+    padding: 4px 0;
+  }
+  nav.main-nav a:hover { color: var(--text); }
+  nav.main-nav a.active { color: var(--text); }
+  nav.main-nav a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -14px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-faint);
+    font-size: 13px;
+    width: 220px;
+    cursor: pointer;
+  }
+  .search-box kbd {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text-faint);
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .icon-btn:hover { background: var(--bg-elevated); color: var(--text); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--accent), #6a4ae8);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+    box-shadow: 0 4px 16px rgba(124,92,255,0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,92,255,0.4); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--text);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-ghost:hover { background: var(--bg-elevated); border-color: #2a2f3d; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 90px 32px 50px;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    border: 1px solid rgba(124,92,255,0.25);
+    color: #b7a6ff;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 22px;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 8px var(--accent-2);
+  }
+
+  .hero h1 {
+    font-size: 48px;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 20px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero p.lead {
+    color: var(--text-dim);
+    font-size: 17px;
+    max-width: 480px;
+    margin: 0 0 32px;
+  }
+
+  .hero-ctas { display: flex; gap: 12px; margin-bottom: 36px; }
+
+  .install-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 340px;
+  }
+  .install-line span.prompt { color: var(--accent-2); }
+  .install-line button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+  }
+  .install-line button:hover { color: var(--text); }
+  .install-line svg { width: 14px; height: 14px; }
+
+  /* ---------- Hero chart card ---------- */
+  .hero-visual {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .hero-visual::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124,92,255,0.6), transparent);
+  }
+  .visual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .visual-header .dots { display: flex; gap: 6px; }
+  .visual-header .dots span {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--border);
+  }
+  .visual-header .legend {
+    display: flex; gap: 14px; font-size: 12px; color: var(--text-dim);
+  }
+  .visual-header .legend .swatch {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px;
+  }
+  .chart-wrap { height: 230px; }
+
+  /* ---------- Trust bar ---------- */
+  .trust-bar {
+    max-width: 1180px;
+    margin: 10px auto 70px;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    color: var(--text-faint);
+    font-size: 13px;
+    border-top: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .trust-bar .label { font-weight: 600; color: var(--text-dim); flex-shrink: 0; }
+  .trust-logos { display: flex; gap: 36px; flex-wrap: wrap; font-weight: 600; letter-spacing: 0.02em; opacity: 0.6; }
+
+  /* ---------- Section shared ---------- */
+  section.block {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 70px 32px;
+  }
+  .section-head { max-width: 560px; margin-bottom: 44px; }
+  .section-head h2 {
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    font-weight: 700;
+  }
+  .section-head p { color: var(--text-dim); margin: 0; font-size: 15px; }
+
+  /* ---------- Feature grid ---------- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .feature-card:hover { border-color: #2d3242; transform: translateY(-2px); }
+  .feature-card .icon-box {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    color: var(--accent-2);
+  }
+  .feature-card .icon-box svg { width: 18px; height: 18px; }
+  .feature-card h3 { font-size: 15.5px; margin: 0 0 8px; font-weight: 600; }
+  .feature-card p { color: var(--text-dim); font-size: 13.5px; margin: 0; }
+
+  /* ---------- Chart type showcase ---------- */
+  .chart-types {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .type-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+  }
+  .type-card:hover { border-color: var(--accent); }
+  .type-card .mini-chart { height: 90px; margin-bottom: 12px; }
+  .type-card span { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+
+  /* ---------- Code + docs split ---------- */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .code-window {
+    background: #0d0f15;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .code-window .cw-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg-elevated);
+  }
+  .code-window .cw-head .dots { display: flex; gap: 6px; }
+  .code-window .cw-head .dots span { width: 9px; height: 9px; border-radius: 50%; }
+  .code-window .cw-head .dots span:nth-child(1) { background: #ff5f57; }
+  .code-window .cw-head .dots span:nth-child(2) { background: #febc2e; }
+  .code-window .cw-head .dots span:nth-child(3) { background: #28c840; }
+  .code-window .cw-head .filename { font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
+  .code-window pre {
+    margin: 0;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: #c7cbd4;
+  }
+  .tok-kw { color: #ff79c6; }
+  .tok-str { color: #38e0c8; }
+  .tok-fn { color: #7c5cff; }
+  .tok-com { color: var(--text-faint); font-style: italic; }
+  .tok-prop { color: #9aa2ff; }
+  .tok-num { color: #ffb86c; }
+
+  .split-text ul {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0 0;
+  }
+  .split-text li {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .split-text li svg { width: 16px; height: 16px; color: var(--accent-2); flex-shrink: 0; margin-top: 2px; }
+  .split-text li:last-child { border-bottom: none; }
+
+  /* ---------- Docs cards ---------- */
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .doc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .doc-card:hover { border-color: #2d3242; transform: translateY(-2px); }
+  .doc-card .num { font-family: var(--mono); font-size: 12px; color: var(--accent-2); margin-bottom: 14px; display: block; }
+  .doc-card h3 { font-size: 15px; margin: 0 0 8px; }
+  .doc-card p { font-size: 13px; color: var(--text-dim); margin: 0 0 14px; }
+  .doc-card .go { font-size: 12.5px; font-weight: 600; color: var(--text); display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ---------- CTA band ---------- */
+  .cta-band {
+    max-width: 1180px;
+    margin: 0 auto 90px;
+    padding: 56px 48px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.12), rgba(56,224,200,0.08));
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+  }
+  .cta-band h2 { font-size: 26px; margin: 0 0 8px; font-weight: 700; letter-spacing: -0.02em; }
+  .cta-band p { margin: 0; color: var(--text-dim); font-size: 14.5px; }
+  .cta-actions { display: flex; gap: 12px; flex-shrink: 0; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border-soft);
+    padding: 50px 32px 30px;
+  }
+  .footer-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr;
+    gap: 32px;
+  }
+  .footer-brand p { color: var(--text-faint); font-size: 13px; max-width: 220px; margin: 14px 0 0; }
+  .footer-col h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin: 0 0 14px; }
+  .footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col a { color: var(--text-dim); font-size: 13.5px; }
+  .footer-col a:hover { color: var(--text); }
+  .footer-bottom {
+    max-width: 1180px;
+    margin: 40px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-faint);
+    font-size: 12.5px;
+  }
+
+  @media (max-width: 980px) {
+    nav.main-nav, .search-box { display: none; }
+    .hero { grid-template-columns: 1fr; padding-top: 50px; }
+    .feature-grid, .chart-types, .docs-grid { grid-template-columns: repeat(2, 1fr); }
+    .split { grid-template-columns: 1fr; }
+    .footer-inner { grid-template-columns: repeat(2, 1fr); }
+    .cta-band { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="noise-bg"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+    </span>
+    Plotix
+  </div>
+  <nav class="main-nav">
+    <a href="#" class="active">Docs</a>
+    <a href="#">Examples</a>
+    <a href="#">API Reference</a>
+    <a href="#">Plugins</a>
+    <a href="#">Blog</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Search docs
+      <kbd>⌘K</kbd>
+    </div>
+    <a href="#" class="icon-btn" aria-label="GitHub">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.38 7.86 10.9.57.1.78-.25.78-.55v-2.17c-3.2.69-3.87-1.37-3.87-1.37-.53-1.33-1.29-1.69-1.29-1.69-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.68.42.36.78 1.08.78 2.17v3.22c0 .3.21.66.79.55A10.52 10.52 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>
+    </a>
+    <a href="#" class="btn-ghost">Sign in</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="dot"></span> v4.2 just shipped — streaming data & WebGL renderer</div>
+      <h1>Charts that feel <span class="grad">native</span>, not bolted on.</h1>
+      <p class="lead">Plotix is a lightweight, framework-agnostic charting library for building fast, accessible, and beautiful data visualizations — from sparklines to real-time dashboards.</p>
+      <div class="hero-ctas">
+        <a href="#" class="btn-primary">
+          Get started
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#" class="btn-ghost">View on GitHub</a>
+      </div>
+      <div class="install-line">
+        <span class="prompt">$</span> npm install plotix
+        <button aria-label="copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="visual-header">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#7c5cff"></span>Revenue</span>
+          <span><span class="swatch" style="background:#38e0c8"></span>Users</span>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="heroChart"></canvas></div>
+    </div>
+  </section>
+
+  <div class="trust-bar">
+    <span class="label">Trusted by teams at</span>
+    <div class="trust-logos">
+      <span>NIMBUS</span><span>Fractal Labs</span><span>Haven Health</span><span>Quarterly</span><span>Northwind</span><span>Vellum</span>
+    </div>
+  </div>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Everything you need, nothing you don't</h2>
+      <p>Plotix ships as a single dependency-free core with opt-in plugins, so your bundle only grows when you ask it to.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <h3>Canvas & SVG renderers</h3>
+        <p>Switch between a buttery-fast canvas renderer or a fully inspectable SVG tree with one config flag.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></div>
+        <h3>Live data streaming</h3>
+        <p>Push new points into a chart at 60fps without re-mounting or re-parsing your dataset.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+        <h3>25+ chart types</h3>
+        <p>Line, bar, candlestick, radar, heatmap, Sankey, and more — all sharing one consistent API.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <h3>Buttery animations</h3>
+        <p>Spring-based transitions driven by a dedicated timing engine, tuned for 120Hz displays.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg></div>
+        <h3>Accessible by default</h3>
+        <p>Keyboard navigation, screen-reader descriptions, and color-blind-safe palettes out of the box.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+        <h3>Framework adapters</h3>
+        <p>First-party bindings for React, Vue, and Svelte — or use the vanilla core anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Pick a shape, any shape</h2>
+      <p>Every chart type shares the same declarative options object — learn one, use them all.</p>
+    </div>
+    <div class="chart-types">
+      <div class="type-card">
+        <div class="mini-chart"><canvas id="typeLine"></canvas></div>
+        <span>Line</span>
+      </div>
+      <div class="type-card">
+        <div class="mini-chart"><canvas id="typeBar"></canvas></div>
+        <span>Bar</span>
+      </div>
+      <div class="type-card">
+        <div class="mini-chart"><canvas id="typeDoughnut"></canvas></div>
+        <span>Doughnut</span>
+      </div>
+      <div class="type-card">
+        <div class="mini-chart"><canvas id="typeRadar"></canvas></div>
+        <span>Radar</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="split">
+      <div class="code-window">
+        <div class="cw-head">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="filename">chart.config.js</span>
+        </div>
+        <pre><span class="tok-kw">import</span> { Plotix } <span class="tok-kw">from</span> <span class="tok-str">'plotix'</span>;
+
+<span class="tok-kw">const</span> chart = <span class="tok-kw">new</span> <span class="tok-fn">Plotix</span>(<span class="tok-str">'#canvas'</span>, {
+  <span class="tok-prop">type</span>: <span class="tok-str">'line'</span>,
+  <span class="tok-prop">data</span>: {
+    <span class="tok-prop">labels</span>: [<span class="tok-str">'Mon'</span>, <span class="tok-str">'Tue'</span>, <span class="tok-str">'Wed'</span>, <span class="tok-str">'Thu'</span>],
+    <span class="tok-prop">series</span>: [{
+      <span class="tok-prop">name</span>: <span class="tok-str">'Revenue'</span>,
+      <span class="tok-prop">values</span>: [<span class="tok-num">12</span>, <span class="tok-num">19</span>, <span class="tok-num">14</span>, <span class="tok-num">25</span>],
+      <span class="tok-prop">smooth</span>: <span class="tok-kw">true</span>,
+    }],
+  },
+  <span class="tok-prop">theme</span>: <span class="tok-str">'midnight'</span>,
+});
+
+<span class="tok-com">// stream a new point in real time</span>
+chart.<span class="tok-fn">push</span>(<span class="tok-str">'Revenue'</span>, <span class="tok-num">31</span>);</pre>
+      </div>
+      <div class="split-text">
+        <h2 style="font-size:26px; margin:0 0 6px; font-weight:700; letter-spacing:-0.02em;">A config object, not a framework</h2>
+        <p style="color:var(--text-dim); font-size:14.5px; margin:0;">No wrapper components to fight, no proprietary DSL — just plain objects and a predictable API that reads the same whether you're writing vanilla JS or a thin React hook.</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Zero runtime dependencies, ~11kb gzipped core</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> TypeScript types generated from the same schema as the docs</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Server-side rendering support for static exports</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Plugin hooks for custom tooltips, annotations, and axes</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Start exploring the docs</h2>
+      <p>New here? These four guides will take you from zero to a production dashboard.</p>
+    </div>
+    <div class="docs-grid">
+      <div class="doc-card">
+        <span class="num">01</span>
+        <h3>Installation</h3>
+        <p>Add Plotix via npm, a CDN script tag, or your favorite framework's adapter package.</p>
+        <span class="go">Read guide →</span>
+      </div>
+      <div class="doc-card">
+        <span class="num">02</span>
+        <h3>Your first chart</h3>
+        <p>Render a line chart from a plain array in under five minutes, no build tools required.</p>
+        <span class="go">Read guide →</span>
+      </div>
+      <div class="doc-card">
+        <span class="num">03</span>
+        <h3>Theming & styling</h3>
+        <p>Customize colors, typography, and motion using design tokens or raw CSS variables.</p>
+        <span class="go">Read guide →</span>
+      </div>
+      <div class="doc-card">
+        <span class="num">04</span>
+        <h3>Migrating from v3</h3>
+        <p>A line-by-line breakdown of breaking changes and codemods to upgrade automatically.</p>
+        <span class="go">Read guide →</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-band">
+    <div>
+      <h2>Ready to plot something?</h2>
+      <p>Join the community of 40,000+ developers shipping charts with Plotix.</p>
+    </div>
+    <div class="cta-actions">
+      <a href="#" class="btn-primary">Read the quickstart</a>
+      <a href="#" class="btn-ghost">Star on GitHub ★ 18.2k</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        </span>
+        Plotix
+      </div>
+      <p>An open-source charting library for the modern web. MIT licensed, community maintained.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Docs</h4>
+      <ul>
+        <li><a href="#">Getting started</a></li>
+        <li><a href="#">API reference</a></li>
+        <li><a href="#">Chart types</a></li>
+        <li><a href="#">Theming</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Community</h4>
+      <ul>
+        <li><a href="#">GitHub Discussions</a></li>
+        <li><a href="#">Discord</a></li>
+        <li><a href="#">Stack Overflow</a></li>
+        <li><a href="#">Twitter / X</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="#">Examples gallery</a></li>
+        <li><a href="#">Changelog</a></li>
+        <li><a href="#">Roadmap</a></li>
+        <li><a href="#">Blog</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Project</h4>
+      <ul>
+        <li><a href="#">GitHub</a></li>
+        <li><a href="#">License</a></li>
+        <li><a href="#">Contributing</a></li>
+        <li><a href="#">Sponsors</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Plotix. Released under the MIT License.</span>
+    <span>Built with ♥ by the open-source community</span>
+  </div>
+</footer>
+
+<script>
+  const fontColor = '#9aa2b1';
+  const gridColor = 'rgba(255,255,255,0.05)';
+
+  Chart.defaults.color = fontColor;
+  Chart.defaults.font.family = "'Inter', sans-serif";
+
+  new Chart(document.getElementById('heroChart'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+      datasets: [
+        {
+          label: 'Revenue',
+          data: [12,19,14,25,22,30,28,36],
+          borderColor: '#7c5cff',
+          backgroundColor: 'rgba(124,92,255,0.15)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Users',
+          data: [8,11,13,15,18,19,23,27],
+          borderColor: '#38e0c8',
+          backgroundColor: 'rgba(56,224,200,0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: gridColor }, border: { display: false } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('typeLine'), {
+    type: 'line',
+    data: {
+      labels: ['1','2','3','4','5','6'],
+      datasets: [{ data: [4,9,6,13,10,16], borderColor: '#7c5cff', backgroundColor: 'rgba(124,92,255,0.12)', tension: 0.4, fill: true, pointRadius: 0, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
+
+  new Chart(document.getElementById('typeBar'), {
+    type: 'bar',
+    data: {
+      labels: ['1','2','3','4','5'],
+      datasets: [{ data: [6,11,8,14,9], backgroundColor: '#38e0c8', borderRadius: 3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
+
+  new Chart(document.getElementById('typeDoughnut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['A','B','C','D'],
+      datasets: [{ data: [35,25,22,18], backgroundColor: ['#7c5cff','#38e0c8','#ffb86c','#3a3f4f'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  new Chart(document.getElementById('typeRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['Speed','Size','Cost','API','DX'],
+      datasets: [{ data: [9,6,8,10,9], borderColor: '#7c5cff', backgroundColor: 'rgba(124,92,255,0.15)', pointRadius: 0, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { r: { grid: { color: gridColor }, angleLines: { color: gridColor }, pointLabels: { display: false }, ticks: { display: false } } }
+    }
+  });
+</script>
+</body>
+</html>

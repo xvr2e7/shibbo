@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Board · Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f1ec;
+    --surface: #ffffff;
+    --surface-2: #faf8f5;
+    --ink: #1c1a17;
+    --ink-2: #5c5751;
+    --ink-3: #9a948c;
+    --line: #e6e1d9;
+    --line-2: #d4cec4;
+    --accent: #e4572e;
+    --accent-ink: #fff;
+    --shadow: 0 1px 2px rgba(28,26,23,.05), 0 4px 14px rgba(28,26,23,.06);
+    --shadow-lift: 0 2px 6px rgba(28,26,23,.08), 0 14px 32px rgba(28,26,23,.14);
+    --radius: 14px;
+    --radius-sm: 9px;
+    --col-w: 300px;
+  }
+  [data-theme="dark"] {
+    --bg: #15140f;
+    --surface: #1f1d18;
+    --surface-2: #27251f;
+    --ink: #f1ede6;
+    --ink-2: #b9b2a8;
+    --ink-3: #7a746b;
+    --line: #2f2c25;
+    --line-2: #3d3930;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.3);
+    --shadow-lift: 0 2px 6px rgba(0,0,0,.4), 0 14px 32px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    background-image: radial-gradient(circle at 10% 0%, rgba(228,87,46,.07), transparent 40%),
+                      radial-gradient(circle at 90% 100%, rgba(80,120,200,.07), transparent 40%);
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  input, textarea, select { font: inherit; color: inherit; }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex; align-items: center; gap: 18px;
+    padding: 18px 28px 14px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 11px;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; font-style: italic;
+  }
+  h1 {
+    margin: 0; font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; letter-spacing: -.01em;
+  }
+  h1 small { display: block; font-family: 'Inter'; font-weight: 500; font-size: 12px; color: var(--ink-3); letter-spacing: .02em; margin-top: 2px; }
+
+  .team { display: flex; align-items: center; margin-left: 6px; }
+  .team .avatar { margin-left: -8px; border: 2px solid var(--bg); cursor: pointer; transition: transform .15s, opacity .15s; }
+  .team .avatar:first-child { margin-left: 0; }
+  .team .avatar:hover { transform: translateY(-2px); z-index: 2; }
+  .team .avatar.dim { opacity: .35; }
+  .team .avatar.active { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 3; }
+
+  .spacer { flex: 1; }
+
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 12px 7px 12px; min-width: 230px; box-shadow: var(--shadow);
+  }
+  .search svg { width: 15px; height: 15px; color: var(--ink-3); flex: none; }
+  .search input { border: 0; outline: 0; background: none; width: 100%; font-size: 13px; }
+  .search input::placeholder { color: var(--ink-3); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13px;
+    border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow);
+    transition: transform .12s, box-shadow .12s, background .12s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn.icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+  .btn svg { width: 16px; height: 16px; }
+
+  /* ---------- Board ---------- */
+  main {
+    flex: 1; min-height: 0;
+    overflow-x: auto; overflow-y: hidden;
+    padding: 6px 28px 28px;
+    scrollbar-width: thin;
+  }
+  .board {
+    display: flex; gap: 16px; height: 100%; align-items: flex-start;
+    min-width: max-content;
+  }
+  .column {
+    width: var(--col-w); flex: none;
+    display: flex; flex-direction: column;
+    max-height: 100%;
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    backdrop-filter: blur(6px);
+    transition: background .15s, border-color .15s;
+  }
+  .column.drag-over { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .column.col-dragging { opacity: .4; }
+  .col-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 14px 10px; cursor: grab; user-select: none;
+  }
+  .col-head:active { cursor: grabbing; }
+  .col-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .col-title {
+    font-weight: 600; font-size: 13.5px; letter-spacing: -.005em;
+    border: 0; background: none; outline: 0; padding: 2px 4px; margin-left: -4px; border-radius: 5px; min-width: 0; flex: 1;
+  }
+  .col-title:focus { background: var(--surface); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .count {
+    font-size: 11.5px; font-weight: 600; color: var(--ink-3);
+    background: var(--surface); border: 1px solid var(--line);
+    padding: 1px 7px; border-radius: 999px; min-width: 22px; text-align: center;
+  }
+  .count.over { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+  .col-menu-btn { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--ink-3); }
+  .col-menu-btn:hover { background: var(--surface); color: var(--ink); }
+  .col-menu-btn svg { width: 15px; height: 15px; }
+
+  .cards {
+    flex: 1; min-height: 60px; overflow-y: auto;
+    padding: 2px 10px 6px;
+    display: flex; flex-direction: column; gap: 8px;
+    scrollbar-width: thin;
+  }
+  .cards:empty::after {
+    content: 'Drop cards here';
+    display: grid; place-items: center; height: 56px;
+    border: 1.5px dashed var(--line-2); border-radius: var(--radius-sm);
+    color: var(--ink-3); font-size: 12px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 12px 12px 10px;
+    box-shadow: var(--shadow); cursor: grab;
+    position: relative;
+    transition: transform .12s, box-shadow .12s, opacity .15s;
+    animation: pop .18s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.97); opacity: 0; } }
+  .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .35; transform: rotate(1.5deg) scale(.98); }
+  .card.hidden { display: none; }
+  .card.done .card-title { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+
+  .labels { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .labels:empty { display: none; }
+  .label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+    padding: 2px 8px; border-radius: 999px; text-transform: uppercase;
+    color: var(--l-ink); background: var(--l-bg);
+  }
+  .card-title { font-weight: 500; font-size: 13.5px; line-height: 1.4; margin: 0; word-wrap: break-word; }
+  .card-desc { color: var(--ink-2); font-size: 12.5px; line-height: 1.45; margin: 6px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--ink-3); font-size: 11.5px; }
+  .card-foot svg { width: 13px; height: 13px; vertical-align: -2px; }
+  .meta { display: inline-flex; align-items: center; gap: 4px; }
+  .meta.due-soon { color: #c2410c; font-weight: 600; }
+  .meta.overdue { color: #b91c1c; font-weight: 600; }
+  .card-foot .avatar { margin-left: auto; width: 24px; height: 24px; font-size: 9.5px; }
+
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: inline-grid; place-items: center;
+    font-size: 11px; font-weight: 700; color: #fff; letter-spacing: .02em;
+    flex: none; position: relative;
+  }
+  .avatar.unassigned { background: transparent; border: 1.5px dashed var(--line-2); color: var(--ink-3); }
+
+  .add-card {
+    margin: 4px 10px 10px; padding: 9px 10px;
+    border-radius: var(--radius-sm); text-align: left; color: var(--ink-3);
+    font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px;
+    border: 1px dashed transparent;
+  }
+  .add-card:hover { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .add-card svg { width: 15px; height: 15px; }
+
+  .add-column {
+    width: var(--col-w); flex: none; height: 58px;
+    border: 1.5px dashed var(--line-2); border-radius: var(--radius);
+    color: var(--ink-3); font-weight: 600; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-column:hover { color: var(--ink); border-color: var(--ink-3); background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .add-column svg { width: 16px; height: 16px; }
+
+  /* ---------- Column dropdown ---------- */
+  .popover {
+    position: fixed; z-index: 50; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; box-shadow: var(--shadow-lift); padding: 6px; min-width: 190px;
+    animation: pop .12s ease-out;
+  }
+  .popover button {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 8px 10px; border-radius: 7px; font-size: 13px; font-weight: 500;
+  }
+  .popover button:hover { background: var(--surface-2); }
+  .popover button.danger { color: #b91c1c; }
+  .popover hr { border: 0; border-top: 1px solid var(--line); margin: 5px 4px; }
+  .popover .colors { display: flex; gap: 6px; padding: 8px 10px; }
+  .popover .colors span { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .popover .colors span:hover { transform: scale(1.15); }
+  .popover .colors span.sel { border-color: var(--ink); }
+
+  /* ---------- Modal ---------- */
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(28,26,23,.35); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  }
+  .backdrop.open { display: flex; }
+  .modal {
+    width: 100%; max-width: 560px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 18px; box-shadow: var(--shadow-lift); padding: 24px;
+    animation: rise .18s ease-out; max-height: 100%; overflow-y: auto;
+  }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+  .modal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .modal-head h2 { margin: 0; font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; flex: 1; }
+  .modal-head .col-chip { font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); padding: 3px 9px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+  .field input[type="text"], .field textarea, .field input[type="date"], .field select {
+    width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: 9px;
+    padding: 10px 12px; outline: 0; font-size: 13.5px; transition: border-color .12s, box-shadow .12s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); background: var(--surface); }
+  .field textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
+  .field input[type="text"]#f-title { font-size: 16px; font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .label-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .label-picker .label { cursor: pointer; opacity: .45; border: 1.5px solid transparent; padding: 4px 10px; font-size: 11px; transition: opacity .12s, transform .12s; }
+  .label-picker .label:hover { opacity: .8; }
+  .label-picker .label.sel { opacity: 1; border-color: var(--l-ink); }
+  .assignee-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .assignee-picker .avatar { cursor: pointer; width: 34px; height: 34px; font-size: 12px; opacity: .45; transition: opacity .12s, transform .12s; }
+  .assignee-picker .avatar:hover { opacity: .85; transform: translateY(-1px); }
+  .assignee-picker .avatar.sel { opacity: 1; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+  .modal-foot { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+  .modal-foot .spacer { flex: 1; }
+  .btn.ghost { box-shadow: none; border-color: transparent; background: transparent; color: var(--ink-2); }
+  .btn.ghost:hover { background: var(--surface-2); }
+  .btn.danger { color: #b91c1c; }
+  .hint { color: var(--ink-3); font-size: 11.5px; margin-top: 6px; }
+  kbd { font: 11px/1 'Inter'; background: var(--surface-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; color: var(--ink-2); }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+    background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lift); display: flex; gap: 12px; align-items: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { color: var(--accent); font-weight: 700; }
+
+  .empty-state {
+    position: absolute; inset: 0; display: none; place-items: center; color: var(--ink-3); pointer-events: none;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 14px 16px 10px; gap: 10px; }
+    main { padding: 4px 16px 16px; }
+    .search { min-width: 0; flex: 1; }
+    .team { display: none; }
+    h1 { font-size: 20px; }
+    .row { grid-template-columns: 1fr; }
+    :root { --col-w: 270px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">s</div>
+    <h1>Studio Board <small id="subtitle">Design team · Q4 sprint</small></h1>
+  </div>
+  <div class="team" id="team" title="Click an avatar to filter"></div>
+  <div class="spacer"></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" type="search" placeholder="Search cards… ( / )" autocomplete="off">
+  </label>
+  <button class="btn icon" id="theme" title="Toggle theme" aria-label="Toggle theme">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+  <button class="btn icon" id="reset" title="Reset sample data" aria-label="Reset">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  </button>
+  <button class="btn primary" id="new-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New card
+  </button>
+</header>
+
+<main>
+  <div class="board" id="board"></div>
+</main>
+
+<div class="backdrop" id="modal">
+  <form class="modal" id="form" autocomplete="off">
+    <div class="modal-head">
+      <h2 id="modal-title">New card</h2>
+      <span class="col-chip" id="modal-col"></span>
+    </div>
+    <div class="field">
+      <input type="text" id="f-title" placeholder="What needs doing?" required maxlength="140">
+    </div>
+    <div class="field">
+      <label for="f-desc">Notes</label>
+      <textarea id="f-desc" placeholder="Context, links, acceptance criteria…"></textarea>
+    </div>
+    <div class="field">
+      <label>Labels</label>
+      <div class="label-picker" id="f-labels"></div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Assignee</label>
+        <div class="assignee-picker" id="f-assignee"></div>
+      </div>
+      <div class="field">
+        <label for="f-due">Due date</label>
+        <input type="date" id="f-due">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="f-col">Column</label>
+        <select id="f-col"></select>
+      </div>
+      <div class="field">
+        <label for="f-priority">Priority</label>
+        <select id="f-priority">
+          <option value="">None</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn ghost danger" id="f-delete">Delete</button>
+      <span class="spacer"></span>
+      <span class="hint"><kbd>⌘</kbd> <kbd>Enter</kbd> to save</span>
+      <button type="button" class="btn ghost" id="f-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="f-save">Save card</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast"><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
+
+<script>
+(() => {
+  // ---------- Data ----------
+  const STORAGE = 'studio-board-v1';
+  const TEAM = [
+    { id: 'mia',  name: 'Mia Okafor',   color: '#e4572e' },
+    { id: 'theo', name: 'Theo Lindqvist', color: '#2f6fed' },
+    { id: 'ren',  name: 'Ren Takahashi',  color: '#1f9d6b' },
+    { id: 'sol',  name: 'Sol Martínez',  color: '#8b5cf6' },
+    { id: 'ava',  name: 'Ava Brennan',   color: '#d97706' },
+  ];
+  const LABELS = {
+    ux:       { name: 'UX',       bg: '#dbeafe', ink: '#1d4ed8' },
+    ui:       { name: 'UI',       bg: '#fce7f3', ink: '#be185d' },
+    research: { name: 'Research', bg: '#dcfce7', ink: '#15803d' },
+    brand:    { name: 'Brand',    bg: '#fef3c7', ink: '#b45309' },
+    motion:   { name: 'Motion',   bg: '#ede9fe', ink: '#6d28d9' },
+    bug:      { name: 'Bug',      bg: '#fee2e2', ink: '#b91c1c' },
+    content:  { name: 'Content',  bg: '#e0f2fe', ink: '#0369a1' },
+  };
+  const COL_COLORS = ['#9a948c', '#2f6fed', '#d97706', '#8b5cf6', '#1f9d6b', '#e4572e'];
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const daysFromNow = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+
+  const sampleData = () => ({
+    columns: [
+      { id: 'backlog',  title: 'Backlog',     color: '#9a948c', limit: 0 },
+      { id: 'todo',     title: 'This sprint', color: '#2f6fed', limit: 0 },
+      { id: 'doing',    title: 'In progress', color: '#d97706', limit: 4 },
+      { id: 'review',   title: 'In review',   color: '#8b5cf6', limit: 3 },
+      { id: 'done',     title: 'Done',        color: '#1f9d6b', limit: 0 },
+    ],
+    cards: [
+      { id: uid(), col: 'backlog', title: 'Explore icon set refresh for v3', desc: 'Audit current 180 icons, propose stroke weight and corner radius system.', labels: ['ui','brand'], assignee: null, due: '', priority: 'low' },
+      { id: uid(), col: 'backlog', title: 'Empty state illustrations', desc: 'Eight screens need friendly empty states. Keep to two-color palette.', labels: ['ui'], assignee: 'sol', due: '', priority: '' },
+      { id: uid(), col: 'backlog', title: 'Accessibility audit of settings page', desc: 'Contrast, focus order, screen reader labels.', labels: ['ux','research'], assignee: null, due: '', priority: 'medium' },
+      { id: uid(), col: 'todo', title: 'Onboarding flow — wireframes v2', desc: 'Incorporate findings from last week\'s five user interviews. Reduce from 6 steps to 4.', labels: ['ux'], assignee: 'mia', due: daysFromNow(3), priority: 'high' },
+      { id: uid(), col: 'todo', title: 'Pricing page copy pass', desc: 'Tighten headline, align plan names with marketing.', labels: ['content'], assignee: 'ava', due: daysFromNow(5), priority: 'medium' },
+      { id: uid(), col: 'todo', title: 'Interview synthesis: power users', desc: 'Affinity map in FigJam, 3 key insights, share Thursday.', labels: ['research'], assignee: 'ren', due: daysFromNow(4), priority: 'medium' },
+      { id: uid(), col: 'doing', title: 'Design system: button component tokens', desc: 'Map Figma variables to CSS custom properties. Sync with eng on naming.', labels: ['ui'], assignee: 'theo', due: daysFromNow(1), priority: 'high' },
+      { id: uid(), col: 'doing', title: 'Dashboard chart micro-interactions', desc: 'Hover, tooltip reveal, and loading skeleton. Prototype in Principle.', labels: ['motion','ui'], assignee: 'sol', due: daysFromNow(6), priority: 'medium' },
+      { id: uid(), col: 'doing', title: 'Mobile nav overflows on small screens', desc: 'Reported on iPhone SE. Tab labels wrap to two lines.', labels: ['bug','ui'], assignee: 'theo', due: daysFromNow(-1), priority: 'high' },
+      { id: uid(), col: 'review', title: 'Brand refresh — logo lockups', desc: 'Horizontal, stacked, and mark-only. Dark/light variants.', labels: ['brand'], assignee: 'ava', due: daysFromNow(2), priority: 'medium' },
+      { id: uid(), col: 'review', title: 'Checkout flow usability report', desc: 'Draft in Notion, awaiting Mia\'s review.', labels: ['research','ux'], assignee: 'ren', due: '', priority: '' },
+      { id: uid(), col: 'done', title: 'Notification preferences redesign', desc: '', labels: ['ux','ui'], assignee: 'mia', due: '', priority: '' },
+      { id: uid(), col: 'done', title: 'Loading spinner → skeleton screens', desc: '', labels: ['motion'], assignee: 'sol', due: '', priority: '' },
+      { id: uid(), col: 'done', title: 'Figma library cleanup', desc: 'Archived 40 deprecated components.', labels: ['ui'], assignee: 'theo', due: '', priority: '' },
+    ],
+  });
+
+  let state = load();
+  let filterAssignee = null;
+  let query = '';
+  let editingId = null;
+  let undoSnapshot = null;
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(STORAGE)); if (s && s.columns && s.cards) return s; } catch {}
+    return sampleData();
+  }
+  function save() { localStorage.setItem(STORAGE, JSON.stringify(state)); }
+  function commit() { save(); render(); }
+
+  // ---------- Helpers ----------
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const initials = name => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const member = id => TEAM.find(m => m.id === id);
+  const svg = {
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>',
+    dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  };
+  function dueInfo(due) {
+    if (!due) return null;
+    const d = new Date(due + 'T00:00:00'); const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.round((d - today) / 86400000);
+    const label = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday'
+      : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return { label, cls: diff < 0 ? 'overdue' : diff <= 2 ? 'due-soon' : '' };
+  }
+  const PRIORITY_COLOR = { low: '#1f9d6b', medium: '#d97706', high: '#b91c1c' };
+
+  // ---------- Render ----------
+  function render() {
+    renderTeam();
+    const board = $('#board');
+    const q = query.trim().toLowerCase();
+    board.innerHTML = '';
+    for (const col of state.columns) {
+      const cards = state.cards.filter(c => c.col === col.id);
+      const el = document.createElement('section');
+      el.className = 'column'; el.dataset.col = col.id;
+      const over = col.limit && cards.length > col.limit;
+      el.innerHTML = `
+        <div class="col-head" draggable="true">
+          <span class="col-dot" style="background:${col.color}"></span>
+          <input class="col-title" value="${esc(col.title)}" aria-label="Column title" spellcheck="false">
+          <span class="count ${over ? 'over' : ''}" title="${col.limit ? 'WIP limit ' + col.limit : ''}">${cards.length}${col.limit ? '/' + col.limit : ''}</span>
+          <button class="col-menu-btn" aria-label="Column menu">${svg.dots}</button>
+        </div>
+        <div class="cards"></div>
+        <button class="add-card">${svg.plus} Add a card</button>`;
+      const list = $('.cards', el);
+      for (const c of cards) {
+        const visible = (!filterAssignee || c.assignee === filterAssignee) &&
+          (!q || (c.title + ' ' + c.desc + ' ' + c.labels.map(l => LABELS[l]?.name).join(' ')).toLowerCase().includes(q));
+        list.appendChild(cardEl(c, col, !visible));
+      }
+      board.appendChild(el);
+      // column interactions
+      const title = $('.col-title', el);
+      title.addEventListener('change', () => { col.title = title.value.trim() || col.title; save(); });
+      title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
+      title.addEventListener('mousedown', e => e.stopPropagation());
+      $('.add-card', el).addEventListener('click', () => openModal(null, col.id));
+      $('.col-menu-btn', el).addEventListener('click', e => { e.stopPropagation(); openColMenu(col, e.currentTarget); });
+      // card drop target
+      list.addEventListener('dragover', onCardDragOver);
+      el.addEventListener('dragenter', e => { if (dragCardId) el.classList.add('drag-over'); });
+      el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
+      el.addEventListener('drop', onDrop);
+      // column drag
+      const head = $('.col-head', el);
+      head.addEventListener('dragstart', e => { dragColId = col.id; el.classList.add('col-dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'col:' + col.id); });
+      head.addEventListener('dragend', () => { dragColId = null; el.classList.remove('col-dragging'); });
+      el.addEventListener('dragover', e => { if (dragColId) { e.preventDefault(); onColDragOver(e, el); } });
+    }
+    const add = document.createElement('button');
+    add.className = 'add-column'; add.innerHTML = `${svg.plus} Add column`;
+    add.addEventListener('click', () => {
+      state.columns.push({ id: uid(), title: 'New column', color: COL_COLORS[state.columns.length % COL_COLORS.length], limit: 0 });
+      commit();
+      const inputs = document.querySelectorAll('.col-title'); const last = inputs[inputs.length - 1]; last.focus(); last.select();
+      $('main').scrollLeft = 1e6;
+    });
+    board.appendChild(add);
+    $('#f-col').innerHTML = state.columns.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('');
+  }
+
+  function cardEl(c, col, hidden) {
+    const el = document.createElement('article');
+    el.className = 'card' + (hidden ? ' hidden' : '') + (col.id === 'done' ? ' done' : '');
+    el.draggable = true; el.dataset.id = c.id;
+    const a = c.assignee ? member(c.assignee) : null;
+    const due = dueInfo(c.due);
+    el.innerHTML = `
+      <div class="labels">${c.labels.map(l => LABELS[l] ? `<span class="label" style="--l-bg:${LABELS[l].bg};--l-ink:${LABELS[l].ink}">${LABELS[l].name}</span>` : '').join('')}</div>
+      <p class="card-title">${esc(c.title)}</p>
+      ${c.desc ? `<p class="card-desc">${esc(c.desc)}</p>` : ''}
+      <div class="card-foot">
+        ${c.priority ? `<span class="meta" style="color:${PRIORITY_COLOR[c.priority]}" title="${c.priority} priority">${svg.flag}</span>` : ''}
+        ${due ? `<span class="meta ${due.cls}">${svg.cal} ${due.label}</span>` : ''}
+        ${c.desc ? `<span class="meta" title="Has notes">${svg.note}</span>` : ''}
+        ${a ? `<span class="avatar" style="background:${a.color}" title="${esc(a.name)}">${initials(a.name)}</span>` : `<span class="avatar unassigned" title="Unassigned">?</span>`}
+      </div>`;
+    el.addEventListener('click', () => openModal(c.id));
+    el.addEventListener('dragstart', e => {
+      dragCardId = c.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c.id);
+      requestAnimationFrame(() => el.classList.add('dragging'));
+    });
+    el.addEventListener('dragend', () => { dragCardId = null; el.classList.remove('dragging'); document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over')); });
+    return el;
+  }
+
+  function renderTeam() {
+    const t = $('#team');
+    t.innerHTML = TEAM.map(m => `<span class="avatar ${filterAssignee && filterAssignee !== m.id ? 'dim' : ''} ${filterAssignee === m.id ? 'active' : ''}" data-id="${m.id}" style="background:${m.color}" title="${esc(m.name)}">${initials(m.name)}</span>`).join('');
+    t.querySelectorAll('.avatar').forEach(a => a.addEventListener('click', () => {
+      filterAssignee = filterAssignee === a.dataset.id ? null : a.dataset.id; render();
+    }));
+  }
+
+  // ---------- Drag & drop ----------
+  let dragCardId = null, dragColId = null;
+  function onCardDragOver(e) {
+    if (!dragCardId) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    const list = e.currentTarget;
+    const dragging = document.querySelector('.card.dragging');
+    if (!dragging) return;
+    const siblings = [...list.querySelectorAll('.card:not(.dragging):not(.hidden)')];
+    const next = siblings.find(s => e.clientY < s.getBoundingClientRect().top + s.offsetHeight / 2);
+    if (next) list.insertBefore(dragging, next); else list.appendChild(dragging);
+  }
+  function onColDragOver(e, el) {
+    const dragging = document.querySelector('.column.col-dragging');
+    if (!dragging || dragging === el) return;
+    const rect = el.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    if (before) el.parentNode.insertBefore(dragging, el); else el.parentNode.insertBefore(dragging, el.nextSibling);
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    if (dragCardId) {
+      // read DOM order back into state
+      const order = [];
+      document.querySelectorAll('.column').forEach(colEl => {
+        colEl.querySelectorAll('.card').forEach(cardEl => {
+          const c = state.cards.find(x => x.id === cardEl.dataset.id);
+          if (c) { c.col = colEl.dataset.col; order.push(c); }
+        });
+      });
+      state.cards = order;
+      commit();
+    } else if (dragColId) {
+      const ids = [...document.querySelectorAll('.column')].map(c => c.dataset.col);
+      state.columns.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+      commit();
+    }
+  }
+
+  // ---------- Column menu ----------
+  let popover = null;
+  function closePopover() { popover?.remove(); popover = null; }
+  function openColMenu(col, anchor) {
+    closePopover();
+    popover = document.createElement('div'); popover.className = 'popover';
+    popover.innerHTML = `
+      <div class="colors">${COL_COLORS.map(c => `<span style="background:${c}" class="${c === col.color ? 'sel' : ''}" data-c="${c}"></span>`).join('')}</div>
+      <hr>
+      <button data-act="limit">Set WIP limit… ${col.limit ? `<span style="margin-left:auto;color:var(--ink-3)">${col.limit}</span>` : ''}</button>
+      <button data-act="clear">Archive all cards</button>
+      <hr>
+      <button data-act="delete" class="danger">Delete column</button>`;
+    document.body.appendChild(popover);
+    const r = anchor.getBoundingClientRect();
+    popover.style.top = r.bottom + 6 + 'px';
+    popover.style.left = Math.min(r.right - popover.offsetWidth, window.innerWidth - popover.offsetWidth - 12) + 'px';
+    popover.querySelectorAll('.colors span').forEach(s => s.addEventListener('click', () => { col.color = s.dataset.c; commit(); closePopover(); }));
+    popover.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      const act = b.dataset.act; closePopover();
+      if (act === 'limit') {
+        const v = prompt('Work-in-progress limit for "' + col.title + '" (0 for none):', col.limit || 0);
+        if (v !== null) { col.limit = Math.max(0, parseInt(v) || 0); commit(); }
+      } else if (act === 'clear') {
+        const n = state.cards.filter(c => c.col === col.id).length;
+        if (!n) return;
+        snapshot(); state.cards = state.cards.filter(c => c.col !== col.id); commit();
+        toast(`Archived ${n} card${n > 1 ? 's' : ''} from ${col.title}`);
+      } else if (act === 'delete') {
+        const n = state.cards.filter(c => c.col === col.id).length;
+        if (state.columns.length === 1) return toast('Keep at least one column', false);
+        snapshot();
+        state.columns = state.columns.filter(c => c.id !== col.id);
+        state.cards = state.cards.filter(c => c.col !== col.id);
+        commit(); toast(`Deleted "${col.title}"${n ? ` and ${n} card${n > 1 ? 's' : ''}` : ''}`);
+      }
+    }));
+  }
+  document.addEventListener('click', e => { if (popover && !popover.contains(e.target)) closePopover(); });
+
+  // ---------- Modal ----------
+  const modal = $('#modal'), form = $('#form');
+  function openModal(id, colId) {
+    editingId = id;
+    const c = id ? state.cards.find(x => x.id === id) : { title: '', desc: '', labels: [], assignee: null, due: '', priority: '', col: colId || state.columns[0].id };
+    $('#modal-title').textContent = id ? 'Edit card' : 'New card';
+    $('#f-delete').style.visibility = id ? 'visible' : 'hidden';
+    $('#f-title').value = c.title; $('#f-desc').value = c.desc; $('#f-due').value = c.due || '';
+    $('#f-col').value = c.col; $('#f-priority').value = c.priority || '';
+    $('#f-labels').innerHTML = Object.entries(LABELS).map(([k, l]) => `<span class="label ${c.labels.includes(k) ? 'sel' : ''}" data-k="${k}" style="--l-bg:${l.bg};--l-ink:${l.ink}">${l.name}</span>`).join('');
+    $('#f-labels').querySelectorAll('.label').forEach(l => l.addEventListener('click', () => l.classList.toggle('sel')));
+    $('#f-assignee').innerHTML = TEAM.map(m => `<span class="avatar ${c.assignee === m.id ? 'sel' : ''}" data-id="${m.id}" style="background:${m.color}" title="${esc(m.name)}">${initials(m.name)}</span>`).join('');
+    $('#f-assignee').querySelectorAll('.avatar').forEach(a => a.addEventListener('click', () => {
+      const was = a.classList.contains('sel');
+      $('#f-assignee').querySelectorAll('.avatar').forEach(x => x.classList.remove('sel'));
+      if (!was) a.classList.add('sel');
+    }));
+    updateColChip();
+    modal.classList.add('open');
+    setTimeout(() => $('#f-title').focus(), 30);
+  }
+  function updateColChip() {
+    const col = state.columns.find(c => c.id === $('#f-col').value);
+    $('#modal-col').innerHTML = col ? `<span class="col-dot" style="background:${col.color}"></span>${esc(col.title)}` : '';
+  }
+  $('#f-col').addEventListener('change', updateColChip);
+  function closeModal() { modal.classList.remove('open'); editingId = null; }
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const data = {
+      title: $('#f-title').value.trim(), desc: $('#f-desc').value.trim(),
+      labels: [...$('#f-labels').querySelectorAll('.sel')].map(l => l.dataset.k),
+      assignee: $('#f-assignee').querySelector('.sel')?.dataset.id || null,
+      due: $('#f-due').value, col: $('#f-col').value, priority: $('#f-priority').value,
+    };
+    if (!data.title) return;
+    if (editingId) {
+      const c = state.cards.find(x => x.id === editingId); Object.assign(c, data);
+    } else {
+      state.cards.push({ id: uid(), ...data });
+    }
+    commit(); closeModal();
+  });
+  $('#f-cancel').addEventListener('click', closeModal);
+  $('#f-delete').addEventListener('click', () => {
+    const c = state.cards.find(x => x.id === editingId); if (!c) return;
+    snapshot(); state.cards = state.cards.filter(x => x.id !== editingId); commit(); closeModal();
+    toast(`Deleted "${c.title.length > 32 ? c.title.slice(0, 32) + '…' : c.title}"`);
+  });
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  form.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); form.requestSubmit(); } });
+
+  // ---------- Toast / undo ----------
+  let toastTimer;
+  function snapshot() { undoSnapshot = JSON.stringify(state); }
+  function toast(msg, undoable = true) {
+    $('#toast-msg').textContent = msg; $('#toast-undo').style.display = undoable ? '' : 'none';
+    $('#toast').classList.add('show'); clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 5000);
+  }
+  $('#toast-undo').addEventListener('click', () => {
+    if (undoSnapshot) { state = JSON.parse(undoSnapshot); undoSnapshot = null; commit(); }
+    $('#toast').classList.remove('show');
+  });
+
+  // ---------- Header controls ----------
+  $('#new-card').addEventListener('click', () => openModal(null, state.columns[0]?.id));
+  $('#search').addEventListener('input', e => { query = e.target.value; render(); });
+  $('#reset').addEventListener('click', () => {
+    if (confirm('Reset the board to sample data? This clears your changes.')) { state = sampleData(); filterAssignee = null; query = ''; $('#search').value = ''; commit(); }
+  });
+  const theme = localStorage.getItem(STORAGE + ':theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.dataset.theme = theme;
+  $('#theme').addEventListener('click', () => {
+    const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t; localStorage.setItem(STORAGE + ':theme', t);
+  });
+  document.addEventListener('keydown', e => {
+    const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
+    if (e.key === 'Escape') { closeModal(); closePopover(); if (document.activeElement?.id === 'search') { $('#search').value = ''; query = ''; render(); $('#search').blur(); } }
+    if (typing || modal.classList.contains('open')) return;
+    if (e.key === '/') { e.preventDefault(); $('#search').focus(); }
+    if (e.key.toLowerCase() === 'n') { e.preventDefault(); openModal(null, state.columns[0]?.id); }
+  });
+
+  // horizontal scroll with vertical wheel over the board gutter
+  $('main').addEventListener('wheel', e => {
+    if (e.target.closest('.cards')) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { $('main').scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+
+  render();
+})();
+</script>
+</body>
+</html>

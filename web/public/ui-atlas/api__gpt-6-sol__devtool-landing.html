@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f2">
+  <meta name="description" content="Tern finds the slow database queries hiding in your application. Run one command, see what matters, and get back to building.">
+  <title>Tern — Find slow queries. Fix the right ones.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f7f8f2;
+      --ink: #1b2925;
+      --muted: #62706a;
+      --line: #dce2d8;
+      --dark: #16241f;
+      --dark-2: #1d3028;
+      --lime: #d8f47a;
+      --mono: "DM Mono", monospace;
+      --display: "Space Grotesk", sans-serif;
+      --body: "DM Sans", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    ::selection { background: var(--lime); color: var(--ink); }
+
+    .container { width: min(1200px, calc(100% - 80px)); margin: 0 auto; }
+
+    .site-header {
+      height: 88px;
+      border-bottom: 1px solid var(--line);
+    }
+    .header-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-size: 27px; font-weight: 700; letter-spacing: -1.8px; white-space: nowrap; }
+    .brand-mark { width: 34px; height: 34px; display: block; }
+    .brand-dot { color: #8aa945; }
+    .nav-links { display: flex; align-items: center; gap: 38px; margin-left: auto; }
+    .nav-links a { font-size: 14px; font-weight: 600; color: #46544e; transition: color .2s; }
+    .nav-links a:hover { color: #739729; }
+    .header-cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+      min-height: 42px; padding: 0 17px; border: 1px solid var(--ink); border-radius: 7px;
+      font-size: 13px; font-weight: 700; white-space: nowrap;
+      transition: background .2s, color .2s, transform .2s;
+    }
+    .header-cta:hover { background: var(--ink); color: white; transform: translateY(-2px); }
+    .header-cta svg { width: 15px; height: 15px; }
+
+    .hero { padding: 100px 0 91px; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 61px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .075em; text-transform: uppercase;
+    }
+    .eyebrow-line { width: 25px; height: 2px; background: #91ae4e; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { font-family: var(--display); }
+    h1 {
+      max-width: 650px; margin: 25px 0 24px; font-size: clamp(55px, 5.65vw, 83px);
+      line-height: 1.035; font-weight: 600; letter-spacing: -.072em;
+    }
+    .highlight { position: relative; white-space: nowrap; }
+    .highlight::after {
+      position: absolute; content: ""; left: 1%; right: 0; bottom: .03em;
+      height: .13em; z-index: -1; background: var(--lime); transform: rotate(-1.5deg);
+    }
+    .hero-copy > p {
+      max-width: 490px; margin-bottom: 32px; color: #5b6962;
+      font-size: 18px; line-height: 1.68;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 13px; align-items: center; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 13px;
+      min-height: 52px; padding: 0 21px; border-radius: 7px;
+      font-size: 14px; font-weight: 700; transition: transform .2s, background .2s, box-shadow .2s;
+    }
+    .button:hover { transform: translateY(-3px); }
+    .button-primary { background: var(--ink); color: white; box-shadow: 0 5px 12px #16241f18; }
+    .button-primary:hover { background: #31483d; box-shadow: 0 9px 20px #16241f22; }
+    .button-secondary { border: 1px solid #d0d8cd; background: #fffdf7; }
+    .button-secondary:hover { background: #eff3e8; }
+    .button svg { width: 16px; height: 16px; }
+    .hero-note { display: flex; align-items: center; gap: 8px; margin-top: 23px; color: #7b8980; font-family: var(--mono); font-size: 11px; }
+    .hero-note svg { width: 14px; height: 14px; color: #779b37; }
+
+    .visual-wrap { position: relative; padding: 17px 0 25px 15px; }
+    .visual-wrap::before {
+      content: ""; position: absolute; inset: -40px -80px -45px -25px; z-index: 0;
+      background-image: radial-gradient(#b6c4b6 1px, transparent 1px);
+      background-size: 22px 22px; opacity: .42;
+      mask-image: radial-gradient(ellipse, black 10%, transparent 72%);
+      pointer-events: none;
+    }
+    .terminal {
+      position: relative; z-index: 1; overflow: hidden; border: 1px solid #31463b; border-radius: 13px;
+      background: var(--dark); box-shadow: 0 27px 65px #16241f29, 0 5px 13px #16241f12;
+      color: #dce8dd;
+    }
+    .terminal-top {
+      height: 48px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 19px; border-bottom: 1px solid #304138; background: #1b2a23;
+    }
+    .window-dots { display: flex; gap: 7px; }
+    .window-dots span { width: 8px; height: 8px; border-radius: 50%; background: #607468; }
+    .window-dots span:first-child { background: #e89988; }
+    .window-dots span:nth-child(2) { background: #eac178; }
+    .window-dots span:nth-child(3) { background: #9dc88a; }
+    .terminal-title { margin-right: 13px; color: #8ea399; font-family: var(--mono); font-size: 10px; }
+    .terminal-body { padding: 27px 26px 26px; font-family: var(--mono); font-size: 12px; line-height: 1.8; }
+    .command { margin-bottom: 22px; white-space: nowrap; }
+    .prompt { color: var(--lime); }
+    .command-muted { color: #bdd0c2; }
+    .scan-line { display: flex; justify-content: space-between; gap: 10px; color: #899f91; font-size: 11px; }
+    .scan-line .success { color: #bce983; }
+    .terminal-rule { height: 1px; margin: 17px 0 20px; background: #34463b; }
+    .result-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    .result-heading strong { color: #eff7e9; font-size: 12px; font-weight: 500; }
+    .result-count { padding: 3px 7px; border-radius: 3px; background: #435637; color: var(--lime); font-size: 10px; white-space: nowrap; }
+    .query { padding: 14px 0; border-top: 1px solid #2c3e34; }
+    .query:first-of-type { border-top: 0; }
+    .query-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .query-name { overflow: hidden; color: #e1eade; text-overflow: ellipsis; white-space: nowrap; }
+    .query-name .number { color: #80988a; }
+    .query-time { color: #f0ad82; white-space: nowrap; }
+    .query-time.medium { color: #e2cc8b; }
+    .query-time.low { color: #aacd92; }
+    .query-bar { height: 5px; margin-top: 9px; overflow: hidden; border-radius: 5px; background: #304439; }
+    .query-bar span { display: block; height: 100%; border-radius: 5px; background: #edaa80; }
+    .query:nth-of-type(2) .query-bar span { background: #dfc982; }
+    .query:nth-of-type(3) .query-bar span { background: #a5cc87; }
+    .terminal-footer { display: flex; align-items: center; gap: 8px; margin-top: 16px; color: #9bb88b; font-size: 10px; }
+    .terminal-footer svg { width: 13px; height: 13px; }
+    .floating-card {
+      position: absolute; right: -25px; bottom: -8px; z-index: 2; width: 208px;
+      padding: 16px 17px; border: 1px solid #e0e6d8; border-radius: 9px; background: #fffefa;
+      box-shadow: 0 15px 35px #17251b1c; transform: rotate(3deg);
+    }
+    .floating-label { margin-bottom: 9px; color: #718075; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .floating-value { display: flex; align-items: baseline; gap: 7px; font-family: var(--display); font-size: 27px; font-weight: 700; letter-spacing: -.07em; }
+    .floating-value span { color: #6e9567; font-family: var(--body); font-size: 11px; font-weight: 700; letter-spacing: 0; }
+    .floating-bars { display: flex; align-items: end; gap: 5px; height: 28px; margin-top: 9px; }
+    .floating-bars i { flex: 1; height: var(--h); border-radius: 2px 2px 0 0; background: #dbe8c4; }
+    .floating-bars i:nth-last-child(-n+3) { background: #aacb72; }
+
+    .support { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .support-inner { min-height: 113px; display: flex; align-items: center; justify-content: space-between; gap: 35px; }
+    .support-label { max-width: 170px; color: #839087; font-family: var(--mono); font-size: 10px; line-height: 1.6; letter-spacing: .08em; text-transform: uppercase; }
+    .database-list { display: flex; align-items: center; justify-content: space-between; flex: 1; gap: 25px; max-width: 830px; }
+    .database { display: flex; align-items: center; gap: 9px; color: #65736b; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -.05em; white-space: nowrap; }
+    .database svg { width: 22px; height: 22px; color: #889b87; }
+
+    .features { padding: 117px 0 125px; }
+    .section-top { display: flex; align-items: end; justify-content: space-between; gap: 35px; margin-bottom: 48px; }
+    .section-eyebrow { color: #729540; }
+    .section-top h2, .how-copy h2, .cta h2 {
+      max-width: 665px; margin: 17px 0 0; font-size: clamp(38px, 4vw, 55px);
+      line-height: 1.12; letter-spacing: -.065em; font-weight: 600;
+    }
+    .section-top > p { max-width: 305px; margin: 0 0 5px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature-card { min-height: 274px; padding: 29px; border: 1px solid var(--line); border-radius: 9px; background: #fcfdf8; transition: transform .2s, box-shadow .2s; }
+    .feature-card:hover { transform: translateY(-5px); box-shadow: 0 12px 28px #15261a0c; }
+    .feature-icon { width: 46px; height: 46px; display: grid; place-items: center; margin-bottom: 42px; border-radius: 8px; background: #e9f2d6; color: #426640; }
+    .feature-icon svg { width: 23px; height: 23px; }
+    .feature-card h3 { margin-bottom: 10px; font-size: 21px; font-weight: 600; letter-spacing: -.05em; }
+    .feature-card p { max-width: 290px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+    .how { overflow: hidden; background: var(--dark); color: #f5f9ef; }
+    .how-inner { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: 100px; min-height: 520px; padding: 85px 0; }
+    .how-copy .eyebrow { color: var(--lime); }
+    .how-copy h2 { margin-top: 22px; }
+    .how-copy > p { max-width: 390px; margin: 21px 0 25px; color: #a8baad; font-size: 16px; line-height: 1.75; }
+    .text-link { display: inline-flex; align-items: center; gap: 9px; color: var(--lime); font-size: 14px; font-weight: 700; }
+    .text-link svg { width: 16px; height: 16px; transition: transform .2s; }
+    .text-link:hover svg { transform: translateX(4px); }
+    .steps { position: relative; display: grid; gap: 15px; }
+    .steps::before { content: ""; position: absolute; top: 35px; bottom: 35px; left: 22px; width: 1px; background: #536549; }
+    .step { position: relative; display: flex; align-items: flex-start; gap: 24px; padding: 20px 23px; border: 1px solid #34473a; border-radius: 8px; background: #1b2d24; }
+    .step-number { position: relative; z-index: 1; display: grid; flex: 0 0 44px; height: 44px; place-items: center; border: 1px solid #738a5a; border-radius: 6px; background: #2b412e; color: var(--lime); font-family: var(--mono); font-size: 13px; }
+    .step-content { min-width: 0; padding-top: 1px; }
+    .step-content h3 { margin: 0 0 5px; font-size: 17px; font-weight: 600; letter-spacing: -.04em; }
+    .step-content p { margin: 0; color: #a5b6a8; font-size: 13px; line-height: 1.55; }
+    .step-content code { display: inline-block; margin-top: 10px; color: var(--lime); font-family: var(--mono); font-size: 12px; }
+
+    .cta { padding: 105px 0; text-align: center; }
+    .cta .eyebrow { color: #729540; }
+    .cta h2 { max-width: 640px; margin: 20px auto 15px; }
+    .cta p { max-width: 480px; margin: 0 auto 27px; color: var(--muted); font-size: 16px; line-height: 1.65; }
+    .install-command { display: inline-flex; align-items: center; gap: 25px; max-width: 100%; min-height: 56px; padding: 7px 8px 7px 19px; border: 1px solid #34463b; border-radius: 8px; background: var(--dark); color: #e6f1e6; box-shadow: 0 9px 24px #14251b18; }
+    .install-command code { overflow: auto; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+    .install-command code span { color: var(--lime); }
+    .copy-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 82px; height: 39px; padding: 0 10px; border: 1px solid #546b50; border-radius: 5px; background: #304536; color: #e5efdf; cursor: pointer; font-family: var(--mono); font-size: 11px; transition: background .2s; }
+    .copy-button:hover { background: #415c44; }
+    .copy-button svg { width: 14px; height: 14px; }
+
+    .site-footer { border-top: 1px solid var(--line); }
+    .footer-inner { min-height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 25px; }
+    .footer-brand { display: flex; align-items: center; gap: 17px; }
+    .footer-brand .brand { font-size: 23px; }
+    .footer-brand .brand-mark { width: 28px; height: 28px; }
+    .footer-brand > span { color: #8a968b; font-size: 12px; }
+    .footer-links { display: flex; gap: 27px; color: #66746b; font-size: 13px; font-weight: 600; }
+    .footer-links a:hover { color: var(--ink); }
+
+    @media (max-width: 1050px) {
+      .hero-grid { gap: 35px; }
+      h1 { font-size: clamp(52px, 6vw, 72px); }
+      .terminal-body { padding: 22px 18px; font-size: 11px; }
+      .floating-card { right: -9px; }
+      .how-inner { gap: 45px; }
+    }
+    @media (max-width: 780px) {
+      .container { width: min(100% - 40px, 600px); }
+      .site-header { height: 72px; }
+      .nav-links { display: none; }
+      .hero { padding: 65px 0 70px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 50px; }
+      h1 { max-width: 610px; font-size: clamp(49px, 9vw, 72px); }
+      .visual-wrap { max-width: 550px; padding: 0 14px 20px 0; }
+      .floating-card { right: 0; bottom: 0; }
+      .support-inner { align-items: flex-start; flex-direction: column; gap: 22px; padding: 30px 0; }
+      .support-label { max-width: none; }
+      .database-list { width: 100%; flex-wrap: wrap; justify-content: flex-start; column-gap: 30px; row-gap: 17px; }
+      .features { padding: 80px 0; }
+      .section-top { align-items: flex-start; flex-direction: column; gap: 14px; }
+      .section-top > p { max-width: 500px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .feature-card { min-height: auto; padding: 25px; }
+      .feature-icon { margin-bottom: 24px; }
+      .how-inner { grid-template-columns: 1fr; gap: 36px; padding: 75px 0; }
+      .cta { padding: 85px 0; }
+    }
+    @media (max-width: 480px) {
+      .container { width: calc(100% - 36px); }
+      .header-cta { min-height: 39px; padding: 0 11px; font-size: 12px; }
+      .hero { padding-top: 52px; }
+      h1 { font-size: clamp(45px, 12vw, 60px); }
+      .hero-copy > p { font-size: 16px; }
+      .button { min-height: 48px; padding: 0 15px; font-size: 13px; }
+      .visual-wrap { padding-right: 0; padding-bottom: 30px; }
+      .terminal-body { padding: 19px 15px 26px; font-size: 10px; }
+      .terminal-title { margin-right: 0; }
+      .floating-card { right: -1px; width: 170px; padding: 11px 13px; }
+      .floating-value { font-size: 23px; }
+      .floating-bars { height: 19px; }
+      .database { font-size: 15px; }
+      .section-top h2, .how-copy h2, .cta h2 { font-size: 39px; }
+      .step { gap: 14px; padding: 17px 15px; }
+      .step-number { flex-basis: 36px; height: 36px; }
+      .steps::before { left: 18px; }
+      .footer-inner { flex-direction: column; align-items: flex-start; justify-content: center; gap: 18px; padding: 26px 0; }
+      .footer-links { flex-wrap: wrap; gap: 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#" aria-label="Tern home">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <rect width="40" height="40" rx="9" fill="#1B2925"/>
+          <path d="M9 23.7c6.6-1.2 9.5-7.5 20.4-8.6-4 2.8-4.8 6.7-10 9.1-3.4 1.6-6.9 1.3-10.4-.5Z" fill="#D8F47A"/>
+          <path d="M21.5 24.2 18.2 31m5.2-6.9 1.5 6.9" stroke="#D8F47A" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="27.2" cy="15.6" r="1" fill="#1B2925"/>
+          <path d="m29.2 15.1 4.5.8-4.7 1.4" fill="#D8F47A"/>
+        </svg>
+        <span>tern<span class="brand-dot">.</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#get-started">Get started</a>
+      </nav>
+      <a class="header-cta" href="#get-started">
+        Install Tern
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> Database performance, made clear</div>
+          <h1 id="hero-heading">Find the queries <span class="highlight">slowing</span> you down.</h1>
+          <p>Your database has a story to tell. Tern finds the slow queries, shows you why they’re slow, and helps you fix what matters.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#get-started">
+              Get started for free
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="button button-secondary" href="#how-it-works">See how it works</a>
+          </div>
+          <div class="hero-note">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m3 9 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            One command. No dashboard required.
+          </div>
+        </div>
+
+        <div class="visual-wrap" aria-label="Example of a Tern query report">
+          <div class="terminal">
+            <div class="terminal-top">
+              <div class="window-dots"><span></span><span></span><span></span></div>
+              <span class="terminal-title">tern — query report</span>
+            </div>
+            <div class="terminal-body">
+              <div class="command"><span class="prompt">❯</span> <span class="command-muted">tern scan --database production</span></div>
+              <div class="scan-line"><span>Analyzing query activity...</span><span class="success">✓ complete</span></div>
+              <div class="terminal-rule"></div>
+              <div class="result-heading"><strong>Queries worth a closer look</strong><span class="result-count">3 FOUND</span></div>
+              <div class="query">
+                <div class="query-line"><span class="query-name"><span class="number">01</span> &nbsp;SELECT * FROM orders...</span><span class="query-time">2,841 ms</span></div>
+                <div class="query-bar"><span style="width: 91%"></span></div>
+              </div>
+              <div class="query">
+                <div class="query-line"><span class="query-name"><span class="number">02</span> &nbsp;SELECT id, email FROM users...</span><span class="query-time medium">1,206 ms</span></div>
+                <div class="query-bar"><span style="width: 57%"></span></div>
+              </div>
+              <div class="query">
+                <div class="query-line"><span class="query-name"><span class="number">03</span> &nbsp;UPDATE inventory SET...</span><span class="query-time low">783 ms</span></div>
+                <div class="query-bar"><span style="width: 34%"></span></div>
+              </div>
+              <div class="terminal-footer">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Scan complete · 1,248 queries analyzed
+              </div>
+            </div>
+          </div>
+          <div class="floating-card" aria-hidden="true">
+            <div class="floating-label">Time you could save</div>
+            <div class="floating-value">68% <span>faster queries</span></div>
+            <div class="floating-bars">
+              <i style="--h: 38%"></i><i style="--h: 55%"></i><i style="--h: 43%"></i><i style="--h: 65%"></i><i style="--h: 52%"></i><i style="--h: 72%"></i><i style="--h: 83%"></i><i style="--h: 100%"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="support" aria-label="Supported databases">
+      <div class="container support-inner">
+        <span class="support-label">Works with the databases you already use</span>
+        <div class="database-list">
+          <span class="database"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><ellipse cx="12" cy="5" rx="8.5" ry="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 5v14c0 1.7 3.8 3 8.5 3s8.5-1.3 8.5-3V5M3.5 12c0 1.7 3.8 3 8.5 3s8.5-1.3 8.5-3" stroke="currentColor" stroke-width="1.7"/></svg>PostgreSQL</span>
+          <span class="database"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 18c4-7 6-5 9-12 1 5 3 7 9 7-5 2-8 5-11 5H3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 18c3-3 6-3 10-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>MySQL</span>
+          <span class="database"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h14v18H5zM5 9h14M9 3v6m6-6v6M9 13h6m-6 4h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>SQLite</span>
+          <span class="database"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m3 7 9 5 9-5m-9 5v10" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>CockroachDB</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" id="features" aria-labelledby="features-heading">
+      <div class="container">
+        <div class="section-top">
+          <div>
+            <div class="eyebrow section-eyebrow"><span class="eyebrow-line"></span> Less noise, more signal</div>
+            <h2 id="features-heading">Everything you need to get to the root of it.</h2>
+          </div>
+          <p>No sprawling dashboards. No hunting through logs. Just the insights you need, right where you work.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m15.5 15.5 5 5M8 11l2 2 3.5-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Spot the bottlenecks</h3>
+            <p>Surface the queries eating up the most time, ranked by their actual impact on your application.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18V6m0 12h16M8 14l4-5 3 3 5-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Know what changed</h3>
+            <p>Compare performance over time and catch regressions before they become everyone’s problem.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 7-5 5 5 5m6-10 5 5-5 5m-2-13-2 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Stay in your flow</h3>
+            <p>Get clear, actionable reports straight in your terminal. No new workflow to learn.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how-it-works" aria-labelledby="how-heading">
+      <div class="container how-inner">
+        <div class="how-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> How it works</div>
+          <h2 id="how-heading">From slow to solved in a few keystrokes.</h2>
+          <p>Tern makes query performance part of your everyday workflow, not another thing on your to-do list.</p>
+          <a class="text-link" href="#get-started">Start with Tern <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">01</span>
+            <div class="step-content"><h3>Connect your database</h3><p>Point Tern at your database using a connection string.</p><code>tern connect</code></div>
+          </div>
+          <div class="step">
+            <span class="step-number">02</span>
+            <div class="step-content"><h3>Run a scan</h3><p>See which queries deserve your attention first.</p><code>tern scan</code></div>
+          </div>
+          <div class="step">
+            <span class="step-number">03</span>
+            <div class="step-content"><h3>Make your next move</h3><p>Dig into the details and get back to shipping faster code.</p><code>tern inspect</code></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" id="get-started" aria-labelledby="cta-heading">
+      <div class="container">
+        <div class="eyebrow"><span class="eyebrow-line"></span> Ready when you are <span class="eyebrow-line"></span></div>
+        <h2 id="cta-heading">Your fastest queries are ahead of you.</h2>
+        <p>Get a clearer picture of your database performance. It starts with one command.</p>
+        <div class="install-command">
+          <code><span>$</span> npm install -g tern-cli</code>
+          <button class="copy-button" type="button" aria-label="Copy install command">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="6" y="6" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 6V4.5A1.5 1.5 0 0 0 10.5 3h-6A1.5 1.5 0 0 0 3 4.5v6A1.5 1.5 0 0 0 4.5 12H6" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#" aria-label="Tern home">
+          <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#1B2925"/><path d="M9 23.7c6.6-1.2 9.5-7.5 20.4-8.6-4 2.8-4.8 6.7-10 9.1-3.4 1.6-6.9 1.3-10.4-.5Z" fill="#D8F47A"/><path d="M21.5 24.2 18.2 31m5.2-6.9 1.5 6.9" stroke="#D8F47A" stroke-width="1.8" stroke-linecap="round"/><circle cx="27.2" cy="15.6" r="1" fill="#1B2925"/><path d="m29.2 15.1 4.5.8-4.7 1.4" fill="#D8F47A"/></svg>
+          <span>tern<span class="brand-dot">.</span></span>
+        </a>
+        <span>Find the slow. Ship the fast.</span>
+      </div>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#get-started">Get started</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    const copyButton = document.querySelector(".copy-button");
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText("npm install -g tern-cli");
+        copyButton.querySelector("span").textContent = "Copied!";
+        setTimeout(() => { copyButton.querySelector("span").textContent = "Copy"; }, 2000);
+      } catch {
+        copyButton.querySelector("span").textContent = "Select text";
+        setTimeout(() => { copyButton.querySelector("span").textContent = "Copy"; }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>

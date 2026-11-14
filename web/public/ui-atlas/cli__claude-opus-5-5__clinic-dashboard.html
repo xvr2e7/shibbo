@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Linden Street Clinic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f2ed; --surface:#fff; --sunk:#faf9f6; --ink:#1b2a2e; --muted:#5f6d71; --faint:#8a9599;
+    --line:#e3dfd6; --line-strong:#cfc9bc;
+    --accent:#0f5c5c; --accent-soft:#e3efed;
+    --s-done:#7a878b; --s-done-bg:#eef0f0;
+    --s-room:#0f5c5c; --s-room-bg:#dcecea;
+    --s-wait:#9a6512; --s-wait-bg:#fbefd9;
+    --s-sched:#36598a; --s-sched-bg:#e6edf7;
+    --s-ns:#b0412c; --s-ns-bg:#f8e3de;
+    --s-cx:#8a9599; --s-cx-bg:#f0efeb;
+    --radius:10px;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;
+    --display:"Fraunces",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+  button,select,input{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  .wrap{max-width:1360px;margin:0 auto;padding:20px 24px 40px}
+
+  /* Header */
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .mark{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center}
+  .mark svg{width:18px;height:18px}
+  .brand h1{font:600 20px/1.1 var(--display);margin:0;letter-spacing:-.01em}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .clock{display:flex;align-items:center;gap:14px}
+  .clock .time{font:500 22px var(--mono);letter-spacing:-.02em}
+  .clock .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+  .clock .live::before{content:"";width:7px;height:7px;border-radius:50%;background:#2f9e6e;box-shadow:0 0 0 3px #2f9e6e22}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+  .kpi .value{font:500 30px/1.1 var(--display);margin-top:6px;display:flex;align-items:baseline;gap:6px}
+  .kpi .value small{font:400 14px var(--sans);color:var(--faint)}
+  .kpi .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .bar{height:5px;background:var(--sunk);border-radius:99px;margin-top:10px;overflow:hidden;display:flex;border:1px solid var(--line)}
+  .bar span{display:block;height:100%}
+  .kpi.alert .value{color:var(--s-ns)}
+
+  /* Main grid */
+  .grid{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(320px,1fr);gap:20px;align-items:start}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .panel-head h2{margin:0;font:600 15px var(--sans)}
+  .panel-head h2 .count{color:var(--faint);font-weight:400;margin-left:4px}
+  aside{display:flex;flex-direction:column;gap:20px}
+
+  /* Filters */
+  .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+  .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .chip .n{color:var(--faint);font-family:var(--mono);font-size:11.5px}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip[aria-pressed="true"] .n{color:#ffffffaa}
+  .filters .spacer{flex:1}
+  .filters select,.filters input{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:5px 9px;font-size:13px}
+  .filters input{width:160px}
+
+  /* Schedule */
+  .sched{list-style:none;margin:0;padding:0;max-height:calc(100vh - 300px);min-height:420px;overflow:auto}
+  .row{display:grid;grid-template-columns:62px 4px minmax(0,1fr) 120px 74px 104px;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer;background:none;width:100%;text-align:left;border-left:0;border-right:0;border-top:0}
+  .row:hover{background:var(--sunk)}
+  .row .t{font:500 13px var(--mono)}
+  .row .t small{display:block;color:var(--faint);font-size:11px;font-weight:400}
+  .row .stripe{width:4px;height:34px;border-radius:2px;background:var(--line-strong)}
+  .row .who strong{font-weight:500;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .who span{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .row .prov{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .rm{font:500 12.5px var(--mono);color:var(--muted)}
+  .row.done .who strong,.row.done .t{color:var(--muted)}
+  .row.cx .who strong{text-decoration:line-through;color:var(--faint)}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;justify-self:start}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .st-completed{color:var(--s-done);background:var(--s-done-bg)}
+  .st-inroom{color:var(--s-room);background:var(--s-room-bg)}
+  .st-waiting{color:var(--s-wait);background:var(--s-wait-bg)}
+  .st-scheduled{color:var(--s-sched);background:var(--s-sched-bg)}
+  .st-noshow{color:var(--s-ns);background:var(--s-ns-bg)}
+  .st-cancelled{color:var(--s-cx);background:var(--s-cx-bg)}
+  .stripe.st-completed{background:var(--s-done)}.stripe.st-inroom{background:var(--s-room)}.stripe.st-waiting{background:var(--s-wait)}
+  .stripe.st-scheduled{background:var(--s-sched)}.stripe.st-noshow{background:var(--s-ns)}.stripe.st-cancelled{background:var(--line-strong)}
+  .late{color:var(--s-ns);font-size:11.5px;font-weight:500}
+  .now-line{position:relative;height:0;border-top:2px solid var(--s-ns);margin:0;list-style:none}
+  .now-line span{position:absolute;left:10px;top:-10px;background:var(--s-ns);color:#fff;font:500 11px var(--mono);padding:2px 7px;border-radius:99px}
+  .empty{padding:40px 16px;text-align:center;color:var(--muted)}
+
+  /* Rooms */
+  .rooms{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+  .room{border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--sunk);min-height:86px;display:flex;flex-direction:column;gap:3px}
+  .room .rh{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+  .room .tag{font-size:11px;text-transform:none;letter-spacing:0;padding:1px 7px;border-radius:99px}
+  .room.busy{background:var(--s-room-bg);border-color:#bcd9d5}
+  .room.busy .tag{background:var(--accent);color:#fff}
+  .room.free .tag{background:#fff;color:var(--muted);border:1px solid var(--line-strong)}
+  .room.clean{background:#fdf6e9;border-color:#efdcb7}
+  .room.clean .tag{background:var(--s-wait);color:#fff}
+  .room .occ{font-weight:500;margin-top:4px}
+  .room .meta{font-size:12px;color:var(--muted)}
+  .room .over{color:var(--s-ns);font-weight:500}
+  .room button.mini{margin-top:auto;align-self:flex-start}
+
+  /* No-shows */
+  .ns-list{list-style:none;margin:0;padding:0}
+  .ns{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+  .ns:last-child{border-bottom:0}
+  .ns strong{font-weight:500}
+  .ns .meta{font-size:12.5px;color:var(--muted);grid-column:1}
+  .ns .acts{grid-row:1 / span 2;grid-column:2;display:flex;gap:6px}
+  .ns.handled{opacity:.6}
+  .ns .flag{font-size:11px;color:var(--s-ns);font-weight:500;margin-left:6px}
+  .mini{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer}
+  .mini:hover{border-color:var(--ink)}
+  .mini.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .mini.done{background:var(--s-done-bg);color:var(--s-done);border-color:transparent}
+
+  /* Dialog */
+  dialog{border:0;border-radius:14px;padding:0;width:min(440px,92vw);box-shadow:0 20px 60px #1b2a2e40;color:var(--ink)}
+  dialog::backdrop{background:#1b2a2e55}
+  .dlg-head{padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+  .dlg-head h3{margin:0;font:600 20px var(--display)}
+  .dlg-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .dlg-body{padding:14px 20px;display:grid;grid-template-columns:110px 1fr;gap:8px 12px;font-size:13.5px}
+  .dlg-body dt{color:var(--muted)}
+  .dlg-body dd{margin:0}
+  .dlg-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;background:var(--sunk)}
+  .btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13.5px;font-weight:500}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.danger{color:var(--s-ns);border-color:#e6b9b0}
+  .btn.ghost{border-color:transparent;background:none;color:var(--muted);margin-right:auto}
+  .dlg-foot select{border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.2s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  @media (max-width:1080px){
+    .grid{grid-template-columns:1fr}
+    .sched{max-height:none}
+  }
+  @media (max-width:720px){
+    .kpis{grid-template-columns:1fr 1fr}
+    .row{grid-template-columns:52px 4px minmax(0,1fr) auto;gap:10px}
+    .row .prov,.row .rm{display:none}
+    .filters input{width:100%}
+    .wrap{padding:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div>
+        <h1>Linden Street Clinic</h1>
+        <p id="dateLine">Front desk · Today</p>
+      </div>
+    </div>
+    <div class="clock">
+      <span class="live">Live</span>
+      <span class="time" id="clock">--:--</span>
+    </div>
+  </header>
+
+  <section class="kpis" aria-label="Today at a glance">
+    <div class="kpi">
+      <div class="label">Appointments</div>
+      <div class="value" id="kTotal">0</div>
+      <div class="sub" id="kTotalSub"></div>
+      <div class="bar" id="kTotalBar" aria-hidden="true"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">In waiting room</div>
+      <div class="value" id="kWait">0</div>
+      <div class="sub" id="kWaitSub"></div>
+    </div>
+    <div class="kpi" id="kNsCard">
+      <div class="label">No-shows</div>
+      <div class="value" id="kNs">0</div>
+      <div class="sub" id="kNsSub"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Rooms in use</div>
+      <div class="value" id="kRooms">0</div>
+      <div class="sub" id="kRoomsSub"></div>
+      <div class="bar" id="kRoomsBar" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="schedTitle">
+      <div class="panel-head">
+        <h2 id="schedTitle">Today's schedule <span class="count" id="schedCount"></span></h2>
+        <button class="mini" id="jumpNow">Jump to now</button>
+      </div>
+      <div class="filters" role="group" aria-label="Filter schedule">
+        <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        <span class="spacer"></span>
+        <label class="sr" for="provSel">Provider</label>
+        <select id="provSel"><option value="">All providers</option></select>
+        <label class="sr" for="q">Search patients</label>
+        <input id="q" type="search" placeholder="Search patient…">
+      </div>
+      <ul class="sched" id="sched"></ul>
+    </section>
+
+    <aside>
+      <section class="panel" aria-labelledby="roomsTitle">
+        <div class="panel-head"><h2 id="roomsTitle">Rooms</h2><span class="count" id="roomsFree" style="color:var(--muted);font-size:12.5px"></span></div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="nsTitle">
+        <div class="panel-head"><h2 id="nsTitle">No-shows <span class="count" id="nsCount"></span></h2><span style="color:var(--muted);font-size:12.5px">Follow up before 5 pm</span></div>
+        <ul class="ns-list" id="nsList"></ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgName">
+  <div class="dlg-head"><h3 id="dlgName"></h3><p id="dlgSub"></p></div>
+  <dl class="dlg-body" id="dlgBody"></dl>
+  <div class="dlg-foot" id="dlgFoot"></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const ROOMS = ["Exam 1","Exam 2","Exam 3","Exam 4","Procedure","Triage"];
+const PROVIDERS = ["Dr. Okafor","Dr. Lindqvist","Dr. Ramanathan","N.P. Castillo"];
+const STATUS = {
+  completed:{label:"Completed",cls:"st-completed"},
+  inroom:{label:"In room",cls:"st-inroom"},
+  waiting:{label:"Waiting",cls:"st-waiting"},
+  scheduled:{label:"Scheduled",cls:"st-scheduled"},
+  noshow:{label:"No-show",cls:"st-noshow"},
+  cancelled:{label:"Cancelled",cls:"st-cancelled"}
+};
+
+const m = s => { const [h,mi]=s.split(":").map(Number); return h*60+mi; };
+const fmt = min => { let h=Math.floor(min/60), mi=min%60, ap=h>=12?"pm":"am"; h=h%12||12; return `${h}:${String(mi).padStart(2,"0")}`; };
+const fmtAp = min => fmt(min)+(Math.floor(min/60)>=12?" pm":" am");
+
+let appts = [
+  {t:"08:00",dur:20,name:"Marguerite Abara",reason:"Annual physical",prov:0,status:"completed",room:"Exam 1",phone:"(555) 014-2281",type:"Established"},
+  {t:"08:00",dur:30,name:"Theo Vasquez",reason:"Knee pain follow-up",prov:1,status:"completed",room:"Exam 2",phone:"(555) 017-9902",type:"Follow-up"},
+  {t:"08:20",dur:20,name:"Priya Nandakumar",reason:"BP check",prov:3,status:"completed",room:"Triage",phone:"(555) 011-4410",type:"Nurse visit"},
+  {t:"08:30",dur:20,name:"Owen Halvorsen",reason:"Sore throat",prov:0,status:"noshow",phone:"(555) 019-3375",type:"Acute",prior:2},
+  {t:"08:40",dur:40,name:"Delphine Mbeki",reason:"Mole removal",prov:2,status:"completed",room:"Procedure",phone:"(555) 012-8820",type:"Procedure"},
+  {t:"09:00",dur:20,name:"Rafael Oyelaran",reason:"Diabetes review",prov:1,status:"completed",room:"Exam 2",phone:"(555) 016-1147",type:"Chronic care"},
+  {t:"09:00",dur:20,name:"Hana Kobayashi",reason:"Vaccination",prov:3,status:"completed",room:"Triage",phone:"(555) 013-6604",type:"Nurse visit"},
+  {t:"09:20",dur:30,name:"Gideon Farrow",reason:"Back pain, new",prov:0,status:"completed",room:"Exam 1",phone:"(555) 018-2209",type:"New patient"},
+  {t:"09:40",dur:20,name:"Sabine Ostrowski",reason:"Lab results",prov:2,status:"noshow",phone:"(555) 015-7731",type:"Follow-up",prior:0},
+  {t:"10:00",dur:30,name:"Malik Achterberg",reason:"Asthma follow-up",prov:1,status:"inroom",room:"Exam 2",roomedAt:"10:08",phone:"(555) 014-9958",type:"Follow-up"},
+  {t:"10:00",dur:20,name:"Ines Carvalho",reason:"Prenatal check",prov:3,status:"completed",room:"Exam 4",phone:"(555) 019-0042",type:"Established"},
+  {t:"10:15",dur:30,name:"Bertrand Nwosu",reason:"Shoulder injection",prov:2,status:"inroom",room:"Procedure",roomedAt:"10:20",phone:"(555) 011-3381",type:"Procedure"},
+  {t:"10:20",dur:20,name:"Lucía Ferreira",reason:"Rash",prov:0,status:"inroom",room:"Exam 1",roomedAt:"10:31",phone:"(555) 017-5526",type:"Acute"},
+  {t:"10:30",dur:20,name:"Arjun Mehta",reason:"Medication refill",prov:3,status:"waiting",checkedAt:"10:22",phone:"(555) 016-8813",type:"Established"},
+  {t:"10:40",dur:20,name:"Wren Castellanos",reason:"Ear infection",prov:0,status:"waiting",checkedAt:"10:35",phone:"(555) 012-2674",type:"Acute"},
+  {t:"10:45",dur:30,name:"Ezekiel Thorne",reason:"New patient intake",prov:1,status:"scheduled",phone:"(555) 018-4490",type:"New patient"},
+  {t:"11:00",dur:20,name:"Noor Haddad",reason:"Thyroid follow-up",prov:2,status:"scheduled",phone:"(555) 013-9917",type:"Follow-up"},
+  {t:"11:00",dur:20,name:"Camille Dubois",reason:"Flu shot",prov:3,status:"cancelled",phone:"(555) 015-1185",type:"Nurse visit"},
+  {t:"11:20",dur:20,name:"Felix Amundsen",reason:"Cough, 2 weeks",prov:0,status:"scheduled",phone:"(555) 019-6630",type:"Acute"},
+  {t:"11:30",dur:40,name:"Yara Sokolova",reason:"Annual physical",prov:1,status:"scheduled",phone:"(555) 014-0071",type:"Established"},
+  {t:"13:00",dur:20,name:"Dmitri Adeyemi",reason:"Post-op check",prov:2,status:"scheduled",phone:"(555) 011-7752",type:"Follow-up"},
+  {t:"13:00",dur:20,name:"Rosalind Achebe",reason:"Anxiety follow-up",prov:0,status:"scheduled",phone:"(555) 017-3346",type:"Follow-up"},
+  {t:"13:30",dur:30,name:"Kai Lundgren",reason:"Sports physical",prov:3,status:"scheduled",phone:"(555) 016-2208",type:"Established"},
+  {t:"14:00",dur:20,name:"Esperanza Molina",reason:"Hypertension review",prov:1,status:"scheduled",phone:"(555) 012-5519",type:"Chronic care"},
+  {t:"14:20",dur:40,name:"Tobias Wainwright",reason:"Skin biopsy",prov:2,status:"scheduled",phone:"(555) 018-8863",type:"Procedure"},
+  {t:"15:00",dur:20,name:"Amara Lindgren",reason:"Headaches",prov:0,status:"scheduled",phone:"(555) 013-4427",type:"Acute"},
+  {t:"15:30",dur:20,name:"Hugo Petrenko",reason:"Lab review",prov:1,status:"scheduled",phone:"(555) 015-6694",type:"Follow-up"},
+].map((a,i)=>({...a,id:i,start:m(a.t),checkedAt:a.checkedAt?m(a.checkedAt):null,roomedAt:a.roomedAt?m(a.roomedAt):null,handled:false}));
+
+let cleaning = {"Exam 4": null}; // room -> minute cleaning started
+cleaning["Exam 4"] = m("10:24");
+
+/* Clock: demo day starts at 10:42 and advances in real time */
+const BOOT = Date.now(), START = m("10:42");
+const now = () => START + Math.floor((Date.now()-BOOT)/60000);
+
+const state = {status:"", prov:"", q:""};
+const $ = id => document.getElementById(id);
+
+function init(){
+  const d = new Date(2026,10,10);
+  $("dateLine").textContent = "Front desk · " + d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+  PROVIDERS.forEach((p,i)=>$("provSel").insertAdjacentHTML("beforeend",`<option value="${i}">${p}</option>`));
+  $("provSel").onchange = e => { state.prov = e.target.value; renderSchedule(); };
+  $("q").oninput = e => { state.q = e.target.value.trim().toLowerCase(); renderSchedule(); };
+  $("jumpNow").onclick = () => { const el=document.querySelector(".now-line"); el && el.scrollIntoView({block:"center",behavior:"smooth"}); };
+  render();
+  setInterval(render, 30000);
+  requestAnimationFrame(()=>$("jumpNow").click());
+}
+
+function render(){
+  $("clock").textContent = fmtAp(now());
+  renderKpis(); renderChips(); renderSchedule(); renderRooms(); renderNoShows();
+}
+
+function counts(){
+  const c = {}; Object.keys(STATUS).forEach(k=>c[k]=0);
+  appts.forEach(a=>c[a.status]++); return c;
+}
+
+function renderKpis(){
+  const c = counts(), n = now();
+  const active = appts.length - c.cancelled;
+  $("kTotal").innerHTML = `${active}<small>booked</small>`;
+  $("kTotalSub").textContent = `${c.completed} seen · ${c.scheduled} still to come${c.cancelled?` · ${c.cancelled} cancelled`:""}`;
+  const seg = [["completed","var(--s-done)"],["inroom","var(--s-room)"],["waiting","var(--s-wait)"],["noshow","var(--s-ns)"],["scheduled","var(--s-sched-bg)"]];
+  $("kTotalBar").innerHTML = seg.map(([k,col])=>`<span style="width:${c[k]/active*100}%;background:${col}"></span>`).join("");
+
+  const waiting = appts.filter(a=>a.status==="waiting");
+  const waits = waiting.map(a=>n-a.checkedAt);
+  $("kWait").innerHTML = `${waiting.length}<small>${waiting.length===1?"patient":"patients"}</small>`;
+  $("kWaitSub").textContent = waiting.length ? `Longest wait ${Math.max(...waits)} min · avg ${Math.round(waits.reduce((s,x)=>s+x,0)/waits.length)} min` : "Nobody waiting";
+
+  const due = appts.filter(a=>a.status!=="cancelled" && a.start <= n).length;
+  const rate = due ? Math.round(c.noshow/due*100) : 0;
+  $("kNs").innerHTML = `${c.noshow}<small>${rate}% of due</small>`;
+  const open = appts.filter(a=>a.status==="noshow" && !a.handled).length;
+  $("kNsSub").textContent = open ? `${open} need a follow-up call` : "All followed up";
+  $("kNsCard").classList.toggle("alert", open>0);
+
+  const used = ROOMS.filter(r=>roomOccupant(r)).length;
+  const cl = Object.keys(cleaning).length;
+  $("kRooms").innerHTML = `${used}<small>of ${ROOMS.length}</small>`;
+  $("kRoomsSub").textContent = `${ROOMS.length-used-cl} free${cl?` · ${cl} turning over`:""}`;
+  $("kRoomsBar").innerHTML = `<span style="width:${used/ROOMS.length*100}%;background:var(--s-room)"></span><span style="width:${cl/ROOMS.length*100}%;background:var(--s-wait)"></span>`;
+}
+
+function renderChips(){
+  const c = counts();
+  const opts = [["","All",appts.length],["waiting","Waiting",c.waiting],["inroom","In room",c.inroom],["scheduled","Upcoming",c.scheduled],["noshow","No-show",c.noshow],["completed","Done",c.completed]];
+  $("chips").innerHTML = opts.map(([k,l,n])=>`<button class="chip" data-k="${k}" aria-pressed="${state.status===k}">${l}<span class="n">${n}</span></button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{state.status=b.dataset.k; renderChips(); renderSchedule();});
+}
+
+function renderSchedule(){
+  const n = now();
+  const list = appts.filter(a =>
+    (!state.status || a.status===state.status) &&
+    (state.prov==="" || a.prov==+state.prov) &&
+    (!state.q || a.name.toLowerCase().includes(state.q) || a.reason.toLowerCase().includes(state.q))
+  ).sort((a,b)=>a.start-b.start || a.prov-b.prov);
+
+  $("schedCount").textContent = `· ${list.length}`;
+  const el = $("sched");
+  if(!list.length){ el.innerHTML = `<li class="empty">No appointments match these filters.</li>`; return; }
+
+  let html = "", placed = false;
+  const nowLine = `<li class="now-line" aria-label="Current time ${fmtAp(n)}"><span>${fmt(n)}</span></li>`;
+  list.forEach(a=>{
+    if(!placed && a.start > n){ html += nowLine; placed = true; }
+    const s = STATUS[a.status];
+    let extra = "";
+    if(a.status==="scheduled" && n > a.start+10) extra = `<span class="late">${n-a.start} min late</span>`;
+    else if(a.status==="waiting") extra = `<span style="color:var(--s-wait);font-size:11.5px;font-weight:500">${n-a.checkedAt} min wait</span>`;
+    html += `<li><button class="row ${a.status==="completed"?"done":""} ${a.status==="cancelled"?"cx":""}" data-id="${a.id}">
+      <span class="t">${fmt(a.start)}<small>${a.dur} min</small></span>
+      <span class="stripe ${s.cls}" aria-hidden="true"></span>
+      <span class="who"><strong>${a.name}</strong><span>${a.reason} · ${a.type}</span></span>
+      <span class="prov">${PROVIDERS[a.prov]}</span>
+      <span class="rm">${a.status==="inroom"?a.room:(a.status==="completed"&&a.room?a.room:"—")}</span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="pill ${s.cls}">${s.label}</span>${extra}</span>
+    </button></li>`;
+  });
+  if(!placed) html += nowLine;
+  el.innerHTML = html;
+  el.querySelectorAll(".row").forEach(b=>b.onclick=()=>openAppt(+b.dataset.id));
+}
+
+const roomOccupant = r => appts.find(a=>a.status==="inroom" && a.room===r);
+
+function renderRooms(){
+  const n = now();
+  let free = 0;
+  $("rooms").innerHTML = ROOMS.map(r=>{
+    const a = roomOccupant(r);
+    if(a){
+      const el = n - a.roomedAt, over = el > a.dur;
+      return `<div class="room busy"><div class="rh">${r}<span class="tag">In use</span></div>
+        <div class="occ">${a.name}</div>
+        <div class="meta">${PROVIDERS[a.prov]} · <span class="${over?"over":""}">${el} of ${a.dur} min</span></div></div>`;
+    }
+    if(r in cleaning){
+      return `<div class="room clean"><div class="rh">${r}<span class="tag">Turnover</span></div>
+        <div class="meta">Cleaning · ${n-cleaning[r]} min</div>
+        <button class="mini" data-ready="${r}">Mark ready</button></div>`;
+    }
+    free++;
+    return `<div class="room free"><div class="rh">${r}<span class="tag">Free</span></div><div class="meta">Ready for next patient</div></div>`;
+  }).join("");
+  $("roomsFree").textContent = `${free} ready`;
+  $("rooms").querySelectorAll("[data-ready]").forEach(b=>b.onclick=()=>{ delete cleaning[b.dataset.ready]; toast(`${b.dataset.ready} is ready`); render(); });
+}
+
+function renderNoShows(){
+  const ns = appts.filter(a=>a.status==="noshow").sort((a,b)=>a.handled-b.handled || a.start-b.start);
+  $("nsCount").textContent = `· ${ns.length}`;
+  if(!ns.length){ $("nsList").innerHTML = `<li class="empty">No missed appointments today.</li>`; return; }
+  $("nsList").innerHTML = ns.map(a=>`<li class="ns ${a.handled?"handled":""}">
+      <span><strong>${a.name}</strong>${a.prior>=2?`<span class="flag">${a.prior} prior no-shows</span>`:""}</span>
+      <span class="meta">${fmt(a.start)} · ${PROVIDERS[a.prov]} · ${a.phone}</span>
+      <span class="acts">
+        ${a.handled ? `<button class="mini done" data-undo="${a.id}">Called ✓</button>`
+                    : `<button class="mini primary" data-call="${a.id}">Log call</button>`}
+      </span></li>`).join("");
+  $("nsList").querySelectorAll("[data-call]").forEach(b=>b.onclick=()=>{ const a=appts[b.dataset.call]; a.handled=true; toast(`Follow-up logged for ${a.name}`); render(); });
+  $("nsList").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{ appts[b.dataset.undo].handled=false; render(); });
+}
+
+function openAppt(id){
+  const a = appts[id], n = now(), s = STATUS[a.status];
+  $("dlgName").textContent = a.name;
+  $("dlgSub").innerHTML = `<span class="pill ${s.cls}">${s.label}</span>&nbsp; ${fmtAp(a.start)} · ${a.dur} min`;
+  const rows = [["Reason",a.reason],["Visit type",a.type],["Provider",PROVIDERS[a.prov]],["Phone",a.phone]];
+  if(a.checkedAt) rows.push(["Checked in",fmtAp(a.checkedAt)]);
+  if(a.status==="inroom") rows.push(["Room",`${a.room} since ${fmtAp(a.roomedAt)}`]);
+  if(a.prior) rows.push(["Prior no-shows",a.prior]);
+  $("dlgBody").innerHTML = rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+
+  const foot = $("dlgFoot");
+  let h = `<button class="btn ghost" data-a="close">Close</button>`;
+  if(a.status==="scheduled"){
+    h += `<button class="btn danger" data-a="noshow">Mark no-show</button><button class="btn primary" data-a="checkin">Check in</button>`;
+  } else if(a.status==="waiting"){
+    const freeRooms = ROOMS.filter(r=>!roomOccupant(r) && !(r in cleaning));
+    h += freeRooms.length
+      ? `<label class="sr" for="roomPick">Room</label><select id="roomPick">${freeRooms.map(r=>`<option>${r}</option>`).join("")}</select><button class="btn primary" data-a="room">Room patient</button>`
+      : `<span style="color:var(--muted);font-size:13px;align-self:center">No rooms free</span>`;
+  } else if(a.status==="inroom"){
+    h += `<button class="btn primary" data-a="complete">Complete visit</button>`;
+  } else if(a.status==="noshow"){
+    h += `<button class="btn" data-a="undo">Patient arrived</button>`;
+  }
+  foot.innerHTML = h;
+  foot.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(a,b.dataset.a));
+  $("dlg").showModal();
+}
+
+function act(a, action){
+  const n = now();
+  switch(action){
+    case "checkin": a.status="waiting"; a.checkedAt=n; toast(`${a.name} checked in`); break;
+    case "noshow": a.status="noshow"; toast(`${a.name} marked no-show`); break;
+    case "room": a.room=$("roomPick").value; a.status="inroom"; a.roomedAt=n; toast(`${a.name} → ${a.room}`); break;
+    case "complete": cleaning[a.room]=n; a.status="completed"; toast(`Visit complete · ${a.room} turning over`); break;
+    case "undo": a.status="waiting"; a.checkedAt=n; a.handled=false; toast(`${a.name} checked in`); break;
+  }
+  $("dlg").close();
+  if(action!=="close") render();
+}
+
+let tt;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2200); }
+
+init();
+</script>
+</body>
+</html>

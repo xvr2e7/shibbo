@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ODD LOAF — Neighbourhood Sourdough & Crumb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --flour: #F6F1E7;
+      --crumb: #EADEC9;
+      --dough: #DFD0B8;
+      --char: #1C1613;
+      --crust: #9E3B1B;
+      --crust-hover: #7D2C11;
+      --amber: #D9822B;
+      --sage: #3B4D3B;
+      --ash: #6E655F;
+      --sold: #A39A92;
+      --border: 1.5px solid #1C1613;
+      --border-light: 1px solid rgba(28, 22, 19, 0.2);
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--flour);
+      color: var(--char);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      overflow-x: hidden;
+      position: relative;
+      background-image: radial-gradient(rgba(28, 22, 19, 0.055) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    /* Subtle tactile flour/paper noise overlay */
+    .noise-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.35;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.14'/%3E%3C/svg%3E");
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    /* LIVE TICKER BAR */
+    .live-bar {
+      background-color: var(--char);
+      color: var(--flour);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      padding: 0.55rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border);
+      letter-spacing: 0.02em;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #E25822;
+      box-shadow: 0 0 0 rgba(226, 88, 34, 0.7);
+      animation: pulse 1.8s infinite;
+    }
+
+    .pulse-dot.closed {
+      background-color: var(--sold);
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(226, 88, 34, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(226, 88, 34, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(226, 88, 34, 0); }
+    }
+
+    .live-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .time-sim-btn {
+      background: rgba(246, 241, 231, 0.12);
+      color: var(--crumb);
+      border: 1px solid rgba(246, 241, 231, 0.3);
+      padding: 0.2rem 0.6rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      border-radius: 3px;
+      transition: all 0.2s ease;
+    }
+
+    .time-sim-btn:hover {
+      background: var(--crust);
+      color: var(--flour);
+      border-color: var(--crust);
+    }
+
+    /* HEADER & NAVIGATION */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: rgba(246, 241, 231, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: var(--border);
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .brand-box {
+      padding: 1rem 1.75rem;
+      border-right: var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.65rem;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--crust);
+      border: 1px solid var(--crust);
+      padding: 0.1rem 0.35rem;
+      border-radius: 99px;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2.25rem;
+      padding: 0 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-links a {
+      position: relative;
+      padding: 0.25rem 0;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 1.5px;
+      background-color: var(--crust);
+      transition: width 0.25s ease;
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    .bag-trigger {
+      padding: 1.15rem 1.75rem;
+      border-left: var(--border);
+      background-color: var(--crumb);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      transition: background-color 0.2s;
+    }
+
+    .bag-trigger:hover {
+      background-color: var(--crust);
+      color: var(--flour);
+    }
+
+    .bag-count {
+      background-color: var(--char);
+      color: var(--flour);
+      padding: 0.1rem 0.45rem;
+      border-radius: 99px;
+      font-size: 0.72rem;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      border-left: var(--border);
+      border-right: var(--border);
+    }
+
+    /* HERO SECTION */
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      border-bottom: var(--border);
+    }
+
+    .hero-left {
+      padding: 4rem 3.5rem;
+      border-right: var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .kicker {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--crust);
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .kicker::before {
+      content: '✦';
+      font-size: 0.9rem;
+    }
+
+    .hero-headline {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 5.6vw, 5.25rem);
+      font-weight: 900;
+      line-height: 0.96;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.75rem;
+      color: var(--char);
+    }
+
+    .hero-headline em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--crust);
+    }
+
+    .hero-lead {
+      font-size: 1.15rem;
+      max-width: 54ch;
+      color: #3A322D;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background-color: var(--crust);
+      color: var(--flour);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1rem 1.85rem;
+      border: var(--border);
+      box-shadow: 4px 4px 0px var(--char);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--crust-hover);
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px var(--char);
+    }
+
+    .btn-primary:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px var(--char);
+    }
+
+    .btn-secondary {
+      background-color: var(--flour);
+      color: var(--char);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      padding: 1rem 1.5rem;
+      border: var(--border);
+      transition: background-color 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--crumb);
+    }
+
+    .hero-meta-strip {
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: var(--border-light);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+    }
+
+    .meta-item span {
+      display: block;
+      color: var(--ash);
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    .meta-item strong {
+      font-size: 0.9rem;
+      color: var(--char);
+    }
+
+    /* HERO RIGHT: INTERACTIVE LOAF SHOWCASE & LIVE COUNTER */
+    .hero-right {
+      background-color: var(--crumb);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loaf-stage {
+      padding: 2.5rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-grow: 1;
+    }
+
+    .stamp-badge {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: 96px;
+      height: 96px;
+      animation: rotateSlow 22s linear infinite;
+    }
+
+    @keyframes rotateSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .hero-loaf-svg {
+      width: 100%;
+      max-width: 340px;
+      height: auto;
+      filter: drop-shadow(8px 12px 0px rgba(28, 22, 19, 0.16));
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .loaf-stage:hover .hero-loaf-svg {
+      transform: scale(1.03) rotate(-1.5deg);
+    }
+
+    .loaf-caption {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ash);
+      text-align: center;
+      margin-top: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* LIVE RACK STATUS WIDGET IN HERO */
+    .rack-telemetry {
+      background-color: var(--char);
+      color: var(--flour);
+      padding: 1.75rem 2rem;
+      border-top: var(--border);
+    }
+
+    .telemetry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--dough);
+    }
+
+    .loaves-big-number {
+      font-family: var(--font-display);
+      font-size: 2.75rem;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--flour);
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+    }
+
+    .loaves-big-number small {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--amber);
+    }
+
+    .progress-rail {
+      width: 100%;
+      height: 10px;
+      background-color: rgba(246, 241, 231, 0.15);
+      margin: 1rem 0 0.75rem;
+      overflow: hidden;
+      border: 1px solid rgba(246, 241, 231, 0.3);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--crust), var(--amber));
+      width: 34%;
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .telemetry-foot {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--sold);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* MARQUEE RIBBON */
+    .marquee-wrap {
+      border-bottom: var(--border);
+      background-color: var(--crust);
+      color: var(--flour);
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0.65rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .marquee-track {
+      display: inline-block;
+      animation: scrollMarquee 28s linear infinite;
+    }
+
+    .marquee-track span {
+      margin: 0 1.75rem;
+    }
+
+    @keyframes scrollMarquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* SECTION HEADERS */
+    .section-header {
+      padding: 3rem 3.5rem 2rem;
+      border-bottom: var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      background-color: var(--flour);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.1rem, 3.5vw, 3.1rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    .section-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--ash);
+      max-width: 42ch;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      padding: 0.5rem 0.95rem;
+      border: var(--border);
+      background-color: var(--flour);
+      color: var(--char);
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active, .tab-btn:hover {
+      background-color: var(--char);
+      color: var(--flour);
+    }
+
+    /* TODAY'S RACK BOARD (PRODUCT GRID) */
+    .rack-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: var(--border);
+    }
+
+    .loaf-card {
+      border-right: var(--border);
+      border-bottom: var(--border);
+      padding: 2.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: var(--flour);
+      transition: background-color 0.2s ease;
+      position: relative;
+    }
+
+    .loaf-card:nth-child(3n) {
+      border-right: none;
+    }
+
+    .loaf-card:nth-last-child(-n+3) {
+      border-bottom: none;
+    }
+
+    .loaf-card:hover {
+      background-color: #EFE7D8;
+    }
+
+    .loaf-card.sold-out {
+      background-color: #ECE6DC;
+      color: var(--ash);
+    }
+
+    .loaf-card.sold-out .loaf-name,
+    .loaf-card.sold-out .loaf-price {
+      text-decoration: line-through;
+      color: var(--ash);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .batch-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border: 1px solid var(--char);
+      background-color: var(--crumb);
+      font-weight: 600;
+    }
+
+    .batch-tag.urgent {
+      background-color: #FDE8E1;
+      color: var(--crust);
+      border-color: var(--crust);
+    }
+
+    .batch-tag.gone {
+      background-color: transparent;
+      color: var(--ash);
+      border-color: var(--sold);
+    }
+
+    .loaf-price {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .loaf-name {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.65rem;
+    }
+
+    .loaf-desc {
+      font-size: 0.94rem;
+      color: #463E39;
+      margin-bottom: 1.5rem;
+      line-height: 1.55;
+    }
+
+    .loaf-specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: var(--border-light);
+      border-bottom: var(--border-light);
+      padding: 0.65rem 0;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+    }
+
+    .spec-box span {
+      display: block;
+      color: var(--ash);
+      text-transform: uppercase;
+      font-size: 0.64rem;
+    }
+
+    .spec-box strong {
+      color: var(--char);
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .stock-pill {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .stock-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--sage);
+    }
+
+    .stock-dot.low {
+      background-color: var(--crust);
+    }
+
+    .stock-dot.zero {
+      background-color: var(--sold);
+    }
+
+    .reserve-btn {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 0.6rem 1rem;
+      border: var(--border);
+      background-color: var(--char);
+      color: var(--flour);
+      transition: all 0.15s ease;
+    }
+
+    .reserve-btn:hover:not(:disabled) {
+      background-color: var(--crust);
+      border-color: var(--crust);
+    }
+
+    .reserve-btn:disabled {
+      background-color: transparent;
+      border-color: var(--sold);
+      color: var(--ash);
+      cursor: not-allowed;
+    }
+
+    /* WHY WE SELL OUT BY NOON — TIMELINE SECTION */
+    .timeline-section {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      border-bottom: var(--border);
+      background-color: var(--crumb);
+    }
+
+    .timeline-intro {
+      padding: 3.5rem;
+      border-right: var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .timeline-intro h3 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.2vw, 2.85rem);
+      font-weight: 900;
+      line-height: 1.05;
+      margin: 0.75rem 0 1.5rem;
+    }
+
+    .timeline-intro p {
+      font-size: 1.05rem;
+      color: #3A322D;
+      line-height: 1.65;
+      margin-bottom: 1.25rem;
+    }
+
+    .starter-card {
+      margin-top: 2rem;
+      background-color: var(--flour);
+      border: var(--border);
+      padding: 1.5rem;
+      box-shadow: 5px 5px 0px var(--char);
+    }
+
+    .starter-card-header {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--crust);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .starter-card h4 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .starter-card p {
+      font-size: 0.88rem;
+      margin-bottom: 0;
+    }
+
+    .timeline-steps {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--flour);
+    }
+
+    .step-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      border-bottom: var(--border-light);
+      padding: 1.65rem 2.5rem;
+      align-items: baseline;
+      transition: background-color 0.2s;
+    }
+
+    .step-row:last-child {
+      border-bottom: none;
+    }
+
+    .step-row:hover {
+      background-color: #EFE7D8;
+    }
+
+    .step-time {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--crust);
+    }
+
+    .step-content h4 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p {
+      font-size: 0.92rem;
+      color: #463E39;
+    }
+
+    /* THE ODD GUARANTEE & NEIGHBOURHOOD SECTION */
+    .split-feature {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: var(--border);
+    }
+
+    .feature-box {
+      padding: 3.5rem;
+    }
+
+    .feature-box:first-child {
+      border-right: var(--border);
+      background-color: var(--char);
+      color: var(--flour);
+    }
+
+    .feature-box h3 {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      line-height: 1.1;
+      margin: 0.75rem 0 1.25rem;
+    }
+
+    .feature-box p {
+      font-size: 1rem;
+      line-height: 1.65;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+    }
+
+    .ear-diagram {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      border: 1px dashed rgba(246, 241, 231, 0.35);
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .ear-diagram-text {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--crumb);
+    }
+
+    .location-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: var(--border-light);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .loc-block h5 {
+      text-transform: uppercase;
+      color: var(--crust);
+      margin-bottom: 0.4rem;
+      font-size: 0.75rem;
+    }
+
+    .rules-list {
+      list-style: none;
+      margin-top: 1.5rem;
+    }
+
+    .rules-list li {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 0.6rem 0;
+      border-bottom: var(--border-light);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* CRUMB REPORT NEWSLETTER */
+    .crumb-alert-bar {
+      padding: 3.5rem;
+      background-color: var(--crumb);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      border-bottom: var(--border);
+    }
+
+    .alert-copy {
+      max-width: 540px;
+    }
+
+    .alert-copy h3 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 900;
+      margin-bottom: 0.4rem;
+    }
+
+    .alert-copy p {
+      font-size: 0.95rem;
+      color: #3A322D;
+    }
+
+    .alert-form {
+      display: flex;
+      gap: 0;
+      flex-grow: 1;
+      max-width: 460px;
+      border: var(--border);
+      box-shadow: 4px 4px 0px var(--char);
+    }
+
+    .alert-form input {
+      flex-grow: 1;
+      padding: 0.95rem 1.2rem;
+      border: none;
+      background-color: var(--flour);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--char);
+      outline: none;
+    }
+
+    .alert-form button {
+      background-color: var(--crust);
+      color: var(--flour);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 0 1.5rem;
+      border-left: var(--border);
+      transition: background-color 0.2s;
+    }
+
+    .alert-form button:hover {
+      background-color: var(--char);
+    }
+
+    /* FOOTER */
+    footer {
+      background-color: var(--char);
+      color: var(--flour);
+      padding: 4rem 3.5rem 2.5rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      border-left: var(--border);
+      border-right: var(--border);
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 2rem;
+      padding-bottom: 3rem;
+      border-bottom: 1px solid rgba(246, 241, 231, 0.2);
+    }
+
+    .footer-big-mark {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 7vw, 6.5rem);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      color: var(--crumb);
+    }
+
+    .footer-col-group {
+      display: flex;
+      gap: 3.5rem;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .footer-col h6 {
+      color: var(--amber);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      font-size: 0.72rem;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      line-height: 1.9;
+      color: var(--dough);
+    }
+
+    .footer-bottom {
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--sold);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    /* SLIDE-OVER PAPER BAG DRAWER */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(28, 22, 19, 0.55);
+      z-index: 900;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bag-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100%;
+      max-width: 430px;
+      height: 100vh;
+      background-color: var(--flour);
+      border-left: var(--border);
+      z-index: 1000;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .bag-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-head {
+      padding: 1.5rem 1.75rem;
+      border-bottom: var(--border);
+      background-color: var(--crumb);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .drawer-head h4 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    .close-drawer {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      padding: 0.3rem 0.6rem;
+      border: 1px solid var(--char);
+    }
+
+    .drawer-body {
+      padding: 1.75rem;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    .bag-notice {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      background-color: #EFE7D8;
+      border: 1px dashed var(--char);
+      padding: 0.75rem;
+      margin-bottom: 1.5rem;
+      color: #3A322D;
+    }
+
+    .bag-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.95rem 0;
+      border-bottom: var(--border-light);
+    }
+
+    .bag-item-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .bag-item-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--ash);
+    }
+
+    .bag-item-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-mono);
+    }
+
+    .qty-btn {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--char);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      background-color: var(--crumb);
+    }
+
+    .drawer-foot {
+      padding: 1.5rem 1.75rem;
+      border-top: var(--border);
+      background-color: var(--crumb);
+    }
+
+    .bag-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .pickup-window-select {
+      width: 100%;
+      padding: 0.65rem;
+      margin-bottom: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      border: var(--border);
+      background-color: var(--flour);
+    }
+
+    /* TOAST NOTIFICATION */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: var(--char);
+      color: var(--flour);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 0.85rem 1.5rem;
+      border: 1px solid var(--flour);
+      box-shadow: 4px 4px 0px var(--crust);
+      z-index: 2000;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* RESPONSIVE BREAKPOINTS */
+    @media (max-width: 1080px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+      .hero-left {
+        border-right: none;
+        border-bottom: var(--border);
+      }
+      .rack-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .loaf-card:nth-child(3n) {
+        border-right: var(--border);
+      }
+      .loaf-card:nth-child(2n) {
+        border-right: none;
+      }
+      .timeline-section, .split-feature {
+        grid-template-columns: 1fr;
+      }
+      .timeline-intro, .feature-box:first-child {
+        border-right: none;
+        border-bottom: var(--border);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .nav-links {
+        display: none;
+      }
+      .nav-grid {
+        grid-template-columns: 1fr auto;
+      }
+      .hero-left, .section-header, .timeline-intro, .feature-box, .crumb-alert-bar, footer {
+        padding: 2rem 1.5rem;
+      }
+      .rack-grid {
+        grid-template-columns: 1fr;
+      }
+      .loaf-card {
+        border-right: none !important;
+        border-bottom: var(--border) !important;
+      }
+      .step-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+        padding: 1.25rem 1.5rem;
+      }
+      .hero-meta-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="noise-overlay"></div>
+
+  <!-- TOP LIVE BAR -->
+  <div class="live-bar">
+    <div class="live-status">
+      <span class="pulse-dot" id="liveDot"></span>
+      <span id="liveStatusText">OVEN DECK #2 PULLING NOW • 9:42 AM • 19 LOAVES LEFT ON THE RACK</span>
+    </div>
+    <div class="live-bar-right">
+      <span>142B RUE SAINT-VALLIER • WED–SUN • 08:00–NOON (OR SOLD OUT)</span>
+      <button class="time-sim-btn" id="simTimeBtn" title="Test how the bakery board reacts as noon approaches">
+        ↻ Simulate Time: <span id="simTimeLabel">09:42 AM</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- NAVIGATION -->
+  <header>
+    <div class="nav-grid">
+      <a href="#" class="brand-box">
+        <span class="brand-title">Odd Loaf</span>
+        <span class="brand-sub">Est. 2021</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#rack">Today’s Rack</a>
+        <a href="#schedule">36-Hour Ferment</a>
+        <a href="#philosophy">No-Slicer Policy</a>
+        <a href="#find-us">Corner Shop</a>
+      </nav>
+      <button class="bag-trigger" id="openBagBtn" aria-label="Open reserved bread bag">
+        <span>Paper Bag</span>
+        <span class="bag-count" id="bagCount">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero-left">
+        <div>
+          <div class="kicker">Small-Batch Wild Fermentation • Stone-Milled Quebec & Heritage Grains</div>
+          <h1 class="hero-headline">
+            Misshapen.<br>
+            Blistered.<br>
+            <em>Gone by noon.</em>
+          </h1>
+          <p class="hero-lead">
+            We bake 110 loaves a morning in a steam-injected deck oven at the corner of Saint-Vallier. No commercial yeast, no dough conditioners, and no two loaves shaped quite the same. When the wooden racks are bare, we chalk the board and go home to feed the starter.
+          </p>
+          <div class="hero-actions">
+            <a href="#rack" class="btn-primary">
+              <span>Claim a Loaf for Pickup</span>
+              <span>↓</span>
+            </a>
+            <a href="#schedule" class="btn-secondary">How the Morning Works</a>
+          </div>
+        </div>
+
+        <div class="hero-meta-strip">
+          <div class="meta-item">
+            <span>Today's Flour Hydration</span>
+            <strong>82% Organic Red Fife</strong>
+          </div>
+          <div class="meta-item">
+            <span>Average Sell-Out Time</span>
+            <strong>11:38 AM (Sat: 10:50 AM)</strong>
+          </div>
+          <div class="meta-item">
+            <span>Mother Culture</span>
+            <strong>“Berta” — Fed Rye & Apple</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="loaf-stage">
+          <!-- Rotating Stamp SVG -->
+          <svg class="stamp-badge" viewBox="0 0 120 120">
+            <defs>
+              <path id="circlePath" d="M 60, 60 m -45, 0 a 45,45 0 1,1 90,0 a 45,45 0 1,1 -90,0" />
+            </defs>
+            <text fill="#9E3B1B" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="600" letter-spacing="2.2">
+              <textPath href="#circlePath">
+                • DARK CRUST • WILD CRUMB • ZERO YEAST
+              </textPath>
+            </text>
+            <circle cx="60" cy="60" r="24" fill="none" stroke="#9E3B1B" stroke-width="1.2" stroke-dasharray="3 2"/>
+            <text x="60" y="64" text-anchor="middle" fill="#1C1613" font-family="'Fraunces', serif" font-weight="900" font-size="13">110/DAY</text>
+          </svg>
+
+          <!-- Hand-crafted Artisan Country Boule SVG Illustration -->
+          <svg class="hero-loaf-svg" viewBox="0 0 420 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustrated blistered sourdough country boule">
+            <!-- Shadow -->
+            <ellipse cx="215" cy="258" rx="168" ry="22" fill="#1C1613" fill-opacity="0.18"/>
+            <!-- Base Crust Body (Asymmetrical Odd Boule) -->
+            <path d="M52 215C38 158 76 78 164 62C225 51 258 45 314 78C368 110 388 168 372 220C360 256 292 264 210 264C128 264 62 256 52 215Z" fill="#9E3B1B" stroke="#1C1613" stroke-width="4"/>
+            <!-- Deep Mahogany Char Highlights -->
+            <path d="M75 165C95 100 165 72 238 72C298 72 348 112 362 172C345 140 295 112 225 115C148 118 98 145 75 165Z" fill="#6D230B"/>
+            <!-- Flour Dusting Patches -->
+            <path d="M82 198C95 168 135 156 185 162C235 168 295 185 332 215C285 242 140 245 82 198Z" fill="#F6F1E7" fill-opacity="0.72"/>
+            <!-- The Wild "Ear" (Scored Open Crumb) -->
+            <path d="M108 138C145 90 238 82 315 128C288 156 225 164 162 158C132 155 118 148 108 138Z" fill="#DFD0B8" stroke="#1C1613" stroke-width="3.5"/>
+            <!-- Dark Caramelized Edge of the Ear -->
+            <path d="M105 136C146 84 240 76 318 126" stroke="#1C1613" stroke-width="7" stroke-linecap="round"/>
+            <path d="M114 132C152 90 238 83 310 124" stroke="#471506" stroke-width="4" stroke-linecap="round"/>
+            <!-- Stretch Tears inside the Ear -->
+            <line x1="158" y1="115" x2="172" y2="152" stroke="#9E3B1B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="198" y1="108" x2="210" y2="155" stroke="#9E3B1B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="242" y1="110" x2="248" y2="152" stroke="#9E3B1B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="278" y1="118" x2="275" y2="144" stroke="#9E3B1B" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Fermentation Blisters -->
+            <circle cx="115" cy="190" r="6" fill="#5A1B08" stroke="#1C1613" stroke-width="2"/>
+            <circle cx="135" cy="208" r="3.5" fill="#5A1B08"/>
+            <circle cx="288" cy="182" r="7.5" fill="#5A1B08" stroke="#1C1613" stroke-width="2"/>
+            <circle cx="312" cy="198" r="4" fill="#5A1B08"/>
+            <circle cx="205" cy="212" r="5" fill="#9E3B1B" stroke="#1C1613" stroke-width="1.8"/>
+            <circle cx="170" cy="188" r="3" fill="#5A1B08"/>
+            <circle cx="255" cy="218" r="4.5" fill="#5A1B08"/>
+            <!-- Score Leaf Marks on Side -->
+            <path d="M88 175C72 172 64 162 64 162" stroke="#1C1613" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M96 192C78 192 68 184 68 184" stroke="#1C1613" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <p class="loaf-caption">Fig 01. The Odd Country Boule — Baked dark (“Bien Cuit”) for maximum crust song.</p>
+        </div>
+
+        <!-- LIVE TELEMETRY BOX -->
+        <div class="rack-telemetry">
+          <div class="telemetry-header">
+            <span>Live Bread Rack Telemetry</span>
+            <span id="telemetryTimestamp">Updated 2 mins ago</span>
+          </div>
+          <div class="loaves-big-number">
+            <span id="totalLoavesRemaining">19</span>
+            <small id="telemetrySublabel">/ 110 loaves remaining today</small>
+          </div>
+          <div class="progress-rail">
+            <div class="progress-fill" id="rackProgressFill" style="width: 17%;"></div>
+          </div>
+          <div class="telemetry-foot">
+            <span id="nextPullInfo">Next pull: 10:15 AM (Seeded Honey Rye)</span>
+            <span>Max 2 loaves / person</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MARQUEE RIBBON -->
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee-track">
+        <span>NO COMMERCIAL YEAST</span>✦
+        <span>36-HOUR COLD RETARDATION</span>✦
+        <span>WE DO NOT OWN A BREAD SLICER</span>✦
+        <span>BAKED DARK FOR FLAVOUR</span>✦
+        <span>STONE-MILLED ORGANIC GRAINS</span>✦
+        <span>FIRST COME OR PRE-CLAIMED</span>✦
+        <span>NO COMMERCIAL YEAST</span>✦
+        <span>36-HOUR COLD RETARDATION</span>✦
+        <span>WE DO NOT OWN A BREAD SLICER</span>✦
+        <span>BAKED DARK FOR FLAVOUR</span>✦
+        <span>STONE-MILLED ORGANIC GRAINS</span>✦
+        <span>FIRST COME OR PRE-CLAIMED</span>✦
+      </div>
+    </div>
+
+    <!-- TODAY'S RACK BOARD -->
+    <section id="rack">
+      <div class="section-header">
+        <div>
+          <div class="kicker">Chalkboard Inventory</div>
+          <h2 class="section-title">Today’s Cooling Rack</h2>
+        </div>
+        <p class="section-subtitle">
+          Reserve up to 2 items below to hold them in a brown paper bag until 12:30 PM. Unclaimed bags go to the neighbourhood choir at 1:00 PM.
+        </p>
+        <div class="filter-tabs" role="tablist">
+          <button class="tab-btn active" data-filter="all">All Bakes (6)</button>
+          <button class="tab-btn" data-filter="available">Still Warm</button>
+          <button class="tab-btn" data-filter="hearth">Hearth Loaves</button>
+          <button class="tab-btn" data-filter="oddities">Morning Oddities</button>
+        </div>
+      </div>
+
+      <div class="rack-grid" id="rackGrid">
+        <!-- Rendered dynamically via JS so time simulation & cart updates work seamlessly -->
+      </div>
+    </section>
+
+    <!-- 36-HOUR SCHEDULE SECTION -->
+    <section id="schedule" class="timeline-section">
+      <div class="timeline-intro">
+        <div>
+          <div class="kicker">Why We Close at Noon</div>
+          <h3>Bread takes thirty-six hours. Selling it takes four.</h3>
+          <p>
+            People often knock on the glass at 1:15 PM asking why we don't "just bake another batch for the afternoon." We wish we could.
+          </p>
+          <p>
+            Every loaf on our pine shelves was mixed two days ago, folded by hand in ceramic tubs, and fermented slowly at 4°C so wild lactobacilli can break down the gluten and unlock deep, nutty sweetness without sour harshness.
+          </p>
+        </div>
+
+        <div class="starter-card">
+          <div class="starter-card-header">
+            <span>Culture Log #1,492</span>
+            <span>Temp: 25.5°C</span>
+          </div>
+          <h4>Want a piece of our mother starter?</h4>
+          <p>
+            Bring a clean jam jar any Wednesday between 10:00 and 11:30 AM. We’ll spoon in 60g of "Berta" for free, plus our hand-typed feeding notes.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-steps">
+        <div class="step-row">
+          <div class="step-time">03:30 AM</div>
+          <div class="step-content">
+            <h4>Ovens Fired & Levain Checked</h4>
+            <p>The hearth decks reach 255°C. We smell the overnight bannetons to judge exact acidity before scoring.</p>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-time">05:15 AM</div>
+          <div class="step-content">
+            <h4>First Steam Injection</h4>
+            <p>Country boules and charred scallions hit the hot stone. Steam gelatinizes the exterior starch so the ear can curl skyward.</p>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-time">07:30 AM</div>
+          <div class="step-content">
+            <h4>The Singing Rack</h4>
+            <p>110 loaves cool on birch dowels. As the interiors contract, the crusts crackle aloud across the quiet street.</p>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-time">08:00 AM</div>
+          <div class="step-content">
+            <h4>Latch Unbolted</h4>
+            <p>Coffee filter drips, brown bags are stamped, and the queue moves fast. First 20 customers get warm crust ends with salted butter.</p>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-time">~11:40 AM</div>
+          <div class="step-content">
+            <h4>The Last Crumb & Tomorrow’s Autolyse</h4>
+            <p>Sign flips to "SOLD OUT." We sweep the hearth and immediately begin mixing flour and water for Friday’s bake.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THE NO-SLICER POLICY & LOCATION -->
+    <section class="split-feature">
+      <div class="feature-box" id="philosophy">
+        <div class="kicker" style="color: var(--amber);">House Philosophy</div>
+        <h3>Why we refuse to buy a mechanical bread slicer.</h3>
+        <p>
+          A high-hydration sourdough loaf is still finishing its bake for two hours after leaving the oven. Slicing a warm or freshly cooled boule in a 28-blade machine vents all its moisture and turns a 5-day loaf into day-old toast by suppertime.
+        </p>
+        <p>
+          Keep your loaf cut-side down on a wooden board—no plastic bags, ever. The crust acts as its own Dutch oven.
+        </p>
+
+        <div class="ear-diagram">
+          <svg width="68" height="68" viewBox="0 0 68 68" fill="none" style="flex-shrink:0;">
+            <circle cx="34" cy="34" r="32" stroke="#D9822B" stroke-width="1.5"/>
+            <path d="M16 44C22 24 46 24 52 44" stroke="#F6F1E7" stroke-width="2.5"/>
+            <path d="M26 28L34 18L40 27" stroke="#D9822B" stroke-width="2.5" stroke-linejoin="round"/>
+          </svg>
+          <div class="ear-diagram-text">
+            <strong>THE "ODD EAR" GUARANTEE:</strong> If your loaf accidentally baked too polite or lacks a proper blistered ear, we knock $2 off on the spot. Ugly bread eats best.
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-box" id="find-us">
+        <div class="kicker">Corner Shop & Etiquette</div>
+        <h3>Follow the smell of toasted rye past the bike shop.</h3>
+        <p>
+          We’re tucked into a former 1940s haberdashery with four stools at the window and a walk-up Dutch door for dogs and strollers.
+        </p>
+
+        <ul class="rules-list">
+          <li>
+            <span>Address</span>
+            <strong>142B Rue Saint-Vallier Ouest</strong>
+          </li>
+          <li>
+            <span>Baking Days</span>
+            <strong>Wednesday – Sunday (Closed Mon/Tue)</strong>
+          </li>
+          <li>
+            <span>Hours</span>
+            <strong>08:00 AM – 12:00 PM sharp</strong>
+          </li>
+          <li>
+            <span>Payment</span>
+            <strong>Card, Tap, or Exact Coins</strong>
+          </li>
+        </ul>
+
+        <div class="location-details">
+          <div class="loc-block">
+            <h5>Saturday Tip</h5>
+            <p>Lines form around 7:45 AM for the Cinnamon Cardamom Knots. Pre-claim online here starting at 7:00 AM.</p>
+          </div>
+          <div class="loc-block">
+            <h5>Day-Olds?</h5>
+            <p>Never happens. Any orphan loaf at 12:30 PM goes straight to the Saint-Roch Community Fridge.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRUMB REPORT SMS / EMAIL SIGNUP -->
+    <section class="crumb-alert-bar">
+      <div class="alert-copy">
+        <div class="kicker">Zero Spam • Just Flour</div>
+        <h3>The Sunday Night Grain Dispatch</h3>
+        <p>
+          Every Sunday at 7 PM we send one plain-text note listing next week's special grain millings (like Khorasan porridge or roasted potato rosemary).
+        </p>
+      </div>
+      <form class="alert-form" id="dispatchForm">
+        <input type="email" placeholder="neighbour@example.com" required aria-label="Email address" />
+        <button type="submit">Join the List</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-top">
+      <div>
+        <div class="footer-big-mark">ODD LOAF.</div>
+        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--sold); margin-top: 0.75rem;">
+          Baked dark with local grain, wild air, and stubbornness.
+        </p>
+      </div>
+      <div class="footer-col-group">
+        <div class="footer-col">
+          <h6>Our Millers</h6>
+          <ul>
+            <li>Moulin de Charlevoix</li>
+            <li>Ferme Céréalière Belzile</li>
+            <li>Meadowlark Organics</li>
+            <li>Untreated Well Water</li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h6>Window Hours</h6>
+          <ul>
+            <li>Wed–Fri: 08:00 – Noon</li>
+            <li>Sat–Sun: 08:00 – Sold Out</li>
+            <li>Mon–Tue: Resting Starter</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 ODD LOAF BOULANGERIE DE QUARTIER. ALL CRUMBS RESERVED.</span>
+      <span>NO SLICERS • NO PRESERVATIVES • NO AFTERNOON HOURS</span>
+    </div>
+  </footer>
+
+  <!-- PAPER BAG SLIDE-OVER DRAWER -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="bag-drawer" id="bagDrawer" aria-label="Your Reserved Paper Bag">
+    <div class="drawer-head">
+      <h4>Brown Paper Bag</h4>
+      <button class="close-drawer" id="closeBagBtn">Close ✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="bag-notice">
+        <strong>HOLD POLICY:</strong> We stamp your name on a kraft bag and pull your loaves off the rack immediately. Pickup before <strong>12:30 PM today</strong> at the side window.
+      </div>
+      <div id="bagItemsContainer">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <label for="pickupSelect" style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; display:block; margin-bottom:0.35rem;">Select Walk-By Window:</label>
+      <select id="pickupSelect" class="pickup-window-select">
+        <option value="10:00 AM - 10:30 AM">Today • 10:00 AM – 10:30 AM</option>
+        <option value="10:30 AM - 11:00 AM">Today • 10:30 AM – 11:00 AM</option>
+        <option value="11:00 AM - 11:30 AM">Today • 11:00 AM – 11:30 AM</option>
+        <option value="11:30 AM - 12:15 PM">Today • 11:30 AM – 12:15 PM (Last Call)</option>
+      </select>
+      <div class="bag-total-row">
+        <span>Pay at Window (Card/Tap)</span>
+        <span id="bagTotalAmount">$0.00</span>
+      </div>
+      <button class="btn-primary" id="confirmHoldBtn" style="width:100%; justify-content:center;">
+        Stamp My Bag & Hold Loaves
+      </button>
+    </div>
+  </aside>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="toastMsg">Added to your paper bag</div>
+
+  <script>
+    // Initial Bakery Inventory Data
+    const initialLoaves = [
+      {
+        id: 'country-boule',
+        name: 'The Odd Country Boule',
+        price: 9.50,
+        category: 'hearth',
+        batchTime: '08:00 AM Pull',
+        desc: 'Our daily anchor. 80% stone-ground Red Fife, 20% whole dark rye. Blistered mahogany crust with a custodial,custardy open crumb.',
+        hydration: '82%',
+        ferment: '38 hrs',
+        weight: '900g',
+        stockByTime: { morning: 18, mid: 7, late: 2, noon: 0 }
+      },
+      {
+        id: 'charred-scallion',
+        name: 'Charred Scallion & Aged Cheddar',
+        price: 12.00,
+        category: 'hearth',
+        batchTime: '09:15 AM Pull',
+        desc: '2-year Île-aux-Grues cheddar folded into our country dough with blackened spring onions and cracked black Tellicherry pepper.',
+        hydration: '79%',
+        ferment: '36 hrs',
+        weight: '850g',
+        stockByTime: { morning: 12, mid: 4, late: 0, noon: 0 }
+      },
+      {
+        id: 'seeded-rye',
+        name: 'Toasted Sesame & Honey Pan Rye',
+        price: 10.50,
+        category: 'hearth',
+        batchTime: '09:30 AM Pull',
+        desc: '100% organic dank rye fermented with buckwheat honey, rolled in a thick crust of roasted white sesame, flax, and sunflower.',
+        hydration: '86%',
+        ferment: '28 hrs',
+        weight: '950g',
+        stockByTime: { morning: 14, mid: 5, late: 1, noon: 0 }
+      },
+      {
+        id: 'Focaccia-slab',
+        name: 'Sea Salt & Confit Garlic Slab',
+        price: 8.00,
+        category: 'oddities',
+        batchTime: '08:30 AM Pull',
+        desc: 'Corner-cut square drowned in cold-pressed olive oil, studded with sweet slow-poached garlic cloves and Maldon sea salt flakes.',
+        hydration: '88%',
+        ferment: '42 hrs',
+        weight: '420g',
+        stockByTime: { morning: 16, mid: 3, late: 0, noon: 0 }
+      },
+      {
+        id: 'cardamom-knot',
+        name: 'Sourdough Brown Butter Cardamom Knot',
+        price: 5.25,
+        category: 'oddities',
+        batchTime: '08:00 AM Pull',
+        desc: 'Naturally leavened brioche laminated with cultured St-Laurent butter, hand-crushed green cardamom pods, and raw cane sugar.',
+        hydration: '72%',
+        ferment: '24 hrs',
+        weight: '165g',
+        stockByTime: { morning: 9, mid: 0, late: 0, noon: 0 }
+      },
+      {
+        id: 'fig-walnut',
+        name: 'Black Mission Fig & Toasted Walnut',
+        price: 11.50,
+        category: 'hearth',
+        batchTime: '09:00 AM Pull',
+        desc: 'Half whole-spelt flour loaded with wine-soaked mission figs, roasted walnuts, and a whisper of wild fennel pollen. Incredible with blue cheese.',
+        hydration: '80%',
+        ferment: '36 hrs',
+        weight: '850g',
+        stockByTime: { morning: 8, mid: 0, late: 0, noon: 0 }
+      }
+    ];
+
+    // Time states to let user experience the "Sells out by noon" urgency
+    const timeStates = [
+      {
+        key: 'mid',
+        label: '09:42 AM',
+        barText: 'OVEN DECK #2 PULLING NOW • 09:42 AM • 19 LOAVES LEFT ON THE RACK',
+        nextPull: 'Last pull on rack now — moving fast',
+        dotClosed: false
+      },
+      {
+        key: 'morning',
+        label: '08:15 AM (Fresh Open)',
+        barText: 'DOORS OPEN • 08:15 AM • STEAMING HOT — 77 LOAVES ON THE RACK',
+        nextPull: 'Next pull: 09:15 AM (Charred Scallion Cheddar)',
+        dotClosed: false
+      },
+      {
+        key: 'late',
+        label: '11:24 AM (Last Crumb)',
+        barText: 'FINAL CALL • 11:24 AM • ONLY 3 LOAVES REMAIN BEFORE WE LOCK UP',
+        nextPull: 'Ovens off — starter feeding in progress',
+        dotClosed: false
+      },
+      {
+        key: 'noon',
+        label: '12:02 PM (Sold Out)',
+        barText: 'SOLD OUT FOR TODAY • 12:02 PM • SEE YOU TOMORROW AT 8:00 AM SHARP',
+        nextPull: 'Racks bare — autolyse for tomorrow underway',
+        dotClosed: true
+      }
+    ];
+
+    let currentTimeIndex = 0; // Starts at 09:42 AM realistic morning rush
+    let currentFilter = 'all';
+    let bag = {}; // { loafId: qty }
+
+    const rackGrid = document.getElementById('rackGrid');
+    const totalLoavesEl = document.getElementById('totalLoavesRemaining');
+    const progressFillEl = document.getElementById('rackProgressFill');
+    const liveStatusTextEl = document.getElementById('liveStatusText');
+    const liveDotEl = document.getElementById('liveDot');
+    const simTimeLabelEl = document.getElementById('simTimeLabel');
+    const nextPullInfoEl = document.getElementById('nextPullInfo');
+    const bagCountEl = document.getElementById('bagCount');
+    const bagItemsContainer = document.getElementById('bagItemsContainer');
+    const bagTotalAmount = document.getElementById('bagTotalAmount');
+    const toastMsg = document.getElementById('toastMsg');
+
+    function getStock(loaf) {
+      const stateKey = timeStates[currentTimeIndex].key;
+      const baseStock = loaf.stockByTime[stateKey];
+      const inBag = bag[loaf.id] || 0;
+      return Math.max(0, baseStock - inBag);
+    }
+
+    function showToast(text) {
+      toastMsg.textContent = text;
+      toastMsg.classList.add('show');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toastMsg.classList.remove('show');
+      }, 2600);
+    }
+
+    function updateTelemetry() {
+      const state = timeStates[currentTimeIndex];
+      let totalRemaining = 0;
+      initialLoaves.forEach(loaf => {
+        totalRemaining += getStock(loaf);
+      });
+
+      totalLoavesEl.textContent = totalRemaining;
+      const pct = Math.min(100, Math.round((totalRemaining / 110) * 100));
+      progressFillEl.style.width = pct + '%';
+
+      liveStatusTextEl.textContent = state.barText.replace(/\d+ LOAVES/, `${totalRemaining} LOAVES`);
+      simTimeLabelEl.textContent = state.label;
+      nextPullInfoEl.textContent = state.nextPull;
+
+      if (state.dotClosed || totalRemaining === 0) {
+        liveDotEl.classList.add('closed');
+      } else {
+        liveDotEl.classList.remove('closed');
+      }
+    }
+
+    function renderRack() {
+      rackGrid.innerHTML = '';
+
+      const filtered = initialLoaves.filter(loaf => {
+        const stock = getStock(loaf);
+        if (currentFilter === 'available') return stock > 0;
+        if (currentFilter === 'hearth') return loaf.category === 'hearth';
+        if (currentFilter === 'oddities') return loaf.category === 'oddities';
+        return true;
+      });
+
+      filtered.forEach(loaf => {
+        const stock = getStock(loaf);
+        const isSoldOut = stock === 0;
+        const isLow = stock > 0 && stock <= 4;
+
+        let badgeClass = 'batch-tag';
+        let badgeText = loaf.batchTime;
+        if (isSoldOut) {
+          badgeClass = 'batch-tag gone';
+          badgeText = 'Chalked Off • Gone';
+        } else if (isLow) {
+          badgeClass = 'batch-tag urgent';
+          badgeText = `Hot • Only ${stock} Left`;
+        }
+
+        const card = document.createElement('article');
+        card.className = `loaf-card ${isSoldOut ? 'sold-out' : ''}`;
+        card.innerHTML = `
+          <div>
+            <div class="card-top">
+              <span class="${badgeClass}">${badgeText}</span>
+              <span class="loaf-price">$${loaf.price.toFixed(2)}</span>
+            </div>
+            <h3 class="loaf-name">${loaf.name}</h3>
+            <p class="loaf-desc">${loaf.desc}</p>
+          </div>
+          <div>
+            <div class="loaf-specs">
+              <div class="spec-box">
+                <span>Hydration</span>
+                <strong>${loaf.hydration}</strong>
+              </div>
+              <div class="spec-box">
+                <span>Ferment</span>
+                <strong>${loaf.ferment}</strong>
+              </div>
+              <div class="spec-box">
+                <span>Scale Wt</span>
+                <strong>${loaf.weight}</strong>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="stock-pill">
+                <span class="stock-dot ${isSoldOut ? 'zero' : isLow ? 'low' : ''}"></span>
+                <span>${isSoldOut ? 'Sold out for today' : `${stock} on birch rack`}</span>
+              </div>
+              <button class="reserve-btn" data-id="${loaf.id}" ${isSoldOut ? 'disabled' : ''}>
+                ${isSoldOut ? 'Gone by Noon' : '+ Bag Hold'}
+              </button>
+            </div>
+          </div>
+        `;
+        rackGrid.appendChild(card);
+      });
+
+      // Bind reserve buttons
+      document.querySelectorAll('.reserve-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          addToBag(id);
+        });
+      });
+
+      updateTelemetry();
+    }
+
+    function addToBag(id) {
+      const loaf = initialLoaves.find(l => l.id === id);
+      const currentQty = bag[id] || 0;
+      if (currentQty >= 2) {
+        showToast('Neighbour limit: Max 2 of any single loaf so everyone gets crumb!');
+        return;
+      }
+      if (getStock(loaf) <= 0) return;
+
+      bag[id] = currentQty + 1;
+      renderRack();
+      renderBag();
+      showToast(`Stamped 1× ${loaf.name} into your brown bag.`);
+    }
+
+    function changeBagQty(id, delta) {
+      const currentQty = bag[id] || 0;
+      const nextQty = currentQty + delta;
+      if (nextQty <= 0) {
+        delete bag[id];
+      } else if (nextQty <= 2) {
+        bag[id] = nextQty;
+      } else {
+        showToast('Max 2 per loaf variety.');
+      }
+      renderRack();
+      renderBag();
+    }
+
+    function renderBag() {
+      const entries = Object.entries(bag);
+      let totalCount = 0;
+      let totalPrice = 0;
+
+      if (entries.length === 0) {
+        bagItemsContainer.innerHTML = `
+          <p style="font-family:var(--font-mono); font-size:0.82rem; color:var(--ash); text-align:center; padding: 2.5rem 0;">
+            Your kraft paper bag is empty.<br>Claim a warm loaf before the noon whistle.
+          </p>
+        `;
+      } else {
+        bagItemsContainer.innerHTML = entries.map(([id, qty]) => {
+          const loaf = initialLoaves.find(l => l.id === id);
+          totalCount += qty;
+          totalPrice += loaf.price * qty;
+          return `
+            <div class="bag-item">
+              <div>
+                <div class="bag-item-title">${loaf.name}</div>
+                <div class="bag-item-meta">$${loaf.price.toFixed(2)} each • Whole Un-sliced</div>
+              </div>
+              <div class="bag-item-controls">
+                <button class="qty-btn" data-id="${id}" data-delta="-1" aria-label="Decrease quantity">−</button>
+                <span>${qty}</span>
+                <button class="qty-btn" data-id="${id}" data-delta="1" aria-label="Increase quantity">+</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        bagItemsContainer.querySelectorAll('.qty-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            changeBagQty(btn.getAttribute('data-id'), parseInt(btn.getAttribute('data-delta'), 10));
+          });
+        });
+      }
+
+      bagCountEl.textContent = totalCount;
+      bagTotalAmount.textContent = `$${totalPrice.toFixed(2)}`;
+    }
+
+    // Filter Tabs
+    document.querySelectorAll('.tab-btn').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.getAttribute('data-filter');
+        renderRack();
+      });
+    });
+
+    // Simulate Time Button
+    document.getElementById('simTimeBtn').addEventListener('click', () => {
+      currentTimeIndex = (currentTimeIndex + 1) % timeStates.length;
+      bag = {}; // Reset holds when jumping time
+      renderBag();
+      renderRack();
+      showToast(`Clock shifted to ${timeStates[currentTimeIndex].label}`);
+    });
+
+    // Drawer Controls
+    const bagDrawer = document.getElementById('bagDrawer');
+    const drawerBackdrop = document.getElementById('drawerBackdrop');
+
+    function toggleDrawer(open) {
+      bagDrawer.classList.toggle('open', open);
+      drawerBackdrop.classList.toggle('open', open);
+    }
+
+    document.getElementById('openBagBtn').addEventListener('click', () => toggleDrawer(true));
+    document.getElementById('closeBagBtn').addEventListener('click', () => toggleDrawer(false));
+    drawerBackdrop.addEventListener('click', () => toggleDrawer(false));
+
+    document.getElementById('confirmHoldBtn').addEventListener('click', () => {
+      if (Object.keys(bag).length === 0) {
+        showToast('Pick at least one loaf from the rack first!');
+        return;
+      }
+      const windowTime = document.getElementById('pickupSelect').value;
+      bag = {};
+      renderBag();
+      toggleDrawer(false);
+      showToast(`Bag stamped! Reserved at the side window for ${windowTime}.`);
+    });
+
+    // Newsletter Form
+    document.getElementById('dispatchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.target.reset();
+      showToast("You're on the Sunday Grain Dispatch list. See you at 8 AM!");
+    });
+
+    // Initialize
+    renderRack();
+    renderBag();
+  </script>
+</body>
+</html>

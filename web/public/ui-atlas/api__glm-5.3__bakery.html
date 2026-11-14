@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Odd Loaf — neighbourhood sourdough, gone by noon</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23C2401D' stroke-width='14' stroke-linecap='round' fill='none'%3E%3Cpath d='M50 7v86'/%3E%3Cpath d='M50 7v86' transform='rotate(60 50 50)'/%3E%3Cpath d='M50 7v86' transform='rotate(120 50 50)'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens & base ---------- */
+:root{
+  --paper:#F4EFE3; --paper-2:#EAE2CF; --ink:#1D1A14;
+  --ink-60:rgba(29,26,20,.6); --ink-30:rgba(29,26,20,.3);
+  --line:rgba(29,26,20,.22); --red:#C2401D;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--serif); font-optical-sizing:auto; font-size:16px; line-height:1.5;
+  overflow-x:hidden; -webkit-font-smoothing:antialiased;
+}
+/* paper grain, printed over everything */
+body::after{
+  content:""; position:fixed; inset:0; z-index:60; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px; opacity:.055; mix-blend-mode:multiply;
+}
+::selection{background:var(--red);color:var(--paper)}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.wrap{max-width:1280px;margin-inline:auto;padding-inline:clamp(20px,4.5vw,56px)}
+.star{display:inline-block;color:var(--red);vertical-align:-.06em}
+.star.spin{animation:spin 30s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(.4em)}to{opacity:1;transform:none}}
+@keyframes thump{0%{transform:rotate(-8deg) scale(2.1);opacity:0}55%{transform:rotate(-8deg) scale(.9);opacity:1}100%{transform:rotate(-8deg) scale(1)}}
+
+/* ---------- top ticker ---------- */
+.ticker{background:var(--ink);color:var(--paper);overflow:hidden}
+.tk{display:flex;width:max-content;padding-block:9px;animation:tick 55s linear infinite;
+  font:500 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.ticker:hover .tk{animation-play-state:paused}
+.tk span{padding-right:2.6rem}
+.tk i{font-style:normal;color:var(--red);margin-left:2.6rem}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;gap:2rem;padding-block:13px}
+.brand{display:flex;align-items:center;gap:.5em;font:600 italic 17px var(--serif);letter-spacing:.01em}
+.brand .star{width:11px;height:11px}
+.nav-links{margin-left:auto;display:flex;gap:1.8rem;font:500 10.5px var(--mono);letter-spacing:.18em;text-transform:uppercase}
+.nav-links a{opacity:.75;transition:color .2s,opacity .2s;padding-block:.3em}
+.nav-links a:hover{opacity:1;color:var(--red)}
+.nav-links a.active{opacity:1;color:var(--red)}
+.nav-note{font:500 10px var(--mono);letter-spacing:.16em;opacity:.5;border-left:1px solid var(--line);padding-left:1.6rem}
+
+/* ---------- hero ---------- */
+.hero{padding-block:clamp(3rem,7vw,6.5rem) clamp(3rem,6vw,5rem)}
+.kicker{display:flex;align-items:center;gap:.7em;font:500 11px var(--mono);letter-spacing:.2em;text-transform:uppercase}
+.kicker .star{width:10px;height:10px;flex:none}
+.wordmark{
+  margin-top:clamp(.9rem,2vw,1.5rem);
+  font-weight:900;font-size:clamp(2.9rem,16vw,12rem);line-height:.8;letter-spacing:-.035em;
+  white-space:nowrap;user-select:none;padding-block:.05em .08em;
+}
+.wordmark .g{display:inline-block;transform:rotate(var(--r)) translateY(var(--y))}
+.wordmark .g.dit{font-style:italic}
+@keyframes bob{50%{transform:rotate(var(--r)) translateY(calc(var(--y) - .07em))}}
+.wordmark:hover .g{animation:bob .8s calc(var(--i)*60ms) ease}
+.wm-starwrap{display:inline-block;width:.32em;height:.32em;margin:0 .09em;transform:translateY(-.4em)}
+.wm-starwrap svg{width:100%;height:100%;color:var(--red);animation:spin 26s linear infinite}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,350px);gap:clamp(2rem,5vw,5rem);align-items:end;margin-top:clamp(1.8rem,4vw,3rem)}
+.tag{font-size:clamp(1.25rem,2.2vw,1.7rem);line-height:1.4;max-width:27ch;letter-spacing:-.005em}
+.scr{font-style:italic;position:relative;white-space:nowrap}
+.scr svg{position:absolute;left:-1%;bottom:-.12em;width:102%;height:.3em;color:var(--red)}
+.stamp{
+  display:inline-block;margin-top:2.4rem;font-family:var(--mono);text-transform:uppercase;color:var(--red);
+  border:2.5px solid currentColor;border-radius:3px;padding:.85em 1.2em;text-align:center;
+  transform:rotate(-7deg);mix-blend-mode:multiply;cursor:pointer;position:relative;
+  transition:transform .25s ease;
+}
+.stamp::after{content:"";position:absolute;inset:-6px;border:1.5px solid currentColor;border-radius:5px}
+.stamp:hover{transform:rotate(-4deg) scale(1.03)}
+.stamp:active{transform:rotate(-7deg) scale(.96)}
+.stamp .s1{display:block;font-size:10px;letter-spacing:.28em;opacity:.85}
+.stamp .s2{display:block;font-size:clamp(18px,2vw,23px);font-weight:600;letter-spacing:.12em;margin:.3em 0}
+.stamp .s3{display:block;font-size:9px;letter-spacing:.26em;opacity:.85}
+.fig{justify-self:end;text-align:center;max-width:350px}
+.fig svg{width:100%;height:auto;color:var(--ink);opacity:.85;transform:rotate(-3deg);transition:transform .8s ease}
+.fig:hover svg{transform:rotate(0deg)}
+.figcap{font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.55;margin-top:.7rem}
+
+/* ---------- sections shared ---------- */
+section{padding-block:clamp(4rem,9vw,7.5rem)}
+#bake,#rules,#find{border-top:1.5px solid var(--ink);scroll-margin-top:76px}
+.sec-title{margin-top:1rem;font-size:clamp(2.1rem,4.6vw,3.4rem);font-weight:600;line-height:1.02;letter-spacing:-.015em;max-width:24ch}
+.sec-title em{font-weight:480}
+
+/* ---------- the board ---------- */
+.board{display:grid;grid-template-columns:250px minmax(0,1fr);gap:clamp(2rem,4vw,4.5rem);margin-top:clamp(2.2rem,4vw,3.5rem)}
+.rail{position:sticky;top:96px;align-self:start}
+.clock{font:600 clamp(2.7rem,3.4vw,3.9rem)/1 var(--mono);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.clock .colon{opacity:1;padding:0 .02em}
+.clock.live .colon{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.clock-cap{font:500 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;opacity:.6;margin-top:.65rem;max-width:24ch}
+.mode{display:inline-flex;border:1.5px solid var(--ink);border-radius:2px;overflow:hidden;margin-top:1.2rem}
+.mbtn{display:flex;align-items:center;gap:.5em;background:transparent;border:0;cursor:pointer;
+  font:600 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:.6em .95em;transition:background .2s,color .2s}
+.mbtn + .mbtn{border-left:1.5px solid var(--ink)}
+.mbtn.active{background:var(--ink);color:var(--paper)}
+.mbtn.active .livedot{background:var(--red)}
+.livedot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sched{margin-top:2.4rem;border-top:1px solid var(--line)}
+.sch{display:flex;gap:.9rem;padding-block:.55rem;border-bottom:1px solid var(--line);opacity:.36;transition:opacity .35s}
+.sch.past{opacity:1}
+.sch.now .s-t{color:var(--red);font-weight:600}
+.s-t{font:500 10.5px/1.5 var(--mono);min-width:46px;color:var(--ink-60)}
+.s-l{font:400 12.5px/1.5 var(--mono);opacity:.85}
+
+/* scrubber */
+.track{position:relative;height:64px;margin:1.2rem 0 30px;cursor:ew-resize;touch-action:none;user-select:none;-webkit-user-select:none}
+.tr-fill{position:absolute;left:0;top:0;bottom:20px;background:rgba(29,26,20,.07)}
+.tick{position:absolute;bottom:2px;width:1px;height:9px;background:var(--ink-30)}
+.tick.h{height:17px;background:var(--ink-60)}
+.tlab{position:absolute;top:70px;transform:translateX(-50%);font:500 9px var(--mono);letter-spacing:.1em;color:var(--ink-60)}
+.sdot{position:absolute;top:6px;width:5px;height:5px;border-radius:50%;background:var(--red);transform:translateX(-50%);opacity:.7}
+.sdot:hover{opacity:1}
+.needle{position:absolute;top:0;bottom:20px;width:2px;background:var(--red);transform:translateX(-50%)}
+.needle::after{content:"";position:absolute;top:-3px;left:50%;width:11px;height:11px;border-radius:50%;background:var(--red);transform:translateX(-50%);transition:transform .2s}
+.track:hover .needle::after{transform:translateX(-50%) scale(1.3)}
+
+.headline{margin-top:1rem;font:italic 500 clamp(1.35rem,2.4vw,1.9rem)/1.32 var(--serif);max-width:36ch;min-height:2.7em}
+.headline.swap{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.ns{font:400 12px/1.7 var(--mono);padding:1rem .2rem;color:var(--ink-60)}
+
+.soldbar{display:none;margin:1.6rem 0 1.4rem;border:1.5px solid var(--red);color:var(--red);padding:.85em 1em;
+  font:600 10.5px var(--mono);letter-spacing:.18em;text-transform:uppercase;text-align:center;transform:rotate(-.5deg)}
+.board.sold .soldbar{display:block;animation:rise .5s cubic-bezier(.2,1,.3,1) both}
+
+/* the menu list */
+.menu{margin-top:2.2rem;border-top:1.5px solid var(--ink);list-style:none}
+.loaf{border-bottom:1px solid var(--line)}
+.loaf:last-child{border-bottom:1.5px solid var(--ink)}
+.lrow{display:flex;align-items:baseline;gap:1rem;width:100%;padding:1.05rem .35rem;background:none;border:0;text-align:left;cursor:pointer;transition:background .18s}
+.loaf:hover .lrow{background:var(--paper-2)}
+.idx{font:500 11px var(--mono);color:var(--ink-30);min-width:1.8rem;transition:color .18s}
+.loaf:hover .idx{color:var(--red)}
+.lmain{min-width:0}
+.lname{font:600 clamp(1.05rem,1.6vw,1.22rem)/1.15 var(--serif);letter-spacing:-.01em;position:relative;display:inline-block}
+.lname::after{content:"";position:absolute;left:-1%;top:54%;height:2px;width:0;background:var(--red);transition:width .45s cubic-bezier(.3,.8,.3,1)}
+.loaf.gone .lname::after{width:102%}
+.ltag{display:block;font:italic 400 .9rem/1.35 var(--serif);opacity:.6;margin-top:.2rem}
+.leader{flex:1;min-width:1.6rem;border-bottom:2px dotted var(--ink-30);align-self:center;position:relative;top:-3px}
+.lprice{font:500 .85rem var(--mono);white-space:nowrap;transition:opacity .3s}
+.loaf.gone .lprice{opacity:.35}
+.lstat{font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;text-align:right;min-width:7.6rem;color:var(--ink-60)}
+.lstat .few{color:var(--red);font-weight:600}
+.lstat .when{margin-left:.5em;opacity:.55}
+.stamp-s{display:inline-block;color:var(--red);border:1.8px solid currentColor;padding:.3em .55em;font:600 9.5px var(--mono);letter-spacing:.18em;transform:rotate(-8deg);border-radius:2px}
+.stamp-s.thump{animation:thump .4s cubic-bezier(.25,1,.35,1.4) both}
+.lplus{width:1.5rem;height:1.5rem;flex:none;align-self:center;display:grid;place-items:center;color:var(--ink-60)}
+.lplus svg{transition:transform .35s}
+.loaf.open .lplus svg{transform:rotate(45deg);color:var(--red)}
+.lbody{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s cubic-bezier(.25,.8,.25,1)}
+.loaf.open .lbody{grid-template-rows:1fr}
+.lbody-in{overflow:hidden;min-height:0}
+.lnotes{padding:.15rem .35rem 0 2.8rem;font-size:1rem;line-height:1.55;max-width:62ch;opacity:.85}
+.lmeta{padding:.7rem .35rem 1.25rem 2.8rem;font:400 11px/1.7 var(--mono);letter-spacing:.04em;color:var(--ink-60)}
+.lmeta .lstate{font-weight:600;color:var(--ink)}
+.lmeta .lstate.red{color:var(--red)}
+
+/* gauge */
+.gauge{margin-top:2.2rem}
+.g-row{display:flex;align-items:baseline;gap:1.1rem}
+.g-label{font:500 10.5px var(--mono);letter-spacing:.2em;text-transform:uppercase}
+.g-num{font:600 2rem/1 var(--mono);font-variant-numeric:tabular-nums;transition:color .3s}
+.g-of{font:400 12px var(--mono);opacity:.5}
+.g-bar{height:3px;background:rgba(29,26,20,.14);margin-top:.85rem}
+.g-fill{height:100%;background:var(--ink);transition:background .3s}
+.gauge.low .g-fill{background:var(--red)}
+.gauge.low .g-num{color:var(--red)}
+
+/* ---------- quote ---------- */
+.quote{border-top:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;padding-block:clamp(4rem,9vw,7rem)}
+.quote .star{width:22px;height:22px;margin-bottom:1.4rem}
+.quote blockquote{margin:0 auto;max-width:24ch;font:italic 500 clamp(1.9rem,4.6vw,3.4rem)/1.18 var(--serif);letter-spacing:-.01em}
+.quote cite{display:block;margin-top:1.7rem;font:400 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;opacity:.6;font-style:normal}
+
+/* ---------- rules ---------- */
+.rules-list{margin-top:3rem;border-top:1.5px solid var(--ink);list-style:none}
+.rule{display:grid;grid-template-columns:minmax(4.5rem,7rem) minmax(0,1fr);gap:1.5rem;padding-block:2.1rem;border-bottom:1px solid var(--line);align-items:start}
+.r-num{font:300 clamp(2.4rem,4vw,3.4rem)/0.9 var(--serif);letter-spacing:-.02em}
+.r-num i{font-style:normal;color:var(--red)}
+.r-main{font:500 clamp(1.2rem,2.2vw,1.55rem)/1.25 var(--serif);letter-spacing:-.01em}
+.r-sub{margin-top:.75rem;font:400 12px/1.75 var(--mono);color:var(--ink-60);max-width:60ch}
+.fn{margin-top:1.4rem;font:400 11px/1.7 var(--mono);opacity:.65}
+.fn .red{color:var(--red)}
+
+/* ---------- find us ---------- */
+.find-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(2.5rem,5vw,5rem);align-items:start;margin-top:3rem}
+.addr{font:500 clamp(1.5rem,2.6vw,2.1rem)/1.25 var(--serif);letter-spacing:-.015em;max-width:24ch}
+.addr em{color:var(--red)}
+.hours{margin-top:2.4rem;font:400 12.5px var(--mono)}
+.hrow{display:flex;gap:1.1rem;align-items:baseline;padding-block:.68rem;border-bottom:1px solid var(--line)}
+.hday{min-width:3.2rem;font-weight:600;letter-spacing:.1em}
+.htime{opacity:.75}
+.hnote{margin-left:auto;font:italic 400 .95rem var(--serif);color:var(--ink-60);text-align:right}
+.btn{display:inline-flex;align-items:center;gap:.7em;margin-top:2.2rem;font:600 10.5px var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  background:transparent;border:1.5px solid var(--ink);border-radius:2px;padding:.85em 1.3em;cursor:pointer;transition:background .2s,color .2s}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn svg{width:13px;height:13px}
+.paranote{margin-top:1.6rem;font:400 11px/1.8 var(--mono);opacity:.55;max-width:44ch}
+.map{background:#F8F3E7;border:1.5px solid var(--ink);padding:clamp(10px,1.6vw,16px);transform:rotate(-1.3deg);
+  position:relative;box-shadow:5px 7px 0 rgba(29,26,20,.08);transition:transform .6s ease}
+.map:hover{transform:rotate(0deg)}
+.tape{position:absolute;width:88px;height:26px;background:rgba(240,234,220,.9);border:1px solid rgba(29,26,20,.1);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tape.l{left:-24px;top:-12px;transform:rotate(-38deg)}
+.tape.r{right:-24px;top:-12px;transform:rotate(36deg)}
+.map svg{width:100%;height:auto;display:block}
+.map text{font-family:var(--mono);letter-spacing:.12em;fill:var(--ink)}
+.mapcap{margin-top:1.1rem;text-align:center;font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+.ping{animation:ping 2.6s ease-out infinite}
+@keyframes ping{0%{r:4;opacity:.9}70%{r:19;opacity:0}100%{r:19;opacity:0}}
+
+/* ---------- footer / toast ---------- */
+footer{border-top:1.5px solid var(--ink);margin-top:clamp(1rem,4vw,3rem);padding:clamp(3rem,6vw,5rem) 0 2rem}
+.foot-big{font:italic 500 clamp(2.3rem,6vw,4.6rem)/1.05 var(--serif);letter-spacing:-.02em}
+.foot-big .star{width:.35em;height:.35em;margin-left:.1em}
+.foot-row{display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:space-between;margin-top:3rem;padding-top:1.2rem;border-top:1px solid var(--line);
+  font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--ink);color:var(--paper);
+  font:500 12px/1.5 var(--mono);padding:.85em 1.4em;opacity:0;pointer-events:none;border-radius:2px;
+  transition:opacity .35s,transform .35s cubic-bezier(.2,.8,.2,1);z-index:100;max-width:min(90vw,520px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1000px){
+  .board{grid-template-columns:1fr}
+  .rail{position:static;display:grid;grid-template-columns:auto minmax(0,1fr);gap:.5rem 3rem;align-items:start}
+}
+@media (max-width:760px){
+  .hero-grid{grid-template-columns:1fr}
+  .fig{justify-self:center;margin-top:2.2rem;max-width:300px}
+  .find-grid{grid-template-columns:1fr}
+  .map{max-width:480px}
+  .lrow{flex-wrap:wrap;row-gap:.4rem}
+  .leader{display:none}
+  .lstat{flex-basis:100%;order:5;text-align:left;margin-top:.15rem}
+  .lplus{margin-left:auto}
+  .lnotes,.lmeta{padding-left:.35rem}
+  .nav-note{display:none}
+}
+@media (max-width:620px){
+  .rail{grid-template-columns:1fr}
+  .nav-links{gap:1.1rem}
+  .hnote{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body id="top">
+
+<!-- reusable red asterisk mark -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="ast" stroke="currentColor" stroke-width="13" stroke-linecap="round" fill="none">
+    <path d="M50 8v84"/><path d="M50 8v84" transform="rotate(60 50 50)"/><path d="M50 8v84" transform="rotate(120 50 50)"/>
+  </g>
+</defs></svg>
+
+<!-- broadsheet ticker -->
+<div class="ticker" aria-hidden="true">
+  <div class="tk" id="tk">
+    <span>No pre-orders — first come, first warm<i>*</i></span>
+    <span>Sold out by noon, usually sooner<i>*</i></span>
+    <span>Wed–Sat 07:00 · Sun 08:00 — till gone<i>*</i></span>
+    <span>This week's Odd Sock: beetroot &amp; barley<i>*</i></span>
+    <span>Cash, card, or a good trade<i>*</i></span>
+    <span>The starter is nine, and it has opinions<i>*</i></span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top"><svg class="star spin" viewBox="0 0 100 100"><use href="#ast"/></svg>Odd Loaf</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#bake">The bake</a><a href="#rules">House rules</a><a href="#find">Find us</a>
+    </nav>
+    <span class="nav-note">WED–SUN · 07:00 → GONE</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ hero ============ -->
+  <section class="hero">
+    <div class="wrap">
+      <p class="kicker"><svg class="star" viewBox="0 0 100 100"><use href="#ast"/></svg>Neighbourhood sourdough — 14 Hadden Lane, corner of Pye St.</p>
+      <h1 class="wordmark" aria-label="Odd Loaf"><span aria-hidden="true"><span class="g" style="--r:-2.2deg;--y:.012em;--i:0">O</span><span class="g" style="--r:1.6deg;--y:-.018em;--i:1">D</span><span class="g dit" style="--r:-1deg;--y:.03em;--i:2">D</span><span class="wm-starwrap"><svg viewBox="0 0 100 100"><use href="#ast"/></svg></span><span class="g" style="--r:2.2deg;--y:-.024em;--i:3">L</span><span class="g" style="--r:-1.4deg;--y:.02em;--i:4">O</span><span class="g" style="--r:1.2deg;--y:-.012em;--i:5">A</span><span class="g" style="--r:-2deg;--y:.026em;--i:6">F</span></span></h1>
+
+      <div class="hero-grid">
+        <div>
+          <p class="tag">Sourdough for Pye Street and the streets that admire it. Baked before dawn —
+            <span class="scr">gone by noon<svg viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C40 3 70 12 110 7 C150 2 180 11 217 5" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></span>, usually sooner.</p>
+          <div class="stamp" id="stamp" role="button" tabindex="0" title="see how the day ends" aria-label="Skip to the end of the morning — everything sells out">
+            <span class="s1">Odd Loaf · Hadden Lane</span>
+            <span class="s2">Gone by noon</span>
+            <span class="s3">guaranteed-ish</span>
+          </div>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 200" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" role="img" aria-label="Line drawing of a round sourdough loaf">
+            <path d="M26 112 C20 66 62 28 130 24 C198 20 240 60 240 106 C238 148 200 176 128 178 C58 180 32 154 26 112 Z"/>
+            <path d="M92 58 C104 84 108 116 100 142"/>
+            <path d="M140 52 C150 82 152 118 144 146"/>
+            <path d="M186 62 C194 88 196 116 190 138"/>
+            <path d="M52 190 C110 184 180 186 224 182" opacity=".35"/>
+            <g fill="currentColor" stroke="none" opacity=".45">
+              <circle cx="52" cy="176" r="2"/><circle cx="70" cy="184" r="1.5"/><circle cx="212" cy="182" r="2"/>
+              <circle cx="228" cy="172" r="1.5"/><circle cx="36" cy="168" r="1.5"/>
+            </g>
+          </svg>
+          <figcaption class="figcap">fig. 1 — the regular, five minutes out of the oven</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ the bake, live ============ -->
+  <section id="bake">
+    <div class="wrap">
+      <p class="kicker"><svg class="star" viewBox="0 0 100 100"><use href="#ast"/></svg>The bake — live from the shelf</p>
+      <h2 class="sec-title">What's left, <em>right now.</em></h2>
+
+      <div class="board" id="board">
+        <aside class="rail">
+          <div class="rail-a">
+            <p class="clock" id="clock"><span id="clkH">09</span><span class="colon">:</span><span id="clkM">47</span></p>
+            <p class="clock-cap" id="clkCap">Saturday, replayed — drag the needle</p>
+            <div class="mode" role="group" aria-label="Clock mode">
+              <button class="mbtn active" data-mode="replay" type="button">Replay</button>
+              <button class="mbtn" data-mode="live" type="button"><i class="livedot" aria-hidden="true"></i>Live</button>
+            </div>
+          </div>
+          <div class="rail-b">
+            <div class="sched" id="sched"></div>
+          </div>
+        </aside>
+
+        <div class="rail-c">
+          <div class="track" id="track" tabindex="0" role="slider" aria-label="Time of morning" aria-valuemin="390" aria-valuemax="780" aria-valuenow="587">
+            <div class="tr-fill" id="trfill"></div>
+            <div class="needle" id="needle" aria-hidden="true"></div>
+          </div>
+          <p class="headline" id="headline"></p>
+          <noscript><p class="ns">This page runs on a small lump of local JavaScript. The oven, however, is real — Wed–Sun from seven, till gone.</p></noscript>
+          <p class="soldbar" id="sb">Today's bake is sold out — scrub back to relive it</p>
+          <ul class="menu" id="menu"></ul>
+          <div class="gauge" id="gauge">
+            <div class="g-row">
+              <span class="g-label">On the shelf</span>
+              <span class="g-num" id="gNum">0</span>
+              <span class="g-of" id="gOf">/ 0</span>
+            </div>
+            <div class="g-bar"><div class="g-fill" id="gFill"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ overheard ============ -->
+  <section class="quote">
+    <div class="wrap">
+      <svg class="star spin" viewBox="0 0 100 100" aria-hidden="true"><use href="#ast"/></svg>
+      <blockquote>&ldquo;I have sprinted for this bread. I would sprint again — and I am seventy-one.&rdquo;</blockquote>
+      <cite>— Dev, who lives above the laundrette</cite>
+    </div>
+  </section>
+
+  <!-- ============ house rules ============ -->
+  <section id="rules">
+    <div class="wrap">
+      <p class="kicker"><svg class="star" viewBox="0 0 100 100"><use href="#ast"/></svg>House rules — enforced, lovingly</p>
+      <h2 class="sec-title">The rules, <em>such as they are.</em></h2>
+      <ul class="rules-list">
+        <li class="rule"><span class="r-num">01<i>.</i></span>
+          <div><p class="r-main">First come, first warm.</p><p class="r-sub">No pre-orders, no holds, no favours. The queue is the whole point — it's where the news gets exchanged.</p></div></li>
+        <li class="rule"><span class="r-num">02<i>.</i></span>
+          <div><p class="r-main">We bake what the starter allows.</p><p class="r-sub">It's nine years old, it's moody, and it doesn't take requests. Some weeks that means rye. Some weeks it means we find out on the day.</p></div></li>
+        <li class="rule"><span class="r-num">03<i>.</i></span>
+          <div><p class="r-main">Cash box, card, or a decent trade.</p><p class="r-sub">Last month a man paid in transparent gages.* Best trade of the year, and he got two loaves and a knot for them.</p></div></li>
+        <li class="rule"><span class="r-num">04<i>.</i></span>
+          <div><p class="r-main">When it's gone, it's gone.</p><p class="r-sub">There is no secret back shelf. The bread you can smell but cannot see does not exist. Come before ten, or come on Friday for a chat instead.</p></div></li>
+        <li class="rule"><span class="r-num">05<i>.</i></span>
+          <div><p class="r-main">Dogs are welcome.</p><p class="r-sub">The bench out front seats three and a dog. The starter likes the attention.</p></div></li>
+      </ul>
+      <p class="fn"><span class="red">*</span> since confirmed to be excellent plums. the trade stands.</p>
+    </div>
+  </section>
+
+  <!-- ============ find us ============ -->
+  <section id="find">
+    <div class="wrap">
+      <p class="kicker"><svg class="star" viewBox="0 0 100 100"><use href="#ast"/></svg>Find us — the corner with the cobbles</p>
+      <h2 class="sec-title">Find the <em>queue.</em></h2>
+
+      <div class="find-grid">
+        <div>
+          <p class="addr">14 Hadden Lane — <em>where the cobbles start</em> and the smell is strongest.</p>
+          <div class="hours">
+            <div class="hrow"><span class="hday">WED</span><span class="htime">07:00 → gone</span><span class="hnote">on the hour</span></div>
+            <div class="hrow"><span class="hday">THU</span><span class="htime">07:00 → gone</span><span class="hnote">ditto</span></div>
+            <div class="hrow"><span class="hday">FRI</span><span class="htime">07:00 → gone</span><span class="hnote">stock-up day</span></div>
+            <div class="hrow"><span class="hday">SAT</span><span class="htime">07:00 → gone</span><span class="hnote">goes fastest</span></div>
+            <div class="hrow"><span class="hday">SUN</span><span class="htime">08:00 → gone</span><span class="hnote">sombre, but gone</span></div>
+            <div class="hrow"><span class="hday">MON</span><span class="htime">closed</span><span class="hnote">the oven rests</span></div>
+            <div class="hrow"><span class="hday">TUE</span><span class="htime">closed</span><span class="hnote">the starter sulks</span></div>
+          </div>
+          <button class="btn" id="btnCopy" type="button">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="4.5" width="8" height="8" rx="1"/><path d="M9.5 2.5h-7a1 1 0 0 0-1 1v7"/></svg>
+            Copy the address
+          </button>
+          <p class="paranote">Six chairs out front. Two of them wobble. We keep the flat whites coming while the loaves run out — it softens the blow.</p>
+        </div>
+
+        <div>
+          <div class="map" aria-label="Hand-drawn map of Hadden Lane and Pye Street">
+            <span class="tape l" aria-hidden="true"></span><span class="tape r" aria-hidden="true"></span>
+            <svg viewBox="0 0 480 360" role="img" aria-label="Map: Odd Loaf sits on the corner of Hadden Lane and Pye Street, with the queue running south along Hadden Lane">
+              <!-- roads -->
+              <g stroke="#1D1A14" stroke-width="11" fill="none" stroke-linecap="round">
+                <path d="M-8 128 C120 118 300 148 488 116"/>
+                <path d="M212 -8 C204 92 228 220 216 368"/>
+                <path d="M-8 290 C140 280 320 306 488 270"/>
+                <path d="M348 -8 C344 58 358 96 374 126"/>
+              </g>
+              <g stroke="#F8F3E7" stroke-width="6" fill="none" stroke-linecap="round">
+                <path d="M-8 128 C120 118 300 148 488 116"/>
+                <path d="M212 -8 C204 92 228 220 216 368"/>
+                <path d="M-8 290 C140 280 320 306 488 270"/>
+                <path d="M348 -8 C344 58 358 96 374 126"/>
+              </g>
+              <!-- street names -->
+              <text x="56" y="104" font-size="10">PYE ST.</text>
+              <text x="246" y="88" font-size="10" transform="rotate(84 246 88)">HADDEN LANE</text>
+              <text x="60" y="272" font-size="10">BROOK ROW</text>
+              <text x="352" y="30" font-size="10" transform="rotate(11 352 30)">CHAPEL YARD</text>
+              <!-- bus stop -->
+              <circle cx="428" cy="122" r="4.5" fill="none" stroke="#1D1A14" stroke-width="1.5"/>
+              <text x="410" y="106" font-size="9">BUS</text>
+              <!-- laundrette + Dev -->
+              <rect x="292" y="296" width="22" height="14" fill="none" stroke="#1D1A14" stroke-width="1.5" transform="rotate(-2 303 303)"/>
+              <text x="248" y="332" font-size="9" opacity=".75">LAUNDRETTE</text>
+              <g stroke="#1D1A14" stroke-width="1.5" fill="none"><rect x="272" y="260" width="10" height="10"/><path d="M272 260l10 10M282 260l-10 10"/></g>
+              <text x="188" y="252" font-size="9" opacity=".75">DEV'S WINDOW</text>
+              <!-- the queue -->
+              <path d="M200 142 C192 172 198 210 190 246" stroke="#C2401D" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray=".5 7"/>
+              <text x="168" y="188" font-size="9" fill="#C2401D" transform="rotate(84 168 188)">THE QUEUE</text>
+              <!-- the bakery -->
+              <path d="M190 127 c-1 -11 8 -19 18 -18 12 1 19 8 18 18 -1 10 -9 16 -19 15 -10 -1 -16 -4 -17 -15 z" fill="none" stroke="#C2401D" stroke-width="2"/>
+              <circle cx="208" cy="127" r="4" fill="#C2401D"/>
+              <circle class="ping" cx="208" cy="127" r="4" fill="none" stroke="#C2401D" stroke-width="1.5"/>
+              <text x="176" y="100" font-size="12" font-weight="600" fill="#C2401D" text-anchor="middle">ODD LOAF</text>
+              <!-- north -->
+              <path d="M30 36V16" stroke="#1D1A14" stroke-width="1.5"/>
+              <path d="M30 10 l-4 7 h8 z" fill="#1D1A14"/>
+              <text x="38" y="20" font-size="10">N</text>
+            </svg>
+          </div>
+          <p class="mapcap">fig. 2 — not to scale. the queue, however, is.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="foot-big">See you at seven<svg class="star spin" viewBox="0 0 100 100" aria-hidden="true"><use href="#ast"/></svg>.</p>
+    <div class="foot-row">
+      <span>Odd Loaf — 14 Hadden Lane</span>
+      <span>We don't track you. We can barely track the rye.</span>
+      <span>Set in Fraunces &amp; Plex Mono — no build, no leftovers</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+  /* ---------- data ---------- */
+  const MIN = 390, MAX = 780;                    // 06:30 → 13:00, in minutes
+  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const LOAVES = [
+    {name:'Overnight Bagel', tag:'sesame one side, poppy the other', price:'£2.50', bake:420, out:500, batch:36,
+     notes:'Boiled at five in the morning with the lights off, baked while the coffee brews. Sesame on one side, poppy on the other — pick a side early, people will ask.'},
+    {name:'Cardamom Morning Knot', tag:'butter, dark sugar, no restraint', price:'£3.50', bake:435, out:545, batch:30,
+     notes:'Laminated-ish, butter-forward, rolled in dark cardamom sugar while still warm. Structurally a breakfast; spiritually a dessert. Best eaten walking, ideally downhill.'},
+    {name:'The Regular', tag:'the everyday country loaf, 18-hour ferment', price:'£5.00', bake:425, out:727, batch:48,
+     notes:'Eighty-twenty stoneground white and wholemeal from Mitchells Mill, eleven minutes up the road. Eighteen-hour cold ferment, open-baked on stone. Open crumb, glossy, a little chew — improves with butter.'},
+    {name:'Seeded Rye', tag:'toasted sesame, nigella, a spoon of molasses', price:'£5.50', bake:450, out:581, batch:22,
+     notes:'Dark rye with toasted sesame, nigella and a spoon of molasses. Dense in the good way — slices thin, keeps a week if you have more willpower than we do.'},
+    {name:'Odd Sock', tag:'this week: beetroot & barley. no two alike', price:'£6.00', bake:480, out:618, batch:12,
+     notes:"The whatever's-left loaf: it changes weekly and sells anyway. This week it's roast beetroot and barley with a suspicion of cumin. No two have ever been alike. Genuinely."},
+    {name:'Miso & Scallion Scroll', tag:'white miso, scallion, contraband butter', price:'£4.00', bake:490, out:652, batch:18,
+     notes:'White miso, scallion, and more butter than the recipe admits to. The recipe is this sentence.'},
+    {name:'Burnt Basque', tag:'a slice, on purpose', price:'£4.50', bake:510, out:693, batch:14,
+     notes:'Not bread, but the oven was already on. Burnt on purpose, molten in the middle. A slice and a flat white is a legitimate way to start a Wednesday.'},
+    {name:"Yesterday's Loaf", tag:'the honest option, half price', price:'£2.50', bake:390, out:720, batch:6,
+     notes:"Yesterday it was the Regular. Half price, toasts like a dream, nobody's fool. Ask for the end piece — we respect people who ask for the end piece."}
+  ];
+  const TOTAL = LOAVES.reduce((a,l)=>a+l.batch,0);
+
+  const HEADS = [
+    [390, "Doors are bolted and the lane is dark. The oven, meanwhile, has been awake since four."],
+    [420, "Seven o'clock. Everything is warm and nothing is gone. This is the good part — come now."],
+    [500, "The bagels went first; they always do. The cardamom knots are circling the drain."],
+    [545, "The cardamom is a memory. The rye is starting to sweat."],
+    [581, "Rye's gone. Barely ten past nine and the shelf is already lying about how full it looks."],
+    [618, "That's the Odd Sock sold — whatever it was this week, it was exactly that good."],
+    [652, "The scrolls have scrolled. It's loaves, cheesecake and honesty from here."],
+    [693, "The cheesecake held out as long as it could. Somebody's lunch is now certain."],
+    [720, "Noon-ish. Yesterday's loaves are gone, The Regular is down to crumbs, and the apologies have started."],
+    [727, "That is everything. Shutters down, floor swept, starter fed. See you at dawn — Wednesday to Sunday."]
+  ];
+
+  const SCHED = [
+    [195,'03:15','dough out of the cold room'],
+    [280,'04:40','oven lit, first coffee'],
+    [390,'06:30','loaves in — the smell reaches the lane'],
+    [420,'07:00','bolts drawn, the queue forms itself'],
+    [540,'09:00',"the rye's usually gone"],
+    [690,'11:30','we start apologising'],
+    [727,'12:07','sold out, usually'],
+    [735,'12:15','shutters, sweep, sleep']
+  ];
+
+  /* ---------- helpers & refs ---------- */
+  const $ = s => document.querySelector(s);
+  const clamp = v => Math.max(MIN, Math.min(MAX, v));
+  const fmt = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.floor(m%60)).padStart(2,'0');
+  const pct = m => (((m-MIN)/(MAX-MIN))*100).toFixed(3)+'%';
+  const setTxt = (el,k,s)=>{ if(el.__c[k]!==s){ el.__c[k]=s; el.textContent=s; } };
+
+  const track=$('#track'), needle=$('#needle'), trFill=$('#trfill'),
+        clkH=$('#clkH'), clkM=$('#clkM'), clkCap=$('#clkCap'), clockEl=$('#clock'),
+        headEl=$('#headline'), menuEl=$('#menu'), boardEl=$('#board'),
+        gNum=$('#gNum'), gFill=$('#gFill'), gOf=$('#gOf'), gaugeEl=$('#gauge'),
+        schedEl=$('#sched'), toastEl=$('#toast');
+  [clkH,clkM,clkCap,headEl,gNum].forEach(el=>el.__c={});
+
+  let T = 587, mode = 'replay', liveInt = null, tw = null, introToast = null;
+
+  /* ---------- build: schedule ---------- */
+  SCHED.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='sch';
+    d.innerHTML='<span class="s-t">'+s[1]+'</span><span class="s-l">'+s[2]+'</span>';
+    schedEl.appendChild(d);
+  });
+  const schEls=[...schedEl.children];
+
+  /* ---------- build: scrubber ---------- */
+  for(let m=MIN;m<=MAX;m+=15){
+    const t=document.createElement('i');
+    t.className='tick'+(m%60===0?' h':''); t.style.left=pct(m);
+    track.insertBefore(t, needle);
+    if(m%60===0){
+      const l=document.createElement('span');
+      l.className='tlab'; l.style.left=pct(m);
+      l.textContent=String(m/60).padStart(2,'0');
+      track.insertBefore(l, needle);
+    }
+  }
+  LOAVES.forEach(l=>{
+    const d=document.createElement('i');
+    d.className='sdot'; d.style.left=pct(l.out);
+    d.title=l.name+' — usually gone by '+fmt(l.out);
+    track.insertBefore(d, needle);
+  });
+
+  /* ---------- build: menu ---------- */
+  const PLUS='<svg width="13" height="13" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  LOAVES.forEach((l,i)=>{
+    const li=document.createElement('li');
+    li.className='loaf';
+    li.innerHTML=
+      '<button class="lrow" type="button" aria-expanded="false">'+
+        '<span class="idx">'+String(i+1).padStart(2,'0')+'</span>'+
+        '<span class="lmain"><span class="lname">'+l.name+'</span><span class="ltag">'+l.tag+'</span></span>'+
+        '<span class="leader" aria-hidden="true"></span>'+
+        '<span class="lprice">'+l.price+'</span>'+
+        '<span class="lstat"></span>'+
+        '<span class="lplus" aria-hidden="true">'+PLUS+'</span>'+
+      '</button>'+
+      '<div class="lbody"><div class="lbody-in">'+
+        '<p class="lnotes">'+l.notes+'</p>'+
+        '<p class="lmeta"><b class="lstate"></b><span> · baked '+fmt(l.bake)+' · '+l.batch+' in today\'s batch · usually gone by '+fmt(l.out)+'</span></p>'+
+      '</div></div>';
+    menuEl.appendChild(li);
+    li.querySelector('.lrow').addEventListener('click',()=>{
+      const open=!li.classList.contains('open');
+      menuEl.querySelectorAll('.loaf.open').forEach(x=>{
+        x.classList.remove('open');
+        x.querySelector('.lrow').setAttribute('aria-expanded','false');
+      });
+      if(open){ li.classList.add('open'); li.querySelector('.lrow').setAttribute('aria-expanded','true'); }
+    });
+  });
+  const liEls=[...menuEl.children];
+  const statEls=liEls.map(li=>li.querySelector('.lstat'));
+  const bodyEls=liEls.map(li=>li.querySelector('.lstate'));
+  gOf.textContent='/ '+TOTAL;
+
+  /* ---------- state math ---------- */
+  const leftOf=(l,t)=> t>=l.out?0 : t<=l.bake?l.batch : Math.max(1,Math.round(l.batch*(l.out-t)/(l.out-l.bake)));
+  const realMins=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+  const liveWindow=()=>{ const d=new Date(), dy=d.getDay(), m=realMins();
+    return (dy===0||dy===3||dy===4||dy===5||dy===6) && m>=MIN && m<=MAX; };
+
+  function captionText(){
+    if(mode==='live'){ const d=new Date(); return 'Live — '+DAYS[d.getDay()]+(T>=727?' · all gone':''); }
+    return 'Saturday, replayed — drag the needle';
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    const t=T;
+    setTxt(clkH,'h',String(Math.floor(t/60)).padStart(2,'0'));
+    setTxt(clkM,'m',String(Math.floor(t%60)).padStart(2,'0'));
+    const p=pct(t);
+    needle.style.left=p; trFill.style.width=p;
+    track.setAttribute('aria-valuenow',Math.round(t));
+    track.setAttribute('aria-valuetext',fmt(t));
+    setTxt(clkCap,'cap',captionText());
+
+    let txt=HEADS[0][1];
+    for(const h of HEADS) if(h[0]<=t) txt=h[1];
+    if(headEl.__c.head!==txt){
+      headEl.__c.head=txt; headEl.textContent=txt;
+      headEl.classList.remove('swap'); void headEl.offsetWidth; headEl.classList.add('swap');
+    }
+
+    let ni=-1;
+    SCHED.forEach((s,i)=>{ if(s[0]<=t) ni=i; });
+    schEls.forEach((el,i)=>{ el.classList.toggle('past',i<=ni); el.classList.toggle('now',i===ni); });
+
+    let remaining=0;
+    LOAVES.forEach((l,i)=>{
+      const st = t>=l.out ? 'gone' : t<l.bake ? 'oven' : 'shelf';
+      const n = leftOf(l,t);
+      if(st==='shelf') remaining+=n;
+      const li=liEls[i], stat=statEls[i], body=bodyEls[i];
+      li.classList.toggle('gone', st==='gone');
+      let s;
+      if(st==='oven') s='in the oven';
+      else if(st==='shelf') s = n<=4 ? '<b class="few">'+n+' left</b>' : n+' left';
+      else s='<span class="stamp-s">gone</span><span class="when">'+fmt(l.out)+'</span>';
+      if(stat.__c.st!==s){
+        const thump = st==='gone' && stat.__c.state!=='gone';
+        stat.__c.st=s;
+        stat.innerHTML = thump ? s.replace('stamp-s','stamp-s thump') : s;
+      }
+      stat.__c.state=st;
+      let bs;
+      if(st==='oven') bs='still in the oven — out at '+fmt(l.bake);
+      else if(st==='shelf') bs='on the shelf — '+n+' left';
+      else bs='gone at '+fmt(l.out)+' — back tomorrow, out at '+fmt(l.bake);
+      if(body.__c.bs!==bs){ body.__c.bs=bs; body.textContent=bs; }
+      body.classList.toggle('red', st==='gone');
+    });
+
+    setTxt(gNum,'n',String(remaining));
+    const frac=remaining/TOTAL;
+    gFill.style.width=(frac*100).toFixed(2)+'%';
+    gaugeEl.classList.toggle('low', frac<.16);
+    boardEl.classList.toggle('sold', remaining===0);
+  }
+
+  /* ---------- toast ---------- */
+  let toastTimer=null;
+  function toast(msg){
+    toastEl.textContent=msg; toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>toastEl.classList.remove('show'),3200);
+  }
+
+  /* ---------- tween & scrub ---------- */
+  function cancelTween(){ if(tw){ cancelAnimationFrame(tw); tw=null; } }
+  function tweenTo(target,dur){
+    cancelTween();
+    const from=T, t0=performance.now();
+    (function step(now){
+      const p=Math.min(1,(now-t0)/dur);
+      const e=p<.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;
+      T=from+(target-from)*e; render();
+      tw = p<1 ? requestAnimationFrame(step) : null;
+    })(t0);
+  }
+  function moveTo(e){
+    const r=track.getBoundingClientRect();
+    let x=(e.clientX-r.left)/r.width;
+    T=clamp(MIN+Math.round(Math.max(0,Math.min(1,x))*(MAX-MIN));
+    render();
+  }
+  track.addEventListener('pointerdown',e=>{
+    cancelTween(); clearTimeout(introToast);
+    if(mode==='live') setMode('replay');
+    track.setPointerCapture(e.pointerId);
+    track.__d=true; moveTo(e); e.preventDefault();
+  });
+  track.addEventListener('pointermove',e=>{ if(track.__d) moveTo(e); });
+  ['pointerup','pointercancel'].forEach(ev=>track.addEventListener(ev,()=>track.__d=false));
+  track.addEventListener('keydown',e=>{
+    if(mode==='live') setMode('replay');
+    const step=e.shiftKey?30:5; let used=true;
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown') T=clamp(T-step);
+    else if(e.key==='ArrowRight'||e.key==='ArrowUp') T=clamp(T+step);
+    else if(e.key==='Home') T=MIN;
+    else if(e.key==='End') T=MAX;
+    else used=false;
+    if(used){ e.preventDefault(); render(); }
+  });
+
+  /* ---------- live / replay ---------- */
+  function liveTick(){
+    if(!liveWindow()){ clearInterval(liveInt); liveInt=null;
+      toast("That's the real day done — back to the replay.");
+      setMode('replay'); return; }
+    T=realMins(); render();
+  }
+  function setMode(m){
+    mode=m;
+    document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+    clockEl.classList.toggle('live', m==='live');
+    clearInterval(liveInt); liveInt=null;
+    if(m==='live'){ liveTick(); liveInt=setInterval(liveTick,30000); }
+    else render();
+  }
+  document.querySelectorAll('.mbtn').forEach(b=>b.addEventListener('click',()=>{
+    clearTimeout(introToast);
+    if(b.dataset.mode==='live' && !liveWindow()){
+      toast("Real life says we're closed right now — the replay's just as warm."); return;
+    }
+    setMode(b.dataset.mode);
+  }));
+
+  /* ---------- the spoiler stamp ---------- */
+  const stamp=$('#stamp');
+  function spoil(){
+    cancelTween(); clearTimeout(introToast);
+    if(mode==='live') setMode('replay');
+    tweenTo(MAX,2000);
+    toast(T>=770 ? 'Told you.' : 'Spoiler: it sells out.');
+  }
+  stamp.addEventListener('click',spoil);
+  stamp.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); spoil(); } });
+
+  /* ---------- copy address ---------- */
+  $('#btnCopy').addEventListener('click',async()=>{
+    const txt='Odd Loaf, 14 Hadden Lane';
+    try{ await navigator.clipboard.writeText(txt); toast('Address copied — see you at the cobbles.'); }
+    catch(err){ toast("No clipboard back here — it's 14 Hadden Lane, corner of Pye Street."); }
+  });
+
+  /* ---------- ticker loop & scrollspy ---------- */
+  const tk=$('#tk'); tk.innerHTML+=tk.innerHTML;
+  const links=[...document.querySelectorAll('.nav-links a')];
+  const spy=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting) links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id)); });
+  },{rootMargin:'-30% 0px -60% 0px'});
+  ['bake','rules','find'].forEach(id=>spy.observe(document.getElementById(id)));
+
+  /* ---------- opening sequence ---------- */
+  render();
+  if(liveWindow()){
+    setMode('live');
+  }else if(RM){
+    T=587; render();
+  }else{
+    T=MIN; render();
+    setTimeout(()=>{
+      tweenTo(587,2600);
+      introToast=setTimeout(()=>toast("That's the morning so far — grab the needle and scrub it."),2750);
+    },500);
+  }
+  console.log('Odd Loaf — if you are reading this, the rye is probably already gone.');
+})();
+</script>
+</body>
+</html>

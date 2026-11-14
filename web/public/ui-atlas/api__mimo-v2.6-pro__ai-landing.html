@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — Think out loud. We'll write it down.</title>
+<meta name="description" content="Murmur is the AI note-taking app that turns rambling voice notes, half-formed ideas and scattered scraps into notes that think back.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F1EA;
+  --paper-2:#E9E3D7;
+  --card:#FCFAF6;
+  --ink:#181510;
+  --ink-2:#413B31;
+  --muted:#7C7367;
+  --line:rgba(24,21,16,.13);
+  --clay:#C2522B;
+  --clay-2:#E0764A;
+  --amber:#E7AC6B;
+  --dark:#15120D;
+  --dark-2:#221C15;
+  --dark-line:rgba(244,241,234,.14);
+  --radius:22px;
+  --shadow:0 34px 70px -34px rgba(24,21,16,.32), 0 4px 14px rgba(24,21,16,.05);
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:17px;line-height:1.62;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+h1,h2,h3,h4,.display{font-family:Fraunces,Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.022em;line-height:1.03;margin:0}
+h1 em,h2 em,h3 em,blockquote em{font-style:italic;color:var(--clay)}
+p{margin:0}
+ul{margin:0;padding:0;list-style:none}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+.container{width:100%;max-width:1220px;margin:0 auto;padding:0 26px}
+.section{padding:clamp(78px,10vw,132px) 0;position:relative}
+.muted{color:var(--muted)}
+
+/* ---------- noise ---------- */
+.noise{position:relative}
+.noise::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.62rem;
+  padding:.98rem 1.72rem;border-radius:100px;font-size:.95rem;font-weight:500;
+  text-decoration:none;border:1px solid transparent;cursor:pointer;
+  transition:transform .38s var(--ease),background .38s var(--ease),box-shadow .38s var(--ease),color .38s var(--ease),border-color .38s var(--ease);
+  white-space:nowrap;
+}
+.btn-primary{background:var(--ink);color:#F6F2EA}
+.btn-primary:hover{background:var(--clay);transform:translateY(-3px);box-shadow:0 20px 38px -14px rgba(194,82,43,.55)}
+.btn-ghost{border-color:var(--line);color:var(--ink);background:transparent}
+.btn-ghost:hover{border-color:var(--ink);background:rgba(24,21,16,.05);transform:translateY(-3px)}
+.btn-light{background:#F6F2EA;color:var(--ink)}
+.btn-light:hover{background:var(--clay);color:#fff;transform:translateY(-3px);box-shadow:0 22px 40px -16px rgba(194,82,43,.6)}
+.btn-outline-light{border-color:var(--dark-line);color:#F0EAE0}
+.btn-outline-light:hover{border-color:#F0EAE0;background:rgba(244,241,234,.08);transform:translateY(-3px)}
+.btn .arw{transition:transform .38s var(--ease)}
+.btn:hover .arw{transform:translateX(4px)}
+
+/* ---------- nav ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:120;transition:background .45s var(--ease),box-shadow .45s var(--ease),border-color .45s var(--ease);border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(244,241,234,.85);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);border-bottom-color:var(--line)}
+.nav-inner{max-width:1220px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;gap:38px}
+.brand{display:flex;align-items:center;gap:.62rem;text-decoration:none}
+.brand-mark{width:24px;height:24px;flex:none}
+.brand-name{font-family:Fraunces,serif;font-size:1.36rem;letter-spacing:-.03em;font-weight:600}
+.nav-links{display:flex;align-items:center;gap:30px;margin-left:auto}
+.nav-links a{position:relative;text-decoration:none;font-size:.925rem;color:var(--ink-2);transition:color .3s}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-5px;height:1.5px;width:0;background:var(--clay);transition:width .38s var(--ease)}
+.nav-links a:hover{color:var(--ink)}
+.nav-links a:hover::after{width:100%}
+.nav-cta{display:flex;align-items:center;gap:.85rem}
+.nav-cta .btn{padding:.68rem 1.28rem;font-size:.885rem}
+.menu-btn{display:none;background:none;border:1px solid var(--line);border-radius:100px;padding:.55rem .95rem;font-size:.85rem;cursor:pointer;font-family:inherit;color:var(--ink)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:clamp(122px,16vw,178px) 0 clamp(56px,7vw,88px);overflow:hidden}
+.hero-bg-lines{
+  position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 45px,rgba(24,21,16,.055) 45px 46px);
+  -webkit-mask-image:radial-gradient(115% 88% at 22% 42%,#000 8%,transparent 72%);
+  mask-image:radial-gradient(115% 88% at 22% 42%,#000 8%,transparent 72%);
+}
+.hero-glow{
+  position:absolute;width:1040px;height:1040px;right:-330px;top:-400px;pointer-events:none;
+  background:radial-gradient(circle,rgba(226,118,74,.26),rgba(226,118,74,0) 62%);
+}
+.hero-glow-2{
+  position:absolute;width:620px;height:620px;left:-300px;bottom:-330px;pointer-events:none;
+  background:radial-gradient(circle,rgba(231,172,107,.22),rgba(231,172,107,0) 66%);
+}
+.hero-inner{position:relative;z-index:2;display:grid;grid-template-columns:1.03fr .97fr;gap:clamp(38px,5vw,70px);align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:.62rem;padding:.42rem .92rem .42rem .62rem;border:1px solid var(--line);border-radius:100px;background:rgba(252,250,246,.72);margin-bottom:26px}
+.eyebrow .pulse{width:8px;height:8px;border-radius:50%;background:var(--clay);box-shadow:0 0 0 0 rgba(194,82,43,.55);animation:pulseDot 2.4s infinite}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(194,82,43,.5)}70%{box-shadow:0 0 0 11px rgba(194,82,43,0)}100%{box-shadow:0 0 0 0 rgba(194,82,43,0)}}
+h1.hero-title{font-size:clamp(3.05rem,7.2vw,5.85rem);line-height:.96}
+.hero-sub{margin-top:26px;font-size:clamp(1.06rem,1.5vw,1.235rem);color:var(--ink-2);max-width:33ch;line-height:1.62}
+.hero-actions{display:flex;flex-wrap:wrap;gap:.85rem;margin-top:34px}
+.hero-trust{margin-top:22px;display:flex;flex-wrap:wrap;align-items:center;gap:.55rem .95rem;color:var(--muted);font-size:.855rem}
+.hero-trust .sep{width:3px;height:3px;border-radius:50%;background:var(--muted);opacity:.6}
+
+/* capture demo */
+.capture{position:relative}
+.capture-card{
+  background:var(--card);border:1px solid rgba(24,21,16,.1);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px 22px 18px;
+}
+.capture-main{position:relative;z-index:3}
+.capture-note{position:relative;z-index:2;margin-top:16px;background:var(--dark);color:#EDE7DC;border-color:rgba(244,241,234,.12)}
+.capture-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.rec{display:inline-flex;align-items:center;gap:.55rem;font-size:.785rem;font-weight:500;color:var(--clay)}
+.rec-dot{width:9px;height:9px;border-radius:50%;background:var(--clay);animation:recBlink 1.5s infinite}
+@keyframes recBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}}
+.timer{color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:.76rem;letter-spacing:.08em}
+.wave{display:flex;align-items:center;gap:3.5px;height:58px;color:var(--clay);margin:4px 0 16px}
+.wave span{width:3.2px;flex:none;border-radius:4px;background:currentColor;height:var(--h,40%);animation:pulseBar 1.25s var(--ease) infinite alternate}
+@keyframes pulseBar{from{transform:scaleY(.38);opacity:.5}to{transform:scaleY(1);opacity:1}}
+.transcript{font-family:"IBM Plex Mono",monospace;font-size:.865rem;line-height:1.78;color:var(--ink-2);min-height:112px;letter-spacing:-.005em}
+.caret{display:inline-block;width:8px;height:1.02em;background:var(--clay);vertical-align:-2px;margin-left:2px;animation:caret 1s steps(1) infinite}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+.capture-foot{display:flex;flex-wrap:wrap;gap:.42rem;margin-top:16px}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:.665rem;letter-spacing:.11em;text-transform:uppercase;padding:.34rem .68rem;border-radius:100px;background:rgba(24,21,16,.06);color:var(--muted)}
+.chip-dark{background:rgba(226,118,74,.17);color:var(--amber);text-transform:none;letter-spacing:.045em}
+.note-kicker{color:var(--amber);letter-spacing:.16em}
+.check{width:22px;height:22px;border-radius:50%;background:rgba(226,118,74,.2);display:grid;place-items:center}
+.capture-note h4{font-size:1.17rem;color:#F4EFE6;margin-bottom:12px}
+.note-list li{position:relative;padding-left:21px;font-size:.915rem;color:rgba(237,231,220,.78);line-height:1.55;margin-bottom:9px;opacity:0;transform:translateY(9px);transition:opacity .62s var(--ease),transform .62s var(--ease)}
+.note-list li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:1.5px;background:var(--clay-2);border-radius:2px}
+.note-list.show li{opacity:1;transform:none}
+.note-list.show li:nth-child(2){transition-delay:.16s}
+.note-list.show li:nth-child(3){transition-delay:.32s}
+
+/* trusted strip */
+.trust-strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:26px 0;background:rgba(233,227,215,.42)}
+.trust-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 34px}
+.trust-inner .mono{color:var(--muted)}
+.trust-names{display:flex;flex-wrap:wrap;gap:12px 30px;align-items:center}
+.trust-names span{font-family:Fraunces,serif;font-size:1.06rem;color:rgba(24,21,16,.5);letter-spacing:-.015em}
+
+/* ---------- ticker ---------- */
+.ticker{background:var(--dark);color:#E9E2D6;padding:19px 0;overflow:hidden;position:relative}
+.ticker::before,.ticker::after{content:"";position:absolute;top:0;bottom:0;width:110px;z-index:2;pointer-events:none}
+.ticker::before{left:0;background:linear-gradient(to right,var(--dark),transparent)}
+.ticker::after{right:0;background:linear-gradient(to left,var(--dark),transparent)}
+.ticker-track{display:flex;width:max-content;animation:slide 46s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-row{display:flex;align-items:center;gap:2.4rem;padding-right:2.4rem}
+.ticker-row .item{font-family:"IBM Plex Mono",monospace;font-size:.775rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(233,226,214,.62);white-space:nowrap}
+.ticker-row .glyph{color:var(--clay-2);font-size:.85rem}
+
+/* ---------- section heads ---------- */
+.section-head{max-width:720px;margin-bottom:clamp(44px,6vw,72px)}
+.section-head.center{margin-left:auto;margin-right:auto;text-align:center}
+.kicker{display:inline-flex;align-items:center;gap:.6rem;color:var(--clay);margin-bottom:18px}
+.kicker .bar{width:26px;height:1.5px;background:var(--clay);opacity:.55}
+h2.section-title{font-size:clamp(2.15rem,4.5vw,3.52rem)}
+.section-head p{margin-top:20px;color:var(--ink-2);font-size:clamp(1.02rem,1.35vw,1.16rem);max-width:56ch}
+.section-head.center p{margin-left:auto;margin-right:auto}
+
+/* ---------- steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(26px,3.4vw,52px);position:relative}
+.steps::before{content:"";position:absolute;top:5px;left:2px;right:2px;border-top:1px dashed rgba(24,21,16,.2)}
+.step{position:relative;padding-top:44px}
+.step-dot{position:absolute;top:0;left:0;width:11px;height:11px;border-radius:50%;background:var(--paper);border:1.5px solid var(--clay)}
+.step-dot::after{content:"";position:absolute;inset:2.4px;border-radius:50%;background:var(--clay);opacity:0;transition:opacity .5s}
+.step:hover .step-dot::after{opacity:1}
+.step .num{color:var(--clay);margin-bottom:12px}
+.step h3{font-size:1.52rem;margin-bottom:11px}
+.step p{color:var(--ink-2);font-size:1.005rem}
+
+/* ---------- bento ---------- */
+.bento{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(232px,auto);gap:18px}
+.b-card{
+  position:relative;overflow:hidden;background:var(--card);border:1px solid rgba(24,21,16,.1);
+  border-radius:var(--radius);padding:28px;display:flex;flex-direction:column;
+  transition:transform .55s var(--ease),box-shadow .55s var(--ease),border-color .55s var(--ease);
+}
+.b-card:hover{transform:translateY(-5px);box-shadow:0 30px 60px -34px rgba(24,21,16,.42);border-color:rgba(194,82,43,.32)}
+.b-lg{grid-column:span 2;grid-row:span 2;padding:34px}
+.b-card h3{font-size:1.42rem;margin-bottom:11px}
+.b-card p{color:var(--ink-2);font-size:.99rem}
+.b-tag{margin-bottom:16px;color:var(--muted)}
+.b-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(194,82,43,.11);margin-bottom:18px}
+.b-spacer{flex:1;min-height:18px}
+
+.demo-panel{margin-top:24px;background:var(--dark);border-radius:16px;padding:18px 20px;color:#EDE6DA;display:grid;grid-template-columns:118px 1fr;gap:20px;align-items:center}
+.demo-panel .wave{height:52px;margin:0;color:var(--clay-2)}
+.demo-arrow{display:flex;align-items:center;gap:.55rem;color:var(--amber);font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase}
+.demo-list li{position:relative;padding-left:18px;font-size:.875rem;color:rgba(237,230,218,.76);margin-bottom:7px;line-height:1.5}
+.demo-list li::before{content:"";position:absolute;left:0;top:.63em;width:8px;height:1.5px;background:var(--clay-2)}
+
+.chat{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.bubble{padding:.72rem .95rem;border-radius:15px;font-size:.875rem;line-height:1.5;max-width:94%}
+.bubble.q{align-self:flex-end;background:rgba(24,21,16,.07);border-bottom-right-radius:5px}
+.bubble.a{align-self:flex-start;background:var(--dark);color:#EDE6DA;border-bottom-left-radius:5px}
+.chat-src{font-family:"IBM Plex Mono",monospace;font-size:.655rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+
+.threads{margin-top:20px;display:flex;flex-direction:column;gap:9px}
+.thread-row{display:flex;align-items:center;gap:.62rem;font-family:"IBM Plex Mono",monospace;font-size:.715rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.thread-row .node{width:7px;height:7px;border-radius:50%;background:var(--clay);flex:none}
+.thread-row .line{flex:1;height:1px;background:repeating-linear-gradient(to right,rgba(24,21,16,.22) 0 4px,transparent 4px 8px)}
+
+.tidy{margin-top:18px;display:grid;gap:9px}
+.tidy .before{font-family:"IBM Plex Mono",monospace;font-size:.755rem;color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(194,82,43,.5);line-height:1.62}
+.tidy .after{font-size:.905rem;line-height:1.55}
+.tidy .after li{position:relative;padding-left:19px;margin-bottom:6px}
+.tidy .after li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:1.5px;background:var(--clay)}
+
+.b-wide{grid-column:span 2;flex-direction:row;align-items:center;gap:32px;background:linear-gradient(115deg,var(--dark) 0%,#241D15 68%,#2E2419 100%);border-color:rgba(244,241,234,.11);color:#EFE8DC}
+.b-wide h3{color:#F5F0E7;font-size:1.55rem}
+.b-wide p{color:rgba(239,232,220,.74)}
+.b-wide .b-icon{background:rgba(226,118,74,.22)}
+.badges{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:18px}
+.badge{font-family:"IBM Plex Mono",monospace;font-size:.665rem;letter-spacing:.11em;text-transform:uppercase;padding:.42rem .78rem;border-radius:100px;border:1px solid rgba(244,241,234,.18);color:rgba(239,232,220,.8)}
+
+/* ---------- stats ---------- */
+.stats-section{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.stat{padding:8px 22px;border-left:1px solid rgba(24,21,16,.14)}
+.stat:first-child{border-left:0;padding-left:0}
+.stat .val{font-family:Fraunces,serif;font-size:clamp(2.5rem,4.4vw,3.55rem);line-height:1;letter-spacing:-.035em}
+.stat .val em{font-style:italic;color:var(--clay)}
+.stat .lbl{margin-top:12px;color:var(--muted);font-size:.925rem;line-height:1.5}
+
+/* ---------- quote ---------- */
+.quote-section{background:var(--dark);color:#EDE6DA;position:relative;overflow:hidden}
+.quote-arcs{position:absolute;right:-190px;top:50%;transform:translateY(-50%);opacity:.16;pointer-events:none}
+.quote-wrap{position:relative;z-index:2;max-width:940px}
+blockquote{margin:0;font-family:Fraunces,serif;font-size:clamp(1.72rem,3.55vw,2.92rem);line-height:1.24;letter-spacing:-.022em;color:#F4EEE3}
+blockquote em{color:var(--clay-2)}
+.quote-by{display:flex;align-items:center;gap:15px;margin-top:36px}
+.avatar{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:Fraunces,serif;font-size:1.05rem;color:#F6F0E6;background:linear-gradient(140deg,#C2522B,#7E3520)}
+.quote-by .name{font-weight:500;font-size:.985rem}
+.quote-by .role{color:rgba(237,230,218,.6);font-size:.875rem}
+
+/* ---------- pricing ---------- */
+.billing{display:flex;align-items:center;justify-content:center;gap:.85rem;margin-bottom:44px}
+.billing-label{font-size:.925rem;color:var(--muted);display:flex;align-items:center;gap:.55rem}
+.billing-label.on{color:var(--ink);font-weight:500}
+.save{font-family:"IBM Plex Mono",monospace;font-style:normal;font-size:.655rem;letter-spacing:.11em;text-transform:uppercase;background:rgba(194,82,43,.13);color:var(--clay);padding:.25rem .55rem;border-radius:100px}
+.switch{position:relative;width:56px;height:30px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.slider{position:absolute;inset:0;background:rgba(24,21,16,.16);border-radius:100px;transition:background .35s}
+.slider::after{content:"";position:absolute;top:3.5px;left:3.5px;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(24,21,16,.22);transition:transform .35s var(--ease)}
+.switch input:checked + .slider{background:var(--clay)}
+.switch input:checked + .slider::after{transform:translateX(26px)}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+.plan{position:relative;background:var(--card);border:1px solid rgba(24,21,16,.11);border-radius:var(--radius);padding:32px 30px 30px;display:flex;flex-direction:column;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+.plan:hover{transform:translateY(-5px);box-shadow:0 32px 62px -34px rgba(24,21,16,.4)}
+.plan.featured{background:var(--dark);color:#EFE8DC;border-color:rgba(244,241,234,.12);box-shadow:0 40px 80px -40px rgba(24,21,16,.6)}
+.plan.featured .plan-name{color:#F5F0E7}
+.plan.featured .plan-desc{color:rgba(239,232,220,.68)}
+.plan.featured .plan-feat li{color:rgba(239,232,220,.8)}
+.plan.featured .plan-feat li::after{background:var(--clay-2)}
+.plan-flag{position:absolute;top:-13px;left:30px;background:var(--clay);color:#fff;font-family:"IBM Plex Mono",monospace;font-size:.655rem;letter-spacing:.13em;text-transform:uppercase;padding:.36rem .78rem;border-radius:100px}
+.plan-name{font-family:Fraunces,serif;font-size:1.38rem;letter-spacing:-.02em}
+.plan-desc{color:var(--muted);font-size:.925rem;margin-top:8px;min-height:46px}
+.price{display:flex;align-items:baseline;gap:.42rem;margin:22px 0 6px}
+.price .amount{font-family:Fraunces,serif;font-size:3.02rem;line-height:1;letter-spacing:-.035em}
+.price .per{color:var(--muted);font-size:.885rem}
+.plan.featured .price .per{color:rgba(239,232,220,.6)}
+.billed{font-family:"IBM Plex Mono",monospace;font-size:.655rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);min-height:18px}
+.plan.featured .billed{color:rgba(239,232,220,.55)}
+.plan-feat{margin:26px 0 28px;display:flex;flex-direction:column;gap:11px}
+.plan-feat li{position:relative;padding-left:26px;font-size:.945rem;color:var(--ink-2);line-height:1.5}
+.plan-feat li::after{content:"";position:absolute;left:0;top:.58em;width:13px;height:1.5px;background:var(--clay)}
+.plan .btn{width:100%;margin-top:auto}
+.y{display:none}
+body.yearly .m{display:none}
+body.yearly .y{display:inline}
+
+/* ---------- faq ---------- */
+.faq-wrap{max-width:880px;margin:0 auto}
+details{border-top:1px solid var(--line)}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:26px 4px;display:flex;align-items:center;justify-content:space-between;gap:24px;font-family:Fraunces,serif;font-size:clamp(1.13rem,1.9vw,1.42rem);letter-spacing:-.018em;transition:color .3s}
+summary::-webkit-details-marker{display:none}
+summary:hover{color:var(--clay)}
+.plus{position:relative;width:18px;height:18px;flex:none}
+.plus::before,.plus::after{content:"";position:absolute;background:currentColor;border-radius:2px;transition:transform .38s var(--ease)}
+.plus::before{left:0;top:8px;width:18px;height:1.8px}
+.plus::after{left:8px;top:0;width:1.8px;height:18px}
+details[open] .plus::after{transform:rotate(90deg) scaleX(0)}
+details[open] summary{color:var(--clay)}
+.answer{padding:0 60px 28px 4px;color:var(--ink-2);max-width:72ch}
+
+/* ---------- final cta ---------- */
+.cta{background:var(--dark);color:#EFE8DC;position:relative;overflow:hidden}
+.cta-glow{position:absolute;width:900px;height:900px;left:50%;top:-420px;transform:translateX(-50%);pointer-events:none;background:radial-gradient(circle,rgba(226,118,74,.28),rgba(226,118,74,0) 62%)}
+.cta-inner{position:relative;z-index:2;text-align:center;max-width:820px;margin:0 auto}
+.cta h2{font-size:clamp(2.5rem,6vw,4.65rem);color:#F6F1E8}
+.cta p{margin:22px auto 0;max-width:52ch;color:rgba(239,232,220,.76);font-size:1.075rem}
+.signup{display:flex;gap:.62rem;max-width:510px;margin:36px auto 0;flex-wrap:wrap;justify-content:center}
+.signup input{
+  flex:1;min-width:240px;padding:1.02rem 1.35rem;border-radius:100px;border:1px solid rgba(244,241,234,.2);
+  background:rgba(244,241,234,.07);color:#F6F1E8;font-family:inherit;font-size:.965rem;outline:none;
+  transition:border-color .35s,background .35s;
+}
+.signup input::placeholder{color:rgba(239,232,220,.5)}
+.signup input:focus{border-color:var(--clay-2);background:rgba(244,241,234,.12)}
+.signup-msg{margin-top:16px;font-family:"IBM Plex Mono",monospace;font-size:.715rem;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);opacity:0;transition:opacity .5s}
+.signup-msg.on{opacity:1}
+.cta-wave{display:flex;align-items:flex-end;justify-content:center;gap:6px;height:88px;margin-top:58px;opacity:.75}
+.cta-wave span{width:4.5px;border-radius:6px;background:linear-gradient(to top,rgba(226,118,74,.15),var(--clay-2));height:var(--h,30%);animation:pulseBar 1.6s var(--ease) infinite alternate}
+
+/* ---------- footer ---------- */
+.footer{background:var(--dark);color:rgba(233,226,214,.72);padding:20px 0 42px}
+.footer-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:38px;padding:52px 0 46px;border-top:1px solid var(--dark-line)}
+.footer .brand-name{color:#F2ECE2}
+.footer-about{margin-top:16px;max-width:32ch;font-size:.945rem;line-height:1.62}
+.footer h4{font-family:"IBM Plex Mono",monospace;font-size:.705rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(233,226,214,.5);margin-bottom:17px}
+.footer-links{display:flex;flex-direction:column;gap:11px}
+.footer-links a{text-decoration:none;font-size:.935rem;transition:color .3s,transform .3s var(--ease);display:inline-block}
+.footer-links a:hover{color:#F2ECE2;transform:translateX(3px)}
+.footer-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding-top:26px;border-top:1px solid var(--dark-line);font-family:"IBM Plex Mono",monospace;font-size:.705rem;letter-spacing:.11em;text-transform:uppercase;color:rgba(233,226,214,.5)}
+.footer-bottom .dot{width:5px;height:5px;border-radius:50%;background:var(--clay-2);display:inline-block;margin-right:.55rem;vertical-align:1px}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .92s var(--ease),transform .92s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media (min-width:981px){
+  .capture-note{margin-left:34px;margin-top:-6px;transform:rotate(-.65deg)}
+  .capture-main{transform:rotate(.5deg)}
+}
+@media (max-width:1080px){
+  .nav-links{gap:22px}
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .b-lg{grid-column:span 2;grid-row:span 1}
+  .b-wide{grid-column:span 2}
+}
+@media (max-width:980px){
+  .hero-inner{grid-template-columns:1fr;gap:48px}
+  .hero-sub{max-width:52ch}
+  .steps{grid-template-columns:1fr;gap:34px}
+  .steps::before{display:none}
+  .step{padding-top:32px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:32px 20px}
+  .stat{padding:6px 0 6px 20px}
+  .stat:nth-child(odd){border-left:0;padding-left:0}
+  .plans{grid-template-columns:1fr;max-width:520px;margin:0 auto}
+  .footer-top{grid-template-columns:1fr 1fr;gap:34px}
+}
+@media (max-width:820px){
+  .nav-links{display:none}
+  .menu-btn{display:inline-block;margin-left:auto}
+  .nav-cta .btn{display:none}
+}
+@media (max-width:680px){
+  body{font-size:16px}
+  .container{padding:0 20px}
+  .bento{grid-template-columns:1fr}
+  .b-lg,.b-wide{grid-column:span 1}
+  .b-wide{flex-direction:column;align-items:flex-start;gap:18px}
+  .demo-panel{grid-template-columns:1fr;gap:14px}
+  .trust-inner{justify-content:center;text-align:center}
+  .footer-top{grid-template-columns:1fr;gap:30px}
+  .quote-arcs{opacity:.1}
+  .capture-card{padding:18px}
+  .answer{padding-right:20px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top" aria-label="Murmur home">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="1.5" y="9" width="3.6" height="6" rx="1.8" fill="#C2522B"/>
+        <rect x="10.2" y="2.5" width="3.6" height="19" rx="1.8" fill="#181510"/>
+        <rect x="18.9" y="7" width="3.6" height="10" rx="1.8" fill="#C2522B"/>
+      </svg>
+      <span class="brand-name">Murmur</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <button class="menu-btn" type="button" onclick="document.getElementById('pricing').scrollIntoView()">Menu</button>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#faq">Sign in</a>
+      <a class="btn btn-primary" href="#cta">Try Murmur free</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero noise">
+  <div class="hero-bg-lines" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-glow-2" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="eyebrow reveal">
+          <span class="pulse"></span>
+          <span class="mono">Speech → structure → memory</span>
+        </div>
+        <h1 class="hero-title reveal" style="transition-delay:.08s">Think out loud.<br><em>Murmur</em> writes<br>it down.</h1>
+        <p class="hero-sub reveal" style="transition-delay:.18s">
+          Speak, type or paste the mess. Murmur finds the thread, tidies the language,
+          links it to what you already know — and remembers so you never have to.
+        </p>
+        <div class="hero-actions reveal" style="transition-delay:.26s">
+          <a class="btn btn-primary" href="#cta">Start murmuring — free <span class="arw">→</span></a>
+          <a class="btn btn-ghost" href="#how">
+            <svg width="13" height="14" viewBox="0 0 13 14" fill="none" aria-hidden="true"><path d="M12 6.13a1 1 0 010 1.74L1.5 13.3A1 1 0 010 12.43V1.57A1 1 0 011.5.7L12 6.13z" fill="#C2522B"/></svg>
+            Watch the 90-second tour
+          </a>
+        </div>
+        <div class="hero-trust reveal" style="transition-delay:.34s">
+          <span>Free forever for 50 notes a month</span>
+          <span class="sep"></span>
+          <span>No card required</span>
+          <span class="sep"></span>
+          <span>Private by default</span>
+        </div>
+      </div>
+
+      <div class="capture reveal" style="transition-delay:.2s">
+        <div class="capture-card capture-main">
+          <div class="capture-top">
+            <div class="rec"><span class="rec-dot"></span> Listening</div>
+            <div class="timer">00:42</div>
+          </div>
+          <div class="wave" data-bars="42" aria-hidden="true"></div>
+          <p class="transcript"><span id="typing"></span><span class="caret" aria-hidden="true"></span></p>
+          <div class="capture-foot">
+            <span class="chip">voice memo</span>
+            <span class="chip">standup</span>
+            <span class="chip">onboarding</span>
+          </div>
+        </div>
+
+        <div class="capture-card capture-note">
+          <div class="capture-top">
+            <div class="mono note-kicker">Murmur · cleaned note</div>
+            <div class="check" aria-hidden="true">
+              <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.3L3.9 7.2 10 1" stroke="#E0764A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <h4>Onboarding: show value before the empty screen</h4>
+          <ul class="note-list" id="note-list">
+            <li>Drop-off happens in the first 90 seconds — not at the signup form.</li>
+            <li>Test opening on a finished note instead of a blank one.</li>
+            <li>Owner: Priya · review Friday</li>
+          </ul>
+          <div class="capture-foot">
+            <span class="chip chip-dark">↗ linked to “Q3 launch brief”</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TRUST ================= -->
+<section class="trust-strip">
+  <div class="container trust-inner">
+    <span class="mono">Quietly in use at</span>
+    <div class="trust-names">
+      <span>Northlight Studio</span>
+      <span>Ferrous &amp; Co.</span>
+      <span>The Long Table</span>
+      <span>Halcyon Health</span>
+      <span>Meridian Labs</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TICKER ================= -->
+<section class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <div class="ticker-row">
+      <span class="item">Morning pages, sorted</span><span class="glyph">✦</span>
+      <span class="item">That thing the client said in March</span><span class="glyph">✦</span>
+      <span class="item">Meeting notes without the meeting</span><span class="glyph">✦</span>
+      <span class="item">Half-formed ideas, kept whole</span><span class="glyph">✦</span>
+      <span class="item">The thread you lost</span><span class="glyph">✦</span>
+      <span class="item">Voice memos that finally make sense</span><span class="glyph">✦</span>
+      <span class="item">Questions you asked six months ago</span><span class="glyph">✦</span>
+    </div>
+    <div class="ticker-row">
+      <span class="item">Morning pages, sorted</span><span class="glyph">✦</span>
+      <span class="item">That thing the client said in March</span><span class="glyph">✦</span>
+      <span class="item">Meeting notes without the meeting</span><span class="glyph">✦</span>
+      <span class="item">Half-formed ideas, kept whole</span><span class="glyph">✦</span>
+      <span class="item">The thread you lost</span><span class="glyph">✦</span>
+      <span class="item">Voice memos that finally make sense</span><span class="glyph">✦</span>
+      <span class="item">Questions you asked six months ago</span><span class="glyph">✦</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker reveal"><span class="bar"></span><span class="mono">How it works</span></div>
+      <h2 class="section-title reveal" style="transition-delay:.06s">Three small steps<br>between a <em>thought</em> and a note.</h2>
+      <p class="reveal" style="transition-delay:.12s">
+        No folders to design. No tags to maintain. Murmur handles the boring architecture
+        so your attention stays on the thinking.
+      </p>
+    </div>
+
+    <div class="steps">
+      <article class="step reveal">
+        <span class="step-dot"></span>
+        <div class="mono num">01 — Capture</div>
+        <h3>Open it and mumble</h3>
+        <p>Record a voice note, dump a paragraph, forward an email, paste a screenshot.
+        Murmur takes it in whatever shape it arrives — rambling is fine.</p>
+      </article>
+      <article class="step reveal" style="transition-delay:.12s">
+        <span class="step-dot"></span>
+        <div class="mono num">02 — Clarify</div>
+        <h3>It finds the thread</h3>
+        <p>Transcription, titles, decisions, owners and dates — pulled out and written
+        cleanly, while your original words stay untouched underneath.</p>
+      </article>
+      <article class="step reveal" style="transition-delay:.24s">
+        <span class="step-dot"></span>
+        <div class="mono num">03 — Connect</div>
+        <h3>It links and remembers</h3>
+        <p>Every note joins an evolving map of your work. Ask a question months later and
+        Murmur answers with the receipts, not a guess.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURES / BENTO ================= -->
+<section class="section" id="features" style="padding-top:0">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker reveal"><span class="bar"></span><span class="mono">What's inside</span></div>
+      <h2 class="section-title reveal" style="transition-delay:.06s">A quiet tool that does<br>an <em>unreasonable</em> amount.</h2>
+    </div>
+
+    <div class="bento">
+      <article class="b-card b-lg reveal">
+        <div class="mono b-tag">Core</div>
+        <h3>Voice in. Structure out.</h3>
+        <p>Murmur transcribes at 98% accuracy across 42 languages, then rewrites the mess into
+        something you'd actually send. Your raw recording is always one tap away.</p>
+        <div class="b-spacer"></div>
+        <div class="demo-panel">
+          <div class="wave" data-bars="26" aria-hidden="true"></div>
+          <div>
+            <div class="demo-arrow">Murmured →</div>
+            <ul class="demo-list">
+              <li>Decision: usage-based pricing after 500 min</li>
+              <li>Action: rewrite the pricing page — Sam, Thu</li>
+              <li>Question to revisit: enterprise floor</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <article class="b-card reveal" style="transition-delay:.08s">
+        <div class="b-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6.2" stroke="#C2522B" stroke-width="1.6"/><path d="M12.6 12.6L17 17" stroke="#C2522B" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Ask your past self</h3>
+        <p>Search in plain language. Get answers with sources.</p>
+        <div class="b-spacer"></div>
+        <div class="chat">
+          <div class="bubble q">what did we decide about pricing?</div>
+          <div class="bubble a">You moved to usage-based in Feb — $0.004/min after the first 500.</div>
+          <div class="chat-src">from 3 notes · Feb 12–28</div>
+        </div>
+      </article>
+
+      <article class="b-card reveal" style="transition-delay:.16s">
+        <div class="b-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="3.4" cy="3.6" r="2.4" stroke="#C2522B" stroke-width="1.5"/><circle cx="14.6" cy="14.4" r="2.4" stroke="#C2522B" stroke-width="1.5"/><circle cx="14.6" cy="3.6" r="2.4" stroke="#C2522B" stroke-width="1.5"/><path d="M3.4 6v6.2a2 2 0 002 2h6.8" stroke="#C2522B" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Threads, not folders</h3>
+        <p>Notes find each other automatically.</p>
+        <div class="b-spacer"></div>
+        <div class="threads">
+          <div class="thread-row"><span class="node"></span><span>Q3 launch brief</span><span class="line"></span></div>
+          <div class="thread-row"><span class="node"></span><span>Onboarding idea</span><span class="line"></span></div>
+          <div class="thread-row"><span class="node"></span><span>Customer call · 14 Mar</span><span class="line"></span></div>
+        </div>
+      </article>
+
+      <article class="b-card reveal" style="transition-delay:.06s">
+        <div class="b-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2.5 4.5h13M2.5 9h9M2.5 13.5h6" stroke="#C2522B" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Auto-tidy</h3>
+        <div class="tidy">
+          <div class="before">okay so like… we should maybe… idk… the form thing? and also pricing maybe next quarter?</div>
+          <ul class="after">
+            <li>Revisit the signup form</li>
+            <li>Pricing review — next quarter</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="b-card b-wide reveal" style="transition-delay:.14s">
+        <div>
+          <div class="b-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="7.6" width="12" height="8" rx="2.2" stroke="#E0764A" stroke-width="1.6"/><path d="M5.8 7.6V5.4a3.2 3.2 0 016.4 0v2.2" stroke="#E0764A" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Private by default, not by setting</h3>
+          <p>End-to-end encrypted, stored in your region, and never used to train anyone's model.
+          Local-first mode keeps everything on your device — with the AI running there too.</p>
+          <div class="badges">
+            <span class="badge">End-to-end encrypted</span>
+            <span class="badge">Local-first mode</span>
+            <span class="badge">SOC 2 Type II</span>
+            <span class="badge">Never trained on your notes</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section class="section stats-section noise">
+  <div class="container">
+    <div class="stats">
+      <div class="stat reveal">
+        <div class="val"><span class="count" data-to="2.4" data-dec="1">0</span><em>M</em></div>
+        <div class="lbl">Notes murmured into existence since launch</div>
+      </div>
+      <div class="stat reveal" style="transition-delay:.1s">
+        <div class="val"><span class="count" data-to="11" data-dec="0">0</span><em>hrs</em></div>
+        <div class="lbl">Median time saved per person, per month</div>
+      </div>
+      <div class="stat reveal" style="transition-delay:.2s">
+        <div class="val"><span class="count" data-to="98" data-dec="0">0</span><em>%</em></div>
+        <div class="lbl">Transcription accuracy across 42 languages</div>
+      </div>
+      <div class="stat reveal" style="transition-delay:.3s">
+        <div class="val"><em>Zero</em></div>
+        <div class="lbl">Ads, trackers or model training on your words</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUOTE ================= -->
+<section class="section quote-section">
+  <svg class="quote-arcs" width="620" height="620" viewBox="0 0 620 620" fill="none" aria-hidden="true">
+    <circle cx="310" cy="310" r="120" stroke="#E0764A" stroke-width="1.4"/>
+    <circle cx="310" cy="310" r="196" stroke="#E0764A" stroke-width="1.4"/>
+    <circle cx="310" cy="310" r="272" stroke="#E0764A" stroke-width="1.4"/>
+    <circle cx="310" cy="310" r="308" stroke="#E0764A" stroke-width="1.4"/>
+  </svg>
+  <div class="container">
+    <div class="quote-wrap">
+      <div class="kicker reveal" style="color:var(--clay-2)"><span class="bar" style="background:var(--clay-2)"></span><span class="mono">Why people stay</span></div>
+      <blockquote class="reveal" style="transition-delay:.08s">
+        “I used to lose the best idea of my day somewhere between the kitchen and the desk.
+        Now I just <em>murmur</em> at my phone — and it's there, tidied, linked, waiting.”
+      </blockquote>
+      <div class="quote-by reveal" style="transition-delay:.18s">
+        <div class="avatar" aria-hidden="true">MR</div>
+        <div>
+          <div class="name">Mara Reyes</div>
+          <div class="role">Research lead, Halcyon Health</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRICING ================= -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-head center">
+      <div class="kicker reveal" style="justify-content:center"><span class="bar"></span><span class="mono">Pricing</span></div>
+      <h2 class="section-title reveal" style="transition-delay:.06s">Start free. Stay if<br>it <em>earns</em> its keep.</h2>
+      <p class="reveal" style="transition-delay:.12s">No trial countdowns, no sales call. Upgrade the day your notes start paying rent.</p>
+    </div>
+
+    <div class="billing reveal">
+      <span class="billing-label on" id="lbl-m">Monthly</span>
+      <label class="switch">
+        <input type="checkbox" id="billing" aria-label="Toggle yearly billing">
+        <span class="slider"></span>
+      </label>
+      <span class="billing-label" id="lbl-y">Yearly <em class="save">save 20%</em></span>
+    </div>
+
+    <div class="plans">
+      <article class="plan reveal">
+        <div class="plan-name">Murmur</div>
+        <div class="plan-desc">For one person with a lot on their mind.</div>
+        <div class="price">
+          <span class="amount"><span class="m">$0</span><span class="y">$0</span></span>
+          <span class="per">/ month</span>
+        </div>
+        <div class="billed">free forever</div>
+        <ul class="plan-feat">
+          <li>50 notes per month</li>
+          <li>Voice, text &amp; image capture</li>
+          <li>Auto-tidying &amp; titles</li>
+          <li>7-day history</li>
+        </ul>
+        <a class="btn btn-ghost" href="#cta">Get started</a>
+      </article>
+
+      <article class="plan featured reveal" style="transition-delay:.1s">
+        <div class="plan-flag">Most chosen</div>
+        <div class="plan-name">Murmur Pro</div>
+        <div class="plan-desc">For people who think for a living.</div>
+        <div class="price">
+          <span class="amount"><span class="m">$12</span><span class="y">$10</span></span>
+          <span class="per">/ month</span>
+        </div>
+        <div class="billed"><span class="m">billed monthly</span><span class="y">billed $120 yearly</span></div>
+        <ul class="plan-feat">
+          <li>Unlimited notes &amp; recordings</li>
+          <li>Ask your notes — with sources</li>
+          <li>Automatic threads &amp; connections</li>
+          <li>Local-first mode &amp; E2E encryption</li>
+          <li>Unlimited history &amp; exports</li>
+        </ul>
+        <a class="btn btn-light" href="#cta">Try Pro free for 14 days</a>
+      </article>
+
+      <article class="plan reveal" style="transition-delay:.2s">
+        <div class="plan-name">Murmur Team</div>
+        <div class="plan-desc">For groups that share a head.</div>
+        <div class="price">
+          <span class="amount"><span class="m">$22</span><span class="y">$18</span></span>
+          <span class="per">/ member / mo</span>
+        </div>
+        <div class="billed"><span class="m">billed monthly</span><span class="y">billed yearly</span></div>
+        <ul class="plan-feat">
+          <li>Everything in Pro</li>
+          <li>Shared threads &amp; spaces</li>
+          <li>Meeting digests &amp; action items</li>
+          <li>Admin controls &amp; SSO</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="btn btn-ghost" href="#cta">Talk to us</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="section" id="faq" style="padding-top:0">
+  <div class="container">
+    <div class="section-head center">
+      <div class="kicker reveal" style="justify-content:center"><span class="bar"></span><span class="mono">Questions</span></div>
+      <h2 class="section-title reveal" style="transition-delay:.06s">The things people<br><em>ask</em> before signing up.</h2>
+    </div>
+
+    <div class="faq-wrap reveal">
+      <details open>
+        <summary>Does Murmur change my words?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Never silently. Murmur writes a clean version alongside your original, and both stay
+          visible. You can edit either, and the raw transcript is always preserved — including
+          the bits where you trailed off and said “anyway”.
+        </div>
+      </details>
+      <details>
+        <summary>What happens to my data?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          It's encrypted end-to-end, stored in the region you choose, and never used to train
+          AI models — ours or anyone else's. Pro users can turn on local-first mode, which keeps
+          notes and inference entirely on-device.
+        </div>
+      </details>
+      <details>
+        <summary>Which languages and inputs work?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Voice notes in 42 languages, typed text in any script, pasted emails, images and
+          screenshots, PDFs and meeting recordings. Murmur can translate and summarise across
+          languages in the same note.
+        </div>
+      </details>
+      <details>
+        <summary>Can I get my notes out again?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Always. Export to Markdown, PDF, Notion, Obsidian or plain text at any time — including
+          on the free plan. There's no lock-in and no “contact support to export” nonsense.
+        </div>
+      </details>
+      <details>
+        <summary>How is this different from a voice recorder with AI in it?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          A recorder gives you back what you said. Murmur gives you what you meant — connected to
+          the rest of your thinking. The memory layer is the point: ask a question six months later
+          and get a sourced answer instead of a folder to dig through.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="section cta noise" id="cta">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="container">
+    <div class="cta-inner">
+      <div class="kicker reveal" style="justify-content:center;color:var(--clay-2)">
+        <span class="bar" style="background:var(--clay-2)"></span><span class="mono">Free forever plan</span>
+      </div>
+      <h2 class="reveal" style="transition-delay:.06s">Say it before it<br>gets <em>away</em> from you.</h2>
+      <p class="reveal" style="transition-delay:.12s">
+        Download Murmur, ramble for ninety seconds, and see what comes back.
+        That's the whole pitch.
+      </p>
+      <form class="signup reveal" id="signup" style="transition-delay:.18s">
+        <input type="email" id="email" placeholder="you@example.com" aria-label="Email address" required>
+        <button class="btn btn-light" type="submit">Get Murmur free <span class="arw">→</span></button>
+      </form>
+      <div class="signup-msg" id="signup-msg">Thanks — check your inbox for the download link.</div>
+      <div class="cta-wave" id="cta-wave" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <a class="brand" href="#top" aria-label="Murmur home">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="1.5" y="9" width="3.6" height="6" rx="1.8" fill="#C2522B"/>
+            <rect x="10.2" y="2.5" width="3.6" height="19" rx="1.8" fill="#F2ECE2"/>
+            <rect x="18.9" y="7" width="3.6" height="10" rx="1.8" fill="#C2522B"/>
+          </svg>
+          <span class="brand-name">Murmur</span>
+        </a>
+        <p class="footer-about">The quiet place your thoughts land. Built by six people
+        who kept losing theirs.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <div class="footer-links">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#how">How it works</a>
+          <a href="#cta">Download</a>
+        </div>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <div class="footer-links">
+          <a href="#top">About</a>
+          <a href="#top">Changelog</a>
+          <a href="#top">Careers</a>
+          <a href="#top">Press kit</a>
+        </div>
+      </div>
+      <div>
+        <h4>Trust</h4>
+        <div class="footer-links">
+          <a href="#faq">Privacy</a>
+          <a href="#faq">Security</a>
+          <a href="#faq">Terms</a>
+          <a href="#faq">Status</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div><span class="dot"></span>All systems murmuring</div>
+      <div>© 2024 Murmur Labs · Made quietly</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- nav scroll state ---------- */
+  var nav = document.getElementById('nav');
+  function onScroll() {
+    if (window.scrollY > 24) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  }
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  /* ---------- reveal on scroll ---------- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- waveform bars ---------- */
+  document.querySelectorAll('.wave').forEach(function (w) {
+    var n = parseInt(w.getAttribute('data-bars'), 10) || 32;
+    for (var i = 0; i < n; i++) {
+      var b = document.createElement('span');
+      var base = 16 + Math.random() * 78;
+      b.style.setProperty('--h', base.toFixed(1) + '%');
+      b.style.animationDelay = (Math.random() * 1.2).toFixed(2) + 's';
+      b.style.animationDuration = (1.05 + Math.random() * 0.75).toFixed(2) + 's';
+      w.appendChild(b);
+    }
+  });
+
+  /* ---------- cta wave (taller, gradient) ---------- */
+  var ctaWave = document.getElementById('cta-wave');
+  if (ctaWave) {
+    for (var j = 0; j < 46; j++) {
+      var d = document.createElement('span');
+      var h = 10 + Math.abs(Math.sin(j / 46 * Math.PI)) * 62 + Math.random() * 26;
+      d.style.setProperty('--h', Math.min(h, 100).toFixed(1) + '%');
+      d.style.animationDelay = (Math.random() * 1.6).toFixed(2) + 's';
+      d.style.animationDuration = (1.3 + Math.random() * 0.9).toFixed(2) + 's';
+      ctaWave.appendChild(d);
+    }
+  }
+
+  /* ---------- hero typing loop ---------- */
+  var typing = document.getElementById('typing');
+  var noteList = document.getElementById('note-list');
+  var phrases = [
+    'okay — quick thought before the standup…',
+    'the onboarding drop-off isn\'t the form.',
+    'people never see the value in the first 90 seconds.',
+    'what if we opened on a finished note instead of an empty screen?'
+  ];
+
+  if (typing) {
+    if (reduce) {
+      typing.textContent = phrases.join(' ');
+      if (noteList) noteList.classList.add('show');
+    } else {
+      var p = 0, c = 0, buf = '';
+      function type() {
+        if (p >= phrases.length) {
+          if (noteList) noteList.classList.add('show');
+          setTimeout(function () {
+            if (noteList) noteList.classList.remove('show');
+            buf = ''; p = 0; c = 0;
+            typing.textContent = '';
+            setTimeout(type, 700);
+          }, 5200);
+          return;
+        }
+        var cur = phrases[p];
+        if (c < cur.length) {
+          buf += cur.charAt(c);
+          c++;
+          typing.textContent = buf;
+          setTimeout(type, 15 + Math.random() * 34);
+        } else {
+          buf += ' ';
+          p++; c = 0;
+          typing.textContent = buf;
+          setTimeout(type, 380);
+        }
+      }
+      setTimeout(type, 900);
+    }
+  }
+
+  /* ---------- count up stats ---------- */
+  var counts = document.querySelectorAll('.count');
+  function animateCount(el) {
+    var to = parseFloat(el.getAttribute('data-to'));
+    var dec = parseInt(el.getAttribute('data-dec'), 10) || 0;
+    if (reduce) { el.textContent = to.toFixed(dec); return; }
+    var start = null, dur = 1500;
+    function step(ts) {
+      if (!start) start = ts;
+      var prog = Math.min((ts - start) / dur, 1);
+      var eased = 1 - Math.pow(1 - prog, 3);
+      el.textContent = (to * eased).toFixed(dec);
+      if (prog < 1) requestAnimationFrame(step);
+      else el.textContent = to.toFixed(dec);
+    }
+    requestAnimationFrame(step);
+  }
+  if ('IntersectionObserver' in window) {
+    var cio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          animateCount(e.target);
+          cio.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.5 });
+    counts.forEach(function (el) { cio.observe(el); });
+  } else {
+    counts.forEach(animateCount);
+  }
+
+  /* ---------- pricing toggle ---------- */
+  var billing = document.getElementById('billing');
+  var lblM = document.getElementById('lbl-m');
+  var lblY = document.getElementById('lbl-y');
+  if (billing) {
+    billing.addEventListener('change', function () {
+      document.body.classList.toggle('yearly', billing.checked);
+      if (lblM) lblM.classList.toggle('on', !billing.checked);
+      if (lblY) lblY.classList.toggle('on', billing.checked);
+    });
+  }
+
+  /* ---------- signup ---------- */
+  var form = document.getElementById('signup');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var msg = document.getElementById('signup-msg');
+      var input = document.getElementById('email');
+      if (msg) msg.classList.add('on');
+      if (input) { input.value = ''; input.blur(); }
+    });
+  }
+
+  /* ---------- smooth anchor offset ---------- */
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var id = a.getAttribute('href');
+      if (id.length < 2) return;
+      var target = document.querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      var top = target.getBoundingClientRect().top + window.scrollY - 78;
+      window.scrollTo({ top: top, behavior: reduce ? 'auto' : 'smooth' });
+    });
+  });
+})();
+</script>
+</body>
+</html>

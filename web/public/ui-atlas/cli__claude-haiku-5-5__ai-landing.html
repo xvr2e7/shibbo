@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmur — Your AI note-taking companion</title>
+<meta name="description" content="Murmur turns your scattered thoughts, meetings, and voice memos into organized, searchable notes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b12;
+    --bg-soft: #13131d;
+    --surface: #1a1a27;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #ecebf5;
+    --muted: #9b9ab3;
+    --accent: #8b7cf6;
+    --accent-2: #5eead4;
+    --accent-glow: rgba(139, 124, 246, 0.35);
+    --radius: 18px;
+    --max: 1160px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(900px 600px at 15% -10%, rgba(139, 124, 246, 0.22), transparent 60%),
+      radial-gradient(700px 500px at 95% 10%, rgba(94, 234, 212, 0.12), transparent 60%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .container {
+    width: min(var(--max), 92%);
+    margin: 0 auto;
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(11, 11, 18, 0.7);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    position: relative;
+  }
+
+  .logo-mark::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6d5ce8);
+    color: #fff;
+    box-shadow: 0 8px 30px -8px var(--accent-glow);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 40px -8px var(--accent-glow);
+  }
+
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.08); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 110px 0 80px;
+    text-align: center;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  .badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 10px var(--accent-2);
+  }
+
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(2.6rem, 6vw, 4.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    max-width: 900px;
+    margin: 0 auto 24px;
+  }
+
+  h1 em {
+    font-style: italic;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero p.lead {
+    color: var(--muted);
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+    max-width: 620px;
+    margin: 0 auto 40px;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hero-note {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* ---------- Demo card ---------- */
+  .demo {
+    margin: 80px auto 0;
+    max-width: 880px;
+    border-radius: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .demo-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #2a2a3c; }
+  .dot:nth-child(1) { background: #ff5f57; }
+  .dot:nth-child(2) { background: #febc2e; }
+  .dot:nth-child(3) { background: #28c840; }
+
+  .demo-title {
+    margin-left: 12px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .demo-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .demo-col {
+    padding: 28px;
+    min-height: 300px;
+  }
+
+  .demo-col + .demo-col { border-left: 1px solid var(--border); }
+
+  .label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .transcript p {
+    color: #b9b7cc;
+    font-size: 0.92rem;
+    margin-bottom: 12px;
+  }
+
+  .transcript .ts {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    margin-right: 6px;
+  }
+
+  .summary h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 500;
+    font-size: 1.25rem;
+    margin-bottom: 14px;
+  }
+
+  .summary ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+  }
+
+  .summary li {
+    display: flex;
+    gap: 10px;
+    font-size: 0.92rem;
+    color: #d6d4e6;
+  }
+
+  .summary li::before {
+    content: "";
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    margin-top: 8px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 8px var(--accent-2);
+  }
+
+  .tags {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    background: rgba(139, 124, 246, 0.14);
+    color: #c8c0ff;
+    border: 1px solid rgba(139, 124, 246, 0.25);
+  }
+
+  /* ---------- Sections ---------- */
+  section { padding: 110px 0; }
+
+  .section-head {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto 64px;
+  }
+
+  .eyebrow {
+    color: var(--accent-2);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 2.9rem);
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    margin-bottom: 16px;
+  }
+
+  .section-head p {
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+
+  /* ---------- Features ---------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .card {
+    padding: 32px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    border: 1px solid var(--border);
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(139, 124, 246, 0.35);
+  }
+
+  .icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: rgba(139, 124, 246, 0.14);
+    color: var(--accent);
+    margin-bottom: 22px;
+    font-size: 1.3rem;
+  }
+
+  .card h3 {
+    font-size: 1.12rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .card p {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- How it works ---------- */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    position: relative;
+    counter-reset: step;
+  }
+
+  .step {
+    text-align: left;
+  }
+
+  .step-num {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 3.2rem;
+    font-style: italic;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(139, 124, 246, 0.6);
+    margin-bottom: 18px;
+  }
+
+  .step h3 {
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Testimonials ---------- */
+  .quotes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .quote {
+    padding: 30px;
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .quote blockquote {
+    font-size: 1rem;
+    color: #d6d4e6;
+    line-height: 1.6;
+  }
+
+  .quote-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #0b0b12;
+  }
+
+  .quote-author span { color: var(--muted); display: block; font-size: 0.82rem; }
+
+  /* ---------- Pricing ---------- */
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .plan {
+    padding: 36px 32px;
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plan.featured {
+    background: linear-gradient(180deg, rgba(139, 124, 246, 0.14), var(--bg-soft) 60%);
+    border-color: rgba(139, 124, 246, 0.5);
+    position: relative;
+    box-shadow: 0 30px 80px -30px var(--accent-glow);
+  }
+
+  .plan-tag {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--accent), #6d5ce8);
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .plan h3 { font-size: 1.1rem; font-weight: 600; }
+  .plan .desc { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+  .price {
+    margin: 22px 0 26px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .price strong {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 2.8rem;
+    font-weight: 500;
+  }
+
+  .price span { color: var(--muted); font-size: 0.9rem; }
+
+  .plan ul {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    margin-bottom: 30px;
+    font-size: 0.93rem;
+    color: #cfcde2;
+    flex: 1;
+  }
+
+  .plan li::before {
+    content: "✓";
+    color: var(--accent-2);
+    font-weight: 700;
+    margin-right: 10px;
+  }
+
+  .plan .btn { width: 100%; }
+
+  /* ---------- Final CTA ---------- */
+  .final-cta {
+    text-align: center;
+    padding: 90px 40px;
+    border-radius: 28px;
+    background:
+      radial-gradient(600px 300px at 50% 0%, rgba(139, 124, 246, 0.3), transparent 70%),
+      var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .final-cta p {
+    color: var(--muted);
+    margin: 0 auto 36px;
+    max-width: 520px;
+    font-size: 1.05rem;
+  }
+
+  .email-form {
+    display: flex;
+    gap: 10px;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+  }
+
+  .email-form input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0 16px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .email-form input::placeholder { color: #6e6c86; }
+
+  .email-form .btn { padding: 12px 20px; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 60px 0 40px;
+    margin-top: 40px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 50px;
+  }
+
+  .footer-grid p { color: var(--muted); font-size: 0.9rem; margin-top: 14px; max-width: 280px; }
+
+  .footer-grid h4 {
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  .footer-grid ul { list-style: none; display: grid; gap: 10px; }
+  .footer-grid a { color: var(--muted); font-size: 0.9rem; }
+  .footer-grid a:hover { color: var(--text); }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    color: #6e6c86;
+    font-size: 0.85rem;
+    padding-top: 26px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ---------- Reveal animation ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  .reveal.in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .features, .quotes, .pricing { grid-template-columns: 1fr; max-width: 520px; margin-left: auto; margin-right: auto; }
+    .steps { grid-template-columns: 1fr; gap: 48px; }
+    .demo-body { grid-template-columns: 1fr; }
+    .demo-col + .demo-col { border-left: none; border-top: 1px solid var(--border); }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .nav-links { display: none; }
+  }
+
+  @media (max-width: 560px) {
+    .hero { padding: 70px 0 60px; }
+    section { padding: 80px 0; }
+    .email-form { flex-direction: column; border-radius: 18px; }
+    .email-form input { padding: 12px 14px; }
+    .final-cta { padding: 60px 24px; }
+    .footer-bottom { flex-direction: column; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-mark" aria-hidden="true"></span>
+      Murmur
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <a href="#" class="btn btn-ghost" style="padding:9px 16px; font-size:0.9rem;">Log in</a>
+      <a href="#pricing" class="btn btn-primary" style="padding:9px 18px; font-size:0.9rem;">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <div class="badge reveal">
+      <span class="badge-dot"></span>
+      Now with real-time meeting capture
+    </div>
+
+    <h1 class="reveal">Your thoughts, <em>finally</em> organized.</h1>
+
+    <p class="lead reveal">Murmur listens to your meetings, voice memos, and half-formed ideas, then quietly turns them into clean, searchable notes you'll actually want to reread.</p>
+
+    <div class="hero-cta reveal">
+      <a href="#pricing" class="btn btn-primary">Start free — no card needed</a>
+      <a href="#how" class="btn btn-ghost">See how it works</a>
+    </div>
+    <p class="hero-note reveal">Free forever for personal use · Works on Mac, Windows, iOS & Android</p>
+
+    <div class="demo reveal">
+      <div class="demo-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="demo-title">Product sync — Nov 10</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-col transcript">
+          <span class="label">Raw transcript</span>
+          <p><span class="ts">00:12</span>Okay so the onboarding drop-off is mostly at step three, we think it's the permissions prompt.</p>
+          <p><span class="ts">01:40</span>Can we A/B test a version that explains why we need calendar access first?</p>
+          <p><span class="ts">03:05</span>Yeah, and Priya said legal is fine with the new copy if we link the policy.</p>
+          <p><span class="ts">04:22</span>Let's ship it Thursday and check results the following Monday.</p>
+        </div>
+        <div class="demo-col summary">
+          <span class="label">Murmur notes</span>
+          <h3>Onboarding drop-off at step 3</h3>
+          <ul>
+            <li>Permissions prompt suspected as main cause</li>
+            <li>A/B test: explain calendar access before prompt</li>
+            <li>Legal approved new copy with policy link</li>
+            <li>Ship Thursday · review results next Monday</li>
+          </ul>
+          <div class="tags">
+            <span class="tag">#onboarding</span>
+            <span class="tag">#experiments</span>
+            <span class="tag">Action items: 3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Features</span>
+      <h2>Less typing. More remembering.</h2>
+      <p>Everything you say or hear becomes something you can find, act on, and build from.</p>
+    </div>
+
+    <div class="features">
+      <article class="card reveal">
+        <div class="icon">◐</div>
+        <h3>Listens, then writes it up</h3>
+        <p>Record a meeting or a walk-and-talk memo. Murmur transcribes accurately and structures the result into headings, decisions, and next steps.</p>
+      </article>
+      <article class="card reveal">
+        <div class="icon">⌕</div>
+        <h3>Ask your notes anything</h3>
+        <p>"What did we decide about pricing in October?" Murmur searches across every note you've ever taken and answers with links to the source.</p>
+      </article>
+      <article class="card reveal">
+        <div class="icon">✦</div>
+        <h3>Action items that follow through</h3>
+        <p>Tasks get pulled out automatically with owners and due dates, then sync to the tools you already use so nothing slips through the cracks.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">How it works</span>
+      <h2>Three steps. Zero filing.</h2>
+      <p>Murmur fits into the way you already think, without a new system to learn.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <h3>Capture</h3>
+        <p>Tap record, or let Murmur join your calendar meetings automatically. Voice memos work offline and sync later.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <h3>Refine</h3>
+        <p>Notes are organized into clear sections with summaries, tags, and linked people or projects. Edit anything you like.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <h3>Recall</h3>
+        <p>Search by meaning, not just keywords. Murmur surfaces the right note the moment you need it, even if you forgot the exact words.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stories">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Loved by note-takers</span>
+      <h2>Quiet software that gets out of your way.</h2>
+    </div>
+
+    <div class="quotes">
+      <figure class="quote reveal">
+        <blockquote>"I used to spend the first hour after every meeting rewriting my notes. Now I spend that hour actually doing the work."</blockquote>
+        <figcaption class="quote-author">
+          <div class="avatar">MR</div>
+          <div>Maya R.<span>Product Manager</span></div>
+        </figcaption>
+      </figure>
+      <figure class="quote reveal">
+        <blockquote>"The search is uncanny. I asked for 'that idea about the bike rack' and it found a voice memo from three years ago."</blockquote>
+        <figcaption class="quote-author">
+          <div class="avatar">DK</div>
+          <div>Daniel K.<span>Researcher</span></div>
+        </figcaption>
+      </figure>
+      <figure class="quote reveal">
+        <blockquote>"We rolled it out across our design team in an afternoon. Nobody had to be trained, which is the highest praise I can give a tool."</blockquote>
+        <figcaption class="quote-author">
+          <div class="avatar">SA</div>
+          <div>Sofia A.<span>Design Lead</span></div>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Pricing</span>
+      <h2>Start free. Upgrade when it clicks.</h2>
+      <p>No trials that expire mid-thought. Your notes stay yours on every plan.</p>
+    </div>
+
+    <div class="pricing">
+      <div class="plan reveal">
+        <h3>Personal</h3>
+        <p class="desc">For individuals capturing their own ideas.</p>
+        <div class="price"><strong>$0</strong><span>/ forever</span></div>
+        <ul>
+          <li>300 minutes of transcription / month</li>
+          <li>Unlimited text notes</li>
+          <li>Search across all notes</li>
+          <li>Mobile and desktop apps</li>
+        </ul>
+        <a href="#" class="btn btn-ghost">Start free</a>
+      </div>
+
+      <div class="plan featured reveal">
+        <span class="plan-tag">Most popular</span>
+        <h3>Pro</h3>
+        <p class="desc">For people whose days are mostly conversations.</p>
+        <div class="price"><strong>$12</strong><span>/ month, billed yearly</span></div>
+        <ul>
+          <li>Unlimited transcription</li>
+          <li>Automatic calendar meeting capture</li>
+          <li>Ask-your-notes AI assistant</li>
+          <li>Action item sync with your tools</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#" class="btn btn-primary">Try Pro free for 14 days</a>
+      </div>
+
+      <div class="plan reveal">
+        <h3>Team</h3>
+        <p class="desc">Shared notes and knowledge for whole teams.</p>
+        <div class="price"><strong>$24</strong><span>/ user / month</span></div>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Shared workspaces and folders</li>
+          <li>Admin controls and SSO</li>
+          <li>Data retention policies</li>
+          <li>Dedicated onboarding</li>
+        </ul>
+        <a href="#" class="btn btn-ghost">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="container">
+    <div class="final-cta reveal">
+      <h2>Stop losing the good stuff.</h2>
+      <p>Join thousands of people who let Murmur keep track of what matters, so they can focus on what comes next.</p>
+      <form class="email-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='You’re on the list ✓';">
+        <input type="email" placeholder="you@example.com" aria-label="Email address" required>
+        <button type="submit" class="btn btn-primary">Get early access</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="#" class="logo">
+          <span class="logo-mark" aria-hidden="true"></span>
+          Murmur
+        </a>
+        <p>AI-powered notes for people who think out loud.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Changelog</a></li>
+          <li><a href="#">Download</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Help center</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Murmur Labs. All rights reserved.</span>
+      <span>Made with care for people who think out loud.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Reveal sections on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+</script>
+
+</body>
+</html>

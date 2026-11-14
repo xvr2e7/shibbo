@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tern — Find slow database queries from the command line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f14;
+    --bg-alt: #0f1520;
+    --panel: #11161f;
+    --border: #1f2730;
+    --text: #e6edf3;
+    --text-dim: #8b98a5;
+    --text-faint: #5a6572;
+    --accent: #5eead4;
+    --accent-dim: #2dd4bf;
+    --accent-soft: rgba(94, 234, 212, 0.1);
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Background texture */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 40%, transparent 80%);
+  }
+
+  .bg-glow {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(94,234,212,0.12), transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Nav */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    background: rgba(11, 15, 20, 0.75);
+    border-bottom: 1px solid var(--border);
+  }
+
+  nav .inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), #0ea5a0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: #06211e;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #06211e;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+
+  .btn-ghost {
+    color: var(--text-dim);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: #313b47; }
+
+  .gh-icon { width: 15px; height: 15px; }
+
+  /* Hero */
+  header.hero {
+    padding: 100px 0 70px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(94,234,212,0.25);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+    font-family: var(--mono);
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  h1 {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    margin-bottom: 20px;
+  }
+
+  h1 .accent { color: var(--accent); }
+
+  .hero p.lead {
+    font-size: 19px;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto 36px;
+    line-height: 1.6;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .btn-lg { padding: 13px 24px; font-size: 15px; border-radius: 8px; }
+
+  .hero-note {
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  /* Terminal */
+  .terminal {
+    margin: 56px auto 0;
+    max-width: 760px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 40px 100px -30px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02);
+    text-align: left;
+  }
+
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .term-dot.red { background: #ff5f56; }
+  .term-dot.yellow { background: #ffbd2e; }
+  .term-dot.green { background: #27c93f; }
+
+  .term-title {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  .term-body {
+    padding: 22px 24px 26px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.75;
+    overflow-x: auto;
+  }
+
+  .term-body .prompt { color: var(--accent); }
+  .term-body .cmd { color: var(--text); }
+  .term-body .comment { color: var(--text-faint); }
+  .term-body .ok { color: #4ade80; }
+  .term-body .slow { color: var(--danger); font-weight: 700; }
+  .term-body .mid { color: var(--warn); }
+  .term-body .dim { color: var(--text-dim); }
+  .term-body .table { color: #93c5fd; }
+
+  /* Sections */
+  section { padding: 80px 0; }
+
+  .section-head {
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto 56px;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .section-head h2 {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+
+  .section-head p {
+    color: var(--text-dim);
+    font-size: 16px;
+  }
+
+  /* Features grid */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .feature {
+    background: var(--panel);
+    padding: 32px 28px;
+  }
+
+  .feature-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    color: var(--accent);
+  }
+
+  .feature-icon svg { width: 19px; height: 19px; }
+
+  .feature h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .feature p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* How it works */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .step {
+    position: relative;
+    padding: 28px 24px;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid rgba(94,234,212,0.3);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+
+  .step h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .step p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .step code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 5px;
+    color: var(--accent);
+  }
+
+  /* Engines */
+  .engines {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .engine-pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  .engine-pill .dot2 {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Install */
+  .install-box {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .install-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    cursor: default;
+  }
+
+  .tab.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: rgba(94,234,212,0.25);
+  }
+
+  .install-line {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+
+  .install-line .cmd-text::before {
+    content: "$ ";
+    color: var(--text-faint);
+  }
+
+  .copy-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: transparent;
+  }
+
+  /* CTA footer */
+  .cta-section {
+    text-align: center;
+  }
+
+  .cta-box {
+    background: linear-gradient(180deg, var(--panel), var(--bg-alt));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 64px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: "";
+    position: absolute;
+    top: -80%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(94,234,212,0.1), transparent 70%);
+  }
+
+  .cta-box h2 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .cta-box p {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 30px;
+    position: relative;
+  }
+
+  .cta-box .hero-ctas { position: relative; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 36px 0;
+  }
+
+  footer .inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  footer .flinks {
+    display: flex;
+    gap: 22px;
+  }
+
+  footer .flinks a:hover { color: var(--text-dim); }
+
+  @media (max-width: 860px) {
+    .features { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+    h1 { font-size: 38px; }
+    .section-head h2 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<nav>
+  <div class="inner">
+    <div class="brand">
+      <div class="brand-mark">t_</div>
+      Tern
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#install">
+        <svg class="gh-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary" href="#install">Install Tern</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> v1.4 — now with EXPLAIN plan diffing</span>
+    <h1>Find your slow<br>queries <span class="accent">before users do.</span></h1>
+    <p class="lead">
+      Tern is a command-line tool that watches your database, ranks every query by cost,
+      and tells you exactly which ones are killing your p99 — no dashboards, no agents, no instrumentation.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary btn-lg" href="#install">Get started →</a>
+      <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+    </div>
+    <div class="hero-note">MIT licensed · Postgres, MySQL &amp; SQLite · Single static binary</div>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot red"></div>
+        <div class="term-dot yellow"></div>
+        <div class="term-dot green"></div>
+        <div class="term-title">tern — slow query scan</div>
+      </div>
+      <div class="term-body"><span class="prompt">$</span> <span class="cmd">tern scan --since 1h --db prod</span>
+<span class="comment"># scanning 42,118 queries from pg_stat_statements...</span>
+
+<span class="dim">RANK  AVG TIME   CALLS   TABLE</span>          <span class="dim">QUERY</span>
+<span class="slow">#1    812ms</span>     1,204   <span class="table">orders</span>           SELECT * FROM orders WHERE customer_id = $1 ORDER BY...
+<span class="slow">#2    640ms</span>       318   <span class="table">events</span>           SELECT count(*) FROM events WHERE created_at > $1
+<span class="mid">#3    210ms</span>     8,901   <span class="table">sessions</span>         SELECT * FROM sessions WHERE token = $1
+<span class="ok">#4     12ms</span>    22,004   <span class="table">users</span>            SELECT id, name FROM users WHERE id = $1
+
+<span class="comment">→ missing index on orders.customer_id (est. 94% faster)</span>
+<span class="prompt">$</span> <span class="cmd">tern explain --rank 1</span>
+<span class="ok">✓</span> suggested: <span class="cmd">CREATE INDEX idx_orders_customer_id ON orders(customer_id);</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Features</span>
+      <h2>Built for the terminal, not another tab</h2>
+      <p>Everything you need to diagnose query performance, without shipping logs anywhere.</p>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+        </div>
+        <h3>Real-time query ranking</h3>
+        <p>Continuously ranks live queries by total time, mean latency, and call frequency so you always see what matters most right now.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <h3>Zero instrumentation</h3>
+        <p>Reads directly from <code style="font-family:var(--mono);font-size:13px;color:var(--accent)">pg_stat_statements</code>, the MySQL performance schema, or SQLite's query log. No app code changes.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <h3>EXPLAIN plan diffing</h3>
+        <p>Automatically runs EXPLAIN on your worst offenders and diffs plans before and after an index change so you can confirm the fix.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>Index suggestions</h3>
+        <p>Heuristics trained on common access patterns surface missing indexes, redundant ones, and queries that skip them entirely.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 11h16"/></svg>
+        </div>
+        <h3>CI-friendly exit codes</h3>
+        <p>Run <code style="font-family:var(--mono);font-size:13px;color:var(--accent)">tern check</code> in CI to fail builds when a migration introduces a query slower than your budget.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <h3>Configurable thresholds</h3>
+        <p>Set latency and call-count budgets per environment in a single <code style="font-family:var(--mono);font-size:13px;color:var(--accent)">tern.toml</code> file, checked into your repo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">How it works</span>
+      <h2>From install to insight in under a minute</h2>
+      <p>No agents to deploy, no sidecars, no new infrastructure.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Point it at your database</h3>
+        <p>Give Tern a connection string with <code>tern connect $DATABASE_URL</code>. It auto-detects Postgres, MySQL, or SQLite.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Scan and rank</h3>
+        <p>Run <code>tern scan</code> to pull query stats and rank every statement by total and average execution time.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Fix and verify</h3>
+        <p>Apply a suggested index, then re-run <code>tern explain</code> to confirm the plan actually improved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head" style="margin-bottom: 36px;">
+      <span class="section-tag">Supported engines</span>
+      <h2 style="font-size:26px;">Works with what you already run</h2>
+    </div>
+    <div class="engines">
+      <div class="engine-pill"><span class="dot2"></span> PostgreSQL 12+</div>
+      <div class="engine-pill"><span class="dot2"></span> MySQL / MariaDB</div>
+      <div class="engine-pill"><span class="dot2"></span> SQLite</div>
+      <div class="engine-pill"><span class="dot2"></span> Amazon RDS</div>
+      <div class="engine-pill"><span class="dot2"></span> Supabase</div>
+      <div class="engine-pill"><span class="dot2"></span> PlanetScale</div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Install</span>
+      <h2>Up and running in one line</h2>
+      <p>Tern ships as a single static binary. No runtime dependencies.</p>
+    </div>
+
+    <div class="install-tabs">
+      <span class="tab active">macOS</span>
+      <span class="tab">Linux</span>
+      <span class="tab">Cargo</span>
+      <span class="tab">Docker</span>
+    </div>
+
+    <div class="install-box">
+      <div class="install-line">
+        <span class="cmd-text">brew install tern</span>
+        <span class="copy-btn">copy</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="wrap">
+    <div class="cta-box">
+      <h2>Your slowest query is running right now.</h2>
+      <p>Tern takes under a minute to install and less than that to find it.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary btn-lg" href="#install">Install Tern</a>
+        <a class="btn btn-ghost btn-lg" href="#">Read the docs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="inner">
+      <div class="brand" style="font-size:14px;">
+        <div class="brand-mark" style="width:20px;height:20px;font-size:10px;">t_</div>
+        Tern
+      </div>
+      <div class="flinks">
+        <a href="#">Docs</a>
+        <a href="#">GitHub</a>
+        <a href="#">Changelog</a>
+        <a href="#">License</a>
+      </div>
+      <div>© 2026 Tern</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

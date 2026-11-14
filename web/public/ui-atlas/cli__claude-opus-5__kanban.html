@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Board — Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  color-scheme: light;
+  --bg:#f5f4f1; --panel:#ecebe6; --panel-2:#e4e2dc; --card:#ffffff;
+  --text:#1b1a18; --muted:#78736b; --faint:#a6a099;
+  --line:#e3e0d9; --line-2:#d2cec6;
+  --accent:#5a4ff3; --danger:#cc3f26; --warn:#b07714; --ok:#1f7a4d;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(28,27,25,.055), 0 3px 10px rgba(28,27,25,.045);
+  --shadow-hover:0 1px 2px rgba(28,27,25,.06), 0 8px 20px rgba(28,27,25,.09);
+  --shadow-lg:0 18px 50px rgba(20,19,17,.22), 0 3px 8px rgba(20,19,17,.1);
+}
+html[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#101012; --panel:#18181b; --panel-2:#1e1e22; --card:#222227;
+  --text:#edecea; --muted:#9b968e; --faint:#75706a;
+  --line:#2b2b31; --line-2:#3b3b43;
+  --accent:#8f86ff; --danger:#f0735a; --warn:#dca03f; --ok:#59c48c;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.25);
+  --shadow-hover:0 1px 2px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.6), 0 3px 8px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:450 14px/1.45 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+body.dragging{user-select:none; cursor:grabbing}
+button,input,textarea,select{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line-2); border-radius:10px; border:3px solid transparent; background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--faint); background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- top bar ---------- */
+header{
+  flex:0 0 auto; padding:18px 26px 14px;
+  display:flex; align-items:flex-end; gap:22px; flex-wrap:wrap;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(to bottom, var(--bg), color-mix(in srgb, var(--bg) 70%, var(--panel)));
+}
+.brand{display:flex; flex-direction:column; gap:1px; margin-right:auto}
+.brand h1{
+  margin:0; font:400 30px/1 'Instrument Serif',Georgia,serif;
+  letter-spacing:.2px;
+}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:0; font-size:11.5px; color:var(--muted); letter-spacing:.07em; text-transform:uppercase}
+.tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.search{position:relative}
+.search svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--faint)}
+.search input{
+  width:220px; padding:8px 30px 8px 31px; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); box-shadow:var(--shadow);
+}
+.search input::placeholder{color:var(--faint)}
+.search .clear{
+  position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  border:0; background:transparent; color:var(--faint); padding:4px 7px; border-radius:50%; line-height:1; display:none;
+}
+.search.has-value .clear{display:block}
+.search .clear:hover{color:var(--text); background:var(--panel-2)}
+
+.people{display:flex; align-items:center; gap:6px; padding-left:4px}
+.people .label{font-size:11px; color:var(--faint); letter-spacing:.06em; text-transform:uppercase; margin-right:2px}
+.pchip{
+  border:1px solid transparent; background:transparent; padding:2px; border-radius:999px;
+  display:grid; place-items:center; transition:.15s;
+}
+.pchip .av{width:27px; height:27px; font-size:10.5px}
+.pchip:hover{border-color:var(--line-2)}
+.pchip[aria-pressed="true"]{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%, transparent)}
+.pchip[aria-pressed="true"] .av{box-shadow:0 0 0 2px var(--bg)}
+
+.btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 13px; border-radius:999px; border:1px solid var(--line);
+  background:var(--card); box-shadow:var(--shadow); font-weight:500; font-size:13px;
+  transition:.15s;
+}
+.btn:hover{box-shadow:var(--shadow-hover); transform:translateY(-1px)}
+.btn.primary{background:var(--text); color:var(--bg); border-color:var(--text)}
+.btn.ghost{background:transparent; box-shadow:none; border-color:transparent; color:var(--muted); padding:8px 10px}
+.btn.ghost:hover{background:var(--panel-2); color:var(--text); transform:none}
+.btn.icon{padding:8px; border-radius:50%}
+.btn.danger{color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%, transparent); background:transparent; box-shadow:none}
+.btn.danger:hover{background:color-mix(in srgb,var(--danger) 10%, transparent)}
+
+/* ---------- board ---------- */
+.board{
+  flex:1 1 auto; min-height:0;
+  display:flex; gap:14px; align-items:flex-start;
+  padding:18px 26px 26px; overflow-x:auto; overflow-y:hidden;
+  scroll-behavior:smooth;
+}
+.col{
+  flex:0 0 288px; max-width:288px; align-self:stretch;
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--panel); border:1px solid var(--line); border-radius:18px;
+}
+.col.over{background:color-mix(in srgb,var(--accent) 7%, var(--panel)); border-color:color-mix(in srgb,var(--accent) 35%, var(--line))}
+.col-head{
+  flex:0 0 auto; padding:13px 14px 9px; display:flex; align-items:center; gap:8px;
+}
+.dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--d)}
+.col-head h2{
+  margin:0; font-size:11.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.count{
+  margin-left:auto; font-size:11px; font-weight:600; color:var(--muted);
+  background:var(--panel-2); border-radius:999px; padding:2px 8px; font-variant-numeric:tabular-nums;
+}
+.count.over{background:color-mix(in srgb,var(--warn) 20%, transparent); color:var(--warn)}
+.wip{font-size:10.5px; color:var(--faint); padding:0 14px 6px; margin-top:-4px}
+.wip strong{color:var(--warn); font-weight:600}
+.list{
+  flex:1 1 auto; min-height:46px; overflow-y:auto; padding:4px 10px 6px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.col-foot{flex:0 0 auto; padding:4px 10px 10px}
+.add{
+  width:100%; text-align:left; border:1px dashed var(--line-2); background:transparent;
+  color:var(--muted); padding:8px 11px; border-radius:11px; font-size:13px; font-weight:500;
+  display:flex; align-items:center; gap:7px; transition:.15s;
+}
+.add:hover{border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 6%, transparent)}
+.composer{display:none; background:var(--card); border:1px solid var(--accent); border-radius:12px; padding:9px; box-shadow:var(--shadow)}
+.composer.on{display:block}
+.composer textarea{
+  width:100%; border:0; background:transparent; resize:none; font-size:13.5px; line-height:1.4;
+  min-height:46px; font-weight:500;
+}
+.composer textarea:focus{outline:none}
+.composer .row{display:flex; align-items:center; gap:8px; margin-top:4px}
+.composer .hint{font-size:10.5px; color:var(--faint); margin-right:auto}
+.composer button{padding:5px 11px; font-size:12px; border-radius:8px}
+
+/* ---------- card ---------- */
+.card{
+  position:relative; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); padding:10px 11px 9px; box-shadow:var(--shadow);
+  cursor:pointer; transition:box-shadow .16s, transform .16s, border-color .16s;
+}
+.card:hover{box-shadow:var(--shadow-hover); transform:translateY(-1px); border-color:var(--line-2)}
+.card.hidden{display:none}
+.card .top{display:flex; align-items:center; gap:6px; margin-bottom:6px}
+.card .title{font-size:13.5px; font-weight:500; line-height:1.38; letter-spacing:-.005em; word-break:break-word}
+.card .notes{font-size:12px; color:var(--muted); margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.card .meta{display:flex; align-items:center; gap:8px; margin-top:9px; min-height:22px}
+.card .spacer{margin-left:auto}
+.card.done .title{color:var(--muted)}
+.card.ghosting{opacity:.4}
+.grip{
+  position:absolute; top:6px; right:5px; width:22px; height:22px; border:0; background:transparent;
+  color:var(--faint); border-radius:6px; display:grid; place-items:center;
+  opacity:0; transition:opacity .15s; touch-action:none; cursor:grab;
+}
+.card:hover .grip, .card:focus-visible .grip{opacity:1}
+.grip:hover{background:var(--panel-2); color:var(--text)}
+@media (hover:none){ .grip{opacity:.65} }
+
+.tag{
+  font-size:10.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  padding:2.5px 7px; border-radius:6px; white-space:nowrap;
+  background:color-mix(in srgb, var(--tc) 15%, var(--card));
+  color:color-mix(in srgb, var(--tc) 72%, var(--text));
+  border:1px solid color-mix(in srgb, var(--tc) 28%, transparent);
+}
+.av{
+  width:24px; height:24px; border-radius:50%; display:grid; place-items:center;
+  font-size:9.5px; font-weight:700; letter-spacing:.03em; color:#fff; flex:0 0 auto;
+  background:var(--ac); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.av.none{background:transparent; color:var(--faint); border:1px dashed var(--line-2); box-shadow:none}
+.due{
+  display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:500;
+  color:var(--muted); background:var(--panel-2); padding:2.5px 7px; border-radius:7px; white-space:nowrap;
+}
+.due.soon{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%, transparent)}
+.due.late{color:var(--danger); background:color-mix(in srgb,var(--danger) 13%, transparent); font-weight:600}
+.sub{display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
+.sub.all{color:var(--ok)}
+.placeholder{
+  border:1.5px dashed color-mix(in srgb,var(--accent) 50%, var(--line-2));
+  background:color-mix(in srgb,var(--accent) 7%, transparent);
+  border-radius:var(--radius);
+}
+.flying{
+  position:fixed; z-index:400; pointer-events:none; margin:0 !important;
+  box-shadow:var(--shadow-lg); transform:rotate(1.6deg); opacity:.97;
+  border-color:color-mix(in srgb,var(--accent) 40%, var(--line));
+}
+.empty{
+  border:1px dashed var(--line-2); border-radius:12px; padding:14px 10px;
+  text-align:center; font-size:11.5px; color:var(--faint); background:transparent;
+}
+
+/* ---------- dialog ---------- */
+dialog{
+  border:0; padding:0; background:transparent; max-width:min(620px,94vw); width:100%;
+}
+dialog::backdrop{background:rgba(22,21,19,.42); backdrop-filter:blur(3px)}
+.sheet{
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
+  box-shadow:var(--shadow-lg); overflow:hidden;
+}
+.sheet-head{display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line)}
+.sheet-head .where{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.sheet-body{padding:16px; max-height:min(66vh,620px); overflow-y:auto}
+#f-title{
+  width:100%; border:0; background:transparent; font:600 21px/1.3 'Inter',sans-serif;
+  letter-spacing:-.015em; resize:none; padding:0; margin-bottom:10px; overflow:hidden;
+}
+#f-title:focus{outline:none}
+#f-notes{
+  width:100%; border:1px solid var(--line); background:var(--panel); border-radius:11px;
+  padding:10px 11px; font-size:13.5px; line-height:1.5; resize:vertical; min-height:74px;
+}
+.fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-top:18px}
+.field{display:flex; flex-direction:column; gap:6px}
+.field > span{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.chips{display:flex; flex-wrap:wrap; gap:5px}
+.chip{
+  border:1px solid var(--line); background:transparent; border-radius:999px;
+  padding:4px 10px; font-size:12px; font-weight:500; color:var(--muted); transition:.14s;
+}
+.chip:hover{border-color:var(--line-2); color:var(--text)}
+.chip[aria-pressed="true"]{border-color:transparent; background:var(--text); color:var(--bg)}
+.chip.p{padding:3px 9px 3px 4px; display:inline-flex; align-items:center; gap:6px}
+.chip.p .av{width:21px;height:21px;font-size:8.5px}
+select,input[type="date"]{
+  border:1px solid var(--line); background:var(--panel); border-radius:9px; padding:7px 9px; font-size:13px;
+}
+.checks{display:flex; flex-direction:column; gap:2px; margin-top:20px}
+.checks .hd{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.checks .hd span{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.bar{flex:1; height:4px; border-radius:4px; background:var(--panel-2); overflow:hidden; max-width:130px}
+.bar i{display:block; height:100%; background:var(--ok); border-radius:4px; transition:width .25s}
+.check{display:flex; align-items:center; gap:9px; padding:5px 4px; border-radius:8px}
+.check:hover{background:var(--panel)}
+.check input{width:15px; height:15px; accent-color:var(--ok); flex:0 0 auto; cursor:pointer}
+.check .t{flex:1; font-size:13px; border:0; background:transparent; padding:2px 0}
+.check .t:focus{outline:none}
+.check.on .t{color:var(--muted); text-decoration:line-through}
+.check .x{border:0; background:transparent; color:var(--faint); opacity:0; padding:2px 5px; border-radius:6px}
+.check:hover .x{opacity:1}
+.check .x:hover{color:var(--danger); background:color-mix(in srgb,var(--danger) 10%, transparent)}
+.newcheck{display:flex; align-items:center; gap:9px; padding:5px 4px}
+.newcheck input{flex:1; border:0; border-bottom:1px dashed var(--line-2); background:transparent; font-size:13px; padding:3px 0}
+.newcheck input:focus{outline:none; border-bottom-color:var(--accent)}
+.sheet-foot{
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  border-top:1px solid var(--line); background:var(--panel);
+}
+.sheet-foot .stamp{font-size:11px; color:var(--faint); margin-right:auto}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed; left:50%; bottom:24px; transform:translate(-50%,16px);
+  background:var(--text); color:var(--bg); border-radius:999px; padding:9px 10px 9px 16px;
+  display:flex; align-items:center; gap:10px; font-size:13px; font-weight:500;
+  box-shadow:var(--shadow-lg); opacity:0; pointer-events:none; transition:.2s; z-index:500;
+}
+#toast.on{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+#toast button{
+  border:0; background:color-mix(in srgb, var(--bg) 22%, transparent); color:var(--bg);
+  padding:5px 11px; border-radius:999px; font-size:12px; font-weight:600;
+}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+@media (max-width:760px){
+  body{overflow:auto}
+  header{padding:14px 16px 12px; align-items:flex-start}
+  .brand{width:100%}
+  .search input{width:100%}
+  .search{flex:1 1 180px}
+  .tools{width:100%}
+  .board{flex-direction:column; overflow-x:visible; padding:14px 16px 60px; flex:0 0 auto}
+  .col{flex:0 0 auto; width:100%; max-width:none; align-self:auto}
+  .list{max-height:none; overflow:visible}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Studio <em>Board</em></h1>
+    <p>Design team · Sprint 24</p>
+  </div>
+  <div class="tools">
+    <label class="search" id="searchWrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search cards…  (/)" autocomplete="off" aria-label="Search cards">
+      <button class="clear" id="qClear" aria-label="Clear search">✕</button>
+    </label>
+    <div class="people" id="people"><span class="label">Who</span></div>
+    <button class="btn primary" id="newBtn">＋ New request</button>
+    <button class="btn icon ghost" id="themeBtn" aria-label="Toggle dark mode" title="Toggle theme">◑</button>
+    <button class="btn icon ghost" id="resetBtn" aria-label="Reset board" title="Reset to sample board">↺</button>
+  </div>
+</header>
+
+<main class="board" id="board"></main>
+
+<dialog id="sheet">
+  <form class="sheet" id="sheetForm" method="dialog">
+    <div class="sheet-head">
+      <span class="where" id="f-where">In Design</span>
+      <button type="button" class="btn ghost" id="f-close" style="margin-left:auto" aria-label="Close">Close ✕</button>
+    </div>
+    <div class="sheet-body">
+      <textarea id="f-title" rows="1" placeholder="Card title" aria-label="Title"></textarea>
+      <textarea id="f-notes" placeholder="Brief, links, acceptance notes…" aria-label="Notes"></textarea>
+
+      <div class="fields">
+        <label class="field"><span>Stage</span><select id="f-col"></select></label>
+        <label class="field"><span>Due date</span><input id="f-due" type="date"></label>
+        <div class="field"><span>Discipline</span><div class="chips" id="f-tags"></div></div>
+        <div class="field"><span>Owner</span><div class="chips" id="f-people"></div></div>
+      </div>
+
+      <div class="checks">
+        <div class="hd">
+          <span>Checklist</span>
+          <div class="bar"><i id="f-bar"></i></div>
+          <span id="f-progress" style="letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums"></span>
+        </div>
+        <div id="f-checks"></div>
+        <div class="newcheck">
+          <span style="color:var(--faint);font-size:14px;line-height:1">＋</span>
+          <input id="f-newcheck" placeholder="Add an item, press Enter" aria-label="New checklist item">
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <span class="stamp" id="f-stamp"></span>
+      <button type="button" class="btn danger" id="f-del">Delete</button>
+      <button type="button" class="btn primary" id="f-done">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"><span id="toastMsg"></span><button id="toastAct" hidden>Undo</button></div>
+<div class="sr" id="live" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============== config ============== */
+const COLUMNS = [
+  {id:'requests', name:'Requests',  dot:'#9a948c', wip:0},
+  {id:'backlog',  name:'Backlog',   dot:'#7e8cf0', wip:0},
+  {id:'design',   name:'In Design', dot:'#e0a32e', wip:4},
+  {id:'review',   name:'In Review', dot:'#d2693c', wip:3},
+  {id:'approved', name:'Approved',  dot:'#44a877', wip:0},
+];
+const TAGS = {
+  brand:    {label:'Brand',    c:'#c2412a'},
+  product:  {label:'Product',  c:'#3350c4'},
+  web:      {label:'Web',      c:'#1f7a52'},
+  research: {label:'Research', c:'#7a3fbb'},
+  motion:   {label:'Motion',   c:'#a3700f'},
+};
+const PEOPLE = {
+  mia:   {name:'Mia Okafor', initials:'MO', c:'#5a4ff3'},
+  teo:   {name:'Teo Salas',  initials:'TS', c:'#c2412a'},
+  avery: {name:'Avery Lin',  initials:'AL', c:'#1f7a52'},
+  jun:   {name:'Jun Park',   initials:'JP', c:'#a3700f'},
+  rosa:  {name:'Rosa Beck',  initials:'RB', c:'#7a3fbb'},
+};
+const KEY = 'studio-board-v1';
+
+/* ============== sample data ============== */
+const day = n => { const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+function seed(){
+  const c = {}, cols = {}; let n = 0;
+  const add = (col, o) => {
+    const id = 'c' + (++n);
+    c[id] = Object.assign({id, title:'', notes:'', tag:null, who:null, due:null, checks:[], created:Date.now()-n*36e5}, o);
+    (cols[col] = cols[col] || []).push(id);
+  };
+  add('requests', {title:'Pricing page refresh — tier comparison', tag:'web', who:'rosa', due:day(9),
+    notes:'Sales wants the comparison table readable on mobile. Needs copy from marketing first.'});
+  add('requests', {title:'Conference booth graphics (3×2m)', tag:'brand', due:day(16),
+    notes:'Printer deadline is hard. Bleed specs in the shared drive.'});
+  add('requests', {title:'Dark mode audit for the dashboard', tag:'product'});
+
+  add('backlog', {title:'Illustration set for empty states', tag:'brand', who:'teo',
+    checks:[{t:'Pick 6 priority screens', d:true},{t:'Sketch concepts', d:false},{t:'Build in Figma', d:false}]});
+  add('backlog', {title:'Icon library consistency audit', tag:'product', notes:'~40 icons drifted off the 24px grid.'});
+  add('backlog', {title:'Motion principles one-pager', tag:'motion', who:'jun'});
+  add('backlog', {title:'Photography direction for careers page', tag:'web'});
+
+  add('design', {title:'Mobile onboarding v2', tag:'product', who:'mia', due:day(2),
+    notes:'Cut from 6 steps to 3. Progressive disclosure for the workspace setup.',
+    checks:[{t:'Flow diagram', d:true},{t:'Hi-fi screens', d:true},{t:'Edge cases + errors', d:false},{t:'Prototype for testing', d:false}]});
+  add('design', {title:'Brand refresh — logo lockups', tag:'brand', who:'teo', due:day(5),
+    notes:'Horizontal, stacked and icon-only. Minimum sizes documented.'});
+  add('design', {title:'Design tokens: colour ramps', tag:'product', who:'jun',
+    checks:[{t:'Neutrals', d:true},{t:'Accents', d:false},{t:'Contrast check AA', d:false}]});
+
+  add('review', {title:'Transactional email templates', tag:'web', who:'avery', due:day(-2),
+    notes:'Waiting on eng review for the Outlook fallbacks.'});
+  add('review', {title:'Research synthesis: checkout drop-off', tag:'research', who:'rosa', due:day(1),
+    checks:[{t:'Tag 12 session recordings', d:true},{t:'Write up themes', d:true},{t:'Share with PM', d:false}]});
+
+  add('approved', {title:'App icon update — iOS 18 tinting', tag:'brand', who:'teo'});
+  add('approved', {title:'Help centre typography pass', tag:'web', who:'jun'});
+  add('approved', {title:'Q3 pattern library release notes', tag:'product', who:'mia'});
+
+  COLUMNS.forEach(col => cols[col.id] = cols[col.id] || []);
+  return {cards:c, columns:cols, seq:n};
+}
+
+/* ============== state ============== */
+let state = load();
+function load(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && raw.cards && raw.columns){
+      COLUMNS.forEach(c => raw.columns[c.id] = raw.columns[c.id] || []);
+      return raw;
+    }
+  }catch(e){}
+  return seed();
+}
+const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+const uid = () => 'c' + (state.seq = (state.seq||0) + 1);
+const colOf = id => COLUMNS.find(c => state.columns[c.id].includes(id));
+
+let query = '';
+let whoFilter = new Set();
+const filtering = () => !!query || whoFilter.size > 0;
+
+/* ============== helpers ============== */
+const el = (tag, cls, txt) => { const n = document.createElement(tag); if(cls) n.className = cls; if(txt != null) n.textContent = txt; return n; };
+const esc = s => (s||'').toString();
+
+function dueInfo(iso){
+  if(!iso) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(iso + 'T00:00:00');
+  const diff = Math.round((d - today) / 864e5);
+  let label, cls = '';
+  if(diff < 0){ label = Math.abs(diff) + 'd late'; cls = 'late'; }
+  else if(diff === 0){ label = 'Today'; cls = 'soon'; }
+  else if(diff === 1){ label = 'Tomorrow'; cls = 'soon'; }
+  else if(diff <= 6){ label = d.toLocaleDateString(undefined,{weekday:'short'}); cls = diff <= 3 ? 'soon' : ''; }
+  else label = d.toLocaleDateString(undefined,{month:'short', day:'numeric'});
+  return {label, cls, full:d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'})};
+}
+
+function matches(c){
+  if(whoFilter.size && !whoFilter.has(c.who || '_none')) return false;
+  if(!query) return true;
+  const hay = [c.title, c.notes, TAGS[c.tag]?.label, PEOPLE[c.who]?.name, ...(c.checks||[]).map(k=>k.t)].join(' ').toLowerCase();
+  return hay.includes(query);
+}
+
+function avatar(who, big){
+  const n = el('div', 'av' + (who ? '' : ' none'));
+  if(who && PEOPLE[who]){
+    n.style.setProperty('--ac', PEOPLE[who].c);
+    n.textContent = PEOPLE[who].initials;
+    n.title = PEOPLE[who].name;
+  } else { n.textContent = '?'; n.title = 'Unassigned'; }
+  if(big) n.style.cssText += ';width:28px;height:28px;font-size:11px';
+  return n;
+}
+
+/* ============== build shell ============== */
+const board = document.getElementById('board');
+COLUMNS.forEach(col => {
+  const c = el('section', 'col'); c.dataset.col = col.id;
+  const head = el('div', 'col-head');
+  const dot = el('span', 'dot'); dot.style.setProperty('--d', col.dot);
+  const h = el('h2', null, col.name);
+  const count = el('span', 'count'); count.id = 'count-' + col.id;
+  head.append(dot, h, count);
+  const wip = el('div', 'wip'); wip.id = 'wip-' + col.id;
+  const list = el('div', 'list'); list.id = 'list-' + col.id; list.setAttribute('role','list');
+  const foot = el('div', 'col-foot');
+  const addBtn = el('button', 'add'); addBtn.type = 'button';
+  addBtn.innerHTML = '<span style="font-size:15px;line-height:1">＋</span> Add card';
+  const comp = el('div', 'composer');
+  comp.innerHTML = `<textarea placeholder="What needs designing?" rows="2"></textarea>
+    <div class="row"><span class="hint">Enter to add · Esc to cancel</span>
+    <button type="button" class="btn ghost c-cancel">Cancel</button>
+    <button type="button" class="btn primary c-save">Add</button></div>`;
+  foot.append(addBtn, comp);
+  c.append(head, wip, list, foot);
+  board.appendChild(c);
+
+  addBtn.addEventListener('click', () => openComposer(col.id));
+  comp.querySelector('.c-cancel').addEventListener('click', () => closeComposer(col.id));
+  comp.querySelector('.c-save').addEventListener('click', () => commitComposer(col.id, true));
+  const ta = comp.querySelector('textarea');
+  ta.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); commitComposer(col.id, true); }
+    else if(e.key === 'Escape'){ e.preventDefault(); closeComposer(col.id); }
+  });
+  ta.addEventListener('blur', () => { if(ta.value.trim()) commitComposer(col.id, false); else closeComposer(col.id); });
+});
+
+/* ============== people filter ============== */
+const peopleBar = document.getElementById('people');
+Object.keys(PEOPLE).forEach(k => {
+  const b = el('button', 'pchip'); b.type = 'button';
+  b.setAttribute('aria-pressed', 'false');
+  b.title = 'Filter: ' + PEOPLE[k].name;
+  b.setAttribute('aria-label', 'Filter by ' + PEOPLE[k].name);
+  b.appendChild(avatar(k));
+  b.addEventListener('click', () => {
+    whoFilter.has(k) ? whoFilter.delete(k) : whoFilter.add(k);
+    b.setAttribute('aria-pressed', whoFilter.has(k));
+    render();
+  });
+  peopleBar.appendChild(b);
+});
+
+/* ============== render ============== */
+function cardEl(c){
+  const n = el('article', 'card');
+  n.dataset.cardId = c.id;
+  n.tabIndex = 0;
+  n.setAttribute('role','listitem');
+  if(state.columns.approved.includes(c.id)) n.classList.add('done');
+
+  const top = el('div', 'top');
+  if(c.tag && TAGS[c.tag]){
+    const t = el('span', 'tag', TAGS[c.tag].label);
+    t.style.setProperty('--tc', TAGS[c.tag].c);
+    top.appendChild(t);
+  }
+  if(top.childNodes.length) n.appendChild(top);
+
+  n.appendChild(el('div', 'title', c.title || 'Untitled'));
+  if(c.notes) n.appendChild(el('div', 'notes', c.notes));
+
+  const meta = el('div', 'meta');
+  const d = dueInfo(c.due);
+  if(d){
+    const b = el('span', 'due ' + d.cls);
+    b.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>';
+    b.appendChild(document.createTextNode(d.label));
+    b.title = 'Due ' + d.full;
+    meta.appendChild(b);
+  }
+  if(c.checks && c.checks.length){
+    const done = c.checks.filter(k => k.d).length;
+    const s = el('span', 'sub' + (done === c.checks.length ? ' all' : ''));
+    s.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+    s.appendChild(document.createTextNode(done + '/' + c.checks.length));
+    s.title = 'Checklist';
+    meta.appendChild(s);
+  }
+  meta.appendChild(el('span', 'spacer'));
+  meta.appendChild(avatar(c.who));
+  n.appendChild(meta);
+
+  const grip = el('button', 'grip'); grip.type = 'button'; grip.tabIndex = -1;
+  grip.setAttribute('aria-hidden','true');
+  grip.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
+  n.appendChild(grip);
+
+  n.addEventListener('pointerdown', e => beginDrag(e, c.id, n));
+  n.addEventListener('click', () => { if(!suppressClick) openSheet(c.id); });
+  n.addEventListener('keydown', e => cardKeys(e, c.id, n));
+  return n;
+}
+
+function render(){
+  COLUMNS.forEach(col => {
+    const list = document.getElementById('list-' + col.id);
+    list.textContent = '';
+    const ids = state.columns[col.id];
+    let shown = 0;
+    ids.forEach(id => {
+      const c = state.cards[id];
+      if(!c) return;
+      const n = cardEl(c);
+      if(matches(c)) shown++; else n.classList.add('hidden');
+      list.appendChild(n);
+    });
+    if(shown === 0){
+      list.appendChild(el('div', 'empty', ids.length ? 'Nothing matches the filter' : 'Drop a card here'));
+    }
+    const count = document.getElementById('count-' + col.id);
+    count.textContent = filtering() ? shown + '/' + ids.length : ids.length;
+    const over = col.wip && ids.length > col.wip;
+    count.classList.toggle('over', !!over);
+    count.title = col.wip ? 'WIP limit ' + col.wip : ids.length + ' cards';
+    const wipEl = document.getElementById('wip-' + col.id);
+    wipEl.innerHTML = over ? `<strong>Over WIP limit</strong> — ${ids.length} of ${col.wip}` : '';
+  });
+}
+
+/* ============== composer ============== */
+function openComposer(colId){
+  const col = board.querySelector(`.col[data-col="${colId}"]`);
+  col.querySelector('.add').style.display = 'none';
+  const comp = col.querySelector('.composer');
+  comp.classList.add('on');
+  comp.querySelector('textarea').focus();
+}
+function closeComposer(colId){
+  const col = board.querySelector(`.col[data-col="${colId}"]`);
+  const comp = col.querySelector('.composer');
+  comp.classList.remove('on');
+  comp.querySelector('textarea').value = '';
+  col.querySelector('.add').style.display = '';
+}
+function commitComposer(colId, keepOpen){
+  const col = board.querySelector(`.col[data-col="${colId}"]`);
+  const ta = col.querySelector('.composer textarea');
+  const title = ta.value.trim();
+  if(!title){ closeComposer(colId); return; }
+  const id = uid();
+  state.cards[id] = {id, title, notes:'', tag:null, who:null, due:null, checks:[], created:Date.now()};
+  state.columns[colId].push(id);
+  save(); render();
+  ta.value = '';
+  if(keepOpen) ta.focus(); else closeComposer(colId);
+  say('Added to ' + COLUMNS.find(c => c.id === colId).name);
+}
+
+/* ============== move ============== */
+function moveCard(id, toCol, index){
+  for(const c of COLUMNS){
+    const i = state.columns[c.id].indexOf(id);
+    if(i > -1) state.columns[c.id].splice(i, 1);
+  }
+  const arr = state.columns[toCol];
+  index = index == null ? arr.length : Math.max(0, Math.min(index, arr.length));
+  arr.splice(index, 0, id);
+  save();
+}
+
+/* ============== pointer drag ============== */
+let drag = null, suppressClick = false;
+
+function beginDrag(e, id, node){
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(e.target.closest('input,textarea,select,a')) return;
+  if(e.pointerType !== 'mouse' && !e.target.closest('.grip')) return; // touch: drag from grip only
+  const r = node.getBoundingClientRect();
+  drag = {
+    id, node, pid:e.pointerId, active:false,
+    sx:e.clientX, sy:e.clientY, ox:e.clientX - r.left, oy:e.clientY - r.top,
+    w:r.width, h:r.height, last:{x:e.clientX, y:e.clientY}, lastCol:null
+  };
+  try{ node.setPointerCapture(e.pointerId); }catch(err){}
+  window.addEventListener('pointermove', onMove, {passive:false});
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+function activate(){
+  const d = drag;
+  d.active = true;
+  suppressClick = true;
+  document.body.classList.add('dragging');
+  d.fly = d.node.cloneNode(true);
+  d.fly.classList.add('flying');
+  d.fly.style.width = d.w + 'px';
+  d.fly.style.left = (d.last.x - d.ox) + 'px';
+  d.fly.style.top = (d.last.y - d.oy) + 'px';
+  document.body.appendChild(d.fly);
+  d.ph = el('div', 'placeholder');
+  d.ph.style.height = d.h + 'px';
+  d.node.parentElement.insertBefore(d.ph, d.node);
+  d.node.classList.add('ghosting');
+  d.node.style.display = 'none';
+  requestAnimationFrame(edgeScroll);
+}
+
+function onMove(e){
+  if(!drag) return;
+  const x = e.clientX, y = e.clientY;
+  drag.last = {x, y};
+  if(!drag.active){
+    if(Math.hypot(x - drag.sx, y - drag.sy) < 6) return;
+    activate();
+  }
+  e.preventDefault();
+  drag.fly.style.left = (x - drag.ox) + 'px';
+  drag.fly.style.top = (y - drag.oy) + 'px';
+  placeAt(x, y);
+}
+
+function placeAt(x, y){
+  const under = document.elementFromPoint(x, y);
+  const col = under && under.closest ? under.closest('.col') : null;
+  const target = col || drag.lastCol;
+  if(!target) return;
+  if(drag.lastCol !== target){
+    board.querySelectorAll('.col.over').forEach(c => c.classList.remove('over'));
+    target.classList.add('over');
+    drag.lastCol = target;
+  }
+  const list = target.querySelector('.list');
+  const kids = [...list.children].filter(k => k !== drag.ph && k !== drag.node && !k.classList.contains('hidden'));
+  let before = null;
+  for(const k of kids){
+    const r = k.getBoundingClientRect();
+    if(y < r.top + r.height / 2){ before = k; break; }
+  }
+  if(before) list.insertBefore(drag.ph, before); else list.appendChild(drag.ph);
+}
+
+function edgeScroll(){
+  if(!drag || !drag.active) return;
+  const {x, y} = drag.last, E = 72;
+  const br = board.getBoundingClientRect();
+  if(board.scrollWidth > board.clientWidth){
+    if(x < br.left + E) board.scrollLeft -= 16;
+    else if(x > br.right - E) board.scrollLeft += 16;
+  }
+  const list = drag.ph && drag.ph.parentElement;
+  if(list && list.scrollHeight > list.clientHeight){
+    const lr = list.getBoundingClientRect();
+    if(y < lr.top + 46) list.scrollTop -= 14;
+    else if(y > lr.bottom - 46) list.scrollTop += 14;
+  }
+  requestAnimationFrame(edgeScroll);
+}
+
+function onUp(){
+  window.removeEventListener('pointermove', onMove);
+  window.removeEventListener('pointerup', onUp);
+  window.removeEventListener('pointercancel', onUp);
+  if(!drag) return;
+  const d = drag;
+  if(d.active){
+    const list = d.ph.parentElement;
+    const toCol = list.parentElement.dataset.col;
+    const order = [...list.children]
+      .map(k => k === d.ph ? '__PH__' : (k === d.node ? null : k.dataset.cardId))
+      .filter(Boolean);
+    const index = order.indexOf('__PH__');
+    d.ph.remove();
+    d.fly.remove();
+    d.node.style.display = '';
+    d.node.classList.remove('ghosting');
+    document.body.classList.remove('dragging');
+    board.querySelectorAll('.col.over').forEach(c => c.classList.remove('over'));
+    moveCard(d.id, toCol, index);
+    render();
+    say((state.cards[d.id].title || 'Card') + ' → ' + COLUMNS.find(c => c.id === toCol).name);
+    setTimeout(() => { suppressClick = false; }, 0);
+  }
+  drag = null;
+}
+
+/* ============== keyboard on cards ============== */
+function cardKeys(e, id, node){
+  const ci = COLUMNS.findIndex(c => c.id === colOf(id).id);
+  const list = state.columns[COLUMNS[ci].id];
+  const idx = list.indexOf(id);
+  const focusCard = cid => {
+    const n = document.querySelector(`.card[data-card-id="${cid}"]`);
+    if(n){ n.focus(); n.scrollIntoView({block:'nearest', inline:'nearest'}); }
+  };
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openSheet(id); return; }
+  if(e.key === 'Backspace' || e.key === 'Delete'){ e.preventDefault(); removeCard(id); return; }
+
+  const horiz = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+  const vert  = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+  if(!horiz && !vert) return;
+  e.preventDefault();
+
+  if(e.shiftKey){ // move the card
+    if(horiz){
+      const t = COLUMNS[Math.max(0, Math.min(COLUMNS.length - 1, ci + horiz))];
+      if(t.id === COLUMNS[ci].id) return;
+      moveCard(id, t.id, Math.min(idx, state.columns[t.id].length));
+      render(); focusCard(id);
+      say('Moved to ' + t.name);
+    } else {
+      const to = Math.max(0, Math.min(list.length - 1, idx + vert));
+      if(to === idx) return;
+      moveCard(id, COLUMNS[ci].id, to);
+      render(); focusCard(id);
+      say('Position ' + (to + 1) + ' of ' + list.length);
+    }
+  } else { // move focus
+    if(vert){
+      const vis = state.columns[COLUMNS[ci].id].filter(x => matches(state.cards[x]));
+      const p = vis.indexOf(id);
+      const next = vis[p + vert];
+      if(next) focusCard(next);
+    } else {
+      for(let i = ci + horiz; i >= 0 && i < COLUMNS.length; i += horiz){
+        const vis = state.columns[COLUMNS[i].id].filter(x => matches(state.cards[x]));
+        if(vis.length){ focusCard(vis[Math.min(idx, vis.length - 1)]); break; }
+      }
+    }
+  }
+}
+
+/* ============== detail sheet ============== */
+const sheet = document.getElementById('sheet');
+const F = {
+  where: document.getElementById('f-where'),
+  title: document.getElementById('f-title'),
+  notes: document.getElementById('f-notes'),
+  col:   document.getElementById('f-col'),
+  due:   document.getElementById('f-due'),
+  tags:  document.getElementById('f-tags'),
+  people:document.getElementById('f-people'),
+  checks:document.getElementById('f-checks'),
+  newck: document.getElementById('f-newcheck'),
+  bar:   document.getElementById('f-bar'),
+  prog:  document.getElementById('f-progress'),
+  stamp: document.getElementById('f-stamp'),
+};
+let openId = null;
+
+COLUMNS.forEach(c => { const o = el('option', null, c.name); o.value = c.id; F.col.appendChild(o); });
+
+Object.entries(TAGS).forEach(([k, t]) => {
+  const b = el('button', 'chip', t.label); b.type = 'button'; b.dataset.tag = k;
+  b.setAttribute('aria-pressed','false');
+  b.addEventListener('click', () => {
+    const c = state.cards[openId];
+    c.tag = c.tag === k ? null : k;
+    save(); syncSheet(); render();
+  });
+  F.tags.appendChild(b);
+});
+Object.entries(PEOPLE).forEach(([k, p]) => {
+  const b = el('button', 'chip p'); b.type = 'button'; b.dataset.who = k;
+  b.setAttribute('aria-pressed','false');
+  b.append(avatar(k), el('span', null, p.name.split(' ')[0]));
+  b.addEventListener('click', () => {
+    const c = state.cards[openId];
+    c.who = c.who === k ? null : k;
+    save(); syncSheet(); render();
+  });
+  F.people.appendChild(b);
+});
+
+function openSheet(id){
+  openId = id;
+  syncSheet();
+  if(!sheet.open) sheet.showModal();
+  setTimeout(() => { F.title.focus(); F.title.setSelectionRange(F.title.value.length, F.title.value.length); }, 30);
+}
+function autosize(){ F.title.style.height = 'auto'; F.title.style.height = F.title.scrollHeight + 'px'; }
+
+function syncSheet(){
+  const c = state.cards[openId]; if(!c) return;
+  const col = colOf(openId);
+  F.where.textContent = col.name;
+  F.title.value = c.title; autosize();
+  F.notes.value = c.notes || '';
+  F.col.value = col.id;
+  F.due.value = c.due || '';
+  F.tags.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.tag === c.tag));
+  F.people.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.who === c.who));
+
+  F.checks.textContent = '';
+  (c.checks || []).forEach((k, i) => {
+    const row = el('label', 'check' + (k.d ? ' on' : ''));
+    const box = el('input'); box.type = 'checkbox'; box.checked = !!k.d;
+    box.addEventListener('change', () => { k.d = box.checked; save(); syncSheet(); render(); });
+    const t = el('input', 't'); t.value = k.t;
+    t.addEventListener('input', () => { k.t = t.value; save(); });
+    t.addEventListener('change', () => { save(); render(); });
+    t.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); F.newck.focus(); } });
+    const x = el('button', 'x', '✕'); x.type = 'button'; x.setAttribute('aria-label','Remove item');
+    x.addEventListener('click', e => { e.preventDefault(); c.checks.splice(i, 1); save(); syncSheet(); render(); });
+    row.append(box, t, x);
+    F.checks.appendChild(row);
+  });
+  const total = (c.checks || []).length, done = (c.checks || []).filter(k => k.d).length;
+  F.bar.style.width = total ? (done / total * 100) + '%' : '0%';
+  F.prog.textContent = total ? done + '/' + total : '';
+  const d = new Date(c.created || Date.now());
+  F.stamp.textContent = 'Created ' + d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+
+F.title.addEventListener('input', () => { state.cards[openId].title = F.title.value; autosize(); save(); render(); });
+F.notes.addEventListener('input', () => { state.cards[openId].notes = F.notes.value; save(); render(); });
+F.due.addEventListener('change', () => { state.cards[openId].due = F.due.value || null; save(); render(); });
+F.col.addEventListener('change', () => { moveCard(openId, F.col.value, null); syncSheet(); render(); });
+F.newck.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = F.newck.value.trim(); if(!v) return;
+  const c = state.cards[openId];
+  (c.checks = c.checks || []).push({t:v, d:false});
+  F.newck.value = '';
+  save(); syncSheet(); render();
+  F.newck.focus();
+});
+document.getElementById('f-done').addEventListener('click', () => sheet.close());
+document.getElementById('f-close').addEventListener('click', () => sheet.close());
+document.getElementById('f-del').addEventListener('click', () => { const id = openId; sheet.close(); removeCard(id); });
+sheet.addEventListener('close', () => { openId = null; });
+sheet.addEventListener('click', e => { if(e.target === sheet) sheet.close(); });
+
+/* ============== delete + undo ============== */
+function removeCard(id){
+  const c = state.cards[id]; if(!c) return;
+  const col = colOf(id).id;
+  const index = state.columns[col].indexOf(id);
+  state.columns[col].splice(index, 1);
+  delete state.cards[id];
+  save(); render();
+  toast('Deleted “' + (c.title || 'Untitled').slice(0, 34) + '”', 'Undo', () => {
+    state.cards[id] = c;
+    state.columns[col].splice(Math.min(index, state.columns[col].length), 0, id);
+    save(); render();
+  });
+}
+
+const toastEl = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+const toastAct = document.getElementById('toastAct');
+let toastTimer;
+function toast(msg, actionLabel, fn){
+  toastMsg.textContent = msg;
+  toastAct.hidden = !actionLabel;
+  if(actionLabel){
+    toastAct.textContent = actionLabel;
+    toastAct.onclick = () => { fn(); hideToast(); };
+  }
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 6000);
+  say(msg);
+}
+function hideToast(){ toastEl.classList.remove('on'); }
+
+const live = document.getElementById('live');
+function say(m){ live.textContent = m; }
+
+/* ============== search, theme, global keys ============== */
+const q = document.getElementById('q'), qWrap = document.getElementById('searchWrap');
+q.addEventListener('input', () => {
+  query = q.value.trim().toLowerCase();
+  qWrap.classList.toggle('has-value', !!q.value);
+  render();
+});
+document.getElementById('qClear').addEventListener('click', e => {
+  e.preventDefault(); q.value = ''; query = '';
+  qWrap.classList.remove('has-value'); render(); q.focus();
+});
+
+const themeBtn = document.getElementById('themeBtn');
+const setTheme = t => {
+  document.documentElement.dataset.theme = t;
+  try{ localStorage.setItem(KEY + ':theme', t); }catch(e){}
+  themeBtn.textContent = t === 'dark' ? '◐' : '◑';
+};
+setTheme(localStorage.getItem(KEY + ':theme') ||
+  (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+
+document.getElementById('newBtn').addEventListener('click', () => openComposer(COLUMNS[0].id));
+document.getElementById('resetBtn').addEventListener('click', () => {
+  const backup = JSON.parse(JSON.stringify(state));
+  state = seed(); save(); render();
+  toast('Board reset to the sample sprint', 'Undo', () => { state = backup; save(); render(); });
+});
+
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if(e.key === 'Escape' && !sheet.open && !typing){ hideToast(); return; }
+  if(typing) return;
+  if(e.key === '/'){ e.preventDefault(); q.focus(); q.select(); }
+  else if(e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey){ e.preventDefault(); openComposer(COLUMNS[0].id); }
+});
+
+render();
+})();
+</script>
+</body>
+</html>

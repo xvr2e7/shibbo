@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ed">
+  <meta name="description" content="Tern helps you find slow database queries from your command line.">
+  <title>Tern — Find the queries slowing you down</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f5f4ed;
+      --paper-dark: #eae9df;
+      --ink: #1d2925;
+      --muted: #6b756e;
+      --line: #d9dbd0;
+      --green: #c9ef8c;
+      --green-dark: #a8d95d;
+      --terminal: #1d2925;
+      --mono: "DM Mono", monospace;
+      --sans: "DM Sans", sans-serif;
+      --display: "Manrope", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    ::selection { background: var(--green); color: var(--ink); }
+    .container { width: min(1304px, calc(100% - 80px)); margin: 0 auto; }
+
+    .site-header {
+      height: 88px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+    .brand { display: inline-flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 25px; font-weight: 800; letter-spacing: -1.5px; }
+    .brand svg { width: 34px; height: 30px; }
+    .nav { display: flex; align-items: center; gap: 34px; margin-left: auto; }
+    .nav a { color: #48554d; font-size: 14px; font-weight: 600; transition: color .2s; }
+    .nav a:hover { color: #111b16; }
+    .header-cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+      min-height: 43px; padding: 0 17px; border: 1px solid var(--ink); border-radius: 5px;
+      font-size: 13px; font-weight: 700; transition: background .2s, color .2s;
+    }
+    .header-cta:hover { background: var(--ink); color: white; }
+    .arrow { font-size: 17px; line-height: 1; }
+
+    .hero { padding: 94px 0 86px; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: 7%; align-items: center; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 9px;
+      font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .11em; color: #59665d;
+    }
+    .eyebrow-dot { width: 8px; height: 8px; border-radius: 50%; background: #8fc653; box-shadow: 0 0 0 4px #e4edda; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin: 28px 0 23px;
+      font-family: var(--display); font-size: clamp(50px, 5.1vw, 76px); line-height: 1.04;
+      letter-spacing: -.065em; font-weight: 700;
+    }
+    h1 .accent { position: relative; white-space: nowrap; }
+    h1 .accent::after {
+      content: ""; position: absolute; left: 0; right: 0; height: 9px; bottom: 2px;
+      background: var(--green); z-index: -1; transform: rotate(-1deg);
+    }
+    .hero-copy { position: relative; z-index: 1; }
+    .hero-description { max-width: 455px; margin-bottom: 32px; color: #667169; font-size: 17px; line-height: 1.75; }
+    .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; }
+    .button-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 32px;
+      min-height: 56px; padding: 0 21px; background: var(--ink); color: white;
+      border: 1px solid var(--ink); border-radius: 5px; font-size: 14px; font-weight: 700;
+      transition: transform .2s, background .2s;
+    }
+    .button-primary:hover { transform: translateY(-2px); background: #34483c; }
+    .text-link { font-size: 14px; font-weight: 700; border-bottom: 1px solid #9ba59c; padding: 5px 0; }
+    .text-link:hover { border-color: var(--ink); }
+    .hero-note { margin: 23px 0 0; font-family: var(--mono); font-size: 11px; color: #899188; }
+    .hero-note span { color: #648443; margin-right: 6px; }
+
+    .terminal-wrap { position: relative; padding: 22px 0 22px 22px; }
+    .terminal-wrap::before {
+      content: ""; position: absolute; inset: 0 -70px 0 0; background: #e4e9db;
+      border-radius: 8px 0 0 8px;
+    }
+    .terminal {
+      position: relative; z-index: 1; overflow: hidden; background: var(--terminal);
+      border: 1px solid #34433a; border-radius: 8px; color: #dce6dc;
+      box-shadow: 0 24px 55px rgba(30, 45, 33, .16);
+      font-family: var(--mono); font-size: 12px;
+    }
+    .terminal-top {
+      display: flex; align-items: center; justify-content: space-between; min-height: 48px;
+      padding: 0 20px; border-bottom: 1px solid #39473e; color: #839087; font-size: 11px;
+    }
+    .dots { display: flex; gap: 6px; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; background: #5c6b60; }
+    .dots i:first-child { background: #b8d98c; }
+    .terminal-body { padding: 26px 26px 24px; }
+    .command-line { color: #f0f5eb; margin-bottom: 25px; }
+    .prompt { color: #b9e683; margin-right: 9px; }
+    .terminal-muted { color: #849489; }
+    .terminal-rule { height: 1px; background: #3a493f; margin: 17px 0; }
+    .terminal-heading { display: flex; justify-content: space-between; gap: 15px; align-items: center; margin-bottom: 17px; }
+    .terminal-heading strong { font-weight: 500; color: #edf3e9; }
+    .live { color: #bfe991; font-size: 10px; }
+    .live::before { content: "●"; margin-right: 6px; font-size: 8px; }
+    .query-row { display: grid; grid-template-columns: 26px 1fr auto; gap: 9px; align-items: start; padding: 13px 0; border-top: 1px solid #35443a; }
+    .query-index { color: #75877a; padding-top: 2px; }
+    .query-name { color: #e0e9dd; line-height: 1.5; }
+    .query-sub { margin-top: 5px; color: #829186; font-size: 10px; }
+    .query-time { color: #e8c68e; white-space: nowrap; }
+    .query-time.good { color: #b9dc91; }
+    .terminal-bottom { display: flex; justify-content: space-between; gap: 10px; color: #819186; font-size: 10px; }
+    .terminal-bottom span:last-child { color: #b9dc91; }
+
+    .trust-strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .trust-inner { min-height: 99px; display: flex; align-items: center; justify-content: space-between; gap: 25px; }
+    .trust-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #89928a; }
+    .trust-items { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(25px, 5vw, 75px); color: #6f7d71; font-size: 14px; font-weight: 700; }
+    .trust-items span { display: inline-flex; gap: 9px; align-items: center; }
+    .trust-icon { width: 19px; height: 19px; color: #7e8b7d; }
+
+    .section { padding: 112px 0; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 48px; }
+    .section-tag { margin-bottom: 20px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #71806f; }
+    .section-tag span { color: #96c967; margin-right: 8px; }
+    .section-title { max-width: 650px; margin-bottom: 0; font-family: var(--display); font-size: clamp(34px, 3.6vw, 50px); line-height: 1.12; letter-spacing: -.055em; font-weight: 700; }
+    .section-intro { max-width: 310px; margin-bottom: 3px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .feature { padding: 34px 34px 35px 0; min-height: 225px; }
+    .feature + .feature { border-left: 1px solid var(--line); padding-left: 34px; }
+    .feature-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 30px; border: 1px solid #cbd4c4; border-radius: 5px; background: #e8ecdf; }
+    .feature-icon svg { width: 21px; height: 21px; }
+    .feature h3 { margin-bottom: 10px; font-family: var(--display); font-size: 17px; letter-spacing: -.03em; }
+    .feature p { max-width: 310px; margin-bottom: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+    .how-section { padding: 0 0 112px; }
+    .how-card { display: grid; grid-template-columns: 1fr 1fr; background: #e8ebdf; border: 1px solid #dfe3d5; border-radius: 8px; overflow: hidden; }
+    .how-copy { padding: 66px; }
+    .how-copy .section-title { max-width: 440px; }
+    .how-copy > p { max-width: 420px; margin: 20px 0 30px; color: #667268; font-size: 15px; line-height: 1.75; }
+    .steps { border-top: 1px solid #cdd5c6; }
+    .step { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid #cdd5c6; font-size: 14px; font-weight: 600; }
+    .step span { font-family: var(--mono); font-size: 11px; color: #8a9987; }
+    .install-panel { display: flex; flex-direction: column; justify-content: center; padding: 55px; background: #dce4d2; }
+    .install-window { overflow: hidden; border: 1px solid #405046; border-radius: 6px; background: var(--terminal); box-shadow: 0 18px 35px rgba(39, 55, 40, .12); }
+    .install-window .terminal-top { padding: 0 18px; }
+    .install-body { padding: 25px 20px; color: #e7eee4; font-family: var(--mono); font-size: 12px; }
+    .install-body p { color: #91a194; font-size: 11px; margin-bottom: 18px; }
+    .install-command { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .install-command code { overflow-wrap: anywhere; font: inherit; line-height: 1.7; }
+    .copy-button { flex: 0 0 auto; border: 1px solid #526359; border-radius: 4px; background: transparent; color: #becbc0; padding: 6px 9px; cursor: pointer; font-family: var(--mono); font-size: 10px; }
+    .copy-button:hover { color: white; border-color: #a2b5a4; }
+    .install-foot { margin: 16px 0 0; color: #718171; font-family: var(--mono); font-size: 10px; text-align: center; }
+
+    .final-cta { background: var(--ink); color: #f5f7ef; }
+    .final-inner { display: flex; justify-content: space-between; align-items: center; gap: 35px; padding: 72px 0; }
+    .final-inner .section-tag { color: #a2b2a3; }
+    .final-inner h2 { margin: 0; font-family: var(--display); font-size: clamp(32px, 3.5vw, 48px); letter-spacing: -.055em; line-height: 1.15; }
+    .button-light { display: inline-flex; justify-content: center; align-items: center; gap: 35px; min-height: 56px; padding: 0 21px; background: var(--green); color: var(--ink); border-radius: 5px; font-size: 14px; font-weight: 700; white-space: nowrap; transition: background .2s; }
+    .button-light:hover { background: #dcf8b0; }
+
+    footer { padding: 32px 0; background: #17221d; color: #a7b4a7; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    footer .brand { color: #e3ebe0; font-size: 21px; }
+    footer .brand svg { width: 28px; }
+    .footer-copy { font-size: 12px; }
+    .footer-links { display: flex; gap: 24px; font-size: 12px; }
+    .footer-links a:hover { color: white; }
+
+    @media (max-width: 900px) {
+      .container { width: min(100% - 48px, 1304px); }
+      .hero { padding: 72px 0; }
+      .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+      .hero-description { max-width: 560px; }
+      .terminal-wrap { max-width: 680px; padding-left: 18px; }
+      .terminal-wrap::before { right: -24px; }
+      .trust-inner { align-items: flex-start; flex-direction: column; justify-content: center; padding: 25px 0; gap: 20px; }
+      .section { padding: 80px 0; }
+      .how-section { padding-bottom: 80px; }
+      .how-copy, .install-panel { padding: 40px; }
+    }
+    @media (max-width: 620px) {
+      .container { width: calc(100% - 36px); }
+      .site-header { height: 72px; }
+      .nav { display: none; }
+      .header-cta { min-height: 40px; }
+      .hero { padding: 62px 0; }
+      h1 { font-size: clamp(45px, 12vw, 62px); }
+      .hero-description { font-size: 16px; }
+      .terminal-wrap { padding: 13px 0 13px 13px; }
+      .terminal-body { padding: 22px 16px; font-size: 10px; }
+      .query-row { grid-template-columns: 20px 1fr auto; gap: 5px; }
+      .query-sub { font-size: 9px; }
+      .trust-items { gap: 18px 28px; font-size: 12px; }
+      .section-head { display: block; }
+      .section-intro { margin-top: 18px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .feature { min-height: auto; padding: 27px 0; }
+      .feature + .feature { border-left: 0; border-top: 1px solid var(--line); padding: 27px 0; }
+      .feature-icon { margin-bottom: 20px; }
+      .how-card { grid-template-columns: 1fr; }
+      .how-copy, .install-panel { padding: 32px 25px; }
+      .final-inner { align-items: flex-start; flex-direction: column; padding: 58px 0; }
+      .footer-inner { flex-wrap: wrap; }
+      .footer-copy { width: 100%; order: 3; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#" aria-label="Tern home">
+        <svg viewBox="0 0 40 34" fill="none" aria-hidden="true"><path d="M2 6.5 18.8 15 37.5 3 26.8 20.7 18.8 18 11 25.5 13.5 17 2 6.5Z" fill="currentColor"/><path d="M19 18.5 25.5 31 26.8 20.7" fill="#8dbf65"/></svg>
+        tern<span style="color:#8dbf65">.</span>
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#features">Why Tern</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#get-started">Get started</a>
+      </nav>
+      <a class="header-cta" href="#get-started">Get started <span class="arrow">↗</span></a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> A little clarity for your database</div>
+          <h1>Find the queries<br>slowing you <span class="accent">down.</span></h1>
+          <p class="hero-description">Your database has a story to tell. Tern brings the slow parts to the surface, right from your command line.</p>
+          <div class="hero-actions">
+            <a class="button-primary" href="#get-started">Get started with Tern <span class="arrow">↗</span></a>
+            <a class="text-link" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
+          </div>
+          <p class="hero-note"><span>✳</span> Less digging. More shipping.</p>
+        </div>
+
+        <div class="terminal-wrap" aria-label="Example of Tern showing slow database queries">
+          <div class="terminal">
+            <div class="terminal-top">
+              <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span>tern — query insights</span>
+              <span>⌘</span>
+            </div>
+            <div class="terminal-body">
+              <div class="command-line"><span class="prompt">➜</span> tern inspect</div>
+              <div class="terminal-muted">Scanning your database for slow queries...</div>
+              <div class="terminal-rule"></div>
+              <div class="terminal-heading"><strong>Slowest queries</strong><span class="live">analysis complete</span></div>
+              <div class="query-row">
+                <div class="query-index">01</div>
+                <div><div class="query-name">SELECT * FROM orders</div><div class="query-sub">orders · 1,284 calls</div></div>
+                <div class="query-time">842 ms</div>
+              </div>
+              <div class="query-row">
+                <div class="query-index">02</div>
+                <div><div class="query-name">SELECT * FROM customers</div><div class="query-sub">customers · 906 calls</div></div>
+                <div class="query-time">516 ms</div>
+              </div>
+              <div class="query-row">
+                <div class="query-index">03</div>
+                <div><div class="query-name">SELECT * FROM products</div><div class="query-sub">products · 342 calls</div></div>
+                <div class="query-time good">124 ms</div>
+              </div>
+              <div class="terminal-rule"></div>
+              <div class="terminal-bottom"><span>3 queries found</span><span>Ready for a closer look ↗</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-strip">
+      <div class="container trust-inner">
+        <div class="trust-label">Made for the way you work</div>
+        <div class="trust-items">
+          <span><svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M12 15h5"/></svg>Command-line native</span>
+          <span><svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Database insights</span>
+          <span><svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7V2Z"/></svg>Built for speed</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-tag"><span>✳</span> A clearer view</div>
+            <h2 class="section-title">Less guessing.<br>More getting to the point.</h2>
+          </div>
+          <p class="section-intro">Performance problems are hard enough. Finding them shouldn't be.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5M8 10.5h5M10.5 8v5"/></svg></div>
+            <h3>Find the bottlenecks</h3>
+            <p>Bring your slowest queries into focus so you know exactly where to start.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15V9M20 15V4"/></svg></div>
+            <h3>See what matters</h3>
+            <p>Get a useful view of query performance without sifting through the noise.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M12 15h5"/></svg></div>
+            <h3>Stay in your flow</h3>
+            <p>No dashboard hopping. Get the answers you need from the terminal you already use.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-section" id="how-it-works">
+      <div class="container">
+        <div class="how-card">
+          <div class="how-copy">
+            <div class="section-tag"><span>✳</span> Simple by design</div>
+            <h2 class="section-title">From “why is this slow?” to “there it is.”</h2>
+            <p>Tern makes it easy to take a closer look at your database and find the queries worth your attention.</p>
+            <div class="steps">
+              <div class="step"><span>01</span> Install Tern</div>
+              <div class="step"><span>02</span> Connect your database</div>
+              <div class="step"><span>03</span> Find the slow stuff</div>
+            </div>
+          </div>
+          <div class="install-panel" id="get-started">
+            <div class="install-window">
+              <div class="terminal-top">
+                <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+                <span>your terminal</span>
+                <span>⌘</span>
+              </div>
+              <div class="install-body">
+                <p># A better view is just a command away</p>
+                <div class="install-command">
+                  <code><span class="prompt">$</span> tern inspect</code>
+                  <button class="copy-button" type="button" data-copy="tern inspect" aria-label="Copy tern inspect command">copy</button>
+                </div>
+              </div>
+            </div>
+            <p class="install-foot">Your next great fix starts here. ↗</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <div class="container final-inner">
+        <div>
+          <div class="section-tag"><span>✳</span> Ready when you are</div>
+          <h2>Goodbye, slow queries.<br>Hello, momentum.</h2>
+        </div>
+        <a class="button-light" href="#get-started">Get started with Tern <span class="arrow">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a class="brand" href="#" aria-label="Tern home">
+        <svg viewBox="0 0 40 34" fill="none" aria-hidden="true"><path d="M2 6.5 18.8 15 37.5 3 26.8 20.7 18.8 18 11 25.5 13.5 17 2 6.5Z" fill="currentColor"/><path d="M19 18.5 25.5 31 26.8 20.7" fill="#a8d95d"/></svg>
+        tern<span style="color:#a8d95d">.</span>
+      </a>
+      <div class="footer-copy">A little more speed. A lot more flow.</div>
+      <div class="footer-links"><a href="#features">Why Tern</a><a href="#how-it-works">How it works</a><a href="#get-started">Get started</a></div>
+    </div>
+  </footer>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(function (button) {
+      button.addEventListener('click', async function () {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          button.textContent = 'copied!';
+          setTimeout(function () { button.textContent = 'copy'; }, 2000);
+        } catch (error) {
+          button.textContent = 'select text';
+          setTimeout(function () { button.textContent = 'copy'; }, 2000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally Hall — Bookkeeping that keeps up with freelancers</title>
+<meta name="description" content="Tally Hall pulls your invoices, receipts, and payouts into one live ledger and sets aside your taxes automatically. Built for freelancers, launched last week.">
+<meta name="theme-color" content="#F5F0E4">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231B1712'/%3E%3Cg stroke='%23F5F0E4' stroke-width='5.5' stroke-linecap='round'%3E%3Cline x1='20' y1='17' x2='20' y2='47'/%3E%3Cline x1='28' y1='17' x2='28' y2='47'/%3E%3Cline x1='36' y1='17' x2='36' y2='47'/%3E%3Cline x1='44' y1='17' x2='44' y2='47'/%3E%3Cline x1='12' y1='52' x2='52' y2='12'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F0E4; --paper-2:#F0E9D7; --card:#FBF8F0;
+    --ink:#1B1712; --ink-2:#5C5442;
+    --line:#DCD2BA; --line-2:#C8BCA0;
+    --green:#1E5B3C; --green-deep:#143D29; --green-soft:rgba(30,91,60,.09);
+    --stamp:#D8491D;
+    --cream:#F5F0E4;
+    --fd:'Fraunces',Georgia,serif;
+    --fb:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+    --fm:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:92px}
+  html,body{overflow-x:clip}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--fb); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  ::selection{background:var(--stamp);color:var(--cream)}
+  :focus-visible{outline:2px solid var(--stamp);outline-offset:3px;border-radius:6px}
+  .grain{
+    position:fixed;inset:0;z-index:200;pointer-events:none;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size:240px 240px;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+  button{font-family:inherit}
+  svg{display:block}
+
+  /* ---------- reveal ---------- */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- header ---------- */
+  .site-header{position:fixed;top:0;left:0;right:0;z-index:80;border-bottom:1px solid transparent;transition:background .25s,border-color .25s,backdrop-filter .25s}
+  .site-header.scrolled{background:rgba(245,240,228,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom-color:var(--line)}
+  .header-in{display:flex;align-items:center;justify-content:space-between;gap:20px;height:68px}
+  .brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+  .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--cream);display:grid;place-items:center;flex:none}
+  .brand-mark svg{width:17px;height:17px}
+  .brand-name{font-family:var(--fd);font-weight:600;font-size:1.22rem;letter-spacing:-.01em}
+  .nav{display:flex;gap:26px}
+  .nav a{color:var(--ink-2);text-decoration:none;font-size:.93rem;font-weight:500;position:relative;transition:color .15s}
+  .nav a::after{content:"";position:absolute;left:0;bottom:-4px;height:1.5px;width:0;background:var(--stamp);transition:width .2s}
+  .nav a:hover{color:var(--ink)}
+  .nav a:hover::after{width:100%}
+  .header-cta{display:flex;align-items:center;gap:12px}
+  .burger{display:none;width:40px;height:40px;place-items:center;background:transparent;border:1px solid var(--line-2);border-radius:10px;cursor:pointer;color:var(--ink)}
+  .burger svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
+  .burger .ic-x{display:none}
+  body.nav-open .ic-burger{display:none}
+  body.nav-open .ic-x{display:block}
+  .mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line-2);padding:8px 24px 22px;box-shadow:0 30px 50px -30px rgba(27,23,18,.35)}
+  body.nav-open .mobile-menu{display:block}
+  .mobile-menu a{display:block;padding:13px 2px;font-size:1.02rem;font-weight:500;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .mobile-menu .btn{margin-top:16px;width:100%;justify-content:center}
+
+  /* ---------- buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:.95rem;padding:14px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;text-decoration:none;color:inherit;transition:transform .18s ease,background .2s,border-color .2s,box-shadow .2s}
+  .btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+  .btn-ink{background:var(--ink);color:var(--cream)}
+  .btn-ink:hover{background:var(--green-deep);transform:translateY(-2px);box-shadow:0 12px 24px -14px rgba(20,61,41,.7)}
+  .btn-ink:hover svg{transform:translateX(3px)}
+  .btn-ghost{background:transparent;border-color:var(--line-2);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--ink);background:var(--card);transform:translateY(-2px)}
+  .btn-ghost:hover svg{transform:translateY(3px)}
+  .btn-stamp{background:var(--stamp);border-color:var(--stamp);color:#FFF6EC}
+  .btn-stamp:hover{background:#BE3D15;transform:translateY(-2px);box-shadow:0 12px 26px -12px rgba(216,73,29,.65)}
+  .btn-stamp:hover svg{transform:translateX(3px)}
+  .btn-sm{padding:10px 18px;font-size:.88rem;border-radius:10px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:150px 0 90px;position:relative;overflow:clip}
+  .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:60px;align-items:center}
+  .badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--fm);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);background:var(--card);border-radius:999px;padding:8px 14px}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;color:var(--green);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 currentColor}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .hero-h1{font-family:var(--fd);font-weight:600;font-size:clamp(2.7rem,5.4vw,4.5rem);line-height:1.03;letter-spacing:-.025em;margin:22px 0 20px;max-width:15ch}
+  .uline{position:relative;white-space:nowrap}
+  .uline em{font-style:italic;color:var(--green)}
+  .uline svg{position:absolute;left:-3%;bottom:-.1em;width:106%;height:.3em;overflow:visible}
+  .uline path{fill:none;stroke:var(--stamp);stroke-width:5;stroke-linecap:round;stroke-dasharray:200;stroke-dashoffset:200;transition:stroke-dashoffset 1s ease .55s}
+  .reveal.in .uline path{stroke-dashoffset:0}
+  .lede{color:var(--ink-2);font-size:1.08rem;line-height:1.66;max-width:34rem}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
+  .micro{font-family:var(--fm);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-top:24px}
+  .micro.light{color:rgba(245,240,228,.42)}
+
+  /* ---------- demo card ---------- */
+  .hero-demo{position:relative;justify-self:end;width:100%;max-width:520px}
+  .hero-tally{position:absolute;top:-46px;right:-64px;width:330px;color:var(--ink);opacity:.06;transform:rotate(8deg);pointer-events:none}
+  .card{position:relative;background:var(--card);border:1px solid var(--line-2);border-radius:18px;padding:20px 22px 16px;box-shadow:0 2px 0 rgba(27,23,18,.05),0 30px 60px -30px rgba(27,23,18,.35);transform:rotate(-1.4deg);transition:transform .5s cubic-bezier(.2,1,.3,1)}
+  .hero-demo:hover .card{transform:rotate(0)}
+  .card::before{content:"";position:absolute;top:0;bottom:0;left:12px;width:1px;background:rgba(216,73,29,.3)}
+  .card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .card-title{font-family:var(--fm);font-size:.62rem;letter-spacing:.16em;color:var(--ink-2)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--fm);font-size:.58rem;letter-spacing:.12em;border:1px solid var(--line-2);border-radius:999px;padding:5px 10px;color:var(--ink-2);white-space:nowrap;transition:.25s}
+  .chip.done{color:var(--green);border-color:var(--green)}
+  .safe{padding:12px 0 2px}
+  .lbl{display:block;font-family:var(--fm);font-size:.56rem;letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
+  .safe-n{display:block;font-family:var(--fm);font-weight:600;font-size:clamp(1.9rem,3.4vw,2.5rem);letter-spacing:-.03em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+  .safe-sub{font-family:var(--fm);font-size:.62rem;letter-spacing:.06em;color:var(--ink-2);text-transform:uppercase}
+  .safe-sub b{color:var(--ink);font-weight:600}
+  .hint{font-family:var(--fm);font-size:.55rem;letter-spacing:.16em;color:var(--stamp);margin:12px 0 6px;text-transform:uppercase}
+  .txns{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0 53px,var(--line) 53px 54px)}
+  .txn{display:grid;grid-template-columns:20px minmax(0,1fr) auto auto;gap:12px;align-items:center;height:54px;padding:0 8px 0 12px;cursor:pointer;transition:background .15s;user-select:none;-webkit-user-select:none}
+  .txn:not(.filed):hover{background:rgba(27,23,18,.045)}
+  .txn:focus-visible{outline:2px solid var(--stamp);outline-offset:-2px}
+  .txn.filed{background:var(--green-soft);cursor:default}
+  .txn-box{width:17px;height:17px;border:1.5px solid var(--line-2);border-radius:5px;display:grid;place-items:center;transition:.2s}
+  .txn-box svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16;stroke-dashoffset:16}
+  .txn.filed .txn-box{background:var(--green);border-color:var(--green)}
+  .txn.filed .txn-box svg{stroke-dashoffset:0;transition:stroke-dashoffset .3s ease .1s}
+  .txn-main{min-width:0;display:flex;flex-direction:column;gap:1px}
+  .t-name{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t-note{font-family:var(--fm);font-size:.57rem;letter-spacing:.03em;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-family:var(--fm);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;border:1px dashed var(--line-2);color:var(--ink-2);border-radius:999px;padding:4px 9px;white-space:nowrap;transition:.25s}
+  .txn.filed .tag{border:1px solid var(--green);color:var(--green);background:rgba(30,91,60,.08)}
+  .txn.filed .tag.inc{background:var(--green);color:var(--cream)}
+  .amt{font-family:var(--fm);font-weight:600;font-size:.9rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .amt.pos{color:var(--green)}
+  .card-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-top:14px;padding:0 2px 2px}
+  .tally{width:96px;height:46px;color:var(--green);display:block;margin-top:6px}
+  .tally line{stroke:currentColor;stroke-width:4;stroke-linecap:round}
+  .pot-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+  .pot-amt{font-family:var(--fm);font-weight:600;font-size:1.25rem;color:var(--green);font-variant-numeric:tabular-nums}
+  .replay{display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-bottom:1px solid currentColor;padding:0 0 2px;font-family:var(--fm);font-size:.55rem;letter-spacing:.14em;color:var(--ink-2);cursor:pointer;text-transform:uppercase}
+  .replay:hover{color:var(--stamp)}
+  .replay svg{width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .stamp{position:absolute;top:96px;right:22px;z-index:3;font-family:var(--fm);font-weight:600;font-size:1.05rem;letter-spacing:.18em;color:var(--stamp);border:3px solid var(--stamp);border-radius:8px;padding:9px 14px 7px;text-align:center;transform:rotate(-9deg) scale(2.2);opacity:0;pointer-events:none;mix-blend-mode:multiply}
+  .stamp small{display:block;font-size:.5rem;letter-spacing:.3em;margin-top:3px;font-weight:500}
+  .card.done .stamp{opacity:.9;transform:rotate(-9deg) scale(1);transition:transform .38s cubic-bezier(.25,1.6,.4,1),opacity .18s ease}
+  .card.done{animation:thud .45s ease}
+  @keyframes thud{0%,100%{transform:rotate(-1.4deg)}35%{transform:rotate(-1.4deg) translateY(4px)}70%{transform:rotate(-1.4deg) translateY(-1px)}}
+
+  /* ---------- ticker tape ---------- */
+  .tape{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);overflow:hidden;padding:13px 0}
+  .tape-track{display:flex;width:max-content;animation:tape 34s linear infinite}
+  .tape:hover .tape-track{animation-play-state:paused}
+  .tape-half{display:flex;align-items:center;gap:30px;padding-right:30px}
+  .tape-item{font-family:var(--fm);font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+  .tape-sep{width:24px;height:16px;color:var(--line-2);flex:none}
+  @keyframes tape{to{transform:translateX(-50%)}}
+
+  /* ---------- ledger line ---------- */
+  .ledgerline{border-bottom:1px solid var(--line)}
+  .ll-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding:17px 0}
+  .ll-label{font-family:var(--fm);font-size:.62rem;letter-spacing:.2em;color:var(--stamp)}
+  .ll-item{font-size:.92rem;color:var(--ink-2)}
+  .ll-item .count{font-family:var(--fm);font-weight:600;font-size:1rem;color:var(--ink);margin-right:5px;font-variant-numeric:tabular-nums}
+  .ll-item em{color:var(--stamp)}
+  .ll-sep{width:22px;height:15px;color:var(--line-2);flex:none}
+
+  /* ---------- sections ---------- */
+  .sec{padding:110px 0}
+  .sec-alt{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .sec-head{max-width:660px;margin-bottom:30px}
+  .eyebrow{display:flex;align-items:center;gap:12px;font-family:var(--fm);font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--green);font-weight:500}
+  .eyebrow::before{content:"";width:28px;height:1px;background:currentColor;flex:none}
+  .eyebrow.light{color:rgba(245,240,228,.6)}
+  .sec h2,.cta h2{font-family:var(--fd);font-weight:600;font-size:clamp(1.95rem,3.5vw,2.9rem);letter-spacing:-.02em;line-height:1.08;margin:16px 0 14px}
+  .sec .lede{font-size:1.03rem}
+
+  /* ---------- how it works ---------- */
+  .step{display:grid;grid-template-columns:120px 1fr 190px;gap:36px;padding:40px 0;border-top:1px solid var(--line-2);align-items:start}
+  .step:last-child{border-bottom:1px solid var(--line-2)}
+  .step-n{font-family:var(--fd);font-style:italic;font-weight:600;font-size:3.2rem;line-height:1;color:var(--line-2)}
+  @supports ((-webkit-text-stroke:1px black)){.step-n{color:transparent;-webkit-text-stroke:1.3px var(--ink)}}
+  .kicker{font-family:var(--fm);font-size:.58rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase;margin-bottom:10px}
+  .step h3{font-family:var(--fd);font-size:1.55rem;font-weight:600;letter-spacing:-.015em;margin-bottom:10px}
+  .step-body p:not(.kicker){color:var(--ink-2);font-size:.99rem;line-height:1.68;max-width:34rem}
+  .step-viz{justify-self:end;color:var(--ink)}
+  .step-viz svg{width:180px;height:auto}
+
+  /* ---------- features ---------- */
+  .feat-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:72px;align-items:start}
+  .sticky{position:sticky;top:110px}
+  .feat-note{margin-top:24px;font-family:var(--fm);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+  .feat-note a{color:var(--stamp);text-decoration:none;border-bottom:1px solid currentColor}
+  .acc{border-top:1px solid var(--line-2)}
+  .acc-item{border-bottom:1px solid var(--line-2)}
+  .acc-btn{display:flex;align-items:center;gap:18px;width:100%;padding:22px 2px;background:none;border:0;cursor:pointer;text-align:left;color:inherit}
+  .acc-i{font-family:var(--fm);font-size:.72rem;color:var(--ink-2);width:26px;flex:none}
+  .acc-t{font-family:var(--fd);font-size:1.28rem;font-weight:600;letter-spacing:-.01em;flex:1}
+  .acc-x{width:30px;height:30px;flex:none;border:1px solid var(--line-2);border-radius:50%;display:grid;place-items:center;transition:transform .35s ease,background .2s,border-color .2s}
+  .acc-x svg{width:14px;height:14px;stroke:var(--ink);stroke-width:2;fill:none;stroke-linecap:round}
+  .acc-btn:hover .acc-x{border-color:var(--ink)}
+  .acc-item.open .acc-x{transform:rotate(45deg);background:var(--ink);border-color:var(--ink)}
+  .acc-item.open .acc-x svg{stroke:var(--cream)}
+  .acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1)}
+  .acc-item.open .acc-panel{grid-template-rows:1fr}
+  .acc-inner{overflow:hidden;min-height:0}
+  .acc-c{padding:2px 4px 26px 44px}
+  .acc-c p{color:var(--ink-2);font-size:.97rem;line-height:1.68;max-width:32rem}
+  .detail{font-family:var(--fm);font-size:.64rem;letter-spacing:.1em;color:var(--green);margin-top:12px;text-transform:uppercase}
+  .sb{display:flex;height:24px;width:min(250px,100%);border:1px solid var(--line-2);border-radius:7px;overflow:hidden;margin-top:18px}
+  .sb-a{background:var(--green);width:0;transition:width .9s cubic-bezier(.4,0,.2,1) .15s}
+  .acc-item.open .sb-a{width:75%}
+  .sb-b{flex:1;background:repeating-linear-gradient(-45deg,rgba(216,73,29,.18) 0 7px,transparent 7px 14px)}
+  .sb-cap{font-family:var(--fm);font-size:.56rem;letter-spacing:.14em;color:var(--ink-2);margin-top:8px;text-transform:uppercase}
+  .bubble{max-width:310px;background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;margin-top:18px;box-shadow:2px 3px 0 rgba(27,23,18,.06)}
+  .bubble p{font-size:.87rem;line-height:1.5;color:var(--ink)}
+  .bubble-meta{display:block;font-family:var(--fm);font-size:.55rem;letter-spacing:.12em;color:var(--ink-2);margin-top:9px;text-transform:uppercase}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip2{font-family:var(--fm);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;color:var(--ink-2);background:var(--card)}
+
+  /* ---------- pricing ---------- */
+  .price-panel{position:relative;overflow:hidden;background:var(--green-deep);color:var(--cream);border-radius:26px;padding:clamp(34px,5vw,64px);display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,4vw,64px);background-image:repeating-linear-gradient(to bottom,transparent 0 43px,rgba(245,240,228,.05) 43px 44px)}
+  .pp-tally{position:absolute;right:-50px;bottom:-60px;width:340px;color:var(--cream);opacity:.08;transform:rotate(9deg);pointer-events:none}
+  .price-panel h2{color:var(--cream)}
+  .pp-lede{color:rgba(245,240,228,.72);font-size:1.02rem;line-height:1.66;max-width:30rem}
+  .bill-toggle{display:inline-flex;gap:4px;margin-top:26px;padding:4px;border:1px solid rgba(245,240,228,.3);border-radius:999px}
+  .bt-btn{font-family:var(--fm);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px;border-radius:999px;border:0;background:transparent;color:rgba(245,240,228,.65);cursor:pointer;transition:.2s}
+  .bt-btn.active{background:var(--cream);color:var(--green-deep)}
+  .bt-btn .save{opacity:.65;margin-left:5px}
+  .price-row{display:flex;align-items:baseline;gap:12px;margin-top:22px;flex-wrap:wrap}
+  .price{font-family:var(--fm);font-weight:600;font-size:clamp(2.6rem,4vw,3.6rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .per{font-family:var(--fm);font-size:1rem;color:rgba(245,240,228,.65)}
+  .was{font-family:var(--fm);font-size:1.05rem;color:rgba(245,240,228,.45);text-decoration:line-through}
+  .price-note{font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;color:rgba(245,240,228,.55);margin-top:10px;text-transform:uppercase}
+  .price-panel .btn-stamp{margin-top:28px}
+  .pp-right{border-left:1px solid rgba(245,240,228,.18);padding-left:clamp(24px,3vw,44px);align-self:center}
+  .pp-inc{font-family:var(--fm);font-size:.62rem;letter-spacing:.2em;color:rgba(245,240,228,.55);text-transform:uppercase}
+  .inc{list-style:none;margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:13px 22px}
+  .inc li{display:flex;gap:10px;align-items:flex-start;font-size:.93rem;line-height:1.45;color:rgba(245,240,228,.9)}
+  .ck{width:16px;height:16px;flex:none;margin-top:3px;color:#8FD3A8}
+  .ck path{stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .pp-micro{font-family:var(--fm);font-size:.58rem;letter-spacing:.16em;color:rgba(245,240,228,.45);margin-top:26px;text-transform:uppercase}
+
+  /* ---------- faq ---------- */
+  .faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:72px;align-items:start}
+  .faq-grid .lede a{color:var(--stamp)}
+
+  /* ---------- cta ---------- */
+  .cta{background:var(--ink);color:var(--cream);padding:130px 0;position:relative;overflow:hidden}
+  .cta-tally{position:absolute;left:-70px;top:-40px;width:420px;color:var(--cream);opacity:.06;transform:rotate(-8deg);pointer-events:none}
+  .cta .wrap{position:relative}
+  .cta h2{font-size:clamp(2.3rem,4.6vw,3.8rem);max-width:16ch}
+  .cta-lede{color:rgba(245,240,228,.7);font-size:1.06rem;line-height:1.66;max-width:34rem}
+  #ctaForm{display:flex;gap:12px;max-width:540px;margin-top:34px}
+  #email{flex:1;min-width:0;background:rgba(245,240,228,.07);border:1px solid rgba(245,240,228,.28);border-radius:12px;padding:15px 18px;color:var(--cream);font:inherit;font-size:.98rem;outline:none;transition:.2s}
+  #email::placeholder{color:rgba(245,240,228,.38)}
+  #email:focus{border-color:var(--stamp);background:rgba(245,240,228,.1)}
+  #email.shake{animation:shake .4s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+  .form-msg{font-family:var(--fm);font-size:.66rem;letter-spacing:.08em;color:#FFA07E;min-height:18px;margin-top:10px;text-transform:uppercase}
+  .success{display:flex;gap:16px;align-items:flex-start;max-width:540px;margin-top:34px;animation:fadeUp .5s ease}
+  .success:focus{outline:none}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .succ-ck{width:44px;height:44px;flex:none;fill:none;stroke:var(--stamp);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .succ-ck circle{stroke-dasharray:132;stroke-dashoffset:132}
+  .succ-ck path{stroke-dasharray:32;stroke-dashoffset:32}
+  .success.play circle{stroke-dashoffset:0;transition:stroke-dashoffset .6s ease}
+  .success.play path{stroke-dashoffset:0;transition:stroke-dashoffset .4s ease .5s}
+  .success strong{font-family:var(--fd);font-size:1.25rem;font-weight:600}
+  .success p{color:rgba(245,240,228,.7);font-size:.95rem;line-height:1.55;margin-top:4px}
+  .success b{color:var(--cream)}
+  .cta .micro{margin-top:22px}
+
+  /* ---------- footer ---------- */
+  .footer{background:var(--ink);color:var(--cream);border-top:1px solid rgba(245,240,228,.14);padding:70px 0 34px}
+  .foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}
+  .brand.light .brand-mark{background:var(--cream);color:var(--ink)}
+  .brand.light .brand-name{color:var(--cream)}
+  .foot-brand p{color:rgba(245,240,228,.6);font-size:.94rem;line-height:1.6;max-width:22rem;margin-top:14px}
+  .status-pill{display:inline-flex;align-items:center;gap:9px;margin-top:20px;font-family:var(--fm);font-size:.58rem;letter-spacing:.16em;color:rgba(245,240,228,.75);background:transparent;border:1px solid rgba(245,240,228,.25);border-radius:999px;padding:8px 14px;cursor:pointer;transition:.2s;text-transform:uppercase}
+  .status-pill:hover{border-color:rgba(245,240,228,.6)}
+  .status-pill .dot{color:#5BC489}
+  .foot-col h4{font-family:var(--fm);font-weight:500;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(245,240,228,.45);margin-bottom:16px}
+  .foot-col a{display:block;color:rgba(245,240,228,.8);text-decoration:none;font-size:.93rem;padding:5px 0;transition:.15s}
+  .foot-col a:hover{color:var(--cream);text-decoration:underline;text-underline-offset:3px}
+  .foot-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:56px;padding-top:22px;border-top:1px solid rgba(245,240,228,.12);font-family:var(--fm);font-size:.58rem;letter-spacing:.16em;color:rgba(245,240,228,.4);text-transform:uppercase}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;transition:opacity .25s}
+  .modal.show{opacity:1}
+  .modal[hidden]{display:none}
+  .modal-back{position:absolute;inset:0;background:rgba(20,16,10,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  .modal-card{position:relative;background:var(--card);color:var(--ink);width:min(540px,100%);max-height:82vh;overflow:auto;border:1px solid var(--line-2);border-radius:18px;padding:34px 36px 30px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45);transform:translateY(14px) scale(.98);transition:transform .3s cubic-bezier(.2,1,.3,1)}
+  .modal.show .modal-card{transform:none}
+  .modal-card h3{font-family:var(--fd);font-size:1.55rem;font-weight:600;letter-spacing:-.01em;margin-bottom:14px}
+  .modal-body p{font-size:.95rem;line-height:1.7;color:var(--ink-2);margin-bottom:12px}
+  .mono-note{font-family:var(--fm);font-size:.6rem;letter-spacing:.12em;color:var(--green);border-top:1px solid var(--line);padding-top:12px;margin-top:16px;line-height:1.9;text-transform:uppercase}
+  .cl-item{display:flex;gap:14px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line)}
+  .cl-item:last-child{border-bottom:0}
+  .cl-v{font-family:var(--fm);font-weight:600;font-size:.8rem;color:var(--stamp);flex:none}
+  .cl-item p{margin:0;font-size:.92rem;color:var(--ink)}
+  .cl-d{font-family:var(--fm);font-size:.58rem;letter-spacing:.1em;color:var(--ink-2);margin-left:auto;flex:none}
+  .modal-x{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);cursor:pointer;display:grid;place-items:center;transition:transform .25s,border-color .2s}
+  .modal-x:hover{transform:rotate(90deg);border-color:var(--ink)}
+  .modal-x svg{width:15px;height:15px;stroke:var(--ink);stroke-width:2;fill:none;stroke-linecap:round}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1020px){
+    .hero{padding:130px 0 70px}
+    .hero-grid{grid-template-columns:1fr;gap:54px}
+    .hero-demo{justify-self:start;max-width:560px}
+    .hero-tally{right:-30px}
+    .step{grid-template-columns:80px 1fr;gap:22px}
+    .step-viz{grid-column:2;justify-self:start;margin-top:8px}
+    .step-viz svg{width:150px}
+    .feat-grid,.faq-grid{grid-template-columns:1fr;gap:44px}
+    .sticky{position:static}
+    .price-panel{grid-template-columns:1fr}
+    .pp-right{border-left:0;padding-left:0;border-top:1px solid rgba(245,240,228,.18);padding-top:30px}
+  }
+  @media (max-width:860px){
+    .nav{display:none}
+    .burger{display:grid}
+  }
+  @media (max-width:560px){
+    .wrap{padding:0 18px}
+    .hero{padding:118px 0 60px}
+    .hero-h1{font-size:2.55rem}
+    .hero-cta .btn{width:100%}
+    .header-cta .btn{display:none}
+    .sec{padding:80px 0}
+    .cta{padding:96px 0}
+    .card{padding:16px 16px 14px}
+    .t-note{display:none}
+    .txn{grid-template-columns:18px minmax(0,1fr) auto auto;gap:9px;padding-left:8px}
+    .tag{padding:3px 7px;font-size:.52rem}
+    .amt{font-size:.82rem}
+    .stamp{top:auto;bottom:76px;right:14px;font-size:.85rem}
+    .step{grid-template-columns:1fr;gap:10px;padding:32px 0}
+    .step-n{font-size:2.4rem}
+    .step-viz{grid-column:1}
+    #ctaForm{flex-direction:column}
+    .inc{grid-template-columns:1fr}
+    .foot-grid{grid-template-columns:1fr 1fr;gap:30px}
+    .foot-brand{grid-column:1/-1}
+    .foot-bottom{flex-direction:column;gap:6px}
+    .ll-in{gap:8px 14px}
+    .acc-c{padding-left:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    .reveal{opacity:1;transform:none}
+    .tape-track{animation:none}
+    .uline path{stroke-dashoffset:0}
+  }
+</style>
+</head>
+<body id="top">
+<div class="grain" aria-hidden="true"></div>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-in">
+    <a class="brand" href="#top" aria-label="Tally Hall — back to top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 30 30"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="9" y1="7" x2="9" y2="23"/><line x1="13.5" y1="7" x2="13.5" y2="23"/><line x1="18" y1="7" x2="18" y2="23"/><line x1="22.5" y1="7" x2="22.5" y2="23"/><line x1="5.5" y1="24.5" x2="24.5" y2="5.5"/></g></svg>
+      </span>
+      <span class="brand-name">Tally Hall</span>
+    </a>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="header-cta">
+      <button class="btn btn-ink btn-sm" data-cta>Start free</button>
+      <button class="burger" id="burger" aria-label="Toggle menu" aria-expanded="false">
+        <svg class="ic-burger" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="ic-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <button class="btn btn-ink" data-cta>Start free — no card needed</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="badge reveal"><span class="dot" aria-hidden="true"></span>Launched last week · free for 30 days</span>
+        <h1 class="hero-h1 reveal" style="--d:.08s">Know what you <span class="uline"><em>actually</em><svg viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 42 3, 82 13, 137 5"/></svg></span> earn.</h1>
+        <p class="lede reveal" style="--d:.16s">Tally Hall pulls your invoices, receipts, and payouts into one live ledger, sorts every transaction, and sets aside your taxes automatically — so the number on your dashboard is the money you actually keep.</p>
+        <div class="hero-cta reveal" style="--d:.24s">
+          <button class="btn btn-ink" data-cta>Start free — no card needed
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h11M9.5 4l4 4-4 4"/></svg>
+          </button>
+          <a class="btn btn-ghost" href="#how">See it work
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M4 9.5l4 4 4-4"/></svg>
+          </a>
+        </div>
+        <p class="micro reveal" style="--d:.32s">Read-only bank links · Export anytime · Cancel in one click</p>
+      </div>
+
+      <div class="hero-demo reveal" style="--d:.2s">
+        <svg class="hero-tally" viewBox="0 0 220 130" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><line x1="38" y1="18" x2="38" y2="112"/><line x1="82" y1="18" x2="82" y2="112"/><line x1="126" y1="18" x2="126" y2="112"/><line x1="170" y1="18" x2="170" y2="112"/><line x1="16" y1="122" x2="196" y2="8"/></g></svg>
+        <div class="card" id="demoCard">
+          <div class="card-top">
+            <span class="card-title">LEDGER — FEBRUARY 2025</span>
+            <span class="chip" id="reviewChip">5 TO REVIEW</span>
+          </div>
+          <div class="safe">
+            <span class="lbl">Safe to spend</span>
+            <span class="safe-n" id="safeAmt">$4,231.60</span>
+            <span class="safe-sub">Balance $4,231.60 · Tax pot <b id="potSub">$0.00</b></span>
+          </div>
+          <p class="hint">Interactive — tap a row to file it</p>
+          <div class="txns" id="txnList">
+            <div class="txn" role="button" tabindex="0" aria-label="File transaction: Meridian Studio, plus $2,400.00">
+              <span class="txn-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.2 3.2 6.4-7.6"/></svg></span>
+              <span class="txn-main"><span class="t-name">Meridian Studio</span><span class="t-note">Invoice #014 · bank transfer</span></span>
+              <span class="tag">file</span>
+              <span class="amt pos">+$2,400.00</span>
+            </div>
+            <div class="txn" role="button" tabindex="0" aria-label="File transaction: Figma, minus $15.00">
+              <span class="txn-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.2 3.2 6.4-7.6"/></svg></span>
+              <span class="txn-main"><span class="t-name">Figma</span><span class="t-note">Subscription · monthly</span></span>
+              <span class="tag">file</span>
+              <span class="amt neg">−$15.00</span>
+            </div>
+            <div class="txn" role="button" tabindex="0" aria-label="File transaction: Blue Bottle Coffee, minus $6.40">
+              <span class="txn-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.2 3.2 6.4-7.6"/></svg></span>
+              <span class="txn-main"><span class="t-name">Blue Bottle Coffee</span><span class="t-note">Client meeting · receipt attached</span></span>
+              <span class="tag">file</span>
+              <span class="amt neg">−$6.40</span>
+            </div>
+            <div class="txn" role="button" tabindex="0" aria-label="File transaction: Uber, minus $18.20">
+              <span class="txn-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.2 3.2 6.4-7.6"/></svg></span>
+              <span class="txn-main"><span class="t-name">Uber</span><span class="t-note">Airport trip · mileage logged</span></span>
+              <span class="tag">file</span>
+              <span class="amt neg">−$18.20</span>
+            </div>
+            <div class="txn" role="button" tabindex="0" aria-label="File transaction: Stripe payout, plus $860.00">
+              <span class="txn-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.2 3.2 6.4-7.6"/></svg></span>
+              <span class="txn-main"><span class="t-name">Stripe payout</span><span class="t-note">Invoice #013 · via Stripe</span></span>
+              <span class="tag">file</span>
+              <span class="amt pos">+$860.00</span>
+            </div>
+          </div>
+          <div class="card-foot">
+            <div class="pot">
+              <span class="lbl">Tax pot · 25% of income</span>
+              <svg id="tallySvg" class="tally" viewBox="0 0 92 46" aria-hidden="true"></svg>
+            </div>
+            <div class="pot-right">
+              <span class="pot-amt" id="potAmt">$0.00</span>
+              <button class="replay" id="replay" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/></svg>
+                Replay
+              </button>
+            </div>
+          </div>
+          <div class="stamp" aria-hidden="true">BALANCED<small>WK 09 · CLOSED</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TICKER ============ -->
+  <div class="tape" aria-hidden="true">
+    <div class="tape-track" id="tapeTrack"></div>
+  </div>
+
+  <!-- ============ HONEST LEDGER LINE ============ -->
+  <section class="ledgerline" aria-label="Tally Hall so far">
+    <div class="wrap ll-in reveal">
+      <span class="ll-label">THE LEDGER SO FAR —</span>
+      <span class="ll-item"><span class="count" data-to="6">0</span> days since launch</span>
+      <svg class="ll-sep" viewBox="0 0 26 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="2.5" x2="5" y2="15.5"/><line x1="10" y1="2.5" x2="10" y2="15.5"/><line x1="15" y1="2.5" x2="15" y2="15.5"/><line x1="20" y1="2.5" x2="20" y2="15.5"/><line x1="2.5" y1="16" x2="23.5" y2="2"/></g></svg>
+      <span class="ll-item"><span class="count" data-to="0">0</span> customers yet — <em>be the first</em></span>
+      <svg class="ll-sep" viewBox="0 0 26 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="2.5" x2="5" y2="15.5"/><line x1="10" y1="2.5" x2="10" y2="15.5"/><line x1="15" y1="2.5" x2="15" y2="15.5"/><line x1="20" y1="2.5" x2="20" y2="15.5"/><line x1="2.5" y1="16" x2="23.5" y2="2"/></g></svg>
+      <span class="ll-item"><span class="count" data-to="0">0</span> reviews yet</span>
+      <svg class="ll-sep" viewBox="0 0 26 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="2.5" x2="5" y2="15.5"/><line x1="10" y1="2.5" x2="10" y2="15.5"/><line x1="15" y1="2.5" x2="15" y2="15.5"/><line x1="20" y1="2.5" x2="20" y2="15.5"/><line x1="2.5" y1="16" x2="23.5" y2="2"/></g></svg>
+      <span class="ll-item"><span class="count" data-to="99.98" data-dec="2" data-suf="%">0%</span> uptime, and we're watching it</span>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="sec" id="how">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">How it works</p>
+        <h2>Three steps. Then it runs itself.</h2>
+        <p class="lede">Most freelancers are fully set up before their coffee gets cold.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-n" aria-hidden="true">01</div>
+          <div class="step-body">
+            <p class="kicker">Read-only · two minutes</p>
+            <h3>Connect your accounts</h3>
+            <p>Securely link your bank, Stripe, and PayPal in about two minutes. The connection is read-only — Tally Hall can see transactions but can never touch your money — and you can revoke it at any time.</p>
+          </div>
+          <div class="step-viz" aria-hidden="true">
+            <svg viewBox="0 0 170 110"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="36" width="58" height="40" rx="8"/><line x1="6" y1="49" x2="64" y2="49"/><rect x="14" y="58" width="13" height="10" rx="2.5"/><rect x="106" y="28" width="52" height="56" rx="7"/><line x1="115" y1="42" x2="149" y2="42"/><line x1="115" y1="53" x2="149" y2="53"/><line x1="115" y1="64" x2="138" y2="64"/><path d="M64 56 C 82 56, 88 56, 106 56" stroke-dasharray="3 6"/></g><g><rect x="74" y="46" width="22" height="18" rx="4" fill="rgba(30,91,60,.12)" stroke="#1E5B3C" stroke-width="2"/><path d="M79 46 v-5 a6 6 0 0 1 12 0 v5" fill="none" stroke="#1E5B3C" stroke-width="2"/><circle cx="85" cy="55" r="2.4" fill="#1E5B3C"/></g></svg>
+          </div>
+        </div>
+        <div class="step reveal" style="--d:.08s">
+          <div class="step-n" aria-hidden="true">02</div>
+          <div class="step-body">
+            <p class="kicker">Photo · email · browser</p>
+            <h3>File receipts your way</h3>
+            <p>Snap a photo, forward an email to your Tally Hall address, or let the browser extension catch online orders. OCR reads the merchant, date, and total — you just tap to confirm. Every correction teaches it your habits.</p>
+          </div>
+          <div class="step-viz" aria-hidden="true">
+            <svg viewBox="0 0 170 110"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M62 16 h46 v78 l-7.7 -5.5 -7.6 5.5 -7.7 -5.5 -7.7 5.5 -7.6 -5.5 -7.7 5.5 z"/><line x1="71" y1="32" x2="99" y2="32"/><line x1="71" y1="43" x2="99" y2="43"/><line x1="71" y1="54" x2="88" y2="54"/><path d="M46 34 V20 H60"/><path d="M110 20 H124 V34"/><path d="M124 92 V106 H110"/><path d="M60 106 H46 V92"/></g><circle cx="112" cy="88" r="15" fill="#FBF8F0" stroke="#1E5B3C" stroke-width="2.5"/><path d="M105 88 l5 5 l9 -11" fill="none" stroke="#1E5B3C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step reveal" style="--d:.16s">
+          <div class="step-n" aria-hidden="true">03</div>
+          <div class="step-body">
+            <p class="kicker">Always on</p>
+            <h3>Your books close themselves</h3>
+            <p>Invoices, expenses, mileage, and a 25% tax set-aside are sorted the moment money moves. When quarter-end arrives, everything is already organized — one click exports a clean packet for your accountant.</p>
+          </div>
+          <div class="step-viz" aria-hidden="true">
+            <svg viewBox="0 0 170 110"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="42" y="18" width="86" height="76" rx="8"/><line x1="54" y1="18" x2="54" y2="94"/><line x1="64" y1="34" x2="118" y2="34"/><line x1="64" y1="46" x2="118" y2="46"/><line x1="64" y1="58" x2="104" y2="58"/></g><g transform="rotate(-7 98 75)"><rect x="70" y="64" width="56" height="22" rx="5" fill="rgba(216,73,29,.1)" stroke="#D8491D" stroke-width="2"/><path d="M78 75 l6 6 l12 -13" fill="none" stroke="#D8491D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="sec sec-alt" id="features">
+    <div class="wrap feat-grid">
+      <div class="sticky reveal">
+        <p class="eyebrow">What's inside</p>
+        <h2>Everything the freelance mess needs. Nothing it doesn't.</h2>
+        <p class="lede">No chart of accounts to learn, no 40-minute onboarding. Connect, file, and get back to the work you were actually hired for.</p>
+        <p class="feat-note">Ships every Thursday · <a href="#" data-modal="changelog">Changelog</a></p>
+      </div>
+      <div class="acc reveal" data-acc style="--d:.1s">
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">01</span><span class="acc-t">Automatic tax set-aside</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Pick a percentage — we suggest 25–30%. Every payment that lands instantly moves that share into a separate pot you can't accidentally spend. Tax season becomes a transfer, not a heart attack.</p>
+            <div class="sb" role="img" aria-label="75 percent stays yours, 25 percent goes to the tax pot"><span class="sb-a"></span><span class="sb-b"></span></div>
+            <p class="sb-cap">75% yours · 25% tax pot</p>
+            <p class="detail">→ Moves in real time with every payment</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">02</span><span class="acc-t">Invoices with polite nudges</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Send invoices from Tally Hall and get paid faster without being that person. Friendly automatic reminders go out at 3, 7, and 14 days — you set the tone once, and we never sound like a collections agency.</p>
+            <div class="bubble">
+              <p>Hi Ana — gentle nudge that invoice #014 is a few days overdue. No rush at all, just topping your inbox.</p>
+              <span class="bubble-meta">Auto-sent · Tue 9:00 AM · Tone: friendly</span>
+            </div>
+            <p class="detail">→ Real average-payment stats coming here once we have them</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">03</span><span class="acc-t">Receipts from anywhere</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Paper receipt? Snap it. Email confirmation? Forward it to your Tally Hall address. Online order? The browser extension catches it. OCR reads merchant, date, and total — you confirm with one tap, and nothing files itself without you.</p>
+            <div class="chips"><span class="chip2">Photo</span><span class="chip2">Email forward</span><span class="chip2">Browser extension</span></div>
+            <p class="detail">→ You confirm everything — always</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">04</span><span class="acc-t">Deductions found for you</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Software subscriptions, mileage, home office, the coffee with a client — Tally Hall learns your rules and flags anything deductible. Come April, your deduction list is already done.</p>
+            <p class="detail">→ Edit any rule in one click</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">05</span><span class="acc-t">Quarterly tax estimates</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Before each quarterly deadline, Tally Hall looks at your year so far and tells you the exact amount to set aside and where to pay it. No guessing, no April surprises.</p>
+            <p class="detail">→ US federal quarterly deadlines built in</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">06</span><span class="acc-t">Export for your accountant</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>One click produces a clean CSV, a PDF summary, or a read-only link your accountant can browse. Clean books, zero awkward email threads.</p>
+            <p class="detail">→ CSV · PDF · Read-only link</p>
+          </div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section class="sec" id="pricing">
+    <div class="wrap">
+      <div class="price-panel reveal">
+        <svg class="pp-tally" viewBox="0 0 220 130" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><line x1="38" y1="18" x2="38" y2="112"/><line x1="82" y1="18" x2="82" y2="112"/><line x1="126" y1="18" x2="126" y2="112"/><line x1="170" y1="18" x2="170" y2="112"/><line x1="16" y1="122" x2="196" y2="8"/></g></svg>
+        <div class="pp-left">
+          <p class="eyebrow light">Pricing</p>
+          <h2>One plan. One price. No asterisks.</h2>
+          <p class="pp-lede">We launched last week, so instead of three tiers and a sales call, there's a single plan with a launch price — the first 100 freelancers lock in $8/mo for as long as they stay. Everything below is included.</p>
+          <div class="bill-toggle" role="group" aria-label="Billing period">
+            <button class="bt-btn active" data-bill="monthly">Monthly</button>
+            <button class="bt-btn" data-bill="yearly">Yearly <span class="save">−2 months</span></button>
+          </div>
+          <div class="price-row">
+            <span class="price" id="priceAmt">$8</span>
+            <span class="per" id="pricePer">/month</span>
+            <span class="was" id="priceWas">$12</span>
+          </div>
+          <p class="price-note" id="priceNote">Billed monthly · launch price locked for the first 100 · cancel anytime</p>
+          <button class="btn btn-stamp" data-cta>Claim the launch price
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h11M9.5 4l4 4-4 4"/></svg>
+          </button>
+        </div>
+        <div class="pp-right">
+          <p class="pp-inc">Everything included</p>
+          <ul class="inc">
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Unlimited invoices &amp; clients</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Bank, Stripe &amp; PayPal links</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Receipt capture with OCR</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Automatic tax set-aside</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Quarterly tax estimates</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Mileage &amp; deduction tracking</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>One-click export (CSV / PDF)</li>
+            <li><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Support from the humans who built it</li>
+          </ul>
+          <p class="pp-micro">30 days free · no card required · prices in USD</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="sec" id="faq">
+    <div class="wrap faq-grid">
+      <div class="sticky reveal">
+        <p class="eyebrow">FAQ</p>
+        <h2>Fair questions.</h2>
+        <p class="lede">We're one week old, so these are the ones everyone asks first. Something else? <a href="mailto:hello@tallyhall.app" style="color:var(--stamp)">hello@tallyhall.app</a></p>
+      </div>
+      <div class="acc reveal" data-acc style="--d:.1s">
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">Q1</span><span class="acc-t">Is my bank data safe?</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Your bank connection is read-only through a regulated open-banking provider — Tally Hall can look, but can never move money. Data is encrypted in transit and at rest (AES-256), access is logged, and we never sell or share anything. Delete your account and it's really gone within 24 hours.</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">Q2</span><span class="acc-t">I already keep a spreadsheet. Why switch?</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Honestly? If the spreadsheet is working, keep it. Tally Hall earns its keep when the spreadsheet starts lying to you — a forgotten receipt, a client payment mixed into personal spending, or April suddenly owing you four figures. Import your history as a CSV and see how it feels.</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">Q3</span><span class="acc-t">Do you file my taxes?</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>No — and we'll never pretend to. We organize your books, track deductions, and estimate what you'll owe each quarter, but filing stays between you, your accountant, and the IRS. Everything exports cleanly in one click.</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">Q4</span><span class="acc-t">What happens when the beta ends?</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Nothing scary. Early users keep the launch price ($8/mo or $80/yr) for as long as their account stays active. After the first 100 customers the price moves to $12/mo. That's the whole pricing page — one plan, no tiers, no upsells.</p>
+          </div></div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false">
+            <span class="acc-i">Q5</span><span class="acc-t">What if I hate it?</span>
+            <span class="acc-x" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>
+          </button>
+          <div class="acc-panel"><div class="acc-inner"><div class="acc-c">
+            <p>Cancel in one click from settings — no email, no retention flow, no "are you sure?" maze. Export your full history first if you like; it's yours. We'd rather lose you than trap you.</p>
+          </div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta" id="cta">
+    <svg class="cta-tally" viewBox="0 0 220 130" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><line x1="38" y1="18" x2="38" y2="112"/><line x1="82" y1="18" x2="82" y2="112"/><line x1="126" y1="18" x2="126" y2="112"/><line x1="170" y1="18" x2="170" y2="112"/><line x1="16" y1="122" x2="196" y2="8"/></g></svg>
+    <div class="wrap">
+      <p class="eyebrow light reveal">Early access</p>
+      <h2 class="reveal" style="--d:.06s">Open your books in five minutes.</h2>
+      <p class="cta-lede reveal" style="--d:.12s">We're inviting freelancers in small batches so support stays human. Leave your email and we'll send your invite — 30 days free, no card, cancel in one click.</p>
+      <div class="reveal" style="--d:.18s">
+        <form id="ctaForm" novalidate>
+          <input type="email" id="email" placeholder="you@yourstudio.com" aria-label="Your email address" autocomplete="email">
+          <button class="btn btn-stamp" type="submit">Get my invite</button>
+        </form>
+        <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+        <div class="success" id="success" tabindex="-1" hidden>
+          <svg class="succ-ck" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21"/><path d="M15 24.5l6.5 6.5L33 18"/></svg>
+          <div>
+            <strong>You're on the list.</strong>
+            <p>Your invite is heading to <b id="succMail"></b> — we send them in small batches, usually within 24 hours.</p>
+          </div>
+        </div>
+        <p class="micro light">One email when your invite is ready · no newsletter · no spam</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand light" href="#top" aria-label="Tally Hall — back to top">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 30 30"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="9" y1="7" x2="9" y2="23"/><line x1="13.5" y1="7" x2="13.5" y2="23"/><line x1="18" y1="7" x2="18" y2="23"/><line x1="22.5" y1="7" x2="22.5" y2="23"/><line x1="5.5" y1="24.5" x2="24.5" y2="5.5"/></g></svg>
+          </span>
+          <span class="brand-name">Tally Hall</span>
+        </a>
+        <p>Bookkeeping for people who'd rather be doing the work.</p>
+        <button class="status-pill" data-modal="status"><span class="dot" aria-hidden="true"></span>All systems normal</button>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#" data-modal="changelog">Changelog</a>
+        <a href="mailto:hello@tallyhall.app">Contact</a>
+        <a href="#" data-modal="status">Status</a>
+      </div>
+      <div class="foot-col">
+        <h4>Legal</h4>
+        <a href="#" data-modal="privacy">Privacy</a>
+        <a href="#" data-modal="terms">Terms</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2025 Tally Hall, Inc.</span>
+      <span>v0.9.2 · launched 6 days ago</span>
+      <span>Made by humans, sorted by software</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ MODAL ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-back" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-x" data-close aria-label="Close dialog">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <h3 id="modalTitle"></h3>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s,c){ return (c||document).querySelector(s); };
+  var $$ = function(s,c){ return Array.prototype.slice.call((c||document).querySelectorAll(s)); };
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- animated numbers ---------- */
+  function animateNumber(el, to, opts){
+    opts = opts || {};
+    var dur = opts.dur || 900;
+    var dec = (opts.decimals == null) ? 2 : opts.decimals;
+    var pre = opts.prefix || '', suf = opts.suffix || '';
+    var from = (typeof el._val === 'number') ? el._val : 0;
+    el._val = to;
+    var fmt = function(v){
+      return pre + v.toLocaleString('en-US',{minimumFractionDigits:dec, maximumFractionDigits:dec}) + suf;
+    };
+    if(reduced){ el.textContent = fmt(to); return; }
+    var t0 = performance.now();
+    function fr(t){
+      var p = Math.min(1,(t-t0)/dur);
+      var e = 1 - Math.pow(1-p,3);
+      el.textContent = fmt(from + (to-from)*e);
+      if(p < 1) requestAnimationFrame(fr);
+    }
+    requestAnimationFrame(fr);
+  }
+
+  /* ---------- header ---------- */
+  var header = $('#siteHeader');
+  function onScroll(){ header.classList.toggle('scrolled', window.scrollY > 10); }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  /* ---------- mobile menu ---------- */
+  var burger = $('#burger');
+  burger.addEventListener('click', function(){
+    var open = document.body.classList.toggle('nav-open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  $$('#mobileMenu a, #mobileMenu button').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.body.classList.remove('nav-open');
+      burger.setAttribute('aria-expanded','false');
+    });
+  });
+
+  /* ---------- reveal on scroll ---------- */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.15, rootMargin:'0px 0px -40px 0px'});
+  $$('.reveal').forEach(function(el){ io.observe(el); });
+
+  /* ---------- count-up stats ---------- */
+  var cio = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var el = e.target;
+        animateNumber(el, parseFloat(el.dataset.to), {
+          dur:1400, decimals:+(el.dataset.dec||0), suffix:el.dataset.suf||''
+        });
+        cio.unobserve(el);
+      }
+    });
+  }, {threshold:.6});
+  $$('.count').forEach(function(el){ cio.observe(el); });
+
+  /* ---------- ticker tape ---------- */
+  var tapeItems = ['Auto-categorization','Tax set-aside','Invoice nudges','Receipt capture','Mileage tracking','Quarterly estimates','One-click export','Read-only bank access','Deduction finder','Human support'];
+  var SEP = '<svg class="tape-sep" viewBox="0 0 26 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="2.5" x2="5" y2="15.5"/><line x1="10" y1="2.5" x2="10" y2="15.5"/><line x1="15" y1="2.5" x2="15" y2="15.5"/><line x1="20" y1="2.5" x2="20" y2="15.5"/><line x1="2.5" y1="16" x2="23.5" y2="2"/></g></svg>';
+  var half = tapeItems.map(function(t){ return '<span class="tape-item">'+t+'</span>'+SEP; }).join('');
+  $('#tapeTrack').innerHTML = '<div class="tape-half">'+half+'</div><div class="tape-half" aria-hidden="true">'+half+'</div>';
+
+  /* ---------- interactive ledger demo ---------- */
+  var TXNS = [
+    {cat:'Invoice',  amt: 2400.00},
+    {cat:'Software', amt: -15.00},
+    {cat:'Meals',    amt: -6.40},
+    {cat:'Travel',   amt: -18.20},
+    {cat:'Invoice',  amt: 860.00}
+  ];
+  var NS = 'http://www.w3.org/2000/svg';
+  var list = $('#txnList');
+  var rows = $$('.txn', list);
+  var card = $('#demoCard'), chip = $('#reviewChip');
+  var safeEl = $('#safeAmt'), potEl = $('#potAmt'), potSub = $('#potSub'), replayBtn = $('#replay');
+  var CHECK = '<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 6.4l2.6 2.6L10 3.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var SAFE0 = 4231.60, TOTAL = TXNS.length;
+  var filed = 0, pot = 0;
+  safeEl._val = SAFE0; potEl._val = 0; potSub._val = 0;
+
+  function buildTally(){
+    var svg = $('#tallySvg');
+    svg.innerHTML = '';
+    var coords = [[16,9,14,39],[33,9,35,39],[50,9,48,39],[67,9,69,39],[8,42,84,4]];
+    window._strokes = coords.map(function(c){
+      var l = document.createElementNS(NS,'line');
+      l.setAttribute('x1',c[0]); l.setAttribute('y1',c[1]);
+      l.setAttribute('x2',c[2]); l.setAttribute('y2',c[3]);
+      svg.appendChild(l);
+      var len = l.getTotalLength();
+      l.style.strokeDasharray = len;
+      l.style.strokeDashoffset = len;
+      return l;
+    });
+  }
+  buildTally();
+
+  function file(i){
+    var row = rows[i];
+    if(row.classList.contains('filed')) return;
+    row.classList.add('filed');
+    var t = TXNS[i];
+    var tag = row.querySelector('.tag');
+    tag.textContent = t.cat;
+    if(t.amt > 0) tag.classList.add('inc');
+    var s = window._strokes[filed];
+    if(s){
+      if(reduced){ s.style.strokeDashoffset = 0; }
+      else{
+        s.style.transition = 'stroke-dashoffset .5s cubic-bezier(.5,0,.2,1) .12s';
+        s.style.strokeDashoffset = '0';
+      }
+    }
+    filed++;
+    var left = TOTAL - filed;
+    if(left > 0){ chip.textContent = left + ' TO REVIEW'; }
+    else { chip.classList.add('done'); chip.innerHTML = CHECK + ' ALL FILED'; }
+    if(t.amt > 0){
+      pot += t.amt * 0.25;
+      animateNumber(potEl, pot, {prefix:'$'});
+      animateNumber(potSub, pot, {prefix:'$'});
+      animateNumber(safeEl, SAFE0 - pot, {prefix:'$'});
+    }
+    if(filed === TOTAL){
+      setTimeout(function(){ card.classList.add('done'); replayBtn.hidden = false; }, 600);
+    }
+  }
+  rows.forEach(function(row, i){
+    row.addEventListener('click', function(){ file(i); });
+    row.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); file(i); }
+    });
+  });
+  replayBtn.addEventListener('click', function(){
+    filed = 0; pot = 0;
+    card.classList.remove('done');
+    replayBtn.hidden = true;
+    chip.classList.remove('done');
+    chip.textContent = TOTAL + ' TO REVIEW';
+    rows.forEach(function(r){
+      r.classList.remove('filed');
+      var tg = r.querySelector('.tag');
+      tg.textContent = 'file';
+      tg.classList.remove('inc');
+    });
+    buildTally();
+    animateNumber(potEl, 0, {prefix:'$'});
+    animateNumber(potSub, 0, {prefix:'$'});
+    animateNumber(safeEl, SAFE0, {prefix:'$'});
+  });
+
+  /* ---------- accordions (features + faq) ---------- */
+  $$('[data-acc]').forEach(function(group){
+    var items = $$('.acc-item', group);
+    items.forEach(function(item){
+      var btn = $('.acc-btn', item);
+      btn.addEventListener('click', function(){
+        var wasOpen = item.classList.contains('open');
+        items.forEach(function(i){
+          i.classList.remove('open');
+          $('.acc-btn', i).setAttribute('aria-expanded','false');
+        });
+        if(!wasOpen){
+          item.classList.add('open');
+          btn.setAttribute('aria-expanded','true');
+        }
+      });
+    });
+    if(items[0]){
+      items[0].classList.add('open');
+      $('.acc-btn', items[0]).setAttribute('aria-expanded','true');
+    }
+  });
+
+  /* ---------- pricing toggle ---------- */
+  var PRICES = {
+    monthly:{ amt:8,  per:'/month', was:'$12', note:'Billed monthly · launch price locked for the first 100 · cancel anytime' },
+    yearly: { amt:80, per:'/year',  was:'$96', note:'Two months free vs monthly · launch price locked · cancel anytime' }
+  };
+  var billBtns = $$('.bt-btn');
+  billBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.classList.contains('active')) return;
+      billBtns.forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      var p = PRICES[b.dataset.bill];
+      animateNumber($('#priceAmt'), p.amt, {decimals:0, prefix:'$', dur:500});
+      $('#pricePer').textContent = p.per;
+      $('#priceWas').textContent = p.was;
+      $('#priceNote').textContent = p.note;
+    });
+  });
+
+  /* ---------- cta form ---------- */
+  var form = $('#ctaForm'), email = $('#email'), msg = $('#formMsg'), success = $('#success');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = email.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){
+      msg.textContent = 'That email looks off — mind double-checking?';
+      email.classList.remove('shake');
+      void email.offsetWidth;
+      email.classList.add('shake');
+      email.focus();
+      return;
+    }
+    msg.textContent = '';
+    $('#succMail').textContent = v;
+    form.hidden = true;
+    success.hidden = false;
+    requestAnimationFrame(function(){ success.classList.add('play'); });
+    success.focus({preventScroll:true});
+  });
+
+  /* ---------- modal ---------- */
+  var MODALS = {
+    privacy: { title:'Privacy, in plain English', body:
+      '<p>We collect the minimum needed to run your books: your account email, read-only bank connections, and the transactions you import. We never sell data, never run ads, and never train models on your numbers.</p>' +
+      '<p>Bank access is read-only through a regulated open-banking provider — Tally Hall can look, but can never move money. Delete your account and everything is gone within 24 hours. Really gone.</p>' +
+      '<p class="mono-note">AES-256 at rest · TLS 1.3 in transit · read-only access · GDPR compliant</p>' },
+    terms: { title:'Terms, briefly', body:
+      '<p>Tally Hall is bookkeeping software — not tax, legal, or accounting advice, and not a filing service. You remain responsible for your own filings; we keep the numbers tidy and exportable.</p>' +
+      '<p>Launch pricing ($8/mo or $80/yr) is locked for the first 100 customers for as long as their account stays active. Cancel anytime from settings; export your data anytime, in full.</p>' +
+      '<p class="mono-note">One plan · no auto-renew surprises · your data is yours</p>' },
+    changelog: { title:'Changelog', body:
+      '<div class="cl-item"><span class="cl-v">v0.9.2</span><p>Fixed a timezone bug that fired invoice reminders at 3am. They now go out at 9am, like civilized software.</p><span class="cl-d">MAR 4</span></div>' +
+      '<div class="cl-item"><span class="cl-v">v0.9.1</span><p>Receipt OCR now survives crumpled receipts. Mostly.</p><span class="cl-d">MAR 1</span></div>' +
+      '<div class="cl-item"><span class="cl-v">v0.9.0</span><p>Launched. Everything you see is one week old.</p><span class="cl-d">FEB 24</span></div>' },
+    status: { title:'System status', body:
+      '<p><strong>All systems normal.</strong></p>' +
+      '<p class="mono-note">Uptime, last 30 days: 99.98%<br>Last incident: none — we launched 6 days ago, knock on wood</p>' +
+      '<p>If anything ever wobbles, we post here first and email you right after.</p>' }
+  };
+  var modal = $('#modal'), lastFocus = null;
+  function openModal(key){
+    var m = MODALS[key];
+    if(!m) return;
+    $('#modalTitle').textContent = m.title;
+    $('#modalBody').innerHTML = m.body;
+    lastFocus = document.activeElement;
+    modal.hidden = false;
+    requestAnimationFrame(function(){ modal.classList.add('show'); });
+    document.body.style.overflow = 'hidden';
+    $('.modal-x').focus();
+  }
+  function closeModal(){
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    setTimeout(function(){ modal.hidden = true; }, 220);
+    if(lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $$('[data-modal]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.preventDefault(); openModal(el.dataset.modal); });
+  });
+  $$('[data-close]').forEach(function(el){ el.addEventListener('click', closeModal); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  /* ---------- "start free" buttons scroll to form ---------- */
+  $$('[data-cta]').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.preventDefault();
+      $('#cta').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
+      setTimeout(function(){
+        if(!form.hidden) email.focus({preventScroll:true});
+      }, reduced ? 0 : 750);
+    });
+  });
+})();
+</script>
+</body>
+</html>

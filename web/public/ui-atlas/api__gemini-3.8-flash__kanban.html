@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Studio — Design Kanban</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --border-light: #e2e8f0;
+      --border-focus: #3b82f6;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      
+      --accent-figma: #a259ff;
+      --accent-figma-light: #f5f0ff;
+      --brand: #6366f1;
+      --brand-hover: #4f46e5;
+      
+      --prio-urgent: #ef4444;
+      --prio-urgent-bg: #fef2f2;
+      --prio-high: #f97316;
+      --prio-high-bg: #fff7ed;
+      --prio-med: #0284c7;
+      --prio-med-bg: #f0f9ff;
+      --prio-low: #10b981;
+      --prio-low-bg: #ecfdf5;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+      --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+      --shadow-hover: 0 8px 20px -4px rgb(15 23 42 / 0.1), 0 4px 6px -2px rgb(15 23 42 / 0.05);
+      --shadow-modal: 0 20px 25px -5px rgb(15 23 42 / 0.12), 0 8px 10px -6px rgb(15 23 42 / 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-light);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      gap: 16px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #a259ff, #6366f1);
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: 0 2px 8px rgba(162, 89, 255, 0.35);
+    }
+
+    .project-info h1 {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .project-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .workspace-pill {
+      font-size: 11px;
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 500;
+      border: 1px solid var(--border-light);
+    }
+
+    /* Actions & Controls */
+    .controls-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      width: 14px;
+      height: 14px;
+      color: var(--text-subtle);
+    }
+
+    .search-box input {
+      background: var(--bg-subtle);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 7px 12px 7px 32px;
+      font-size: 13px;
+      color: var(--text-main);
+      width: 200px;
+      transition: all 0.2s ease;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      background: var(--bg-surface);
+      border-color: var(--brand);
+      width: 260px;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    .team-avatar-group {
+      display: flex;
+      align-items: center;
+      padding-right: 8px;
+      border-right: 1px solid var(--border-light);
+    }
+
+    .team-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--bg-surface);
+      margin-left: -6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+      color: white;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease;
+    }
+
+    .team-avatar:first-child { margin-left: 0; }
+    .team-avatar:hover { transform: translateY(-2px); z-index: 5; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: white;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border-color: var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-subtle);
+    }
+
+    /* Subheader Stats & Filters */
+    .filter-bar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-light);
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .filter-tags {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-tag {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      padding: 4px 10px;
+      border-radius: 99px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+
+    .filter-tag:hover, .filter-tag.active {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      border-color: #cbd5e1;
+    }
+
+    .filter-tag.active {
+      background: #e0e7ff;
+      border-color: #c7d2fe;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .stats-summary {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stats-item strong {
+      color: var(--text-main);
+    }
+
+    /* Board Canvas */
+    .board-container {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 20px 24px;
+      display: flex;
+      gap: 18px;
+    }
+
+    .board-column {
+      width: 320px;
+      min-width: 320px;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: background 0.15s ease;
+    }
+
+    .board-column.drag-over {
+      background: #f1f5f9;
+      outline: 2px dashed #94a3b8;
+      outline-offset: -2px;
+    }
+
+    .column-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .col-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .col-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .col-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .col-count {
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 99px;
+      border: 1px solid var(--border-light);
+    }
+
+    .add-card-quick {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .add-card-quick:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .column-cards {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 40px;
+    }
+
+    .column-cards::-webkit-scrollbar {
+      width: 5px;
+    }
+    .column-cards::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* Cards */
+    .kanban-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-card);
+      cursor: grab;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      position: relative;
+    }
+
+    .kanban-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+      border-color: #cbd5e1;
+    }
+
+    .kanban-card:active {
+      cursor: grabbing;
+    }
+
+    .kanban-card.dragging {
+      opacity: 0.35;
+      transform: scale(0.98);
+    }
+
+    /* Card Cover & Palettes */
+    .card-cover {
+      height: 90px;
+      width: 100%;
+      background-size: cover;
+      background-position: center;
+      border-bottom: 1px solid var(--border-light);
+      position: relative;
+    }
+
+    .palette-strip {
+      height: 18px;
+      display: flex;
+      width: 100%;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .palette-color {
+      flex: 1;
+      height: 100%;
+      transition: flex 0.2s ease;
+    }
+
+    .palette-color:hover {
+      flex: 2;
+    }
+
+    .card-body {
+      padding: 12px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .badge-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .tag-design-system { background: #fef3c7; color: #b45309; }
+    .tag-ui-ux { background: #e0f2fe; color: #0369a1; }
+    .tag-branding { background: #fce7f3; color: #be185d; }
+    .tag-mobile { background: #f3e8ff; color: #7e22ce; }
+    .tag-web { background: #dcfce7; color: #15803d; }
+    .tag-motion { background: #ffe4e6; color: #be123c; }
+
+    .priority-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .prio-Urgent { background: var(--prio-urgent); box-shadow: 0 0 0 2px var(--prio-urgent-bg); }
+    .prio-High { background: var(--prio-high); box-shadow: 0 0 0 2px var(--prio-high-bg); }
+    .prio-Medium { background: var(--prio-med); box-shadow: 0 0 0 2px var(--prio-med-bg); }
+    .prio-Low { background: var(--prio-low); box-shadow: 0 0 0 2px var(--prio-low-bg); }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Subtask Checklist Bar */
+    .checklist-progress {
+      margin-bottom: 10px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .progress-bar-bg {
+      height: 4px;
+      background: var(--bg-subtle);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: #10b981;
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    /* Card Footer Info */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-light);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .figma-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent-figma);
+      background: var(--accent-figma-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 10px;
+      text-decoration: none;
+    }
+
+    .card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .card-meta-item svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+    }
+
+    .assignee-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 0 1px white;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(2px);
+      display: none;
+      place-items: center;
+      z-index: 100;
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-overlay.active {
+      display: grid;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 580px;
+      box-shadow: var(--shadow-modal);
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      animation: modalSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(12px) scale(0.98); }
+      to { transform: translateY(0) scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px;
+      border-radius: var(--radius-sm);
+    }
+
+    .modal-close:hover {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-light);
+      background: var(--bg-canvas);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Subtasks inside View Modal */
+    .checklist-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .checklist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      background: var(--bg-subtle);
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .checklist-row input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--brand);
+    }
+
+    .checklist-row.done span {
+      text-decoration: line-through;
+      color: var(--text-subtle);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text-main);
+      color: white;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-modal);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 200;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Design Crit badge */
+    .crit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #9333ea;
+      background: #faf5ff;
+      border: 1px solid #f3e8ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand-section">
+      <div class="logo-badge">A</div>
+      <div class="project-info">
+        <h1>
+          Aura Design System & Product
+          <span class="workspace-pill">Figma Pro Team</span>
+        </h1>
+        <p>Q3 Design Sprint • 4 Designers Active</p>
+      </div>
+    </div>
+
+    <div class="controls-section">
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="searchInput" placeholder="Search tasks, tags, assets...">
+      </div>
+
+      <div class="team-avatar-group">
+        <div class="team-avatar" style="background:#e11d48;" title="Maya (Lead Designer)">ML</div>
+        <div class="team-avatar" style="background:#2563eb;" title="Liam (Product / UI)">LK</div>
+        <div class="team-avatar" style="background:#059669;" title="Sora (Illustrator)">SC</div>
+        <div class="team-avatar" style="background:#d97706;" title="Noah (Design Systems)">ND</div>
+      </div>
+
+      <button class="btn btn-secondary" id="critModeBtn" title="Highlight design review tasks">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        Design Crit
+      </button>
+
+      <button class="btn btn-primary" id="openNewTaskModal">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Design Task
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter & Sub-bar -->
+  <div class="filter-bar">
+    <div class="filter-tags">
+      <span style="font-weight:600; color:var(--text-muted); margin-right:4px;">Filter:</span>
+      <button class="filter-tag active" data-filter="all">All Disciplines</button>
+      <button class="filter-tag" data-filter="Design System">Design System</button>
+      <button class="filter-tag" data-filter="UI/UX">UI/UX</button>
+      <button class="filter-tag" data-filter="Branding">Branding</button>
+      <button class="filter-tag" data-filter="Mobile">Mobile</button>
+      <button class="filter-tag" data-filter="Motion">Motion</button>
+    </div>
+
+    <div class="stats-summary">
+      <span class="stats-item"><strong id="totalTasksCount">0</strong> Total Design Cards</span>
+      <span class="stats-item"><strong id="reviewTasksCount">0</strong> Ready for Crit</span>
+      <span class="stats-item"><strong id="handoffTasksCount">0</strong> Spec Ready</span>
+    </div>
+  </div>
+
+  <!-- Board Canvas -->
+  <main class="board-container" id="kanbanBoard">
+    <!-- Columns injected by JavaScript -->
+  </main>
+
+  <!-- Task Detail & Edit Modal -->
+  <div class="modal-overlay" id="taskDetailModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="tag" id="modalTag">UI/UX</span>
+          <span id="modalPriorityDot" class="priority-indicator"></span>
+          <h2 id="modalTitle">Task Details</h2>
+        </div>
+        <button class="modal-close" onclick="closeModal('taskDetailModal')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Description & Scope</label>
+          <p id="modalDesc" style="font-size:13px; color:var(--text-main); line-height:1.5;"></p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Assigned Designer</label>
+            <div id="modalAssignee" style="font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;"></div>
+          </div>
+          <div class="form-group">
+            <label>Due Date</label>
+            <div id="modalDue" style="font-size:13px; font-weight:500;"></div>
+          </div>
+        </div>
+
+        <div class="form-group" id="modalFigmaGroup" style="display:none;">
+          <label>Figma Workspace Asset</label>
+          <a href="#" id="modalFigmaLink" target="_blank" class="figma-badge" style="width:fit-content; padding:4px 10px; font-size:11px;">
+            <svg width="12" height="12" viewBox="0 0 38 57" fill="currentColor"><path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z"/><path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z"/><path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z"/><path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z"/><path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z"/></svg>
+            Open File in Figma
+          </a>
+        </div>
+
+        <div class="form-group">
+          <label>Design Specs & QA Checklist</label>
+          <div class="checklist-items" id="modalChecklist"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" style="color:#ef4444; border-color:#fecaca;" id="deleteTaskBtn">
+          Delete Task
+        </button>
+        <button class="btn btn-primary" onclick="closeModal('taskDetailModal')">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create New Task Modal -->
+  <div class="modal-overlay" id="newTaskModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Create Design Task</h2>
+        <button class="modal-close" onclick="closeModal('newTaskModal')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="newTaskForm" onsubmit="handleCreateTask(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="taskTitle">Task Title *</label>
+            <input type="text" id="taskTitle" class="form-control" placeholder="e.g. Design Dark Mode Tokens & Components" required>
+          </div>
+
+          <div class="form-group">
+            <label for="taskDesc">Design Scope / Details</label>
+            <textarea id="taskDesc" rows="3" class="form-control" placeholder="Context, user goals, or acceptance criteria..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskCol">Workflow Stage</label>
+              <select id="taskCol" class="form-control">
+                <option value="research">1. Wireframes & Research</option>
+                <option value="design" selected>2. Visual & UI Design</option>
+                <option value="critique">3. Design Crit & QA</option>
+                <option value="handoff">4. Dev Handoff</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="taskCategory">Discipline Tag</label>
+              <select id="taskCategory" class="form-control">
+                <option value="UI/UX">UI/UX</option>
+                <option value="Design System">Design System</option>
+                <option value="Branding">Branding</option>
+                <option value="Mobile">Mobile</option>
+                <option value="Motion">Motion</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskAssignee">Lead Designer</label>
+              <select id="taskAssignee" class="form-control">
+                <option value="Maya Lin">Maya Lin (Lead)</option>
+                <option value="Liam Keller">Liam Keller (UI)</option>
+                <option value="Sora Chen">Sora Chen (Illus/Motion)</option>
+                <option value="Noah Diaz">Noah Diaz (Design Sys)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="taskPriority">Priority</label>
+              <select id="taskPriority" class="form-control">
+                <option value="Urgent">Urgent</option>
+                <option value="High" selected>High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskDueDate">Target Review Date</label>
+              <input type="date" id="taskDueDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="taskFigma">Figma File / Frame Link</label>
+              <input type="text" id="taskFigma" class="form-control" placeholder="https://figma.com/file/...">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('newTaskModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toastMsg">Notification message</div>
+
+  <script>
+    // --- Data & State ---
+    const COLUMNS = [
+      { id: 'research', title: 'Research & Wireframes', color: '#6366f1' },
+      { id: 'design', title: 'In Visual Design', color: '#a259ff' },
+      { id: 'critique', title: 'Design Crit & QA', color: '#f59e0b' },
+      { id: 'handoff', title: 'Ready for Dev / Spec', color: '#10b981' }
+    ];
+
+    const TEAM = {
+      'Maya Lin': { initials: 'ML', color: '#e11d48' },
+      'Liam Keller': { initials: 'LK', color: '#2563eb' },
+      'Sora Chen': { initials: 'SC', color: '#059669' },
+      'Noah Diaz': { initials: 'ND', color: '#d97706' }
+    };
+
+    const INITIAL_TASKS = [
+      {
+        id: 't-1',
+        title: 'Checkout Flow Redesign & Micro-copy',
+        desc: 'Audit drop-off points, test 1-step vs 3-step checkout variants, and verify accessible form labels.',
+        column: 'research',
+        category: 'UI/UX',
+        priority: 'High',
+        assignee: 'Maya Lin',
+        dueDate: '2025-04-12',
+        figma: 'https://figma.com/@aura/checkout-v2',
+        palette: null,
+        cover: null,
+        subtasks: [
+          { text: 'Analyze Hotjar recordings', done: true },
+          { text: 'Create 2 low-fi prototypes', done: true },
+          { text: 'Run 5 unmoderated maze tests', done: false }
+        ]
+      },
+      {
+        id: 't-2',
+        title: 'Aura Design System: Color Tokens v2.4',
+        desc: 'Re-indexing semantic neutrals and defining semantic surface containers for dark mode WCAG AA compliance.',
+        column: 'design',
+        category: 'Design System',
+        priority: 'Urgent',
+        assignee: 'Noah Diaz',
+        dueDate: '2025-04-10',
+        figma: 'https://figma.com/@aura/tokens',
+        palette: ['#0f172a', '#334155', '#6366f1', '#a259ff', '#10b981'],
+        cover: null,
+        subtasks: [
+          { text: 'Check contrast on dark 900 background', done: true },
+          { text: 'Publish Variables to Team Library', done: true },
+          { text: 'Update typography pairings', done: false }
+        ]
+      },
+      {
+        id: 't-3',
+        title: 'Mobile Banking: Biometric Auth Prompts',
+        desc: 'FaceID / Fingerprint contextual modals with smooth spring transitions and haptic feedback specs.',
+        column: 'design',
+        category: 'Mobile',
+        priority: 'Medium',
+        assignee: 'Liam Keller',
+        dueDate: '2025-04-14',
+        figma: 'https://figma.com/@aura/mobile-security',
+        palette: null,
+        cover: null,
+        subtasks: [
+          { text: 'iOS Human Interface spec alignment', done: true },
+          { text: 'Android Material 3 fallback state', done: false }
+        ]
+      },
+      {
+        id: 't-4',
+        title: 'Hero 3D Abstract Glass Illustrations',
+        desc: 'Render high-res hero asset for Enterprise SaaS page showing glass prism refraction aesthetic.',
+        column: 'critique',
+        category: 'Branding',
+        priority: 'High',
+        assignee: 'Sora Chen',
+        dueDate: '2025-04-09',
+        figma: 'https://figma.com/@aura/brand-3d',
+        palette: ['#ec4899', '#8b5cf6', '#38bdf8'],
+        cover: null,
+        subtasks: [
+          { text: 'Export compressed WebP & AVIF', done: true },
+          { text: 'Review lighting with Creative Director', done: true },
+          { text: 'Test LCP performance score impact', done: false }
+        ]
+      },
+      {
+        id: 't-5',
+        title: 'Global Navigation & Dropdown Animations',
+        desc: 'Staggered dropdown entrance with framer-motion handoff tokens for engineering teams.',
+        column: 'critique',
+        category: 'Motion',
+        priority: 'Medium',
+        assignee: 'Sora Chen',
+        dueDate: '2025-04-11',
+        figma: 'https://figma.com/@aura/navigation',
+        palette: null,
+        cover: null,
+        subtasks: [
+          { text: 'Easing curves documented (cubic-bezier)', done: true },
+          { text: 'Safari hover lag stress test', done: true }
+        ]
+      },
+      {
+        id: 't-6',
+        title: 'Data Grid Component & Filter Specs',
+        desc: 'Production-ready table component with pinned columns, sorting states, and empty placeholders.',
+        column: 'handoff',
+        category: 'Design System',
+        priority: 'Urgent',
+        assignee: 'Noah Diaz',
+        dueDate: '2025-04-08',
+        figma: 'https://figma.com/@aura/tables',
+        palette: null,
+        cover: null,
+        subtasks: [
+          { text: 'Zeplin / Dev Mode inspector flags', done: true },
+          { text: 'Component redlines added', done: true },
+          { text: 'React prop names mapped', done: true }
+        ]
+      }
+    ];
+
+    let tasks = JSON.parse(localStorage.getItem('aura_kanban_tasks')) || INITIAL_TASKS;
+    let activeFilter = 'all';
+    let searchQuery = '';
+    let critModeActive = false;
+    let selectedTaskId = null;
+    let draggedTaskId = null;
+
+    // --- Core Functions ---
+    function saveTasks() {
+      localStorage.setItem('aura_kanban_tasks', JSON.stringify(tasks));
+      updateMetrics();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toastMsg');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function updateMetrics() {
+      document.getElementById('totalTasksCount').textContent = tasks.length;
+      document.getElementById('reviewTasksCount').textContent = tasks.filter(t => t.column === 'critique').length;
+      document.getElementById('handoffTasksCount').textContent = tasks.filter(t => t.column === 'handoff').length;
+    }
+
+    // Render Board
+    function renderBoard() {
+      const board = document.getElementById('kanbanBoard');
+      board.innerHTML = '';
+
+      COLUMNS.forEach(col => {
+        const colTasks = tasks.filter(task => {
+          const matchesCol = task.column === col.id;
+          const matchesFilter = activeFilter === 'all' || task.category === activeFilter;
+          const matchesSearch = task.title.toLowerCase().includes(searchQuery) ||
+                                task.desc.toLowerCase().includes(searchQuery) ||
+                                task.category.toLowerCase().includes(searchQuery);
+          const matchesCrit = !critModeActive || task.column === 'critique';
+          return matchesCol && matchesFilter && matchesSearch && matchesCrit;
+        });
+
+        const colEl = document.createElement('div');
+        colEl.className = 'board-column';
+        colEl.dataset.columnId = col.id;
+
+        // Column drag over listeners
+        colEl.addEventListener('dragover', handleDragOver);
+        colEl.addEventListener('dragleave', handleDragLeave);
+        colEl.addEventListener('drop', handleDrop);
+
+        colEl.innerHTML = `
+          <div class="column-header">
+            <div class="col-title-group">
+              <span class="col-dot" style="background:${col.color};"></span>
+              <span class="col-title">${col.title}</span>
+              <span class="col-count">${colTasks.length}</span>
+            </div>
+            <button class="add-card-quick" title="Add to this column" onclick="openNewTaskModalWithCol('${col.id}')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+          <div class="column-cards" id="cards-${col.id}"></div>
+        `;
+
+        const cardsContainer = colEl.querySelector(`#cards-${col.id}`);
+        colTasks.forEach(task => {
+          cardsContainer.appendChild(createCardElement(task));
+        });
+
+        board.appendChild(colEl);
+      });
+
+      updateMetrics();
+    }
+
+    function createCardElement(task) {
+      const card = document.createElement('div');
+      card.className = 'kanban-card';
+      card.draggable = true;
+      card.dataset.id = task.id;
+
+      card.addEventListener('dragstart', handleDragStart);
+      card.addEventListener('dragend', handleDragEnd);
+      card.addEventListener('click', () => openTaskDetails(task.id));
+
+      // Calculate Subtasks Progress
+      let checklistHtml = '';
+      if (task.subtasks && task.subtasks.length > 0) {
+        const completed = task.subtasks.filter(s => s.done).length;
+        const total = task.subtasks.length;
+        const pct = Math.round((completed / total) * 100);
+        checklistHtml = `
+          <div class="checklist-progress">
+            <div class="progress-info">
+              <span>Spec Checklist</span>
+              <span>${completed}/${total}</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Palette strip preview for design token / branding tasks
+      let paletteHtml = '';
+      if (task.palette && task.palette.length > 0) {
+        paletteHtml = `<div class="palette-strip" title="Token Swatch Palette">
+          ${task.palette.map(c => `<div class="palette-color" style="background:${c};"></div>`).join('')}
+        </div>`;
+      }
+
+      const categoryClass = 'tag-' + task.category.toLowerCase().replace(/\s+/g, '-').replace('/', '-');
+      const designer = TEAM[task.assignee] || { initials: 'DS', color: '#6366f1' };
+
+      card.innerHTML = `
+        ${paletteHtml}
+        <div class="card-body">
+          <div class="card-header">
+            <div class="badge-group">
+              <span class="tag ${categoryClass}">${task.category}</span>
+              ${task.column === 'critique' ? `<span class="crit-badge">Critique</span>` : ''}
+            </div>
+            <span class="priority-indicator prio-${task.priority}" title="${task.priority} Priority"></span>
+          </div>
+
+          <div class="card-title">${escapeHtml(task.title)}</div>
+          <div class="card-desc">${escapeHtml(task.desc)}</div>
+
+          ${checklistHtml}
+
+          <div class="card-footer">
+            <div class="card-links">
+              ${task.figma ? `
+                <span class="figma-badge" title="Figma design linked">
+                  <svg width="10" height="10" viewBox="0 0 38 57" fill="currentColor"><path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z"/><path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z"/><path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z"/><path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z"/><path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z"/></svg>
+                  Figma
+                </span>
+              ` : ''}
+
+              <span class="card-meta-item" title="Due date">
+                <svg fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                ${formatDate(task.dueDate)}
+              </span>
+            </div>
+
+            <div class="assignee-avatar" style="background:${designer.color}" title="${task.assignee}">
+              ${designer.initials}
+            </div>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    // --- Drag & Drop Handlers ---
+    function handleDragStart(e) {
+      draggedTaskId = this.dataset.id;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.id);
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.board-column').forEach(c => c.classList.remove('drag-over'));
+      draggedTaskId = null;
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      this.classList.add('drag-over');
+    }
+
+    function handleDragLeave() {
+      this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      const targetColumnId = this.dataset.columnId;
+
+      if (!draggedTaskId || !targetColumnId) return;
+
+      const task = tasks.find(t => t.id === draggedTaskId);
+      if (task && task.column !== targetColumnId) {
+        task.column = targetColumnId;
+        saveTasks();
+        renderBoard();
+        showToast(`Moved to ${COLUMNS.find(c => c.id === targetColumnId).title}`);
+      }
+    }
+
+    // --- Modal Management ---
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function openNewTaskModalWithCol(colId) {
+      document.getElementById('taskCol').value = colId;
+      document.getElementById('taskDueDate').value = new Date().toISOString().split('T')[0];
+      openModal('newTaskModal');
+    }
+
+    function openTaskDetails(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      selectedTaskId = taskId;
+
+      document.getElementById('modalTitle').textContent = task.title;
+      document.getElementById('modalDesc').textContent = task.desc || 'No description provided.';
+      document.getElementById('modalTag').textContent = task.category;
+      document.getElementById('modalTag').className = 'tag tag-' + task.category.toLowerCase().replace(/\s+/g, '-').replace('/', '-');
+
+      const dot = document.getElementById('modalPriorityDot');
+      dot.className = `priority-indicator prio-${task.priority}`;
+      dot.title = `${task.priority} Priority`;
+
+      const designer = TEAM[task.assignee] || { initials: 'DS', color: '#6366f1' };
+      document.getElementById('modalAssignee').innerHTML = `
+        <span class="assignee-avatar" style="background:${designer.color}">${designer.initials}</span>
+        ${task.assignee}
+      `;
+      document.getElementById('modalDue').textContent = formatDate(task.dueDate);
+
+      const figmaGroup = document.getElementById('modalFigmaGroup');
+      const figmaLink = document.getElementById('modalFigmaLink');
+      if (task.figma) {
+        figmaGroup.style.display = 'block';
+        figmaLink.href = task.figma;
+      } else {
+        figmaGroup.style.display = 'none';
+      }
+
+      // Render Subtasks
+      const checklistContainer = document.getElementById('modalChecklist');
+      checklistContainer.innerHTML = '';
+
+      if (task.subtasks && task.subtasks.length > 0) {
+        task.subtasks.forEach((sub, index) => {
+          const row = document.createElement('div');
+          row.className = `checklist-row ${sub.done ? 'done' : ''}`;
+          row.innerHTML = `
+            <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleSubtask('${task.id}', ${index})">
+            <span>${escapeHtml(sub.text)}</span>
+          `;
+          checklistContainer.appendChild(row);
+        });
+      } else {
+        checklistContainer.innerHTML = `<p style="font-size:12px; color:var(--text-subtle);">No QA checklist items defined.</p>`;
+      }
+
+      openModal('taskDetailModal');
+    }
+
+    function toggleSubtask(taskId, subIndex) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task || !task.subtasks[subIndex]) return;
+
+      task.subtasks[subIndex].done = !task.subtasks[subIndex].done;
+      saveTasks();
+      renderBoard();
+      openTaskDetails(taskId); // Refresh view
+    }
+
+    function handleCreateTask(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('taskTitle').value.trim();
+      if (!title) return;
+
+      const newTask = {
+        id: 't-' + Date.now(),
+        title: title,
+        desc: document.getElementById('taskDesc').value.trim(),
+        column: document.getElementById('taskCol').value,
+        category: document.getElementById('taskCategory').value,
+        assignee: document.getElementById('taskAssignee').value,
+        priority: document.getElementById('taskPriority').value,
+        dueDate: document.getElementById('taskDueDate').value || new Date().toISOString().split('T')[0],
+        figma: document.getElementById('taskFigma').value.trim() || null,
+        palette: null,
+        cover: null,
+        subtasks: [
+          { text: 'Design exploration & review', done: false },
+          { text: 'Design QA & contrast checks', done: false }
+        ]
+      };
+
+      tasks.unshift(newTask);
+      saveTasks();
+      renderBoard();
+      closeModal('newTaskModal');
+      document.getElementById('newTaskForm').reset();
+      showToast('New design ticket created');
+    }
+
+    function deleteTask() {
+      if (!selectedTaskId) return;
+      tasks = tasks.filter(t => t.id !== selectedTaskId);
+      saveTasks();
+      renderBoard();
+      closeModal('taskDetailModal');
+      showToast('Task removed from board');
+    }
+
+    // --- Helpers ---
+    function formatDate(dateStr) {
+      if (!dateStr) return 'TBD';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+    }
+
+    // --- Event Listeners ---
+    document.getElementById('openNewTaskModal').addEventListener('click', () => {
+      document.getElementById('taskDueDate').value = new Date().toISOString().split('T')[0];
+      openModal('newTaskModal');
+    });
+
+    document.getElementById('deleteTaskBtn').addEventListener('click', deleteTask);
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      renderBoard();
+    });
+
+    document.querySelectorAll('.filter-tag').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        activeFilter = this.dataset.filter;
+        renderBoard();
+      });
+    });
+
+    document.getElementById('critModeBtn').addEventListener('click', function() {
+      critModeActive = !critModeActive;
+      this.classList.toggle('active', critModeActive);
+      this.style.background = critModeActive ? '#fef3c7' : '';
+      this.style.borderColor = critModeActive ? '#f59e0b' : '';
+      this.style.color = critModeActive ? '#b45309' : '';
+      renderBoard();
+      showToast(critModeActive ? 'Focusing on Design Critique column' : 'Showing all columns');
+    });
+
+    // Close modal on outside click
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+      }
+    });
+
+    // Keyboard Esc shortcut
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+      }
+    });
+
+    // Initialize
+    renderBoard();
+  </script>
+</body>
+</html>

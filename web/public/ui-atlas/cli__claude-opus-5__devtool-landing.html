@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tern — find the query that's eating your p99</title>
+<meta name="description" content="Tern is a single-binary CLI that reads your database's own statistics, ranks every statement by total time burned, and tells you exactly which index is missing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0D13;
+    --ink-2:#0E131B;
+    --surface:#121823;
+    --surface-2:#161D29;
+    --line:#1F2835;
+    --line-2:#2A3545;
+    --text:#E7EBF2;
+    --muted:#8A95A9;
+    --muted-2:#616C7E;
+    --accent:#FF6A45;
+    --accent-dim:#C9472A;
+    --teal:#5EEAD4;
+    --amber:#FFB454;
+    --green:#7BD88F;
+    --red:#FF6B6B;
+    --violet:#A78BFA;
+    --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --maxw:1140px;
+    --r:14px;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    background:
+      radial-gradient(900px 480px at 78% -8%, rgba(255,106,69,.13), transparent 70%),
+      radial-gradient(700px 420px at 8% 4%, rgba(94,234,212,.07), transparent 70%);
+  }
+  .grid-bg{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,.028) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(900px 520px at 50% 0%, #000 20%, transparent 80%);
+    -webkit-mask-image:radial-gradient(900px 520px at 50% 0%, #000 20%, transparent 80%);
+  }
+
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(255,106,69,.3)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+  /* ---------- nav ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    background:rgba(10,13,19,.72);
+    border-bottom:1px solid rgba(31,40,53,.8);
+  }
+  .nav{display:flex;align-items:center;gap:28px;height:62px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.02em;font-size:18px}
+  .brand svg{width:26px;height:26px;color:var(--accent);flex:none}
+  .nav-links{display:flex;gap:26px;margin-left:auto;align-items:center;font-size:14.5px;color:var(--muted)}
+  .nav-links a{transition:color .15s}
+  .nav-links a:hover{color:var(--text)}
+  .ghost{
+    display:inline-flex;align-items:center;gap:7px;
+    border:1px solid var(--line-2);
+    padding:7px 13px;border-radius:9px;
+    font-size:14px;color:var(--text);font-weight:500;
+    transition:border-color .15s,background .15s;
+  }
+  .ghost:hover{border-color:#3C4A5E;background:rgba(255,255,255,.035)}
+  .ghost svg{width:15px;height:15px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:86px 0 10px;text-align:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:9px;
+    border:1px solid var(--line-2);
+    background:rgba(255,255,255,.02);
+    color:var(--muted);
+    border-radius:999px;padding:5px 14px 5px 6px;
+    font-size:13px;font-family:var(--mono);
+    margin-bottom:28px;
+  }
+  .pill b{
+    background:rgba(255,106,69,.14);
+    color:#FF9375;
+    border-radius:999px;padding:2px 9px;
+    font-weight:500;font-size:12px;
+  }
+  h1{
+    font-size:clamp(2.35rem,6.1vw,4.05rem);
+    line-height:1.03;
+    letter-spacing:-.045em;
+    font-weight:700;
+    margin:0 auto 22px;
+    max-width:17ch;
+  }
+  h1 em{
+    font-style:normal;
+    background:linear-gradient(100deg,var(--accent) 10%,#FFB07E 90%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{
+    font-size:clamp(1rem,1.5vw,1.16rem);
+    color:var(--muted);
+    max-width:60ch;margin:0 auto 34px;
+  }
+  .sub strong{color:#C3CCDB;font-weight:500}
+
+  .install{
+    display:flex;align-items:stretch;justify-content:center;
+    gap:10px;flex-wrap:wrap;margin-bottom:14px;
+  }
+  .cmd{
+    display:flex;align-items:center;gap:12px;
+    font-family:var(--mono);font-size:14.5px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:0 6px 0 16px;height:48px;
+  }
+  .cmd span.p{color:var(--accent);user-select:none}
+  .cmd code{color:#DCE3EE}
+  .copy{
+    border:0;background:rgba(255,255,255,.05);
+    color:var(--muted);
+    font-family:var(--mono);font-size:12px;
+    height:34px;padding:0 11px;border-radius:7px;cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .copy:hover{background:rgba(255,255,255,.1);color:var(--text)}
+  .copy.done{color:var(--green)}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    height:48px;padding:0 22px;border-radius:11px;
+    background:var(--accent);color:#1A0A05;
+    font-weight:600;font-size:15px;
+    border:1px solid #FF7E5C;
+    box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 8px 24px -10px rgba(255,106,69,.7);
+    transition:transform .12s,filter .15s;
+  }
+  .btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
+  .fine{font-family:var(--mono);font-size:12.5px;color:var(--muted-2);margin:0 0 54px}
+
+  /* ---------- terminal ---------- */
+  .term-shell{position:relative;z-index:1;max-width:980px;margin:0 auto}
+  .term-shell::after{
+    content:"";position:absolute;left:8%;right:8%;bottom:-26px;height:60px;
+    background:radial-gradient(60% 100% at 50% 0%, rgba(255,106,69,.2), transparent 75%);
+    filter:blur(14px);z-index:-1;
+  }
+  .term{
+    background:linear-gradient(180deg,#0F141D,#0B0F16);
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    overflow:hidden;
+    box-shadow:0 40px 90px -40px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.02) inset;
+    text-align:left;
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:11px 14px;border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.015);
+  }
+  .dot{width:11px;height:11px;border-radius:50%;background:#26303E;flex:none}
+  .dot.a{background:#3A2A2A}
+  .term-title{
+    margin-left:6px;font-family:var(--mono);font-size:12px;color:var(--muted-2);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .tabs{display:flex;gap:2px;margin-left:auto;flex:none}
+  .tab{
+    border:0;background:transparent;cursor:pointer;
+    font-family:var(--mono);font-size:12px;color:var(--muted-2);
+    padding:5px 11px;border-radius:7px;transition:all .15s;
+  }
+  .tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tab[aria-selected="true"]{color:#1A0A05;background:var(--accent);font-weight:500}
+  .panel{display:none;padding:20px 6px 24px 20px}
+  .panel.on{display:block}
+  pre{
+    margin:0;font-family:var(--mono);
+    font-size:12.9px;line-height:1.72;
+    color:#B9C3D2;overflow-x:auto;
+    padding-right:20px;padding-bottom:6px;
+    scrollbar-width:thin;scrollbar-color:#2A3545 transparent;
+  }
+  pre::-webkit-scrollbar{height:8px}
+  pre::-webkit-scrollbar-thumb{background:#242E3C;border-radius:9px}
+  .c-p{color:var(--accent)}
+  .c-cmd{color:#EEF2F8;font-weight:500}
+  .c-dim{color:#5B6578}
+  .c-key{color:var(--teal)}
+  .c-num{color:var(--violet)}
+  .c-warn{color:var(--amber)}
+  .c-bad{color:var(--red)}
+  .c-ok{color:var(--green)}
+  .c-hi{color:#F3F6FA;font-weight:500}
+  .c-rule{color:#222C3A}
+  .cur{
+    display:inline-block;width:8px;height:15px;
+    background:var(--accent);vertical-align:-3px;
+    animation:blink 1.1s steps(2,start) infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- strip ---------- */
+  .strip{
+    margin:88px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.012);
+  }
+  .strip-in{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:1px;background:var(--line);
+  }
+  .stat{background:var(--ink);padding:26px 24px}
+  .stat b{
+    display:block;font-family:var(--mono);font-size:25px;
+    letter-spacing:-.03em;color:#fff;font-weight:500;margin-bottom:5px;
+  }
+  .stat span{font-size:13.5px;color:var(--muted)}
+
+  /* ---------- sections ---------- */
+  section{position:relative;z-index:1}
+  .sec{padding:96px 0}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 16px;
+  }
+  h2{
+    font-size:clamp(1.75rem,3.4vw,2.45rem);
+    letter-spacing:-.035em;line-height:1.1;margin:0 0 16px;font-weight:600;
+  }
+  .lead{color:var(--muted);max-width:58ch;margin:0 0 50px;font-size:1.06rem}
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{
+    border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--surface),rgba(14,19,27,.6));
+    border-radius:var(--r);padding:26px 24px 28px;
+    transition:border-color .2s,transform .2s;
+  }
+  .card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  .card .ico{
+    width:34px;height:34px;border-radius:9px;
+    display:grid;place-items:center;margin-bottom:18px;
+    background:rgba(255,106,69,.11);border:1px solid rgba(255,106,69,.2);
+  }
+  .card .ico svg{width:17px;height:17px;color:var(--accent)}
+  .card h3{font-size:1.04rem;margin:0 0 9px;font-weight:600;letter-spacing:-.015em}
+  .card p{margin:0;color:var(--muted);font-size:14.6px;line-height:1.62}
+  .card code{
+    font-family:var(--mono);font-size:12.6px;
+    color:#C7D0DE;background:rgba(255,255,255,.05);
+    padding:1px 5px;border-radius:5px;
+  }
+
+  /* ---------- steps ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .step{padding:30px 28px;border-right:1px solid var(--line);background:rgba(255,255,255,.012)}
+  .step:last-child{border-right:0}
+  .step .n{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid rgba(255,106,69,.3);border-radius:6px;
+    padding:2px 7px;display:inline-block;margin-bottom:16px;
+  }
+  .step h3{margin:0 0 9px;font-size:1.02rem;letter-spacing:-.015em}
+  .step p{margin:0 0 14px;color:var(--muted);font-size:14.4px}
+  .step pre{font-size:12.2px;color:#9FAABB}
+
+  /* ---------- contrast ---------- */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .box{border:1px solid var(--line);border-radius:var(--r);padding:28px}
+  .box.alt{background:rgba(255,106,69,.035);border-color:rgba(255,106,69,.22)}
+  .box h3{margin:0 0 18px;font-size:.95rem;font-family:var(--mono);font-weight:500;letter-spacing:.02em}
+  .box.alt h3{color:var(--accent)}
+  .box ul{margin:0;padding:0;list-style:none}
+  .box li{
+    position:relative;padding-left:26px;margin-bottom:12px;
+    color:var(--muted);font-size:14.8px;
+  }
+  .box li:last-child{margin-bottom:0}
+  .box li::before{
+    content:"—";position:absolute;left:0;top:0;color:var(--muted-2);font-family:var(--mono);
+  }
+  .box.alt li{color:#CBD4E1}
+  .box.alt li::before{content:"✓";color:var(--accent)}
+
+  /* ---------- cta ---------- */
+  .cta{
+    border:1px solid var(--line);border-radius:18px;
+    padding:60px 40px;text-align:center;
+    background:
+      radial-gradient(700px 300px at 50% 0%, rgba(255,106,69,.1), transparent 72%),
+      linear-gradient(180deg,var(--surface),rgba(11,15,22,.5));
+  }
+  .cta h2{margin-bottom:14px}
+  .cta .lead{margin:0 auto 30px}
+  .inst-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    max-width:720px;margin:0 auto;text-align:left;
+  }
+  .inst{
+    border:1px solid var(--line);border-radius:10px;
+    background:rgba(0,0,0,.3);padding:13px 15px;
+  }
+  .inst span{display:block;font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-bottom:6px}
+  .inst code{font-family:var(--mono);font-size:12.8px;color:#DCE3EE;white-space:nowrap}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);margin-top:96px;padding:46px 0 56px;position:relative;z-index:1}
+  .foot{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
+  .foot-note{max-width:40ch;color:var(--muted-2);font-size:13.6px;margin:14px 0 0}
+  .foot-cols{display:flex;gap:56px;margin-left:auto;flex-wrap:wrap}
+  .fcol h4{
+    margin:0 0 12px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted-2);font-family:var(--mono);font-weight:500;
+  }
+  .fcol a{display:block;color:var(--muted);font-size:14px;margin-bottom:8px;transition:color .15s}
+  .fcol a:hover{color:var(--text)}
+  .legal{
+    margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    font-size:13px;color:var(--muted-2);font-family:var(--mono);
+  }
+
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.2,.7,.3,1),transform .6s cubic-bezier(.2,.7,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:920px){
+    .cards,.steps,.split,.inst-grid,.strip-in{grid-template-columns:1fr 1fr}
+    .step{border-bottom:1px solid var(--line)}
+    .step:nth-child(2){border-right:0}
+    .step:last-child{grid-column:1/-1;border-bottom:0}
+  }
+  @media (max-width:720px){
+    body{font-size:16px}
+    .nav-links a:not(.ghost){display:none}
+    .hero{padding-top:58px}
+    .sec{padding:70px 0}
+    .cards,.steps,.split,.inst-grid,.strip-in{grid-template-columns:1fr}
+    .step,.step:nth-child(2){border-right:0;border-bottom:1px solid var(--line)}
+    .term-title{display:none}
+    .tabs{margin-left:0;overflow-x:auto}
+    .panel{padding:16px 0 18px 14px}
+    pre{font-size:11.4px}
+    .cta{padding:44px 22px}
+    .foot-cols{gap:34px;margin-left:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top" aria-label="Tern home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M1.5 13.5C5 5.5 8.5 5.5 12 12.5c3.5-7 7-7 10.5 1"/>
+      </svg>
+      Tern
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="#docs">Docs</a>
+      <a class="ghost" href="#repo">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52.01-.53.65-.01 1.11.6 1.27.85.74 1.24 1.92.89 2.39.68.07-.53.29-.9.51-1.11-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.07-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a4.1 4.1 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.28.24.53.71.53 1.44 0 1.04-.01 1.88-.01 2.14 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+        <span style="color:var(--muted-2);font-family:var(--mono);font-size:12px">11.4k</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <span class="pill"><b>v0.9.4</b> Postgres · MySQL · SQLite</span>
+    <h1>Find the query that's <em>eating your p99</em>.</h1>
+    <p class="sub">
+      Tern reads your database's own statistics tables, ranks every statement by the time it
+      actually burned, and hands you the index that fixes it.
+      <strong>One binary. No agent, no sampling, no dashboard to log into.</strong>
+    </p>
+
+    <div class="install">
+      <div class="cmd">
+        <span class="p">$</span><code id="install-cmd">brew install tern</code>
+        <button class="copy" id="copy-btn" data-copy="brew install tern">copy</button>
+      </div>
+      <a class="btn" href="#install">Get started
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5"/></svg>
+      </a>
+    </div>
+    <p class="fine">MIT licensed · 8.3 MB static binary · macOS, Linux, Windows (arm64 + x86_64)</p>
+
+    <!-- terminal -->
+    <div class="term-shell">
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot a"></span><span class="dot"></span><span class="dot"></span>
+          <span class="term-title">~/src/api — tern</span>
+          <div class="tabs" role="tablist" aria-label="Tern commands">
+            <button class="tab" role="tab" aria-selected="true" aria-controls="p-scan" id="t-scan">scan</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p-explain" id="t-explain">explain</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p-watch" id="t-watch">watch</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p-ci" id="t-ci">ci</button>
+          </div>
+        </div>
+
+        <div class="panel on" id="p-scan" role="tabpanel" aria-labelledby="t-scan">
+<pre><span class="c-p">$</span> <span class="c-cmd">tern scan --db $DATABASE_URL --window 14d</span>
+
+  <span class="c-hi">tern 0.9.4</span>  <span class="c-dim">·</span>  postgres 16.2  <span class="c-dim">·</span>  api_production  <span class="c-dim">·</span>  read-only role
+  reading <span class="c-key">pg_stat_statements</span> <span class="c-dim">.........</span> <span class="c-num">2,418</span> statements in <span class="c-num">1.2s</span>
+
+  <span class="c-dim">  #  TOTAL TIME      SHARE   CALLS    MEAN      P95     STATEMENT</span>
+  <span class="c-rule">─────────────────────────────────────────────────────────────────────────────────────</span>
+  <span class="c-bad">  1  4h 12m 08s      31.4%   1.21M   12.4ms   48.9ms</span>   SELECT * FROM orders WHERE user_id = $1 …
+  <span class="c-bad">  2  2h 51m 44s      21.3%   18.4K    558ms    2.14s</span>   SELECT count(*) FROM events WHERE created_at &gt; $1
+  <span class="c-warn">  3  1h 09m 12s       8.6%    402K   10.3ms   31.0ms</span>   UPDATE sessions SET last_seen_at = now() WHERE …
+  <span class="c-dim">  4     48m 03s       6.0%   2.10M   1.37ms    4.2ms   SELECT 1 FROM users WHERE email = lower($1)</span>
+  <span class="c-dim">  5     22m 51s       2.8%   91.0K   15.0ms   62.4ms   INSERT INTO audit_log (actor_id, action, …)</span>
+
+  <span class="c-bad">2 critical</span>  <span class="c-warn">1 warning</span>  <span class="c-dim">2,415 fine</span>      <span class="c-dim">→ run</span> <span class="c-key">tern explain 1</span> <span class="c-dim">for the plan and the fix</span>
+  <span class="cur" aria-hidden="true"></span></pre>
+        </div>
+
+        <div class="panel" id="p-explain" role="tabpanel" aria-labelledby="t-explain">
+<pre><span class="c-p">$</span> <span class="c-cmd">tern explain 1</span>
+
+  <span class="c-hi">SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20;</span>
+  <span class="c-dim">fingerprint 9f3c21a · 1.21M calls / 14d · 31.4% of all database time</span>
+
+  <span class="c-bad">Seq Scan on orders</span>  <span class="c-dim">(rows=8,412,990  actual=8,412,990  loops=1)</span>
+    <span class="c-dim">├─</span> filter   <span class="c-key">(user_id = $1)</span>  <span class="c-dim">→</span> <span class="c-bad">removed 8,412,970 rows</span>
+    <span class="c-dim">├─</span> buffers  shared hit=<span class="c-num">1,204</span>  read=<span class="c-num">742,118</span>   <span class="c-bad">← 5.6 GB off disk</span>
+    <span class="c-dim">└─</span> <span class="c-warn">Sort</span>  <span class="c-dim">(top-N heapsort · memory 27kB)</span>
+
+  <span class="c-bad">critical</span>  sequential scan returns <span class="c-num">0.0002%</span> of the rows it reads
+  <span class="c-bad">critical</span>  <span class="c-num">99.8%</span> of buffer accesses are cold reads
+  <span class="c-warn">warning </span>  no index covers <span class="c-key">(user_id)</span> on a table of 8.4M rows
+
+  <span class="c-ok">fix</span>
+    <span class="c-key">CREATE INDEX CONCURRENTLY</span> idx_orders_user_id_created_at
+      <span class="c-key">ON</span> orders (user_id, created_at <span class="c-key">DESC</span>);
+
+    mean     <span class="c-bad">12.4ms</span> <span class="c-dim">→</span> <span class="c-ok">0.31ms</span>   <span class="c-ok">(−97.5%)</span>
+    saves    <span class="c-hi">4h 02m</span> of database time per day
+    costs    ~<span class="c-num">412 MB</span> on disk, <span class="c-num">~90s</span> to build without locking writes
+
+  <span class="c-dim">apply it with</span> <span class="c-key">tern apply 1</span> <span class="c-dim">or copy the statement above.</span>
+  <span class="cur" aria-hidden="true"></span></pre>
+        </div>
+
+        <div class="panel" id="p-watch" role="tabpanel" aria-labelledby="t-watch">
+<pre><span class="c-p">$</span> <span class="c-cmd">tern watch --top 5</span>
+
+  <span class="c-hi">live</span> <span class="c-dim">·</span> 1s refresh <span class="c-dim">·</span> ctrl-c to stop                        <span class="c-dim">12:04:51 UTC</span>
+
+  <span class="c-dim">  STATEMENT                      QPS       MEAN      P99     LAST 60s</span>
+  <span class="c-rule">──────────────────────────────────────────────────────────────────────────</span>
+    orders.by_user              <span class="c-num">1,402</span>    <span class="c-warn">12.4ms</span>   48.9ms   <span class="c-warn">▂▃▂▃▅▇▆▅▃▂▃▂</span>
+    users.by_email              <span class="c-num">2,910</span>     <span class="c-ok">1.37ms</span>    4.2ms   <span class="c-ok">▁▁▂▁▁▁▂▁▁▂▁▁</span>
+    events.count_since             <span class="c-num">14</span>     <span class="c-bad">558ms</span>    2.14s   <span class="c-bad">▃▄▅▆▇█▇█▇▆▇█</span>  <span class="c-bad">← rising</span>
+    sessions.touch                <span class="c-num">460</span>    <span class="c-warn">10.3ms</span>   31.0ms   <span class="c-dim">▂▂▃▂▂▃▂▂▂▃▂▂</span>
+    audit_log.insert              <span class="c-num">105</span>    <span class="c-warn">15.0ms</span>   62.4ms   <span class="c-dim">▂▁▂▂▃▂▁▂▂▁▂▂</span>
+
+  <span class="c-rule">──────────────────────────────────────────────────────────────────────────</span>
+    connections  <span class="c-num">74</span>/100      waiting on lock  <span class="c-num">2</span>      cache hit  <span class="c-ok">98.1%</span>
+  <span class="c-dim">    [t] trace  [e] explain  [p] pause  [/] filter</span>
+  <span class="cur" aria-hidden="true"></span></pre>
+        </div>
+
+        <div class="panel" id="p-ci" role="tabpanel" aria-labelledby="t-ci">
+<pre><span class="c-p">$</span> <span class="c-cmd">tern ci --budget tern.toml</span>
+
+  comparing <span class="c-hi">HEAD</span> against baseline <span class="c-key">main@a41c9f2</span>
+
+  <span class="c-ok">✓</span> <span class="c-num">2,418</span> statements fingerprinted
+  <span class="c-ok">✓</span> no new sequential scans on tables &gt; 100k rows
+  <span class="c-ok">✓</span> no new N+1 patterns detected <span class="c-dim">(27 call sites checked)</span>
+  <span class="c-bad">✗</span> <span class="c-hi">orders.by_user_v2</span>   mean <span class="c-bad">48.2ms</span>   budget <span class="c-num">20.0ms</span>   <span class="c-bad">(+141%)</span>
+
+      <span class="c-dim">introduced at</span> app/repositories/orders.rb:88
+      <span class="c-dim">plan regressed:</span> Index Scan <span class="c-dim">→</span> <span class="c-bad">Bitmap Heap Scan + Filter</span>
+      <span class="c-dim">hint: the new ORDER BY no longer matches idx_orders_user_id</span>
+
+  <span class="c-bad">1 budget violation</span> <span class="c-dim">—</span> exiting <span class="c-num">1</span>
+  <span class="c-dim">annotated the pull request · full report at ./tern-report.html</span>
+  <span class="cur" aria-hidden="true"></span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STRIP ============ -->
+<div class="strip">
+  <div class="wrap">
+    <div class="strip-in">
+      <div class="stat"><b>8.3 MB</b><span>Single static binary, zero runtime deps</span></div>
+      <div class="stat"><b>1.2s</b><span>To rank 2,400 statements on a cold start</span></div>
+      <div class="stat"><b>0</b><span>Rows of your data ever read or stored</span></div>
+      <div class="stat"><b>12 → 17</b><span>Postgres versions supported, plus MySQL 8 &amp; SQLite</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FEATURES ============ -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="eyebrow">What it does</p>
+      <h2>Your database already knows. Tern just asks.</h2>
+      <p class="lead">
+        Every mature database keeps precise timing for every statement it has executed. Tern
+        reads those tables directly — no proxy in the hot path, no sampling error, no mystery traces.
+      </p>
+    </div>
+
+    <div class="cards reveal">
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.66 3.58 3 8 3s8-1.34 8-3v-13M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></div>
+        <h3>Reads the source of truth</h3>
+        <p><code>pg_stat_statements</code>, MySQL's <code>performance_schema</code>, SQLite's query log. Exact totals, not a 1% sample you have to squint at.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg></div>
+        <h3>Normalized fingerprints</h3>
+        <p>1.2 million calls with different literals collapse into one ranked statement, so the real cost finally shows up where you can see it.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4v7a3 3 0 0 0 3 3h5M12 14l-3-3m3 3-3 3M14 20h6M14 20l3-3m-3 3 3 3" transform="translate(0,-3)"/></svg></div>
+        <h3>Plans, annotated</h3>
+        <p>Runs <code>EXPLAIN (ANALYZE, BUFFERS)</code> and flags what matters: seq scans, estimates off by 1000×, sorts spilling to disk, lossy bitmap heaps.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div>
+        <h3>Fixes you can paste</h3>
+        <p>Index suggestions come with the column order, the <code>CONCURRENTLY</code> keyword, the disk cost, and an honest before/after estimate.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>Safe by construction</h3>
+        <p>A read-only role is all it needs. Tern never reads your table data, and <code>--dry-run</code> is the default for anything that writes.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6m6 12 6-6-6-6"/></svg></div>
+        <h3>Fails the build, not your users</h3>
+        <p><code>tern ci</code> diffs plans against your baseline branch and exits non-zero when a new query blows its latency budget.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section class="sec" id="how" style="padding-top:0">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="eyebrow">How it works</p>
+      <h2>Three commands, start to fixed.</h2>
+      <p class="lead">No instrumentation to add, no SDK to import, nothing to deploy. Point it at a connection string.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <span class="n">01</span>
+        <h3>Connect</h3>
+        <p>Any URL your client accepts. A read-only role with <code>pg_monitor</code> is enough.</p>
+<pre><span class="c-p">$</span> <span class="c-cmd">tern init</span>
+<span class="c-dim">  ✓ wrote tern.toml
+  ✓ pg_stat_statements: ready</span></pre>
+      </div>
+      <div class="step">
+        <span class="n">02</span>
+        <h3>Rank</h3>
+        <p>Sorted by total time burned — the only ranking that maps to your bill and your p99.</p>
+<pre><span class="c-p">$</span> <span class="c-cmd">tern scan</span>
+<span class="c-dim">  2,418 statements
+  </span><span class="c-bad">2 critical</span><span class="c-dim">, </span><span class="c-warn">1 warning</span></pre>
+      </div>
+      <div class="step">
+        <span class="n">03</span>
+        <h3>Fix</h3>
+        <p>Get the plan, the diagnosis, and the exact DDL. Then keep it fixed in CI.</p>
+<pre><span class="c-p">$</span> <span class="c-cmd">tern explain 1</span>
+<span class="c-dim">  </span><span class="c-ok">12.4ms → 0.31ms</span>
+<span class="c-dim">  saves 4h 02m / day</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTRAST ============ -->
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="eyebrow">Why another tool</p>
+      <h2>You don't have an observability problem.<br>You have one bad query.</h2>
+      <p class="lead">
+        Most of the time you don't need distributed tracing and a retention plan. You need to know
+        which statement is burning the database, and what to do about it, before lunch.
+      </p>
+    </div>
+    <div class="split reveal">
+      <div class="box">
+        <h3>The usual route</h3>
+        <ul>
+          <li>Deploy an agent, wait for data to accumulate</li>
+          <li>Learn a query language to ask "what's slow"</li>
+          <li>Sampled traces that miss the 2am spike entirely</li>
+          <li>A dashboard that shows latency but never the plan</li>
+          <li>Per-host pricing that scales with your problem</li>
+          <li>Findings that live in a tab nobody reopens</li>
+        </ul>
+      </div>
+      <div class="box alt">
+        <h3>With Tern</h3>
+        <ul>
+          <li>One binary, one connection string, answers in 1.2s</li>
+          <li>Ranked list in your terminal, highest cost first</li>
+          <li>Exact totals from the database's own counters</li>
+          <li>The annotated plan and the index, side by side</li>
+          <li>MIT licensed, runs on your laptop or in CI</li>
+          <li>Output is diffable text — commit it, review it</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INSTALL / CTA ============ -->
+<section class="sec" id="install" style="padding-top:0">
+  <div class="wrap">
+    <div class="cta reveal">
+      <h2>Find your slowest query in the next five minutes.</h2>
+      <p class="lead">Install, point it at a database, read the list. There is no step four.</p>
+      <div class="inst-grid">
+        <div class="inst"><span>macOS / Linux</span><code>brew install tern</code></div>
+        <div class="inst"><span>Cargo</span><code>cargo install tern-cli</code></div>
+        <div class="inst"><span>Script</span><code>curl -sSf tern.sh | sh</code></div>
+      </div>
+      <div class="install" style="margin:28px 0 0">
+        <a class="btn" href="#docs">Read the docs
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5"/></svg>
+        </a>
+        <a class="ghost" href="#repo" style="height:48px;padding:0 20px;border-radius:11px;font-size:15px">Browse the source</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="#top">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M1.5 13.5C5 5.5 8.5 5.5 12 12.5c3.5-7 7-7 10.5 1"/>
+          </svg>
+          Tern
+        </a>
+        <p class="foot-note">
+          Named after the Arctic tern, which migrates 70,000 km a year
+          and has never once stopped to build a dashboard.
+        </p>
+      </div>
+      <div class="foot-cols">
+        <div class="fcol" id="docs">
+          <h4>Docs</h4>
+          <a href="#docs">Quickstart</a>
+          <a href="#docs">Command reference</a>
+          <a href="#docs">Budgets &amp; CI</a>
+          <a href="#docs">Supported engines</a>
+        </div>
+        <div class="fcol" id="repo">
+          <h4>Project</h4>
+          <a href="#repo">GitHub</a>
+          <a href="#repo">Changelog</a>
+          <a href="#repo">Roadmap</a>
+          <a href="#repo">Contributing</a>
+        </div>
+        <div class="fcol">
+          <h4>More</h4>
+          <a href="#">Benchmarks</a>
+          <a href="#">Security</a>
+          <a href="#">Discussions</a>
+          <a href="#">Status</a>
+        </div>
+      </div>
+    </div>
+    <div class="legal">
+      <span>MIT licensed · built in Rust</span>
+      <span>tern 0.9.4 · 2026</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* tabs */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function select(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(t.getAttribute('aria-controls')).classList.toggle('on', on);
+    });
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(){ select(t); });
+    t.addEventListener('keydown', function(e){
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if(!d) return;
+      e.preventDefault();
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      n.focus(); select(n);
+    });
+  });
+
+  /* copy */
+  var btn = document.getElementById('copy-btn');
+  btn.addEventListener('click', function(){
+    var text = btn.getAttribute('data-copy');
+    var done = function(){
+      btn.textContent = 'copied';
+      btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = 'copy'; btn.classList.remove('done'); }, 1600);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, function(){});
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+
+  /* reveal on scroll */
+  var els = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    els.forEach(function(el){ io.observe(el); });
+  } else {
+    els.forEach(function(el){ el.classList.add('in'); });
+  }
+</script>
+</body>
+</html>

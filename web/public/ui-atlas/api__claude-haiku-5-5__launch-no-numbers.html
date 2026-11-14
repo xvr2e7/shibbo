@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally Hall: Bookkeeping for Freelancers</title>
+<meta name="description" content="Tally Hall is simple bookkeeping for freelancers. Track income, log expenses, and get tax-ready records without an accountant's spreadsheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c2233;
+    --ink-soft: #4a5268;
+    --muted: #7a8196;
+    --paper: #fbfaf7;
+    --card: #ffffff;
+    --line: #e7e4dc;
+    --accent: #e0643a;
+    --accent-dark: #c4502a;
+    --accent-soft: #fdeee8;
+    --green: #2f8f6b;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .container { width: min(1120px, 92%); margin: 0 auto; }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(251, 250, 247, 0.9);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 66px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; text-decoration: none; letter-spacing: -0.01em; }
+  .logo svg { width: 28px; height: 28px; }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a { text-decoration: none; color: var(--ink-soft); font-size: 0.95rem; font-weight: 500; }
+  .nav-links a:hover { color: var(--ink); }
+
+  /* Buttons */
+  .btn {
+    display: inline-block; border: none; cursor: pointer;
+    background: var(--accent); color: #fff;
+    padding: 12px 22px; border-radius: 10px;
+    font: inherit; font-weight: 600; font-size: 0.97rem;
+    text-decoration: none; transition: background 0.15s, transform 0.1s;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { background: #f1efe9; }
+  .btn-sm { padding: 9px 16px; font-size: 0.9rem; }
+
+  /* Badge */
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-soft); color: var(--accent-dark);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 0.82rem; font-weight: 600;
+  }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+  /* Hero */
+  .hero { padding: 88px 0 72px; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center;
+  }
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 3.7rem);
+    line-height: 1.07; letter-spacing: -0.03em; font-weight: 800;
+    margin: 20px 0 20px;
+  }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 1.18rem; color: var(--ink-soft); max-width: 34em; }
+  .hero-ctas { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+  .hero-note { margin-top: 18px; font-size: 0.9rem; color: var(--muted); }
+
+  /* Mock dashboard */
+  .mock {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 30px 60px -20px rgba(28, 34, 51, 0.18), 0 2px 6px rgba(28,34,51,0.05);
+    padding: 22px;
+  }
+  .mock-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .mock-top strong { font-size: 0.95rem; }
+  .mock-tag { font-size: 0.72rem; color: var(--muted); background: #f3f1ec; padding: 4px 8px; border-radius: 6px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: #f7f6f2; border-radius: 10px; padding: 12px; }
+  .stat small { display: block; color: var(--muted); font-size: 0.74rem; margin-bottom: 4px; }
+  .stat b { font-size: 1.1rem; letter-spacing: -0.01em; }
+  .up { color: var(--green); }
+  .down { color: var(--accent-dark); }
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding: 6px 4px 0; margin-bottom: 16px; }
+  .chart div { flex: 1; background: linear-gradient(180deg, #f3a58a, var(--accent)); border-radius: 6px 6px 2px 2px; }
+  .chart div.alt { background: linear-gradient(180deg, #b8c0d4, #8c96ae); }
+  .tx { border-top: 1px solid var(--line); }
+  .tx-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-row span:first-child { color: var(--ink-soft); }
+  .tx-row .amt { font-weight: 600; }
+
+  /* Sections */
+  section { padding: 84px 0; }
+  .section-head { max-width: 640px; margin-bottom: 52px; }
+  .eyebrow { color: var(--accent-dark); font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  h2 { font-size: clamp(1.8rem, 3.4vw, 2.5rem); letter-spacing: -0.025em; line-height: 1.15; margin: 12px 0 14px; font-weight: 800; }
+  .section-head p { color: var(--ink-soft); font-size: 1.05rem; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 28px;
+  }
+  .icon {
+    width: 44px; height: 44px; border-radius: 11px;
+    background: var(--accent-soft); color: var(--accent-dark);
+    display: grid; place-items: center; margin-bottom: 18px;
+  }
+  .icon svg { width: 22px; height: 22px; }
+  .feature h3 { font-size: 1.12rem; margin-bottom: 8px; letter-spacing: -0.01em; }
+  .feature p { color: var(--ink-soft); font-size: 0.97rem; }
+
+  /* How it works */
+  .steps-wrap { background: var(--ink); color: #f3f1ec; border-radius: 22px; padding: 64px 48px; }
+  .steps-wrap .eyebrow { color: #f3a58a; }
+  .steps-wrap h2 { color: #fff; }
+  .steps-wrap .section-head p { color: #b9bfd0; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; counter-reset: step; }
+  .step { position: relative; padding-top: 16px; border-top: 1px solid #343b52; }
+  .step-num {
+    font-size: 0.85rem; font-weight: 700; color: #f3a58a;
+    margin-bottom: 10px; letter-spacing: 0.05em;
+  }
+  .step h3 { font-size: 1.15rem; margin-bottom: 8px; color: #fff; }
+  .step p { color: #b9bfd0; font-size: 0.96rem; }
+
+  /* Honesty / launch section */
+  .launch { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 56px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .launch ul { list-style: none; display: grid; gap: 14px; }
+  .launch li { display: flex; gap: 12px; color: var(--ink-soft); }
+  .check {
+    flex: 0 0 22px; height: 22px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; margin-top: 2px;
+  }
+
+  /* FAQ */
+  .faq { max-width: 760px; }
+  details { border-bottom: 1px solid var(--line); padding: 20px 0; }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary {
+    cursor: pointer; font-weight: 600; font-size: 1.05rem; list-style: none;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-size: 1.4rem; color: var(--muted); font-weight: 400; transition: transform 0.2s; }
+  details[open] summary::after { content: "−"; }
+  details p { color: var(--ink-soft); margin-top: 12px; font-size: 0.98rem; }
+
+  /* Final CTA */
+  .cta { text-align: center; padding: 96px 0; }
+  .cta h2 { margin-top: 0; }
+  .cta p { color: var(--ink-soft); font-size: 1.1rem; max-width: 520px; margin: 0 auto 32px; }
+  .signup { display: flex; gap: 10px; justify-content: center; max-width: 480px; margin: 0 auto; flex-wrap: wrap; }
+  .signup input {
+    flex: 1 1 260px; padding: 13px 16px; border-radius: 10px;
+    border: 1px solid #d6d2c7; font: inherit; font-size: 0.97rem; background: #fff; color: var(--ink);
+  }
+  .signup input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .signup-msg { margin-top: 14px; font-size: 0.95rem; min-height: 1.5em; color: var(--green); font-weight: 500; }
+  .fine { margin-top: 12px; font-size: 0.85rem; color: var(--muted); }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--line); padding: 36px 0; color: var(--muted); font-size: 0.9rem; }
+  .foot-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .foot-links { display: flex; gap: 22px; }
+  .foot-links a { text-decoration: none; color: var(--muted); }
+  .foot-links a:hover { color: var(--ink); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .hero-grid, .launch { grid-template-columns: 1fr; }
+    .features, .steps { grid-template-columns: 1fr; }
+    .steps-wrap, .launch { padding: 40px 28px; }
+    .nav-links a:not(.btn) { display: none; }
+    .hero { padding: 56px 0 48px; }
+    section { padding: 64px 0; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo" aria-label="Tally Hall home">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#1c2233"/>
+        <path d="M8 9v14M13 9v14M18 9v14M23 8l-8 16" stroke="#e0643a" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      Tally Hall
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+      <a href="#signup" class="btn btn-sm">Get early access</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="badge"><span class="dot"></span> Just launched. Early access is open.</span>
+      <h1>Bookkeeping that <span>doesn't</span> eat your Sunday.</h1>
+      <p class="lead">Tally Hall keeps your income, expenses, and tax records in one place, built for freelancers who would rather be doing the work than chasing receipts.</p>
+      <div class="hero-ctas">
+        <a href="#signup" class="btn">Get early access</a>
+        <a href="#how" class="btn btn-ghost">See how it works</a>
+      </div>
+      <p class="hero-note">No credit card required to join the waitlist.</p>
+    </div>
+
+    <div class="mock" aria-label="Sample dashboard preview">
+      <div class="mock-top">
+        <strong>This quarter</strong>
+        <span class="mock-tag">Sample data</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Income</small><b class="up">$8,420</b></div>
+        <div class="stat"><small>Expenses</small><b class="down">$1,236</b></div>
+        <div class="stat"><small>Set aside for tax</small><b>$1,890</b></div>
+      </div>
+      <div class="chart" aria-hidden="true">
+        <div style="height:45%"></div>
+        <div style="height:62%"></div>
+        <div class="alt" style="height:38%"></div>
+        <div style="height:78%"></div>
+        <div style="height:56%"></div>
+        <div style="height:88%"></div>
+        <div class="alt" style="height:50%"></div>
+        <div style="height:70%"></div>
+      </div>
+      <div class="tx">
+        <div class="tx-row"><span>Invoice #1042 · Northwind Studio</span><span class="amt up">+$2,400</span></div>
+        <div class="tx-row"><span>Adobe Creative Cloud</span><span class="amt">−$59.99</span></div>
+        <div class="tx-row"><span>Invoice #1043 · Ferris Bakery</span><span class="amt up">+$850</span></div>
+        <div class="tx-row"><span>Coworking desk, March</span><span class="amt">−$220</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Features</div>
+      <h2>Everything you need, nothing you don't.</h2>
+      <p>Tally Hall is intentionally small. It does the bookkeeping most freelancers actually need and skips the rest.</p>
+    </div>
+    <div class="features">
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16"/><path d="M4 20h10"/></svg>
+        </div>
+        <h3>Track income by client</h3>
+        <p>Log payments as they arrive and see exactly who paid what, and when, across every project.</p>
+      </article>
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>
+        </div>
+        <h3>Log expenses in seconds</h3>
+        <p>Snap a receipt or type an amount. Categories are suggested so you can move on with your day.</p>
+      </article>
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3>Know what to set aside</h3>
+        <p>A running estimate of what you owe for taxes, so quarterly payments never catch you off guard.</p>
+      </article>
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+        </div>
+        <h3>Tax-ready exports</h3>
+        <p>Download clean CSV or PDF summaries organized by category, ready to hand to your accountant.</p>
+      </article>
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Invoices that match your books</h3>
+        <p>Send invoices from Tally Hall and every paid one is recorded automatically. No double entry.</p>
+      </article>
+      <article class="feature">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <h3>Your data stays yours</h3>
+        <p>Export everything at any time. We won't sell your financial data, and we won't make you guess what we do with it.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="padding-top:0;">
+  <div class="container">
+    <div class="steps-wrap">
+      <div class="section-head">
+        <div class="eyebrow">How it works</div>
+        <h2>Set up in an afternoon. Maintain in minutes a week.</h2>
+        <p>Tally Hall is designed around how freelancers actually earn and spend money.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01 — CONNECT</div>
+          <h3>Add your accounts</h3>
+          <p>Link the bank accounts and cards you use for business. Set your tax region and filing schedule once.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02 — CATEGORIZE</div>
+          <h3>Review, don't retype</h3>
+          <p>Transactions arrive pre-sorted. Confirm the few that need attention and teach Tally Hall the rest.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03 — FILE</div>
+          <h3>Export when it's time</h3>
+          <p>At tax time, generate a clean summary by category and hand it off. Done before your coffee cools.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="launch">
+      <div>
+        <div class="eyebrow">Early access</div>
+        <h2>We're brand new, and we'd like you to help shape it.</h2>
+        <p style="color:var(--ink-soft);font-size:1.05rem;">Tally Hall launched last week. We don't have a long list of customers or reviews yet, and we won't pretend otherwise. What we do have is a small team that reads every piece of feedback and ships fixes quickly.</p>
+      </div>
+      <ul>
+        <li><span class="check">✓</span> Direct line to the founders for questions and feature requests</li>
+        <li><span class="check">✓</span> Early users help decide what we build next</li>
+        <li><span class="check">✓</span> Honest changelog published as we ship</li>
+        <li><span class="check">✓</span> Full data export at any time, no lock-in</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="padding-top:0;">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">FAQ</div>
+      <h2>Common questions</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Is Tally Hall a replacement for an accountant?</summary>
+        <p>No. Tally Hall organizes your books and prepares clean records and summaries. For complex situations, such as multi-state filing, payroll, or large deductions, we recommend working with a qualified accountant. Our exports are designed to make that work faster and cheaper.</p>
+      </details>
+      <details>
+        <summary>Who is it for?</summary>
+        <p>Freelancers, contractors, and solo operators who invoice clients and track business expenses. If you have a sole proprietorship, a single-member LLC, or a side business, it should fit well.</p>
+      </details>
+      <details>
+        <summary>Can I export my data if I leave?</summary>
+        <p>Yes. You can export all of your transactions, invoices, and categories as CSV at any time, whether or not you stay subscribed.</p>
+      </details>
+      <details>
+        <summary>Which banks and countries are supported?</summary>
+        <p>We're starting with US-based bank connections and expanding from there. Early access members will be the first to hear about new regions. If your bank isn't supported yet, you can always import a CSV statement.</p>
+      </details>
+      <details>
+        <summary>What does it cost?</summary>
+        <p>Pricing will be finalized before general availability. Early access members will be told about pricing ahead of any charges, and nothing is billed while you're on the waitlist.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="signup">
+  <div class="container">
+    <h2>Get your books in order before the next quarter.</h2>
+    <p>Join the early access list and we'll send your invite as soon as your spot opens.</p>
+    <form class="signup" id="signupForm" novalidate>
+      <input type="email" id="email" placeholder="you@yourbusiness.com" aria-label="Email address" required>
+      <button type="submit" class="btn">Request access</button>
+    </form>
+    <div class="signup-msg" id="signupMsg" role="status" aria-live="polite"></div>
+    <p class="fine">We'll only email you about your access and product updates. Unsubscribe anytime.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="container foot-inner">
+    <div class="logo" style="font-size:1rem;color:var(--ink);">
+      <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#1c2233"/>
+        <path d="M8 9v14M13 9v14M18 9v14M23 8l-8 16" stroke="#e0643a" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      Tally Hall
+    </div>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+      <a href="mailto:hello@tallyhall.example">Contact</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+    <div>© 2025 Tally Hall. Not tax or legal advice.</div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var form = document.getElementById('signupForm');
+    var input = document.getElementById('email');
+    var msg = document.getElementById('signupMsg');
+    var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var value = input.value.trim();
+      if (!emailPattern.test(value)) {
+        msg.style.color = 'var(--accent-dark)';
+        msg.textContent = 'Please enter a valid email address.';
+        input.focus();
+        return;
+      }
+      msg.style.color = 'var(--green)';
+      msg.textContent = "You're on the list. We'll be in touch soon.";
+      input.value = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

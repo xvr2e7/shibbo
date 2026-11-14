@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CANOPY — We Plant Trees in Cities | Urban Forest Nonprofit</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--dark:#122E22;--green:#1E6B45;--lime:#8FD14F;--lime2:#C6F16D;--cream:#FFF9EC;--sand:#F3EAD3;--orange:#FF7A3D;--pink:#FF6B9D}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:#1A2E22;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#EDE6D6}::-webkit-scrollbar-thumb{background:#1E6B45;border-radius:20px}
+
+/* NAV */
+.nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(1240px,calc(100% - 28px));z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,.06);border-radius:999px;padding:10px 12px 10px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 35px rgba(18,46,34,.12)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.02em}
+.logo-icon{width:42px;height:42px;background:var(--dark);color:var(--lime2);border-radius:50%;display:grid;place-items:center;font-size:22px}
+.logo b{font-family:'Fraunces',serif;font-size:24px;line-height:1}
+.logo span{display:block;font-family:'Inter';font-size:9px;letter-spacing:.22em;color:#6B7D70;font-weight:700}
+.links{display:flex;gap:28px;font-size:14px;font-weight:600}
+.links a:hover{color:var(--green)}
+.nav-actions{display:flex;gap:8px;align-items:center}
+.btn{border:none;border-radius:999px;padding:12px 22px;font-weight:800;font-size:14px;transition:.25s;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn-dark{background:var(--dark);color:#fff}.btn-dark:hover{background:var(--green);transform:translateY(-2px)}
+.btn-lime{background:var(--lime2);color:var(--dark);box-shadow:0 6px 0 #7CB342}.btn-lime:hover{transform:translateY(-2px);box-shadow:0 8px 0 #7CB342}
+.btn-lime:active{transform:translateY(4px);box-shadow:0 2px 0 #7CB342}
+.btn-white{background:#fff;color:var(--dark);border:1px solid #E5DDC8}
+.btn-orange{background:var(--orange);color:#fff;box-shadow:0 6px 0 #D94F16}
+.hamburger{display:none;background:#EEF5E8;border:none;width:42px;height:42px;border-radius:50%;font-size:20px}
+
+/* HERO */
+.hero{position:relative;margin:10px;border-radius:32px;overflow:hidden;background:var(--dark);color:#fff;min-height:96vh;display:flex;flex-direction:column}
+.hero-bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2000&auto=format&fit=crop') center/cover;opacity:.55}
+.hero-bg:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,46,34,.25),rgba(18,46,34,.15) 40%,rgba(18,46,34,.92)),linear-gradient(90deg,rgba(18,46,34,.85),transparent 65%)}
+#leaves{position:absolute;inset:0;z-index:2;pointer-events:none}
+.hero-content{position:relative;z-index:3;padding:150px 6vw 30px;max-width:820px}
+.pill{display:inline-flex;gap:8px;align-items:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(8px);padding:8px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.pill i{width:8px;height:8px;background:var(--lime2);border-radius:50%;display:block;box-shadow:0 0 0 5px rgba(198,241,109,.2)}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(56px,9vw,108px);line-height:.88;letter-spacing:-.03em;margin:22px 0 18px}
+.hero h1 em{font-style:normal;color:var(--lime2)}
+.hero h1 .hand{font-family:'Caveat',cursive;color:var(--orange);font-size:.62em;display:block;transform:rotate(-2deg);letter-spacing:0}
+.hero p.lead{font-size:19px;line-height:1.6;color:#E6F0E6;max-width:580px}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero-cta .big{padding:16px 26px;font-size:15px}
+.trust{display:flex;gap:18px;margin-top:22px;font-size:13px;color:#CDE8CD;flex-wrap:wrap}
+
+/* ticker + stats */
+.ticker{position:relative;z-index:3;margin-top:auto}
+.statsbar{margin:0 18px 14px;background:#fff;color:#14261C;border-radius:22px;padding:18px;display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:16px;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.stat b{font-family:'Fraunces';font-size:32px;line-height:1;display:block}
+.stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#77867A;font-weight:700}
+.stat-main{display:flex;gap:14px;align-items:center}
+.avatar-stack{display:flex}.avatar-stack img{width:42px;height:42px;border-radius:50%;border:3px solid #fff;object-fit:cover;margin-left:-10px}.avatar-stack img:first-child{margin:0}
+.marquee{background:var(--lime2);color:var(--dark);overflow:hidden;white-space:nowrap;padding:10px 0;font-weight:800;font-size:13px;letter-spacing:.06em}
+.marquee div{display:inline-block;animation:scroll 22s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* LAYOUT */
+.section{max-width:1240px;margin:0 auto;padding:80px 22px 10px}
+.label{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:800;color:var(--green);display:flex;align-items:center;gap:10px}
+.label:before{content:"";width:28px;height:2px;background:var(--green)}
+.title{font-family:'Fraunces';font-size:clamp(38px,5vw,58px);line-height:.95;letter-spacing:-.02em;margin:12px 0 14px}
+.title em{color:var(--green);font-style:normal}
+.sub{color:#5F7265;line-height:1.7;max-width:640px}
+
+/* PLANT BUILDER */
+.builder{margin-top:32px;background:var(--dark);border-radius:28px;overflow:hidden;display:grid;grid-template-columns:1.08fr .92fr;color:#fff;box-shadow:0 25px 60px rgba(18,46,34,.25)}
+.grove{padding:28px;position:relative;background:linear-gradient(180deg,#7EC8E3 0%,#BFE8C8 52%,#8BC47A 52.2%,#5FA85A 100%);min-height:520px;overflow:hidden}
+.skyline{position:absolute;left:0;right:0;bottom:31%;display:flex;align-items:flex-end;gap:6px;padding:0 18px;opacity:.95}
+.building{background:#2B4A3A;border-radius:6px 6px 0 0;position:relative}
+.building:after{content:"";position:absolute;inset:10px 8px;background:repeating-linear-gradient(0deg,transparent 0 10px,rgba(255,235,160,.85) 10px 16px);opacity:.7}
+.ground-label{position:absolute;top:18px;left:18px;background:rgba(255,255,255,.92);color:#173626;padding:10px 14px;border-radius:999px;font-weight:800;font-size:13px}
+.grove-scene{position:absolute;left:12px;right:12px;bottom:18px;height:46%;z-index:3}
+.planted{position:absolute;bottom:8px;transform-origin:bottom center;animation:grow .7s cubic-bezier(.34,1.56,.64,1);text-align:center;line-height:1;filter:drop-shadow(0 6px 6px rgba(0,0,0,.2))}
+@keyframes grow{from{transform:scale(0) translateY(20px);opacity:0}}
+.grove-footer{position:absolute;bottom:16px;left:18px;right:18px;z-index:5;display:flex;justify-content:space-between;align-items:center}
+.progress-wrap{background:rgba(255,255,255,.92);color:#173626;border-radius:16px;padding:12px 14px;flex:1;margin-right:12px}
+.progress{height:9px;background:#E2E8D8;border-radius:99px;overflow:hidden;margin-top:7px}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,#2E9E5B,#8FD14F);width:38%;transition:.6s}
+.controls{padding:34px 32px}
+.controls h3{font-family:'Fraunces';font-size:34px;line-height:1}
+.controls p{color:#C8DCC8;line-height:1.6;font-size:14px;margin:10px 0 22px}
+.control-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;margin-bottom:14px}
+.control-box label{font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-weight:800;color:#A8CBA8;display:flex;justify-content:space-between}
+.control-box label output{color:#fff;font-size:18px;letter-spacing:0}
+input[type=range]{width:100%;accent-color:var(--lime2);height:28px;cursor:pointer}
+.selects{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select{width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:#1C4532;color:#fff;font-weight:600;margin-top:8px}
+.impact-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0}
+.impact-card{background:#fff;color:#14261C;border-radius:16px;padding:14px;text-align:center}
+.impact-card b{font-family:'Fraunces';font-size:22px;display:block}
+.impact-card span{font-size:11px;color:#6B7D70;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.price-row{display:flex;justify-content:space-between;align-items:center;margin:16px 0}
+.price-row b{font-family:'Fraunces';font-size:36px}
+.toggle{display:flex;background:rgba(255,255,255,.1);border-radius:999px;padding:4px}
+.toggle button{border:none;background:transparent;color:#CDE8CD;padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px}
+.toggle button.active{background:var(--lime2);color:var(--dark)}
+
+/* SPECIES */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0 18px;align-items:center}
+.chip{border:1.5px solid #DAD2B8;background:#fff;padding:10px 16px;border-radius:999px;font-weight:700;font-size:13px}
+.chip.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.search{margin-left:auto;padding:12px 16px;border-radius:999px;border:1.5px solid #DAD2B8;background:#fff;min-width:220px;font-family:inherit}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:#fff;border:1px solid #EDE6D2;border-radius:22px;overflow:hidden;transition:.3s}
+.card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.1)}
+.card-top{height:150px;display:grid;place-items:center;font-size:72px;position:relative}
+.card-top span{position:absolute;top:12px;left:12px;background:#fff;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.card-body{padding:18px}
+.card-body h4{font-family:'Fraunces';font-size:21px}
+.card-body p{font-size:13px;line-height:1.6;color:#667A6A;margin:8px 0 12px;min-height:62px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.meta span{background:#EFF6E9;padding:6px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.card-body button{width:100%}
+
+/* MAP + CHART */
+.two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:28px}
+.panel{background:#fff;border:1px solid #EDE6D2;border-radius:24px;overflow:hidden}
+.panel-head{padding:20px 22px;display:flex;justify-content:space-between;align-items:center}
+.panel-head h3{font-family:'Fraunces';font-size:24px}
+#map{height:380px;z-index:1}
+.city-btns{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 18px}
+.city-btns button{padding:8px 12px;border-radius:999px;border:1px solid #ddd;background:#F7F3E6;font-weight:700;font-size:12px}
+.city-btns button:hover{background:var(--dark);color:#fff}
+.chart-wrap{padding:10px 20px 22px;height:360px}
+.legend{display:flex;gap:14px;padding:0 22px 18px;font-size:12px;color:#667A6A;flex-wrap:wrap}
+
+/* EVENTS */
+.events{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+.event{background:#fff;border-radius:22px;overflow:hidden;border:1px solid #EDE6D2}
+.event img{width:100%;height:180px;object-fit:cover}
+.event-body{padding:20px}
+.date-badge{display:inline-block;background:#FFF0E6;color:#C2410C;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.event h4{font-family:'Fraunces';font-size:22px;margin:10px 0 6px}
+.event p{font-size:13px;color:#667A6A;line-height:1.6}
+.slots{height:8px;background:#EEE8D6;border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.slots i{display:block;height:100%;background:var(--orange)}
+.event-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#667A6A}
+
+/* STORY + FAQ */
+.story{margin-top:28px;background:#FFE8B8;border-radius:28px;padding:34px;display:grid;grid-template-columns:.9fr 1.1fr;gap:28px;align-items:center;overflow:hidden}
+.story img{width:100%;height:340px;object-fit:cover;border-radius:20px;transform:rotate(-1.5deg);box-shadow:0 20px 40px rgba(0,0,0,.15)}
+.quote{font-family:'Fraunces';font-size:30px;line-height:1.15}
+.story-controls{display:flex;gap:8px;margin-top:20px}
+.story-controls button{width:44px;height:44px;border-radius:50%;border:none;background:#fff;font-size:18px;box-shadow:0 5px 15px rgba(0,0,0,.1)}
+.faq{max-width:820px;margin:26px auto 0}
+.faq-item{background:#fff;border:1px solid #EDE6D2;border-radius:16px;margin-bottom:10px;overflow:hidden}
+.faq-q{width:100%;background:none;border:none;text-align:left;padding:18px 20px;font-weight:800;display:flex;justify-content:space-between;font-size:15px}
+.faq-a{max-height:0;overflow:hidden;transition:.35s;padding:0 20px;color:#5F7265;line-height:1.7;font-size:14px}
+.faq-item.open .faq-a{max-height:180px;padding-bottom:18px}
+
+/* CTA / FOOTER */
+.cta{margin:70px 10px 10px;background:var(--green);border-radius:28px;padding:56px 6vw;color:#fff;text-align:center;position:relative;overflow:hidden}
+.cta h2{font-family:'Fraunces';font-size:clamp(36px,6vw,64px);line-height:.95}
+.cta p{opacity:.9;margin:14px auto;max-width:520px;line-height:1.6}
+.news{display:flex;gap:8px;max-width:520px;margin:22px auto 0}
+.news input{flex:1;padding:15px 18px;border-radius:999px;border:none;font-family:inherit}
+footer{max-width:1240px;margin:0 auto;padding:28px 22px 36px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:#6B7D70;font-size:13px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,120px);background:var(--dark);color:#fff;padding:14px 20px;border-radius:999px;font-weight:700;z-index:200;transition:.4s;box-shadow:0 15px 35px rgba(0,0,0,.25);font-size:14px}
+.toast.show{transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(10,25,16,.7);backdrop-filter:blur(6px);z-index:150;display:none;place-items:center;padding:18px}
+.modal.open{display:grid}
+.modal-box{background:#fff;border-radius:24px;padding:30px;max-width:440px;width:100%}
+.modal-box h3{font-family:'Fraunces';font-size:28px;margin-bottom:8px}
+.modal-box input,.modal-box select{width:100%;padding:13px;border:1.5px solid #E2DCC8;border-radius:12px;margin:8px 0;font-family:inherit}
+.reveal{opacity:0;transform:translateY(24px);transition:.7s}.reveal.visible{opacity:1;transform:none}
+
+@media(max-width:900px){.links{display:none}.hamburger{display:block}.statsbar{grid-template-columns:1fr 1fr}.builder,.two-col,.story{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.events{grid-template-columns:1fr}.search{margin:0;width:100%}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.impact-grid{grid-template-columns:1fr 1fr 1fr}.hero-content{padding-top:120px}.statsbar{margin:0 10px 10px}.grove{min-height:440px}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="#" class="logo"><span class="logo-icon">🌳</span><span style="margin:0"><b>CANOPY</b><span>PLANT • SHADE • THRIVE</span></span></a>
+  <div class="links"><a href="#plant">Plant a Tree</a><a href="#species">Species</a><a href="#map">Planting Map</a><a href="#events">Volunteer</a><a href="#stories">Stories</a></div>
+  <div class="nav-actions"><button class="btn btn-dark" onclick="scrollToId('plant')">Donate $25 →</button><button class="hamburger" onclick="toggleMenu()">☰</button></div>
+</nav>
+<div id="mobileMenu" style="display:none;position:fixed;top:82px;left:14px;right:14px;z-index:99;background:#fff;border-radius:20px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.15)">
+  <a href="#plant" style="display:block;padding:10px;font-weight:700">🌱 Plant a Tree</a><a href="#species" style="display:block;padding:10px;font-weight:700">🌿 Species Library</a><a href="#map" style="display:block;padding:10px;font-weight:700">📍 Planting Map</a><a href="#events" style="display:block;padding:10px;font-weight:700">🤝 Volunteer</a>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-bg"></div><canvas id="leaves"></canvas>
+  <div class="hero-content">
+    <div class="pill"><i></i> Nonprofit • 501(c)(3) • Est. 2016</div>
+    <h1>Cities need<br><em>more trees.</em><span class="hand">— so we plant them. ↓</span></h1>
+    <p class="lead">We turn hot sidewalks, empty lots &amp; schoolyards into shady, breathing forests — one neighborhood, one volunteer, one tree at a time.</p>
+    <div class="hero-cta">
+      <button class="btn btn-lime big" onclick="scrollToId('plant')">🌱 Plant a Tree — $25</button>
+      <button class="btn btn-white big" onclick="scrollToId('events')">Join a Planting Day →</button>
+    </div>
+    <div class="trust"><span>★★★★★ 4.9 from 2,400+ donors</span><span>✓ 92¢ of every $1 goes to trees</span><span>✓ Tax-deductible</span></div>
+  </div>
+  <div class="ticker">
+    <div class="statsbar">
+      <div class="stat-main"><div class="avatar-stack"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop"></div><div><b style="font-size:16px;font-family:Inter">12,480 volunteers</b><span style="font-size:12px;color:#777">planted with us last year</span></div></div>
+      <div class="stat"><b><span class="counter" data-target="48392">0</span></b><span>Trees Planted</span></div>
+      <div class="stat"><b><span class="counter" data-target="312">0</span></b><span>Neighborhoods</span></div>
+      <div class="stat"><b>-<span class="counter" data-target="9">0</span>°F</b><span>Cooler Streets*</span></div>
+      <button class="btn btn-orange" onclick="plantRandom(5);showToast('🎉 You just previewed 5 new trees in the grove below!')">Plant 5 Trees ↓</button>
+    </div>
+    <div class="marquee"><div>🌳 48,392 TREES PLANTED &nbsp;•&nbsp; 🌡️ STREETS UP TO 9°F COOLER &nbsp;•&nbsp; 💨 1 TREE = OXYGEN FOR 4 PEOPLE / DAY &nbsp;•&nbsp; 🏫 184 SCHOOLYARDS SHADED &nbsp;•&nbsp; 🐝 HABITAT FOR 500+ SPECIES &nbsp;•&nbsp; &nbsp;🌳 48,392 TREES PLANTED &nbsp;•&nbsp; 🌡️ STREETS UP TO 9°F COOLER &nbsp;•&nbsp; 💨 1 TREE = OXYGEN FOR 4 PEOPLE / DAY &nbsp;•&nbsp; 🏫 184 SCHOOLYARDS SHADED &nbsp;•&nbsp;</div></div>
+  </div>
+</header>
+
+<!-- BUILDER -->
+<section class="section" id="plant">
+  <div class="reveal">
+    <div class="label">Interactive Grove Builder</div>
+    <h2 class="title">Build your own<br><em>little city forest.</em></h2>
+    <p class="sub">Drag the slider, pick a neighborhood, and watch your impact grow — literally. Every tree below is $25, planted &amp; cared for for 3 years by our team.</p>
+  </div>
+
+  <div class="builder reveal">
+    <div class="grove">
+      <div class="ground-label">📍 <span id="grovePlace">Riverside, Chicago</span> • Live Preview</div>
+      <div class="skyline" id="skyline"></div>
+      <div class="grove-scene" id="groveScene"></div>
+      <div class="grove-footer">
+        <div class="progress-wrap"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800"><span>2026 Goal: 60,000 trees</span><span id="goalPct">81%</span></div><div class="progress"><i id="goalBar"></i></div></div>
+        <button class="btn btn-white" onclick="clearGrove()" style="white-space:nowrap">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <h3>How many trees will you plant today?</h3>
+      <p>One mature tree absorbs 48 lbs of CO₂ a year, cools the air, and can raise nearby home values. Choose your grove:</p>
+      <div class="control-box">
+        <label>Number of trees <output><span id="treeCount">12</span> 🌳</output></label>
+        <input type="range" id="treeRange" min="1" max="100" value="12" oninput="updateCalc()">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#8AA88A"><span>1 tree</span><span>50 = mini-forest</span><span>100 = block party 🎉</span></div>
+      </div>
+      <div class="selects">
+        <div class="control-box" style="margin:0"><label>Where?</label><select id="placeSelect" onchange="updateCalc()"><option value="Riverside, Chicago" data-mult="1">Riverside, Chicago</option><option value="Southside, Atlanta" data-mult="1.15">Southside, Atlanta (+heat)</option><option value="Eastside, Los Angeles" data-mult="1.1">Eastside, Los Angeles</option><option value="Harlem, New York" data-mult="0.95">Harlem, New York</option><option value="Where needed most" data-mult="1.25">Where needed most ✨</option></select></div>
+        <div class="control-box" style="margin:0"><label>Tree type</label><select id="typeSelect" onchange="updateCalc()"><option value="Mixed Native Grove" data-co2="48">Mixed Native Grove</option><option value="Flowering Trees" data-co2="38">🌸 Flowering Trees</option><option value="Big Shade Oaks" data-co2="62">🌳 Big Shade Oaks</option><option value="Fruit Trees" data-co2="34">🍎 Fruit Trees</option></select></div>
+      </div>
+
+      <div class="impact-grid">
+        <div class="impact-card"><b id="co2Val">576 lbs</b><span>CO₂ / year</span></div>
+        <div class="impact-card"><b id="o2Val">48 people</b><span>Oxygen for</span></div>
+        <div class="impact-card"><b id="shadeVal">1,440 ft²</b><span>New shade</span></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;letter-spacing:.1em;font-weight:800;color:#A8CBA8">FREQUENCY</span><div class="toggle"><button class="active" onclick="setFreq(this,false)">One-time</button><button onclick="setFreq(this,true)">Monthly 🌙</button></div></div>
+      <div class="price-row"><span style="color:#C8DCC8;font-size:14px">Your gift <span id="freqNote"></span></span><b>$<span id="priceVal">300</span></b></div>
+      <button class="btn btn-lime" style="width:100%;padding:17px;font-size:16px" onclick="donate()">🌱 Plant <span id="btnTrees">12</span> Trees Now →</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:#8AA88A">🔒 Secure • Tax-deductible • You’ll get a photo of your trees in 30 days</p>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#8A9A8A;margin-top:12px">*Based on EPA &amp; American Forests urban canopy studies. Cooling measured on tree-lined vs. unshaded blocks.</p>
+</section>
+
+<!-- SPECIES -->
+<section class="section" id="species">
+  <div class="reveal"><div class="label">Species Library</div><h2 class="title">Pick a tree.<br><em>We’ll do the digging.</em></h2><p class="sub">Not every tree loves city life. These 8 do — filtered by what you care about most. Click one to add it to your grove above.</p></div>
+  <div class="filters" id="filters">
+    <button class="chip active" onclick="filterSpecies('all',this)">All Trees</button>
+    <button class="chip" onclick="filterSpecies('shade',this)">☀️ Best Shade</button>
+    <button class="chip" onclick="filterSpecies('flower',this)">🌸 Flowering</button>
+    <button class="chip" onclick="filterSpecies('fruit',this)">🍎 Fruit &amp; Food</button>
+    <button class="chip" onclick="filterSpecies('wildlife',this)">🐝 Wildlife</button>
+    <button class="chip" onclick="filterSpecies('tough',this)">💪 Toughest</button>
+    <input class="search" id="speciesSearch" placeholder="🔍 Search trees..." oninput="renderSpecies()">
+  </div>
+  <div class="grid" id="speciesGrid"></div>
+</section>
+
+<!-- MAP + DATA -->
+<section class="section" id="map">
+  <div class="reveal"><div class="label">Where We Plant</div><h2 class="title">Real trees. Real blocks.<br><em>Real cooler summers.</em></h2></div>
+  <div class="two-col">
+    <div class="panel reveal"><div class="panel-head"><h3>📍 Live Planting Map</h3><span style="background:#EAF6E3;padding:7px 11px;border-radius:999px;font-size:12px;font-weight:800">● 1,284 sites</span></div><div id="map"></div><div class="city-btns"><span style="font-size:12px;font-weight:800;align-self:center">FLY TO:</span><button onclick="flyTo(40.811,-73.946,'Harlem, NYC')">Harlem, NYC</button><button onclick="flyTo(41.878,-87.629,'Riverside, Chicago')">Chicago</button><button onclick="flyTo(33.749,-84.388,'Southside, Atlanta')">Atlanta</button><button onclick="flyTo(34.052,-118.243,'East LA')">Los Angeles</button><button onclick="flyTo(29.76,-95.369,'Houston')">Houston</button></div></div>
+    <div class="panel reveal"><div class="panel-head"><h3>📊 Our Impact, By the Numbers</h3></div><div class="chart-wrap"><canvas id="impactChart"></canvas></div><div class="legend"><span>🌳 Trees planted per year (thousands)</span><span>📈 +214% since 2020 thanks to monthly donors</span></div><div style="margin:0 20px 20px;background:#FFF7D6;border-radius:14px;padding:16px;display:flex;gap:12px"><span style="font-size:28px">💡</span><p style="font-size:13px;line-height:1.6"><b>Did you know?</b> Neighborhoods with 30%+ tree canopy have <b>40% less heat-related illness</b> and kids with 11% better focus at school.</p></div></div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section class="section" id="events">
+  <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:16px" class="reveal"><div><div class="label">Volunteer</div><h2 class="title">Grab a shovel.<br><em>Meet your neighbors.</em></h2></div><p class="sub" style="max-width:380px">No experience needed. We bring trees, tools, coffee &amp; donuts. You bring you. Kids welcome!</p></div>
+  <div class="events" id="eventsGrid"></div>
+</section>
+
+<!-- STORIES -->
+<section class="section" id="stories">
+  <div class="reveal"><div class="label">Stories From the Shade</div><h2 class="title">Why people plant with us</h2></div>
+  <div class="story reveal">
+    <img id="storyImg" src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1000&auto=format&fit=crop">
+    <div><div style="font-size:28px">★★★★★</div><p class="quote" id="storyQuote">“Our block was the hottest in the neighborhood. Two years after Canopy planted 40 oaks, my kids play outside again — and my AC bill dropped $63 a month.”</p><p id="storyAuthor" style="margin-top:14px;font-weight:800">— Maria G., Riverside, Chicago <span style="color:#8A7A3A;font-weight:600">• Planted 2023</span></p><div class="story-controls"><button onclick="changeStory(-1)">←</button><button onclick="changeStory(1)">→</button><span id="storyDots" style="align-self:center;font-weight:800;margin-left:8px">1 / 3</span></div></div>
+  </div>
+
+  <div class="faq">
+    <h3 style="font-family:Fraunces;font-size:30px;text-align:center;margin-top:50px">Questions? We’ve got answers.</h3>
+    <div style="margin-top:20px" id="faqList"></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div style="font-size:44px">🌱 🌳 🌲</div>
+  <h2>The best time to plant<br>a tree was 20 years ago.<br><span style="color:var(--lime2)">The second best time is today.</span></h2>
+  <p>Join 12,480 neighbors planting a cooler, healthier city. Get planting invites, tree-care tips, and a photo of every tree you fund.</p>
+  <form class="news" onsubmit="subscribe(event)"><input type="email" required placeholder="your@email.com" id="emailInput"><button class="btn btn-lime" type="submit">Join Free →</button></form>
+  <p style="font-size:12px;opacity:.7">No spam. One joyful email a month. Unsubscribe anytime.</p>
+</section>
+
+<footer>
+  <div><b style="color:#122E22;font-size:16px">🌳 CANOPY COLLECTIVE</b><br>1420 Green Street, Chicago, IL • hello@canopycollective.org<br>EIN 47-2091853 • 501(c)(3) Nonprofit</div>
+  <div><b style="color:#122E22">Explore</b><br>Plant a Tree • Species • Map • Volunteer • Annual Report</div>
+  <div><b style="color:#122E22">Follow the forest</b><br>📸 Instagram &nbsp; 🐦 Twitter &nbsp; ▶️ YouTube &nbsp; 💼 LinkedIn</div>
+  <div>© 2026 Canopy Collective<br>Made with 💚 &amp; dirt under our nails.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <button onclick="closeModal()" style="float:right;background:#eee;border:none;width:36px;height:36px;border-radius:50%;font-size:18px">×</button>
+    <h3 id="modalTitle">Join Planting Day</h3><p style="color:#667A6A;font-size:14px;line-height:1.6" id="modalText">We’ll save you a shovel, gloves, and a donut.</p>
+    <form onsubmit="submitRSVP(event)"><input required placeholder="Your name"><input type="email" required placeholder="Email address"><select><option>Just me</option><option>Me + 1 friend</option><option>Me + family (3-5)</option><option>Our whole crew (6+)</option></select><button class="btn btn-lime" style="width:100%;padding:15px">Save My Spot →</button></form>
+  </div>
+</div>
+
+<script>
+// DATA
+const species=[
+ {name:"Bur Oak",emoji:"🌳",bg:"#DDF0C8",tag:"shade wildlife tough",desc:"The king of city parks. Lives 300+ years, feeds 500+ species, and throws massive shade.",h:"80 ft",co2:"62 lbs/yr",sun:"Full sun"},
+ {name:"Eastern Redbud",emoji:"🌸",bg:"#FFE0EC",tag:"flower wildlife",desc:"Explodes in pink blooms every spring before leaves appear. Pollinators absolutely love it.",h:"25 ft",co2:"28 lbs/yr",sun:"Part shade"},
+ {name:"Honey Locust",emoji:"☀️",bg:"#FFF3B8",tag:"shade tough",desc:"Feathery leaves let grass grow underneath while cooling sidewalks. Practically indestructible.",h:"65 ft",co2:"44 lbs/yr",sun:"Full sun"},
+ {name:"Serviceberry",emoji:"🍒",bg:"#FFE8D6",tag:"fruit flower wildlife",desc:"White flowers, edible berries for you AND birds, and fiery fall color. A 3-season superstar.",h:"20 ft",co2:"22 lbs/yr",sun:"Any sun"},
+ {name:"London Planetree",emoji:"🏙️",bg:"#DDE8FF",tag:"shade tough",desc:"Born for cities — shrugs off pollution, compacted soil, and heat like a champ.",h:"75 ft",co2:"58 lbs/yr",sun:"Full sun"},
+ {name:"Red Maple",emoji:"🍁",bg:"#FFD9D0",tag:"shade flower wildlife",desc:"Fast-growing shade with the most spectacular red fall show on the block.",h:"60 ft",co2:"50 lbs/yr",sun:"Full sun"},
+ {name:"Ginkgo",emoji:"✨",bg:"#E6F7D4",tag:"tough",desc:"A living fossil from dinosaur times. Golden fan leaves, zero pests, outlives us all.",h:"70 ft",co2:"46 lbs/yr",sun:"Full sun"},
+ {name:"Pawpaw",emoji:"🍎",bg:"#D8F3DC",tag:"fruit wildlife",desc:"North America's largest native fruit tastes like mango-banana custard. Yes, really.",h:"18 ft",co2:"20 lbs/yr",sun:"Part shade"},
+];
+const events=[
+ {img:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=900&auto=format&fit=crop",date:"SAT • MAY 17 • 9AM",title:"Riverside Mega-Planting",loc:"📍 Riverside Park, Chicago",desc:"Help us plant 120 oaks along the riverwalk. Live music, food trucks, free tree for every volunteer to take home.",joined:84,total:120},
+ {img:"https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=900&auto=format&fit=crop",date:"SUN • MAY 25 • 10AM",title:"Schoolyard Shade Squad",loc:"📍 Lincoln Elementary, Atlanta",desc:"We're shading 3 playgrounds so kids can play safely all summer. Perfect family event — kids plant free saplings.",joined:42,total:60},
+ {img:"https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=900&auto=format&fit=crop",date:"SAT • JUN 07 • 9AM",title:"Fruit Forest for All",loc:"📍 Community Lot, East LA",desc:"Planting a free public orchard: pawpaw, fig, serviceberry & more. Harvest belongs to the whole neighborhood, forever.",joined:67,total:80},
+];
+const stories=[
+ {img:"https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1000&auto=format&fit=crop",q:"“Our block was the hottest in the neighborhood. Two years after Canopy planted 40 oaks, my kids play outside again — and my AC bill dropped $63 a month.”",a:"— Maria G., Riverside, Chicago • Planted 2023"},
+ {img:"https://images.unsplash.com/photo-1476231682828-37e571bc172f?q=80&w=1000&auto=format&fit=crop",q:"“I donated 10 trees for my daughter's birth. They send us a photo every spring. She's 4 now — and so are 'her' trees. She visits them like friends.”",a:"— James & Priya T., Harlem, NYC • Monthly Donors"},
+ {img:"https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1000&auto=format&fit=crop",q:"“I came for the free donuts. I stayed because I met half my street. We've now planted 200 trees together and started a neighborhood association.”",a:"— DeShawn W., Southside, Atlanta • Volunteer since 2021"},
+];
+const faqs=[
+ ["Where exactly will my tree be planted?","Within 30 days you'll receive GPS coordinates, a photo, and the species planted. We prioritize heat-vulnerable neighborhoods using EPA heat-island data — so your tree goes where it helps most."],
+ ["What if my tree dies?","We water and care for every tree for 3 full years (the critical period) and maintain a 94% survival rate. If a tree doesn't make it, we replace it free — guaranteed."],
+ ["Is my donation tax-deductible?","Yes! We're a registered 501(c)(3) nonprofit (EIN 47-2091853). You'll get an instant tax receipt by email, and 92¢ of every dollar goes directly to planting and care."],
+ ["Can I plant in memory / honor of someone?","Absolutely — and it's our most popular gift. We'll mail (or email) a beautiful certificate with the tree's location, and plant a small dedication marker at the site."],
+ ["Do I need experience to volunteer?","Zero. About 70% of our volunteers have never planted a tree before. Our crew leaders teach you in 10 minutes, and we provide all tools, gloves, water, and snacks."],
+];
+let currentFilter='all', storyIdx=0, monthly=false, groveCount=18, totalPlanted=48392;
+
+// BUILDINGS
+document.getElementById('skyline').innerHTML=[70,110,55,130,85,60,100,75,120,65].map(h=>`<div class="building" style="height:${h}px;flex:1"></div>`).join('');
+
+// GROVE
+const treeEmojis=['🌳','🌲','🌴','🎄','🌳','🌿'];
+function addTree(x){
+  const el=document.createElement('div'); el.className='planted';
+  const size=28+Math.random()*28;
+  el.style.left=(x!==undefined?x:Math.random()*92)+'%'; el.style.fontSize=size+'px';
+  el.textContent=treeEmojis[Math.floor(Math.random()*treeEmojis.length)];
+  document.getElementById('groveScene').appendChild(el);
+}
+function plantRandom(n){for(let i=0;i<n;i++) setTimeout(addTree,i*90); groveCount+=n; updateGoal();}
+function clearGrove(){document.getElementById('groveScene').innerHTML=''; groveCount=0; for(let i=0;i<6;i++) addTree(); groveCount=6; updateGoal(); showToast('↺ Grove reset — ready to replant!');}
+function updateGoal(){let pct=Math.min(100,Math.round((totalPlanted+groveCount)/600)); document.getElementById('goalBar').style.width=pct+'%'; document.getElementById('goalPct').textContent=pct+'% • '+(totalPlanted+groveCount).toLocaleString()+' trees';}
+for(let i=0;i<18;i++) addTree(); updateGoal();
+
+// CALCULATOR
+function updateCalc(){
+  const n=+document.getElementById('treeRange').value;
+  const place=document.getElementById('placeSelect'); const type=document.getElementById('typeSelect');
+  const mult=+place.selectedOptions[0].dataset.mult; const co2=+type.selectedOptions[0].dataset.co2;
+  document.getElementById('treeCount').textContent=n;
+  document.getElementById('grovePlace').textContent=place.value;
+  document.getElementById('co2Val').textContent=Math.round(n*co2*mult).toLocaleString()+' lbs';
+  document.getElementById('o2Val').textContent=(n*4)+' people';
+  document.getElementById('shadeVal').textContent=(n*120).toLocaleString()+' ft²';
+  document.getElementById('priceVal').textContent=(n*25).toLocaleString();
+  document.getElementById('btnTrees').textContent=n;
+}
+function setFreq(btn,m){monthly=m; document.querySelectorAll('.toggle button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('freqNote').textContent=m?'/ month':' — one time';}
+function donate(){
+  const n=+document.getElementById('treeRange').value; plantRandom(Math.min(n,30));
+  totalPlanted+=n; updateGoal();
+  showToast(`🌳 Thank you! ${n} ${document.getElementById('typeSelect').value} coming to ${document.getElementById('placeSelect').value}. Photo in 30 days!`);
+  confetti();
+}
+function confetti(){for(let i=0;i<24;i++){const s=document.createElement('div');s.textContent=['🍃','🌿','✨','🌱'][i%4];s.style.cssText=`position:fixed;top:40%;left:50%;font-size:${16+Math.random()*18}px;z-index:300;pointer-events:none;transition:1.2s`;document.body.appendChild(s);requestAnimationFrame(()=>{s.style.transform=`translate(${(Math.random()-.5)*500}px,${200+Math.random()*300}px) rotate(${Math.random()*360}deg)`;s.style.opacity=0});setTimeout(()=>s.remove(),1300)}}
+
+// SPECIES
+function renderSpecies(){
+  const q=document.getElementById('speciesSearch').value.toLowerCase();
+  const list=species.filter(s=>(currentFilter==='all'||s.tag.includes(currentFilter)) && s.name.toLowerCase().includes(q));
+  document.getElementById('speciesGrid').innerHTML=list.length?list.map(s=>`<article class="card"><div class="card-top" style="background:${s.bg}">${s.emoji}<span>${s.sun}</span></div><div class="card-body"><h4>${s.name}</h4><p>${s.desc}</p><div class="meta"><span>📏 ${s.h}</span><span>💨 ${s.co2}</span></div><button class="btn btn-dark" onclick="pickSpecies('${s.name}')">Plant This Tree →</button></div></article>`).join(''):`<p style="grid-column:1/-1;text-align:center;padding:30px;color:#777">No trees match that search — try “oak” or clear filters 🌿</p>`;
+}
+function filterSpecies(f,btn){currentFilter=f; document.querySelectorAll('#filters .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); renderSpecies();}
+function pickSpecies(name){document.getElementById('typeSelect').selectedIndex = name.includes('Redbud')||name.includes('Serviceberry')?1 : name.includes('Oak')||name.includes('Maple')?2 : name.includes('Pawpaw')?3:0; updateCalc(); scrollToId('plant'); showToast(`🌿 Great pick! ${name} added to your grove plan above.`);}
+renderSpecies();
+
+// EVENTS
+function renderEvents(){
+  document.getElementById('eventsGrid').innerHTML=events.map((e,i)=>`<article class="event"><img src="${e.img}"><div class="event-body"><span class="date-badge">${e.date}</span><h4>${e.title}</h4><p><b>${e.loc}</b><br>${e.desc}</p><div class="slots"><i style="width:${e.joined/e.total*100}%"></i></div><div class="event-foot"><span>${e.joined}/${e.total} joined • ${e.total-e.joined} spots left</span><span>${Math.round(e.joined/e.total*100)}% full</span></div><button class="btn btn-orange" style="width:100%;margin-top:14px" onclick="openModal(${i})">🤝 Save My Spot</button></div></article>`).join('');
+}
+renderEvents();
+function openModal(i){document.getElementById('modalTitle').textContent=events[i].title; document.getElementById('modalText').textContent=events[i].loc+' • '+events[i].date+' — We’ll save you a shovel, gloves, coffee & a donut.'; window._eventIdx=i; document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function submitRSVP(e){e.preventDefault(); events[window._eventIdx].joined++; renderEvents(); closeModal(); showToast('🎉 You’re in! Check your email for what to bring. See you under the trees!');}
+
+// STORIES & FAQ
+function changeStory(d){storyIdx=(storyIdx+d+stories.length)%stories.length; const s=stories[storyIdx]; document.getElementById('storyImg').src=s.img; document.getElementById('storyQuote').textContent=s.q; document.getElementById('storyAuthor').textContent=s.a; document.getElementById('storyDots').textContent=(storyIdx+1)+' / '+stories.length;}
+setInterval(()=>changeStory(1),7000);
+document.getElementById('faqList').innerHTML=faqs.map(f=>`<div class="faq-item"><button class="faq-q" onclick="this.parentElement.classList.toggle('open')">${f[0]}<span>＋</span></button><div class="faq-a">${f[1]}</div></div>`).join('');
+
+// COUNTERS
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible'); e.target.querySelectorAll('.counter').forEach(c=>{let t=+c.dataset.target,s=0;let iv=setInterval(()=>{s+=t/50; if(s>=t){s=t;clearInterval(iv)} c.textContent=Math.floor(s).toLocaleString()},20)})}}),{threshold:.15});
+document.querySelectorAll('.reveal,.statsbar').forEach(el=>obs.observe(el));
+
+// CHART
+try{new Chart(document.getElementById('impactChart'),{type:'bar',data:{labels:['2020','2021','2022','2023','2024','2025'],datasets:[{label:'Trees (k)',data:[4.2,6.8,9.1,11.4,14.6,18.2],backgroundColor:['#CDE8B0','#A8D97A','#7CBF4A','#4CAF50','#2E7D32','#1B5E20'],borderRadius:10,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#EEE8D6'},ticks:{callback:v=>v+'k'}},x:{grid:{display:false}}}}});}catch(e){}
+
+// MAP
+try{
+  const map=L.map('map').setView([40.758,-73.985],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  window._map=map;
+  const icon=L.divIcon({html:'<div style="background:#1E6B45;color:#fff;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.3)"><span style="transform:rotate(45deg);font-size:16px">🌳</span></div>',className:'',iconSize:[34,34],iconAnchor:[17,34]});
+  [[40.811,-73.946,'Harlem Canopy Project','342 trees • Planted 2022-25'],[40.728,-73.995,'East Village Pocket Forest','89 trees • Miyawaki forest'],[40.758,-73.985,'Midtown Shade Corridor','156 trees • Hottest block, now -7°F'],[40.689,-73.985,'Brooklyn Schoolyard Forest','210 trees • 4 schools shaded'],[40.844,-73.865,'Bronx River Grove','428 trees • River habitat restored']].forEach(p=>L.marker([p[0],p[1]],{icon}).addTo(map).bindPopup(`<b style="font-family:serif;font-size:16px">${p[2]}</b><br>${p[3]}<br><a href="#plant" style="color:#1E6B45;font-weight:bold">Plant trees near here →</a>`));
+}catch(e){document.getElementById('map').innerHTML='<div style="padding:40px;text-align:center">📍 Harlem • East Village • Midtown • Brooklyn • Bronx — 1,284 planting sites & counting 🌳</div>';}
+function flyTo(lat,lng,name){if(window._map){window._map.flyTo([lat,lng],12,{duration:1.4}); showToast('📍 Flying to '+name+'...');}}
+
+// LEAVES CANVAS
+const cv=document.getElementById('leaves'),ctx=cv.getContext('2d'); let W,H,leaves=[];
+function resize(){W=cv.width=cv.offsetWidth; H=cv.height=cv.offsetHeight} resize(); addEventListener('resize',resize);
+for(let i=0;i<28;i++) leaves.push({x:Math.random()*2000,y:Math.random()*800,s:8+Math.random()*14,vy:.4+Math.random()*.8,vx:-.5+Math.random(),r:Math.random()*Math.PI,e:['🍃','🌿','🍂'][i%3]});
+(function anim(){ctx.clearRect(0,0,W,H); leaves.forEach(l=>{l.y+=l.vy; l.x+=Math.sin(l.y/40)*.6+l.vx*.2; l.r+=.01; if(l.y>H+30){l.y=-20;l.x=Math.random()*W} ctx.save(); ctx.translate(l.x,l.y); ctx.rotate(l.r); ctx.font=l.s+'px serif'; ctx.globalAlpha=.75; ctx.fillText(l.e,0,0); ctx.restore();}); requestAnimationFrame(anim);})();
+
+// HELPERS
+function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth'});}
+function toggleMenu(){const m=document.getElementById('mobileMenu'); m.style.display=m.style.display==='none'?'block':'none';}
+function showToast(msg){const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3800);}
+function subscribe(e){e.preventDefault(); showToast('🌱 Welcome to the forest, '+document.getElementById('emailInput').value+'! First tree photo coming soon.'); e.target.reset();}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal') closeModal();});
+updateCalc();
+</script>
+</body>
+</html>

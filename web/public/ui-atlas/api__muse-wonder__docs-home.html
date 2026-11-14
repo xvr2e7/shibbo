@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aurora — Beautiful, composable charts for the modern web</title>
+<meta name="description" content="Aurora is a fast, lightweight, open-source charting library for building beautiful, accessible, interactive data visualizations." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{
+  --bg:#f7f7fb; --bg2:#ffffff; --surface:#ffffff; --surface2:#f1f1f8;
+  --text:#0f1025; --muted:#6b6f8a; --muted2:#9a9cb3; --line:#e7e7f0;
+  --indigo:#6366f1; --violet:#8b5cf6; --cyan:#06b6d4; --pink:#ec4899; --amber:#f59e0b; --green:#10b981;
+  --code:#0e1023; --codeText:#e6e8ff; --radius:20px;
+  --shadow:0 20px 50px rgba(43,36,120,.10),0 2px 8px rgba(43,36,120,.06);
+  --shadow2:0 10px 30px rgba(43,36,120,.08);
+}
+[data-theme="dark"]{
+  --bg:#080816; --bg2:#0c0d20; --surface:#121329; --surface2:#1a1b36;
+  --text:#f2f3ff; --muted:#a1a3c0; --muted2:#74779a; --line:#232442;
+  --shadow:0 20px 50px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.25);
+  --shadow2:0 10px 30px rgba(0,0,0,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::selection{background:#6366f1;color:white}
+.container{max-width:1220px;margin:0 auto;padding:0 24px}
+.serif{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;letter-spacing:-.02em}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(16px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+.nav-inner{height:68px;display:flex;align-items:center;gap:28px;max-width:1220px;margin:0 auto;padding:0 24px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.03em;font-size:21px}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#a855f7 48%,#06b6d4);display:grid;place-items:center;color:white;box-shadow:0 8px 20px rgba(99,102,241,.35);position:relative;overflow:hidden}
+.logo-mark i{font-size:17px}
+.logo sup{font-size:10px;background:var(--surface2);border:1px solid var(--line);padding:2px 6px;border-radius:99px;font-weight:700;color:var(--muted);letter-spacing:.02em;margin-left:2px}
+.nav-links{display:flex;gap:4px;margin-left:6px}
+.nav-links a{font-size:14px;font-weight:600;color:var(--muted);padding:8px 12px;border-radius:99px;transition:.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text);background:var(--surface2)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.search-btn{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:8px 12px;border-radius:10px;font-size:13px;min-width:190px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.search-btn kbd{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);border:1px solid var(--line);border-bottom-width:2px;padding:2px 5px;border-radius:5px}
+.icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface);color:var(--muted);transition:.2s}
+.icon-btn:hover{color:var(--text);transform:translateY(-1px)}
+.github-btn{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;padding:9px 13px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.github-btn b{color:var(--amber)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:14.5px;padding:12px 20px;border-radius:12px;transition:.2s;white-space:nowrap}
+.btn-primary{background:#0f1025;color:white;box-shadow:0 10px 25px rgba(15,16,37,.22)}
+[data-theme="dark"] .btn-primary{background:white;color:#0f1025}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(15,16,37,.24)}
+.btn-gradient{background:linear-gradient(135deg,#6366f1,#8b5cf6 55%,#ec4899);color:white;box-shadow:0 12px 26px rgba(139,92,246,.35)}
+.btn-gradient:hover{transform:translateY(-2px);filter:brightness(1.05)}
+.btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover{transform:translateY(-2px);box-shadow:var(--shadow2)}
+.hamburger{display:none}
+
+/* HERO */
+.hero{position:relative;padding:158px 0 28px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:0;background:
+ radial-gradient(600px 320px at 15% 8%,rgba(99,102,241,.18),transparent 60%),
+ radial-gradient(700px 380px at 85% 0%,rgba(236,72,153,.14),transparent 60%),
+ radial-gradient(600px 400px at 55% 38%,rgba(6,182,212,.12),transparent 60%);pointer-events:none}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:52px 52px;opacity:.35;mask-image:linear-gradient(to bottom,black 0%,transparent 72%);pointer-events:none}
+.hero-inner{position:relative;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);padding:7px 8px 7px 10px;border-radius:99px;font-size:13px;font-weight:600;color:var(--muted);box-shadow:var(--shadow2)}
+.badge span{background:linear-gradient(135deg,#6366f1,#ec4899);color:white;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 7px;border-radius:99px}
+.badge i{font-size:11px}
+h1{font-size:clamp(48px,7.2vw,84px);line-height:.92;letter-spacing:-.055em;font-weight:900;max-width:920px;margin:26px auto 0}
+h1 .grad{background:linear-gradient(92deg,#6366f1 0%,#a855f7 35%,#ec4899 68%,#06b6d4 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 .serif{font-size:1.08em;letter-spacing:-.04em}
+.hero-sub{max-width:680px;margin:22px auto 0;color:var(--muted);font-size:18.5px;line-height:1.65;font-weight:500}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.install-pill{margin:18px auto 0;display:inline-flex;align-items:center;gap:12px;background:var(--code);color:#c7c9ff;font-family:'JetBrains Mono',monospace;font-size:13.5px;padding:11px 12px 11px 16px;border-radius:12px;box-shadow:0 14px 30px rgba(10,10,40,.22)}
+.install-pill .dollar{color:#67e8f9}
+.copy-mini{background:rgba(255,255,255,.08);color:#d6d8ff;width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
+.copy-mini:hover{background:rgba(255,255,255,.16)}
+.hero-stats{display:flex;justify-content:center;gap:0;margin:34px auto 0;flex-wrap:wrap}
+.stat{padding:4px 22px;border-right:1px solid var(--line);text-align:left}
+.stat:last-child{border-right:none}
+.stat b{font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:6px}
+.stat b i{color:var(--amber);font-size:13px}
+.stat span{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-top:1px}
+.avatars{display:flex}
+.avatars img{width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);margin-left:-7px;object-fit:cover}
+.avatars img:first-child{margin-left:0}
+
+/* DEMO CARD */
+.demo-wrap{position:relative;max-width:1040px;margin:46px auto 0}
+.demo-glow{position:absolute;inset:18px -10px -10px;background:linear-gradient(135deg,rgba(99,102,241,.35),rgba(236,72,153,.25),rgba(6,182,212,.3));filter:blur(28px);opacity:.55;border-radius:32px}
+.demo{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;text-align:left}
+.demo-top{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.dots{display:flex;gap:7px}.dots i{width:11px;height:11px;border-radius:50%;display:block}
+.tabs{display:flex;background:var(--surface2);padding:4px;border-radius:11px;gap:2px}
+.tabs button{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;color:var(--muted);transition:.2s}
+.tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.demo-top-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.07em;color:var(--green)}
+.live i{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 0 5px rgba(16,185,129,.15);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.35)}70%{box-shadow:0 0 0 7px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+.demo-body{display:grid;grid-template-columns:1.55fr .95fr;min-height:380px}
+.chart-pane{padding:22px 22px 16px;border-right:1px solid var(--line)}
+.chart-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.chart-head h3{font-size:16px;letter-spacing:-.02em}
+.chart-head p{font-size:13px;color:var(--muted);margin-top:3px;font-weight:500}
+.big-num{font-size:30px;font-weight:900;letter-spacing:-.04em}
+.up{color:var(--green);font-size:12.5px;font-weight:800;background:rgba(16,185,129,.1);padding:4px 7px;border-radius:99px}
+.legend{display:flex;gap:16px;margin:16px 0 6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:6px}
+#mainChart{width:100%;height:242px;display:block}
+.chart-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.chip.active{background:#0f1025;color:white;border-color:#0f1025}
+[data-theme="dark"] .chip.active{background:white;color:#0f1025;border-color:white}
+.code-pane{background:var(--code);color:var(--codeText);display:flex;flex-direction:column;min-width:0}
+.code-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ca3ff}
+.code-head button{color:#c7c9ff;font-size:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);padding:6px 9px;border-radius:7px}
+pre{padding:18px 18px 22px;font-family:'JetBrains Mono',monospace;font-size:12.8px;line-height:1.75;overflow:auto;white-space:pre-wrap}
+.tok-k{color:#c084fc}.tok-s{color:#86efac}.tok-f{color:#67e8f9}.tok-n{color:#fbbf24}.tok-c{color:#6b7280;font-style:italic}.tok-p{color:#f9a8d4}
+
+/* LOGOS */
+.logos{padding:44px 0 8px;text-align:center}
+.logos p{font-size:12px;letter-spacing:.14em;font-weight:800;color:var(--muted2);text-transform:uppercase}
+.logo-row{display:flex;justify-content:center;align-items:center;gap:38px;flex-wrap:wrap;margin-top:20px;opacity:.62;font-weight:900;letter-spacing:-.03em;font-size:19px;color:var(--muted)}
+.logo-row span{display:flex;gap:8px;align-items:center}
+
+/* SECTIONS */
+section{padding:82px 0}
+.sec-head{max-width:700px;margin:0 auto 42px;text-align:center}
+.eyebrow{display:inline-flex;gap:7px;align-items:center;font-size:12px;letter-spacing:.13em;font-weight:900;text-transform:uppercase;color:var(--indigo);background:rgba(99,102,241,.09);border:1px solid rgba(99,102,241,.16);padding:7px 11px;border-radius:99px}
+.sec-head h2{font-size:clamp(34px,4.6vw,52px);line-height:.98;letter-spacing:-.045em;font-weight:900;margin-top:16px}
+.sec-head p{color:var(--muted);font-size:17px;line-height:1.65;margin-top:14px;font-weight:500}
+
+/* BENTO */
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,.02);transition:.25s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow2);border-color:#d9d9ee}
+[data-theme="dark"] .card:hover{border-color:#34355e}
+.card.span2{grid-column:span 2}
+.icon-box{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:18px;margin-bottom:16px}
+.card h3{font-size:17px;letter-spacing:-.02em;margin-bottom:8px}
+.card p{font-size:14px;line-height:1.65;color:var(--muted);font-weight:500}
+.card canvas{width:100%;height:74px;margin-top:18px;display:block}
+.mini-code{margin-top:16px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;color:var(--muted);overflow:hidden}
+.mini-code b{color:var(--indigo)}
+.perf-nums{display:flex;gap:22px;margin-top:20px}
+.perf-nums div b{font-size:24px;letter-spacing:-.04em;display:block}
+.perf-nums div span{font-size:12px;color:var(--muted);font-weight:700}
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
+.pills span{font-size:12px;font-weight:700;background:var(--surface2);border:1px solid var(--line);padding:6px 9px;border-radius:99px;color:var(--muted)}
+
+/* GALLERY */
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.g-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:.25s;cursor:pointer}
+.g-card:hover{transform:translateY(-5px);box-shadow:var(--shadow2)}
+.g-card canvas{width:100%;height:138px;display:block;background:linear-gradient(180deg,var(--surface),var(--surface2))}
+.g-info{padding:16px 18px 18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.g-info h4{font-size:15px;letter-spacing:-.01em}
+.g-info p{font-size:12.5px;color:var(--muted);margin-top:3px;font-weight:500}
+.g-info i{color:var(--muted2);transition:.2s}
+.g-card:hover .g-info i{color:var(--indigo);transform:translate(2px,-2px)}
+
+/* PLAYGROUND */
+.play-wrap{background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;display:grid;grid-template-columns:320px 1fr}
+.controls{padding:24px;border-right:1px solid var(--line);background:var(--bg2)}
+.controls h3{font-size:16px;display:flex;gap:9px;align-items:center}
+.controls h3 i{color:var(--indigo)}
+.ctrl{margin-top:22px}
+.ctrl label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:900;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:10px}
+.ctrl label output{color:var(--indigo);letter-spacing:0;text-transform:none}
+.seg{display:flex;background:var(--surface2);padding:4px;border-radius:11px}
+.seg button{flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button.active{background:var(--surface);color:var(--text);box-shadow:0 2px 7px rgba(0,0,0,.08)}
+.swatches{display:flex;gap:9px}
+.swatch{width:34px;height:34px;border-radius:50%;border:3px solid transparent;outline:2px solid transparent;outline-offset:2px}
+.swatch.active{outline-color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--indigo);height:28px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600}
+.toggle-row:last-child{border-bottom:none}
+.switch{width:44px;height:25px;background:var(--surface2);border:1px solid var(--line);border-radius:99px;position:relative;transition:.2s;flex-shrink:0}
+.switch:after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;background:white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:.2s}
+.switch.on{background:var(--indigo);border-color:var(--indigo)}
+.switch.on:after{left:21px}
+.play-main{padding:22px;min-width:0}
+#playChart{width:100%;height:280px;display:block}
+.play-code{margin-top:16px;background:var(--code);border-radius:14px;overflow:hidden}
+.play-code pre{font-size:12.3px;padding:16px 18px;max-height:190px}
+
+/* STEPS + DOCS */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.step-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px}
+.step-num{width:30px;height:30px;border-radius:50%;background:#0f1025;color:white;display:grid;place-items:center;font-size:13px;font-weight:900;margin-bottom:16px}
+[data-theme="dark"] .step-num{background:white;color:#0f1025}
+.step-card h3{font-size:18px;letter-spacing:-.02em}
+.step-card p{color:var(--muted);font-size:14px;line-height:1.65;margin-top:7px;font-weight:500}
+.dark-code{background:var(--code);color:var(--codeText);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)}
+.dark-code .code-head{padding:14px 18px}
+.framework-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.fw{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;font-weight:800;font-size:14px;transition:.2s;cursor:pointer}
+.fw:hover,.fw.active{border-color:var(--indigo);color:var(--indigo);transform:translateY(-2px)}
+.fw i{font-size:22px;display:block;margin-bottom:9px}
+
+/* QUOTES / CTA */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.quote{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px}
+.quote p{font-size:15.5px;line-height:1.65;font-weight:550;letter-spacing:-.01em}
+.quote-person{display:flex;gap:11px;align-items:center;margin-top:20px}
+.quote-person img{width:40px;height:40px;border-radius:50%;object-fit:cover}
+.quote-person b{font-size:13.5px;display:block}.quote-person span{font-size:12.5px;color:var(--muted)}
+.stars{color:var(--amber);font-size:12px;letter-spacing:3px;margin-bottom:14px}
+.cta{position:relative;overflow:hidden;border-radius:26px;background:#0e1023;color:white;padding:56px 28px;text-align:center;box-shadow:var(--shadow)}
+.cta:before{content:"";position:absolute;inset:0;background:radial-gradient(500px 260px at 20% 0%,rgba(99,102,241,.5),transparent 60%),radial-gradient(500px 260px at 85% 100%,rgba(236,72,153,.4),transparent 60%)}
+.cta>*{position:relative}
+.cta h2{font-size:clamp(32px,4.5vw,50px);letter-spacing:-.045em;line-height:1}
+.cta p{color:#b9bcdf;max-width:540px;margin:16px auto 26px;line-height:1.65}
+
+/* FOOTER */
+footer{border-top:1px solid var(--line);background:var(--bg2);padding:54px 0 28px;margin-top:20px}
+.foot-grid{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:28px}
+.foot-grid h5{font-size:13px;margin-bottom:14px}
+.foot-grid a{display:block;color:var(--muted);font-size:13.5px;font-weight:550;padding:5px 0}
+.foot-grid a:hover{color:var(--indigo)}
+.foot-bottom{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:36px;padding-top:20px;color:var(--muted);font-size:13px;font-weight:550}
+
+/* SEARCH MODAL */
+.modal{position:fixed;inset:0;z-index:100;background:rgba(8,8,25,.55);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:90px 18px}
+.modal.open{display:flex}
+.search-box{width:min(620px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;animation:pop .18s ease}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.search-input{display:flex;align-items:center;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line)}
+.search-input input{border:none;outline:none;background:none;font-size:16px;width:100%;color:var(--text);font-family:inherit}
+.search-results{max-height:340px;overflow:auto;padding:8px}
+.sr{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:11px 12px;border-radius:11px}
+.sr:hover{background:var(--surface2)}
+.sr i{width:34px;height:34px;border-radius:9px;background:rgba(99,102,241,.1);color:var(--indigo);display:grid;place-items:center}
+.sr b{font-size:14px;display:block}.sr span{font-size:12.5px;color:var(--muted)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,80px);background:#0f1025;color:white;padding:11px 16px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:120;transition:.3s;box-shadow:var(--shadow);display:flex;gap:8px;align-items:center}
+.toast.show{transform:translate(-50%,0)}
+.toast i{color:#34d399}
+.reveal{opacity:0;transform:translateY(18px);transition:.6s ease}
+.reveal.visible{opacity:1;transform:none}
+
+@media(max-width:980px){
+  .nav-links,.search-btn{display:none}.hamburger{display:grid}
+  .demo-body,.play-wrap,.split{grid-template-columns:1fr}
+  .chart-pane{border-right:none;border-bottom:1px solid var(--line)}
+  .controls{border-right:none;border-bottom:1px solid var(--line)}
+  .bento,.gallery{grid-template-columns:repeat(2,1fr)}
+  .quotes{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .container{padding:0 18px}.nav-inner{padding:0 18px}
+  .github-btn span,.github-btn b{display:none}
+  .bento,.gallery,.framework-row{grid-template-columns:1fr}
+  .card.span2{grid-column:span 1}
+  .stat{padding:4px 12px}.hero{padding-top:126px}
+  h1{font-size:50px}.demo-top-right .live{display:none}
+  .foot-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <span class="logo-mark"><i class="fa-solid fa-chart-line"></i></span>
+      aurora<sup>v4.2</sup>
+    </a>
+    <nav class="nav-links">
+      <a href="#demo" class="active">Docs</a>
+      <a href="#gallery">Chart Types</a>
+      <a href="#playground">Playground</a>
+      <a href="#start">API Reference</a>
+      <a href="#community">Examples</a>
+    </nav>
+    <div class="nav-right">
+      <button class="search-btn" onclick="openSearch()"><i class="fa-solid fa-magnifying-glass"></i> Search docs <kbd>⌘K</kbd></button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+      <a class="github-btn" href="#community"><i class="fa-brands fa-github" style="font-size:17px"></i><span>GitHub</span><b>★ 48.2k</b></a>
+      <a class="btn btn-gradient" href="#start" style="padding:10px 16px">Get Started</a>
+      <button class="icon-btn hamburger" onclick="openSearch()"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- HERO -->
+<div class="hero" id="top">
+  <div class="hero-grid-bg"></div>
+  <div class="container hero-inner">
+    <a class="badge" href="#start"><span>NEW</span> Aurora 4.2 — Canvas rendering is 3× faster <i class="fa-solid fa-arrow-right"></i></a>
+    <h1>Charts that make<br>data feel <span class="serif grad">beautiful.</span></h1>
+    <p class="hero-sub">Aurora is a fast, lightweight, open-source charting library for building accessible, interactive visualizations — with the polish of a design system and the power of a data engine.</p>
+    <div class="hero-cta">
+      <a href="#start" class="btn btn-primary">Start building <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="#demo" class="btn btn-ghost"><i class="fa-solid fa-play" style="color:var(--indigo)"></i> Live demo</a>
+    </div>
+    <div>
+      <div class="install-pill"><span><span class="dollar">$</span> npm install @aurora/charts</span><button class="copy-mini" onclick="copyText('npm install @aurora/charts',this)" aria-label="Copy install command"><i class="fa-regular fa-copy"></i></button></div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><b><i class="fa-solid fa-star"></i>48,214</b><span>GitHub stars</span></div>
+      <div class="stat"><b>312k</b><span>Weekly downloads</span></div>
+      <div class="stat"><b>18.4 kB</b><span>Gzipped, tree-shakable</span></div>
+      <div class="stat"><b><span class="avatars"><img src="https://i.pravatar.cc/56?img=12" alt=""><img src="https://i.pravatar.cc/56?img=32" alt=""><img src="https://i.pravatar.cc/56?img=45" alt=""><img src="https://i.pravatar.cc/56?img=8" alt=""></span> 640+</b><span>Contributors</span></div>
+    </div>
+
+    <!-- DEMO -->
+    <div class="demo-wrap" id="demo">
+      <div class="demo-glow"></div>
+      <div class="demo">
+        <div class="demo-top">
+          <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+          <div class="tabs" id="mainTabs">
+            <button class="active" data-type="line">Line</button>
+            <button data-type="area">Area</button>
+            <button data-type="bar">Bar</button>
+            <button data-type="donut">Donut</button>
+          </div>
+          <div class="demo-top-right">
+            <span class="live"><i></i>LIVE</span>
+            <button class="icon-btn" onclick="replayMain()" title="Replay animation"><i class="fa-solid fa-rotate-right"></i></button>
+            <button class="icon-btn" onclick="copyText(document.getElementById('mainCode').innerText,this)" title="Copy code"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="chart-pane">
+            <div class="chart-head">
+              <div><h3 id="mainTitle">Product revenue</h3><p>Last 12 months · All regions</p></div>
+              <div style="text-align:right"><div class="big-num" id="mainNum">$284.6k</div><span class="up">↑ 18.2% vs last year</span></div>
+            </div>
+            <div class="legend" id="mainLegend"><span><i style="background:#6366f1"></i>Revenue</span><span><i style="background:#06b6d4"></i>Forecast</span><span><i style="background:#ec4899"></i>Expenses</span></div>
+            <canvas id="mainChart"></canvas>
+            <div class="chart-foot">
+              <button class="chip range-chip active" onclick="setRange(this,1)">12 months</button>
+              <button class="chip range-chip" onclick="setRange(this,0.72)">6 months</button>
+              <button class="chip range-chip" onclick="setRange(this,1.18)">Compare ’24</button>
+              <button class="chip" onclick="randomizeMain(this)"><i class="fa-solid fa-shuffle"></i>&nbsp; Randomize</button>
+            </div>
+          </div>
+          <div class="code-pane">
+            <div class="code-head"><span><i class="fa-solid fa-circle" style="color:#6366f1;font-size:8px"></i>&nbsp; revenue.ts</span><button onclick="copyText(document.getElementById('mainCode').innerText,this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+            <pre id="mainCode"><code><span class="tok-k">import</span> { Chart } <span class="tok-k">from</span> <span class="tok-s">'@aurora/charts'</span>
+
+<span class="tok-k">const</span> chart = <span class="tok-k">new</span> <span class="tok-f">Chart</span>(<span class="tok-s">'#revenue'</span>, {
+  type: <span class="tok-s">'<span id="codeType">line</span>'</span>,
+  data: {
+    labels: [<span class="tok-s">'Jan'</span>, <span class="tok-s">'Feb'</span>, <span class="tok-s">'Mar'</span>, <span class="tok-s">'…'</span>],
+    datasets: [{
+      label: <span class="tok-s">'Revenue'</span>,
+      data: [<span class="tok-n">42, 58, 49, 71, 84</span>],
+      color: <span class="tok-s">'#6366f1'</span>,
+      tension: <span class="tok-n">0.45</span>
+    }]
+  },
+  options: { <span class="tok-c">// ✨ that's it</span>
+    responsive: <span class="tok-n">true</span>,
+    animation: <span class="tok-s">'spring'</span>
+  }
+})</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="logos">
+      <p>Powering dashboards at</p>
+      <div class="logo-row">
+        <span><i class="fa-brands fa-stripe"></i>stripe</span><span><i class="fa-solid fa-bolt"></i>Linear</span><span><i class="fa-brands fa-airbnb"></i>airbnb</span><span><i class="fa-solid fa-layer-group"></i>Notion</span><span><i class="fa-brands fa-shopify"></i>shopify</span><span><i class="fa-solid fa-cube"></i>Vercel</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section>
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="fa-solid fa-sparkles"></i> Why Aurora</span>
+      <h2>Everything you need.<br><span class="serif" style="color:var(--indigo)">Nothing you don’t.</span></h2>
+      <p>A tiny core, a rich plugin ecosystem, and defaults so good most charts take five lines of code.</p>
+    </div>
+    <div class="bento">
+      <article class="card span2 reveal">
+        <div class="icon-box" style="background:rgba(99,102,241,.12);color:#6366f1"><i class="fa-solid fa-bolt"></i></div>
+        <h3>Blazing fast canvas rendering</h3>
+        <p>Render 100,000 points at 60fps with incremental redraws, data decimation, and automatic device-pixel-ratio scaling.</p>
+        <div class="perf-nums"><div><b>3.1ms</b><span>100k points</span></div><div><b>60fps</b><span>Live streaming</span></div><div><b>18kB</b><span>Core gzipped</span></div></div>
+        <canvas class="spark" data-color="#6366f1"></canvas>
+      </article>
+      <article class="card reveal">
+        <div class="icon-box" style="background:rgba(236,72,153,.12);color:#ec4899"><i class="fa-solid fa-universal-access"></i></div>
+        <h3>Accessible by default</h3>
+        <p>ARIA labels, keyboard navigation, data-table fallbacks, and colorblind-safe palettes — out of the box.</p>
+        <div class="pills"><span>WCAG 2.2 AA</span><span>Keyboard</span><span>Screen readers</span></div>
+      </article>
+      <article class="card reveal">
+        <div class="icon-box" style="background:rgba(6,182,212,.12);color:#06b6d4"><i class="fa-solid fa-puzzle-piece"></i></div>
+        <h3>Fully composable</h3>
+        <p>Mix lines, bars and points in one chart. Every element is a plugin you can extend or replace.</p>
+        <canvas class="spark" data-color="#06b6d4"></canvas>
+      </article>
+      <article class="card reveal">
+        <div class="icon-box" style="background:rgba(16,185,129,.12);color:#10b981"><i class="fa-brands fa-react"></i></div>
+        <h3>Framework native</h3>
+        <p>First-class React, Vue, Svelte and vanilla bindings with reactive props and TypeScript types.</p>
+        <div class="mini-code"><b>&lt;LineChart</b> data={data} <b>smooth /&gt;</b></div>
+      </article>
+      <article class="card reveal">
+        <div class="icon-box" style="background:rgba(245,158,11,.14);color:#f59e0b"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <h3>Beautiful defaults</h3>
+        <p>Curated themes, spring animations and smart axes. Dark mode is a single prop away.</p>
+        <canvas class="spark" data-color="#f59e0b"></canvas>
+      </article>
+      <article class="card span2 reveal">
+        <div class="icon-box" style="background:rgba(139,92,246,.12);color:#8b5cf6"><i class="fa-solid fa-code"></i></div>
+        <h3>Type-safe, declarative API</h3>
+        <p>Describe what your data means — Aurora handles scales, legends, tooltips and responsive resizing for you.</p>
+        <div class="mini-code"><span style="color:#8b5cf6">chart</span>.update({ data: newData, animate: <span style="color:#f59e0b">'spring'</span> })<br><span style="color:var(--muted2)">// scales, tooltips &amp; legends just follow</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery" style="padding-top:10px">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="fa-solid fa-border-all"></i> Chart types</span>
+      <h2>28 chart types.<br><span class="serif" style="color:var(--violet)">One consistent API.</span></h2>
+      <p>Click any chart to load it in the playground below. Every type shares the same data format, theming and interaction model.</p>
+    </div>
+    <div class="gallery" id="galleryGrid"></div>
+  </div>
+</section>
+
+<!-- PLAYGROUND -->
+<section id="playground" style="padding-top:10px">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="fa-solid fa-flask"></i> Playground</span>
+      <h2>Try it. <span class="serif" style="color:var(--cyan)">Tweak it.</span> Ship it.</h2>
+      <p>Adjust the controls — the chart and the generated code update in real time.</p>
+    </div>
+    <div class="play-wrap reveal">
+      <aside class="controls">
+        <h3><i class="fa-solid fa-sliders"></i> Controls</h3>
+        <div class="ctrl">
+          <label>Chart type</label>
+          <div class="seg" id="playSeg"><button class="active" data-t="line">Line</button><button data-t="bar">Bar</button><button data-t="area">Area</button></div>
+        </div>
+        <div class="ctrl">
+          <label>Accent color</label>
+          <div class="swatches" id="swatches">
+            <button class="swatch active" data-c="#6366f1" style="background:#6366f1" aria-label="Indigo"></button>
+            <button class="swatch" data-c="#ec4899" style="background:#ec4899" aria-label="Pink"></button>
+            <button class="swatch" data-c="#06b6d4" style="background:#06b6d4" aria-label="Cyan"></button>
+            <button class="swatch" data-c="#10b981" style="background:#10b981" aria-label="Green"></button>
+            <button class="swatch" data-c="#f59e0b" style="background:#f59e0b" aria-label="Amber"></button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Data points <output id="pointsOut">9</output></label>
+          <input type="range" id="pointsRange" min="5" max="14" value="9">
+        </div>
+        <div class="ctrl">
+          <label>Curve smoothness <output id="smoothOut">0.45</output></label>
+          <input type="range" id="smoothRange" min="0" max="80" value="45">
+        </div>
+        <div class="ctrl">
+          <label>Display</label>
+          <div class="toggle-row">Grid lines <button class="switch on" id="tgGrid" onclick="toggleSwitch(this)"></button></div>
+          <div class="toggle-row">Dots on points <button class="switch on" id="tgDots" onclick="toggleSwitch(this)"></button></div>
+          <div class="toggle-row">Gradient fill <button class="switch on" id="tgFill" onclick="toggleSwitch(this)"></button></div>
+        </div>
+        <button class="btn btn-gradient" style="width:100%;margin-top:20px" onclick="copyText(document.getElementById('playCode').innerText,this)"><i class="fa-regular fa-copy"></i> Copy this code</button>
+      </aside>
+      <div class="play-main">
+        <div class="chart-head">
+          <div><h3 style="font-size:16px">Weekly active users</h3><p style="font-size:13px;color:var(--muted);margin-top:3px">Generated from your controls</p></div>
+          <span class="up">↑ 24.8%</span>
+        </div>
+        <canvas id="playChart" style="margin-top:14px"></canvas>
+        <div class="play-code">
+          <div class="code-head"><span>playground.ts</span><button onclick="copyText(document.getElementById('playCode').innerText,this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+          <pre id="playCode"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GET STARTED -->
+<section id="start" style="padding-top:10px">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="fa-solid fa-rocket"></i> Quick start</span>
+      <h2>From zero to chart<br><span class="serif" style="color:var(--pink)">in under a minute.</span></h2>
+    </div>
+    <div class="split">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step-card reveal"><div class="step-num">1</div><h3>Install Aurora</h3><p>One package, zero dependencies. Works with any bundler — or straight from a CDN.</p></div>
+        <div class="step-card reveal"><div class="step-num">2</div><h3>Describe your data</h3><p>Pass labels and datasets. Aurora infers scales, colors, tooltips and responsive behaviour automatically.</p></div>
+        <div class="step-card reveal"><div class="step-num">3</div><h3>Make it yours</h3><p>Themes, plugins, custom tooltips and animations — extend everything, eject nothing.</p>
+          <div class="framework-row">
+            <div class="fw active"><i class="fa-brands fa-react" style="color:#06b6d4"></i>React</div>
+            <div class="fw"><i class="fa-brands fa-vuejs" style="color:#10b981"></i>Vue</div>
+            <div class="fw"><i class="fa-brands fa-js" style="color:#f59e0b"></i>Vanilla</div>
+            <div class="fw"><i class="fa-solid fa-fire" style="color:#ec4899"></i>Svelte</div>
+          </div>
+        </div>
+      </div>
+      <div class="dark-code reveal">
+        <div class="code-head"><span>app.ts — your first chart</span><button onclick="copyText(document.getElementById('startCode').innerText,this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+        <pre id="startCode"><code><span class="tok-c">// 1 · Install</span>
+<span class="tok-p">$</span> npm install @aurora/charts
+
+<span class="tok-c">// 2 · Import &amp; create</span>
+<span class="tok-k">import</span> { LineChart } <span class="tok-k">from</span> <span class="tok-s">'@aurora/charts'</span>
+<span class="tok-k">import</span> <span class="tok-s">'@aurora/charts/theme-aurora.css'</span>
+
+<span class="tok-k">const</span> chart = <span class="tok-k">new</span> <span class="tok-f">LineChart</span>({
+  el: <span class="tok-s">'#chart'</span>,
+  data: {
+    labels: [<span class="tok-s">'Mon'</span>,<span class="tok-s">'Tue'</span>,<span class="tok-s">'Wed'</span>,<span class="tok-s">'Thu'</span>,<span class="tok-s">'Fri'</span>],
+    series: [
+      { name: <span class="tok-s">'Signups'</span>, values: [<span class="tok-n">120, 190, 160, 240, 310</span>] },
+      { name: <span class="tok-s">'Trials'</span>,  values: [<span class="tok-n">80, 120, 140, 180, 230</span>] }
+    ]
+  },
+  smooth: <span class="tok-n">true</span>,
+  theme: <span class="tok-s">'aurora'</span>
+})
+
+<span class="tok-c">// 3 · Update live, anytime</span>
+chart.<span class="tok-f">push</span>({ label: <span class="tok-s">'Sat'</span>, values: [<span class="tok-n">380, 290</span>] })</code></pre>
+        <div style="padding:16px 18px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;flex-wrap:wrap">
+          <a href="#playground" class="btn btn-gradient" style="padding:10px 16px;font-size:13.5px">Open in Playground</a>
+          <a href="#gallery" class="btn" style="padding:10px 16px;font-size:13.5px;background:rgba(255,255,255,.07);color:white;border:1px solid rgba(255,255,255,.12)">Browse examples →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section id="community" style="padding-top:10px">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><i class="fa-solid fa-heart" style="color:#ec4899"></i> Community</span>
+      <h2>Loved by data teams<br><span class="serif" style="color:var(--indigo)">everywhere.</span></h2>
+    </div>
+    <div class="quotes">
+      <article class="quote reveal"><div class="stars">★★★★★</div><p>“We replaced three charting libraries with Aurora. Our dashboard bundle dropped 140kB and the charts have never looked better.”</p><div class="quote-person"><img src="https://i.pravatar.cc/80?img=47" alt=""><div><b>Maya Chen</b><span>Staff Engineer, Linear-style SaaS</span></div></div></article>
+      <article class="quote reveal"><div class="stars">★★★★★</div><p>“The first charting library where accessibility wasn’t an afterthought. Keyboard navigation and ARIA just… work.”</p><div class="quote-person"><img src="https://i.pravatar.cc/80?img=13" alt=""><div><b>Jonas Weber</b><span>Design Systems Lead</span></div></div></article>
+      <article class="quote reveal"><div class="stars">★★★★★</div><p>“Streaming 50k points at 60fps without breaking a sweat. The plugin API is the cleanest I’ve used in a decade.”</p><div class="quote-person"><img src="https://i.pravatar.cc/80?img=59" alt=""><div><b>Priya Nair</b><span>Data Platform Architect</span></div></div></article>
+    </div>
+
+    <div class="cta reveal" style="margin-top:22px">
+      <span class="eyebrow" style="background:rgba(255,255,255,.1);color:#c7c9ff;border-color:rgba(255,255,255,.15)">MIT Licensed · Free forever</span>
+      <h2 style="margin-top:18px">Start charting in<br><span class="serif" style="color:#a5b4fc">five lines of code.</span></h2>
+      <p>Join 48,000 developers building better data experiences with Aurora. No sign-up, no lock-in — just charts.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="#start" class="btn btn-gradient">Read the docs <i class="fa-solid fa-arrow-right"></i></a>
+        <a href="#top" class="btn" style="background:white;color:#0f1025"><i class="fa-brands fa-github"></i> Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <a class="logo" href="#top" style="margin-bottom:12px"><span class="logo-mark"><i class="fa-solid fa-chart-line"></i></span>aurora</a>
+        <p style="color:var(--muted);font-size:13.5px;line-height:1.65;max-width:260px;margin-top:12px">Beautiful, composable, accessible charts for the modern web. Built in the open, by the community.</p>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <a class="icon-btn" href="#top"><i class="fa-brands fa-github"></i></a><a class="icon-btn" href="#top"><i class="fa-brands fa-discord"></i></a><a class="icon-btn" href="#top"><i class="fa-brands fa-x-twitter"></i></a><a class="icon-btn" href="#top"><i class="fa-brands fa-npm"></i></a>
+        </div>
+      </div>
+      <div><h5>Documentation</h5><a href="#start">Getting started</a><a href="#gallery">Chart types</a><a href="#playground">Playground</a><a href="#start">API reference</a><a href="#start">Migration guide</a></div>
+      <div><h5>Resources</h5><a href="#gallery">Examples</a><a href="#gallery">Theme gallery</a><a href="#playground">Plugin registry</a><a href="#community">Roadmap</a><a href="#community">Changelog</a></div>
+      <div><h5>Community</h5><a href="#community">GitHub</a><a href="#community">Discord</a><a href="#community">Discussions</a><a href="#community">Contributing</a><a href="#community">Code of conduct</a></div>
+      <div><h5>Project</h5><a href="#top">About</a><a href="#top">Blog</a><a href="#top">Sponsors</a><a href="#top">Security</a><a href="#top">MIT License</a></div>
+    </div>
+    <div class="foot-bottom"><span>© 2025 The Aurora Contributors · Released under the MIT License</span><span class="mono" style="font-size:12px">v4.2.0 &nbsp;·&nbsp; Built with ❤ and Canvas</span></div>
+  </div>
+</footer>
+
+<!-- SEARCH -->
+<div class="modal" id="searchModal" onclick="if(event.target===this)closeSearch()">
+  <div class="search-box">
+    <div class="search-input"><i class="fa-solid fa-magnifying-glass" style="color:var(--muted)"></i><input id="searchInput" placeholder="Search docs, charts, APIs…" oninput="filterSearch(this.value)"><kbd class="mono" style="font-size:11px;background:var(--surface2);border:1px solid var(--line);padding:3px 6px;border-radius:5px;color:var(--muted)">ESC</kbd></div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span>Copied to clipboard</span></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function ctxOf(canvas){
+  const dpr=window.devicePixelRatio||1, r=canvas.getBoundingClientRect();
+  canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+  const c=canvas.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); return {c,w:r.width,h:r.height};
+}
+function grid(c,w,h,rows=4,color){
+  c.strokeStyle=color||(document.documentElement.dataset.theme==='dark'?'rgba(255,255,255,.07)':'rgba(20,20,60,.07)');
+  c.lineWidth=1; c.setLineDash([]);
+  for(let i=1;i<=rows;i++){const y=h-28-(h-48)/rows*i; c.beginPath(); c.moveTo(8,y); c.lineTo(w-8,y); c.stroke();}
+}
+function linePath(c,pts,tension){
+  c.moveTo(pts[0].x,pts[0].y);
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    c.bezierCurveTo(p1.x+(p2.x-p0.x)*tension,p1.y+(p2.y-p0.y)*tension,p2.x-(p3.x-p1.x)*tension,p2.y-(p3.y-p1.y)*tension,p2.x,p2.y);
+  }
+}
+function showToast(msg){
+  const t=$('#toast'); t.querySelector('span').textContent=msg||'Copied to clipboard';
+  t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function copyText(text,btn){
+  const done=()=>{ showToast('Copied to clipboard'); if(btn){const o=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-check" style="color:#34d399"></i>'; setTimeout(()=>btn.innerHTML=o,1400);} };
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text.trim()).then(done).catch(done);}else{done();}
+}
+function toggleTheme(){
+  const h=document.documentElement, dark=h.dataset.theme!=='dark';
+  h.dataset.theme=dark?'dark':'light';
+  $('#themeBtn').innerHTML=dark?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>';
+  drawMain(1); drawPlay(); drawSparks(); drawGallery();
+}
+
+/* ---------- main chart ---------- */
+const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let mainType='line', mainScale=1, animStart=null;
+let d1=[42,58,49,71,84,76,96,110,98,124,138,152], d2=[30,42,48,55,62,70,74,86,92,100,108,118], d3=[22,28,26,34,38,36,44,48,45,54,58,62];
+
+function drawMain(progress=1){
+  const cv=$('#mainChart'); if(!cv) return; const {c,w,h}=ctxOf(cv);
+  const pad={l:6,r:6,t:10,b:24}, iw=w-pad.l-pad.r, ih=h-pad.t-pad.b;
+  grid(c,w,h+4,4); c.font='600 10.5px Inter'; c.fillStyle=document.documentElement.dataset.theme==='dark'?'#8a8cb0':'#9a9cb3'; c.textAlign='center';
+  labels.forEach((l,i)=>{ if(i%2===0||w>560) c.fillText(l,pad.l+iw/(labels.length-1)*i,h-6); });
+
+  if(mainType==='donut'){
+    const vals=[152,118,62], cols=['#6366f1','#06b6d4','#ec4899'], total=vals.reduce((a,b)=>a+b,0);
+    const cx=w/2, cy=(h-10)/2, R=Math.min(w,h)*0.34, r=R*0.62; let a=-Math.PI/2;
+    vals.forEach((v,i)=>{ const sweep=v/total*Math.PI*2*progress; c.beginPath(); c.arc(cx,cy,R,a,a+sweep); c.arc(cx,cy,r,a+sweep,a,true); c.closePath(); c.fillStyle=cols[i]; c.fill(); a+=v/total*Math.PI*2; });
+    c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text'); c.font='900 24px Inter'; c.fillText('$332k',cx,cy+2);
+    c.font='600 11px Inter'; c.fillStyle='#9a9cb3'; c.fillText('TOTAL',cx,cy+20); return;
+  }
+  const max=170;
+  const pts=(data)=>data.map((v,i)=>({x:pad.l+iw/(data.length-1)*i, y:pad.t+ih-(v*mainScale/max)*ih*progress}));
+  if(mainType==='bar'){
+    const bw=iw/labels.length*0.32;
+    [d1,d2].forEach((data,di)=>{
+      const col=di===0?'#6366f1':'#06b6d4';
+      data.forEach((v,i)=>{ const x=pad.l+iw/labels.length*i+iw/labels.length/2-bw+(di*bw), y=pad.t+ih-(v*mainScale/max)*ih*progress, bh=ih-(y-pad.t);
+        c.fillStyle=col; c.beginPath(); c.roundRect(x,y,Math.max(3,bw-2),Math.max(0,bh),[4,4,0,0]); c.fill(); });
+    }); return;
+  }
+  const series=[{d:d1,col:'#6366f1'},{d:d2,col:'#06b6d4'},{d:d3,col:'#ec4899'}];
+  series.forEach((s,idx)=>{
+    const p=pts(s.d.map(v=>v*mainScale));
+    if(mainType==='area'||idx===0&&mainType==='line'){
+      // gradient fill for first series in area mode, subtle in line mode
+      if(mainType==='area'||idx===0){
+        const g=c.createLinearGradient(0,pad.t,0,h-pad.b); g.addColorStop(0,s.col+(mainType==='area'?'44':'22')); g.addColorStop(1,s.col+'00');
+        c.beginPath(); linePath(c,p,0.22); c.lineTo(p[p.length-1].x,h-pad.b); c.lineTo(p[0].x,h-pad.b); c.closePath(); c.fillStyle=g; c.fill();
+      }
+    }
+    c.beginPath(); linePath(c,p,0.22); c.strokeStyle=s.col; c.lineWidth=idx===0?3:2.2; c.lineJoin='round'; c.lineCap='round'; c.stroke();
+    if(idx===0){ p.forEach((pt,i)=>{ if(i%2===0){ c.beginPath(); c.arc(pt.x,pt.y,4,0,7); c.fillStyle=s.col; c.fill(); c.beginPath(); c.arc(pt.x,pt.y,4,0,7); c.strokeStyle='#fff'; c.lineWidth=2; c.stroke(); }});
+      const last=p[p.length-1]; c.beginPath(); c.arc(last.x,last.y,6,0,7); c.fillStyle='#6366f1'; c.globalAlpha=.18; c.fill(); c.globalAlpha=1;
+    }
+  });
+}
+function animateMain(){
+  animStart=performance.now();
+  function frame(t){ const p=Math.min(1,(t-animStart)/750); const e=1-Math.pow(1-p,3); drawMain(e); if(p<1) requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+}
+function replayMain(){ animateMain(); }
+function setRange(btn,scale){ $$('.range-chip').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); mainScale=scale; animateMain(); }
+function randomizeMain(btn){
+  const base=()=>Array.from({length:12},(_,i)=>Math.round(30+i*6+Math.random()*55));
+  d1=base().sort((a,b)=>a-b).map((v,i)=>Math.round((v+d1[i])/2)+i*3); d2=d1.map(v=>Math.round(v*0.74+Math.random()*10)); d3=d1.map(v=>Math.round(v*0.42+Math.random()*8));
+  $('#mainNum').textContent='$'+(240+Math.round(Math.random()*90))+'.'+Math.round(Math.random()*9)+'k';
+  animateMain(); showToast('Dataset randomized');
+}
+$('#mainTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $$('#mainTabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  mainType=b.dataset.type; $('#codeType').textContent=mainType;
+  $('#mainTitle').textContent = mainType==='donut'?'Revenue by channel': mainType==='bar'?'Revenue vs forecast':'Product revenue';
+  $('#mainLegend').style.opacity = mainType==='donut'?'.35':'1';
+  animateMain();
+});
+
+/* ---------- sparks & gallery ---------- */
+function drawSparks(){
+  $$('.spark').forEach(cv=>{
+    const {c,w,h}=ctxOf(cv), col=cv.dataset.color;
+    const data=Array.from({length:18},(_,i)=>20+Math.sin(i*0.7)*10+i*1.6+Math.random()*6);
+    const max=Math.max(...data)*1.15, pts=data.map((v,i)=>({x:4+(w-8)/(data.length-1)*i,y:h-6-(v/max)*(h-14)}));
+    const g=c.createLinearGradient(0,0,0,h); g.addColorStop(0,col+'33'); g.addColorStop(1,col+'00');
+    c.beginPath(); linePath(c,pts,0.18); c.lineTo(w-4,h); c.lineTo(4,h); c.closePath(); c.fillStyle=g; c.fill();
+    c.beginPath(); linePath(c,pts,0.18); c.strokeStyle=col; c.lineWidth=2.2; c.stroke();
+  });
+}
+const galleryItems=[
+  {t:'Line Chart',d:'Trends over time',type:'line',col:'#6366f1'},
+  {t:'Bar Chart',d:'Compare categories',type:'bar',col:'#8b5cf6'},
+  {t:'Area Chart',d:'Volume & composition',type:'area',col:'#06b6d4'},
+  {t:'Donut Chart',d:'Parts of a whole',type:'donut',col:'#ec4899'},
+  {t:'Radar Chart',d:'Multi-axis profiles',type:'radar',col:'#10b981'},
+  {t:'Scatter Plot',d:'Correlations',type:'scatter',col:'#f59e0b'},
+  {t:'Heatmap',d:'Density & patterns',type:'heat',col:'#ef4444'},
+  {t:'Sparkline',d:'Inline micro-trends',type:'spark',col:'#6366f1'},
+];
+function buildGallery(){
+  $('#galleryGrid').innerHTML=galleryItems.map((g,i)=>`
+    <article class="g-card reveal" onclick="loadInPlayground('${g.type}')">
+      <canvas data-gtype="${g.type}" data-col="${g.col}"></canvas>
+      <div class="g-info"><div><h4>${g.t}</h4><p>${g.d}</p></div><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+    </article>`).join('');
+}
+function drawGallery(){
+  $$('#galleryGrid canvas').forEach(cv=>{
+    const {c,w,h}=ctxOf(cv), col=cv.dataset.col, type=cv.dataset.gtype;
+    const dark=document.documentElement.dataset.theme==='dark';
+    c.strokeStyle=dark?'rgba(255,255,255,.07)':'rgba(20,20,60,.07)';
+    for(let i=1;i<4;i++){c.beginPath();c.moveTo(10,14+(h-30)/3*i);c.lineTo(w-10,14+(h-30)/3*i);c.stroke();}
+    if(type==='bar'){ for(let i=0;i<7;i++){const bh=22+Math.random()*68,x=18+i*(w-30)/7; c.fillStyle=col; c.globalAlpha=.55+Math.random()*.45; c.beginPath(); c.roundRect(x,h-18-bh,16,bh,[4,4,0,0]); c.fill();} c.globalAlpha=1; }
+    else if(type==='donut'){ const cx=w/2,cy=h/2,R=42,r=26; let a=-Math.PI/2; [.45,.3,.25].forEach((f,i)=>{c.beginPath();c.arc(cx,cy,R,a,a+f*Math.PI*2);c.arc(cx,cy,r,a+f*Math.PI*2,a,true);c.closePath();c.fillStyle=[col,'#06b6d4','#c7c9e8'][i];c.globalAlpha=i? .75:1;c.fill();a+=f*Math.PI*2;}); c.globalAlpha=1; }
+    else if(type==='radar'){ const cx=w/2,cy=h/2,R=44; c.strokeStyle=col; c.fillStyle=col+'2e'; c.beginPath(); for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3, rr=R*(0.45+((i*37)%50)/100); const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr; i?c.lineTo(x,y):c.moveTo(x,y);} c.closePath(); c.fill(); c.lineWidth=2; c.stroke(); }
+    else if(type==='scatter'){ for(let i=0;i<34;i++){ c.beginPath(); c.arc(16+Math.random()*(w-32),14+Math.random()*(h-34),3+Math.random()*3,0,7); c.fillStyle=col; c.globalAlpha=.55+Math.random()*.4; c.fill(); } c.globalAlpha=1; }
+    else if(type==='heat'){ const cols=7,rows=4,cw2=(w-24)/cols,ch2=(h-28)/rows; for(let x=0;x<cols;x++)for(let y=0;y<rows;y++){ c.fillStyle=col; c.globalAlpha=.12+Math.abs(Math.sin(x*1.3+y))*.8; c.beginPath(); c.roundRect(12+x*cw2+1,12+y*ch2+1,cw2-3,ch2-3,4); c.fill(); } c.globalAlpha=1; }
+    else { const data=Array.from({length:14},(_,i)=>24+Math.sin(i*.65)*16+i*3.4+Math.random()*7); const max=Math.max(...data)*1.12; const pts=data.map((v,i)=>({x:14+(w-28)/(data.length-1)*i,y:h-16-(v/max)*(h-30)}));
+      if(type==='area'){ const g=c.createLinearGradient(0,0,0,h); g.addColorStop(0,col+'44'); g.addColorStop(1,col+'00'); c.beginPath(); linePath(c,pts,.18); c.lineTo(w-14,h-14); c.lineTo(14,h-14); c.closePath(); c.fillStyle=g; c.fill(); }
+      c.beginPath(); linePath(c,pts,.18); c.strokeStyle=col; c.lineWidth=2.6; c.stroke();
+      pts.forEach((p,i)=>{ if(i%3===0){c.beginPath();c.arc(p.x,p.y,3.4,0,7);c.fillStyle=col;c.fill();} });
+    }
+  });
+}
+function loadInPlayground(type){
+  const map={line:'line',bar:'bar',area:'area',donut:'bar',radar:'line',scatter:'line',heat:'bar',spark:'area'};
+  setPlayType(map[type]||'line');
+  document.getElementById('playground').scrollIntoView({behavior:'smooth'});
+  showToast(galleryItems.find(g=>g.type===type).t+' loaded in Playground');
+}
+
+/* ---------- playground ---------- */
+let play={type:'line',color:'#6366f1',points:9,smooth:.45,grid:true,dots:true,fill:true};
+function playData(){ return Array.from({length:play.points},(_,i)=>Math.round(28+Math.sin(i*.8)*16+i*(42/play.points)+((i*29)%17))); }
+function drawPlay(){
+  const cv=$('#playChart'); if(!cv) return; const {c,w,h}=ctxOf(cv);
+  const data=playData(), pad={l:8,r:8,t:12,b:26}, iw=w-pad.l-pad.r, ih=h-pad.t-pad.b, max=Math.max(...data)*1.25;
+  if(play.grid) grid(c,w,h+2,4);
+  c.font='600 10.5px Inter'; c.fillStyle='#9a9cb3'; c.textAlign='center';
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  data.forEach((_,i)=>c.fillText(days[i%7],pad.l+iw/(data.length-1)*i,h-7));
+  const pts=data.map((v,i)=>({x:pad.l+iw/(data.length-1)*i,y:pad.t+ih-(v/max)*ih}));
+  if(play.type==='bar'){
+    const bw=Math.min(38,iw/data.length*.52);
+    data.forEach((v,i)=>{ const x=pts[i].x-bw/2, y=pts[i].y, bh=h-pad.b-y; const g=c.createLinearGradient(0,y,0,h); g.addColorStop(0,play.color); g.addColorStop(1,play.color+'88'); c.fillStyle=g; c.beginPath(); c.roundRect(x,y,bw,Math.max(0,bh),[6,6,0,0]); c.fill(); });
+  } else {
+    if(play.fill){ const g=c.createLinearGradient(0,pad.t,0,h-pad.b); g.addColorStop(0,play.color+'47'); g.addColorStop(1,play.color+'00'); c.beginPath(); linePath(c,pts,play.smooth/2.2); c.lineTo(pts[pts.length-1].x,h-pad.b); c.lineTo(pts[0].x,h-pad.b); c.closePath(); c.fillStyle=g; c.fill(); }
+    c.beginPath(); linePath(c,pts,play.smooth/2.2); c.strokeStyle=play.color; c.lineWidth=3; c.lineJoin='round'; c.lineCap='round'; c.stroke();
+    if(play.dots) pts.forEach(p=>{ c.beginPath(); c.arc(p.x,p.y,4.5,0,7); c.fillStyle=play.color; c.fill(); c.beginPath(); c.arc(p.x,p.y,4.5,0,7); c.strokeStyle='#fff'; c.lineWidth=2; c.stroke(); });
+  }
+  updatePlayCode(data);
+}
+function updatePlayCode(data){
+  $('#playCode').innerHTML =
+`<span class="tok-k">new</span> <span class="tok-f">Chart</span>(<span class="tok-s">'#users'</span>, {
+  type: <span class="tok-s">'${play.type}'</span>,
+  data: [<span class="tok-n">${data.join(', ')}</span>],
+  color: <span class="tok-s">'${play.color}'</span>,
+  tension: <span class="tok-n">${play.smooth.toFixed(2)}</span>,
+  grid: <span class="tok-n">${play.grid}</span>, dots: <span class="tok-n">${play.dots}</span>, fill: <span class="tok-n">${play.fill}</span>
+})`;
+}
+function setPlayType(t){
+  play.type=t; $$('#playSeg button').forEach(b=>b.classList.toggle('active',b.dataset.t===t)); drawPlay();
+}
+$('#playSeg').addEventListener('click',e=>{const b=e.target.closest('button'); if(b) setPlayType(b.dataset.t);});
+$('#swatches').addEventListener('click',e=>{const b=e.target.closest('.swatch'); if(!b)return; $$('.swatch').forEach(s=>s.classList.remove('active')); b.classList.add('active'); play.color=b.dataset.c; drawPlay();});
+$('#pointsRange').addEventListener('input',e=>{play.points=+e.target.value; $('#pointsOut').textContent=play.points; drawPlay();});
+$('#smoothRange').addEventListener('input',e=>{play.smooth=+e.target.value/100; $('#smoothOut').textContent=play.smooth.toFixed(2); drawPlay();});
+function toggleSwitch(el){
+  el.classList.toggle('on'); const on=el.classList.contains('on');
+  if(el.id==='tgGrid') play.grid=on; if(el.id==='tgDots') play.dots=on; if(el.id==='tgFill') play.fill=on;
+  drawPlay();
+}
+$$('.fw').forEach(f=>f.addEventListener('click',()=>{ $$('.fw').forEach(x=>x.classList.remove('active')); f.classList.add('active'); showToast(f.textContent.trim()+' bindings — same API, native components'); }));
+
+/* ---------- search ---------- */
+const docsIndex=[
+  {t:'Getting Started',d:'Install Aurora and render your first chart in a minute',i:'fa-rocket',target:'#start'},
+  {t:'Line Chart',d:'Trends, smoothing, streaming and multi-series lines',i:'fa-chart-line',target:'#gallery'},
+  {t:'Bar Chart',d:'Grouped, stacked and horizontal bars',i:'fa-chart-column',target:'#gallery'},
+  {t:'Playground',d:'Tweak charts live and copy the generated code',i:'fa-flask',target:'#playground'},
+  {t:'Theming & Dark Mode',d:'CSS variables, built-in themes and custom palettes',i:'fa-palette',target:'#demo'},
+  {t:'Accessibility',d:'ARIA, keyboard navigation and data tables',i:'fa-universal-access',target:'#top'},
+  {t:'API Reference',d:'Chart, update(), push(), plugins and events',i:'fa-code',target:'#start'},
+  {t:'Live Demo',d:'Interactive revenue chart with tabs and datasets',i:'fa-play',target:'#demo'},
+];
+function renderSearch(list){
+  $('#searchResults').innerHTML=list.length?list.map(x=>`<button class="sr" onclick="closeSearch();document.querySelector('${x.target}').scrollIntoView({behavior:'smooth'})"><i class="fa-solid ${x.i}"></i><span><b>${x.t}</b><span>${x.d}</span></span></button>`).join(''):'<p style="padding:22px;color:var(--muted);font-size:14px;text-align:center">No results — try “line”, “theme” or “API”.</p>';
+}
+function filterSearch(q){ const s=q.toLowerCase().trim(); renderSearch(s?docsIndex.filter(x=>(x.t+' '+x.d).toLowerCase().includes(s)):docsIndex); }
+function openSearch(){ $('#searchModal').classList.add('open'); renderSearch(docsIndex); setTimeout(()=>$('#searchInput').focus(),40); }
+function closeSearch(){ $('#searchModal').classList.remove('open'); $('#searchInput').value=''; }
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); }
+  if(e.key==='Escape') closeSearch();
+});
+
+/* ---------- reveal & init ---------- */
+const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('visible'); io.unobserve(en.target);} }),{threshold:.08});
+function observeReveals(){ $$('.reveal').forEach(el=>io.observe(el)); }
+
+buildGallery(); observeReveals(); animateMain(); drawPlay(); drawSparks(); drawGallery();
+let rto; window.addEventListener('resize',()=>{ clearTimeout(rto); rto=setTimeout(()=>{ drawMain(1); drawPlay(); drawSparks(); drawGallery(); },140); });
+</script>
+</body>
+</html>

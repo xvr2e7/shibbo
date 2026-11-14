@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tern — Catch Slow Database Queries Before Production</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #090A0F;
+      --bg-surface: #11131A;
+      --bg-elevated: #181B24;
+      --bg-glass: rgba(17, 19, 26, 0.8);
+      
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-muted: #5E6675;
+      
+      --accent-primary: #F59E0B;
+      --accent-primary-dim: rgba(245, 158, 11, 0.15);
+      --accent-secondary: #10B981;
+      --accent-secondary-dim: rgba(16, 185, 129, 0.15);
+      --accent-danger: #EF4444;
+      --accent-danger-dim: rgba(239, 68, 68, 0.15);
+      --accent-blue: #38BDF8;
+      --accent-purple: #C084FC;
+      
+      --border-dim: #1E2230;
+      --border-bright: #2E3446;
+      
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --container-max: 1200px;
+      --grid-gap: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.06) 0%, transparent 50%),
+        linear-gradient(to bottom, transparent, var(--bg-base)),
+        radial-gradient(var(--border-dim) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+      background-position: 0 0, 0 0, -1px -1px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    /* Layout Structure */
+    .container {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .section-divider {
+      border-top: 1px solid var(--border-dim);
+      position: relative;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '+';
+      position: absolute;
+      top: -11px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-muted);
+      background: var(--bg-base);
+      padding: 0 4px;
+    }
+    .section-divider::before { left: 24px; }
+    .section-divider::after { right: 24px; }
+
+    /* Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 64px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .nav-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: var(--accent-primary);
+      color: var(--bg-base);
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .version-badge {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-bright);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-bright);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--text-secondary);
+      background: var(--bg-elevated);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: var(--bg-base);
+      border-color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #fbbf24;
+      border-color: #fbbf24;
+      color: var(--bg-base);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 88px 0 96px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-primary);
+      background: var(--accent-primary-dim);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      box-shadow: 0 0 8px var(--accent-primary);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 4.5vw, 3.75rem);
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+
+    .hero h1 .highlight {
+      color: var(--accent-primary);
+      text-decoration: underline;
+      text-decoration-color: rgba(245, 158, 11, 0.3);
+      text-underline-offset: 6px;
+    }
+
+    .hero-lead {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      max-width: 52ch;
+    }
+
+    /* Install Command Widget */
+    .install-wrapper {
+      margin-bottom: 28px;
+    }
+
+    .install-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: -1px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .pkg-tab {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 6px 12px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pkg-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .pkg-tab.active {
+      background: var(--bg-surface);
+      color: var(--accent-primary);
+      border-color: var(--border-bright);
+    }
+
+    .install-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 0 8px 8px 8px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.2s ease;
+    }
+
+    .install-box:hover {
+      border-color: var(--text-muted);
+    }
+
+    .install-cmd-text {
+      font-family: var(--font-mono);
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .prompt-sign {
+      color: var(--accent-primary);
+      user-select: none;
+    }
+
+    .copy-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-dim);
+      color: var(--text-secondary);
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .copy-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-bright);
+      background: #222634;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .hero-meta span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Terminal Showcase */
+    .terminal-window {
+      background: #0B0D13;
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.55;
+    }
+
+    .terminal-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-dim);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .win-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border-bright);
+    }
+    .win-dot.close { background: #EF4444; opacity: 0.8; }
+    .win-dot.min { background: #F59E0B; opacity: 0.8; }
+    .win-dot.max { background: #10B981; opacity: 0.8; }
+
+    .terminal-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .term-tab {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .term-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .term-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-bright);
+    }
+
+    .terminal-body {
+      padding: 20px;
+      min-height: 410px;
+      max-height: 410px;
+      overflow-y: auto;
+      color: #D1D5DB;
+    }
+
+    .term-line {
+      margin-bottom: 4px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .t-cmd { color: var(--text-primary); font-weight: 600; }
+    .t-dim { color: var(--text-muted); }
+    .t-warn { color: var(--accent-primary); }
+    .t-err { color: var(--accent-danger); font-weight: 600; }
+    .t-ok { color: var(--accent-secondary); }
+    .t-info { color: var(--accent-blue); }
+    .t-sql { color: var(--accent-purple); }
+    
+    .t-badge-crit {
+      background: var(--accent-danger-dim);
+      color: var(--accent-danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+    
+    .t-badge-warn {
+      background: var(--accent-primary-dim);
+      color: var(--accent-primary);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+
+    .t-badge-ok {
+      background: var(--accent-secondary-dim);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+
+    .t-box {
+      border-left: 2px solid var(--border-bright);
+      padding-left: 14px;
+      margin: 10px 0 16px 6px;
+    }
+    .t-box.crit { border-left-color: var(--accent-danger); }
+    .t-box.warn { border-left-color: var(--accent-primary); }
+
+    .t-suggestion {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px dashed rgba(16, 185, 129, 0.3);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      color: #A7F3D0;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 15px;
+      background: var(--accent-primary);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Telemetry Strip */
+    .telemetry-strip {
+      border-top: 1px solid var(--border-dim);
+      border-bottom: 1px solid var(--border-dim);
+      background: rgba(17, 19, 26, 0.5);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .telemetry-item {
+      padding: 28px 24px;
+      border-right: 1px solid var(--border-dim);
+    }
+    .telemetry-item:last-child {
+      border-right: none;
+    }
+
+    .telemetry-val {
+      font-family: var(--font-mono);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .telemetry-unit {
+      font-size: 0.875rem;
+      color: var(--accent-primary);
+      font-weight: 500;
+    }
+
+    .telemetry-label {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    /* Section Headers */
+    .section {
+      padding: 96px 0;
+    }
+
+    .section-header {
+      max-width: 680px;
+      margin-bottom: 56px;
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: clamp(1.875rem, 3vw, 2.5rem);
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.0625rem;
+    }
+
+    /* Interactive Query Anatomy (Flamegraph/Plan Diff) */
+    .inspector-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .inspector-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-dim);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .query-signature {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .file-loc {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: var(--bg-base);
+      border-radius: 4px;
+      border: 1px solid var(--border-dim);
+    }
+
+    .plan-toggle {
+      display: inline-flex;
+      background: var(--bg-base);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border-dim);
+    }
+
+    .toggle-btn {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .toggle-btn.active.bad {
+      background: var(--accent-danger-dim);
+      color: var(--accent-danger);
+      font-weight: 600;
+    }
+
+    .toggle-btn.active.good {
+      background: var(--accent-secondary-dim);
+      color: var(--accent-secondary);
+      font-weight: 600;
+    }
+
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .inspector-pane {
+      padding: 24px;
+    }
+
+    .inspector-pane:first-child {
+      border-right: 1px solid var(--border-dim);
+    }
+
+    .pane-title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .sql-block {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      background: var(--bg-base);
+      padding: 16px;
+      border-radius: 6px;
+      border: 1px solid var(--border-dim);
+      color: var(--text-primary);
+      line-height: 1.7;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .kw { color: var(--accent-blue); font-weight: 600; }
+    .ident { color: #E5E7EB; }
+    .str { color: var(--accent-secondary); }
+    .comment { color: var(--text-muted); font-style: italic; }
+
+    /* Flamegraph bars */
+    .flame-node {
+      margin-bottom: 12px;
+    }
+
+    .flame-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+    }
+
+    .flame-bar-bg {
+      height: 8px;
+      background: var(--bg-base);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .flame-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    }
+
+    .inspector-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--bg-base);
+    }
+
+    .metric-cell {
+      padding: 16px 24px;
+      border-right: 1px solid var(--border-dim);
+      font-family: var(--font-mono);
+    }
+    .metric-cell:last-child { border-right: none; }
+
+    .m-key {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .m-val {
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 24px;
+    }
+
+    .bento-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bento-card:hover {
+      border-color: var(--border-bright);
+    }
+
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-12 { grid-column: span 12; }
+
+    .card-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-primary);
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    .bento-card h3 {
+      font-size: 1.375rem;
+      margin-bottom: 10px;
+    }
+
+    .bento-card p {
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+      margin-bottom: 24px;
+    }
+
+    .mini-console {
+      background: var(--bg-base);
+      border: 1px solid var(--border-dim);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      overflow-x: auto;
+    }
+
+    /* GitHub PR Mockup inside Bento */
+    .pr-comment {
+      background: var(--bg-base);
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.8125rem;
+    }
+
+    .pr-header {
+      background: var(--bg-elevated);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .bot-badge {
+      background: var(--border-bright);
+      color: var(--text-secondary);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      margin-left: 6px;
+    }
+
+    .pr-body {
+      padding: 14px;
+    }
+
+    .pr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      margin-top: 10px;
+    }
+
+    .pr-table th, .pr-table td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .pr-table th { color: var(--text-muted); font-weight: 500; }
+
+    /* Pipeline Steps */
+    .pipeline-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      counter-reset: step;
+    }
+
+    .step-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 28px;
+      position: relative;
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-primary);
+      background: var(--accent-primary-dim);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    .step-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+    }
+
+    .step-card p {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    /* CLI Flags Reference */
+    .flags-table-wrap {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .flags-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .flags-table th,
+    .flags-table td {
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .flags-table th {
+      background: var(--bg-elevated);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .flags-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .flags-table tr:hover td {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .flag-name {
+      font-family: var(--font-mono);
+      color: var(--accent-primary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .flag-default {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    /* Footer CTA */
+    .cta-banner {
+      background: linear-gradient(180deg, var(--bg-surface) 0%, #0D0F17 100%);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      padding: 64px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+    }
+
+    .cta-banner h2 {
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      margin-bottom: 16px;
+    }
+
+    .cta-banner p {
+      color: var(--text-secondary);
+      max-width: 50ch;
+      margin: 0 auto 32px;
+      font-size: 1.0625rem;
+    }
+
+    .cta-cmd {
+      max-width: 480px;
+      margin: 0 auto 24px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-dim);
+      padding: 48px 0;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .telemetry-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .telemetry-item:nth-child(2) {
+        border-right: none;
+      }
+      .telemetry-item:nth-child(1),
+      .telemetry-item:nth-child(2) {
+        border-bottom: 1px solid var(--border-dim);
+      }
+      .inspector-grid {
+        grid-template-columns: 1fr;
+      }
+      .inspector-pane:first-child {
+        border-right: none;
+        border-bottom: 1px solid var(--border-dim);
+      }
+      .inspector-metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .span-7, .span-5, .span-6 {
+        grid-column: span 12;
+      }
+      .pipeline-steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links {
+        display: none;
+      }
+      .hero {
+        padding: 48px 0 64px;
+      }
+      .cta-banner {
+        padding: 40px 20px;
+      }
+      .flags-table th:nth-child(2),
+      .flags-table td:nth-child(2) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="container nav-container">
+      <a href="#" class="brand">
+        <span class="brand-icon">&gt;_</span>
+        <span>tern</span>
+        <span class="version-badge">v0.14.2</span>
+      </a>
+      
+      <nav class="nav-links">
+        <a href="#inspector">Execution Plans</a>
+        <a href="#features">Capabilities</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#cli-ref">CLI Reference</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com" target="_blank" rel="noopener" class="btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+          <span>Star</span>
+          <span style="color: var(--accent-primary); font-weight: 700;">4.8k</span>
+        </a>
+        <a href="#install" class="btn btn-primary">Install CLI</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container hero-grid">
+      
+      <!-- Left Column: Pitch & Install -->
+      <div>
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span>RUST-POWERED SQL DIAGNOSTICS</span>
+        </div>
+        
+        <h1>Catch slow queries before they <span class="highlight">page you.</span></h1>
+        
+        <p class="hero-lead">
+          Tern attaches to your database wire protocol or parses query logs in real time—surfacing sequential scans, N+1 loops, and exact missing indexes directly in your terminal.
+        </p>
+
+        <!-- Interactive Package Switcher -->
+        <div class="install-wrapper" id="install">
+          <div class="install-tabs" role="tablist">
+            <button class="pkg-tab active" data-cmd="brew install tern-db/tap/tern">Homebrew</button>
+            <button class="pkg-tab" data-cmd="cargo install tern-cli --locked">Cargo</button>
+            <button class="pkg-tab" data-cmd="curl -sSfL https://tern.sh/install | sh">cURL</button>
+            <button class="pkg-tab" data-cmd="docker run --rm -it ghcr.io/tern-db/tern:latest">Docker</button>
+          </div>
+          <div class="install-box">
+            <div class="install-cmd-text">
+              <span class="prompt-sign">$</span>
+              <span id="install-code">brew install tern-db/tap/tern</span>
+            </div>
+            <button class="copy-btn" id="copy-install-btn" title="Copy to clipboard" aria-label="Copy install command">
+              <svg id="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hero-meta">
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            PostgreSQL · MySQL · SQLite
+          </span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            &lt; 0.3% CPU Overhead
+          </span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Apache-2.0 License
+          </span>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Terminal Emulator -->
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="window-controls">
+            <span class="win-dot close"></span>
+            <span class="win-dot min"></span>
+            <span class="win-dot max"></span>
+          </div>
+          <div class="terminal-tabs">
+            <button class="term-tab active" data-mode="watch">tern watch</button>
+            <button class="term-tab" data-mode="explain">tern explain</button>
+            <button class="term-tab" data-mode="ci">tern ci --diff</button>
+          </div>
+        </div>
+        <div class="terminal-body" id="terminal-output">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Telemetry Benchmark Strip -->
+  <div class="telemetry-strip">
+    <div class="container telemetry-grid">
+      <div class="telemetry-item">
+        <div class="telemetry-val">0.8<span class="telemetry-unit">ms</span></div>
+        <div class="telemetry-label">AST &amp; Plan Parse Latency</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="telemetry-val">100<span class="telemetry-unit">%</span></div>
+        <div class="telemetry-label">Read-Only Safe Execution</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="telemetry-val">4.2<span class="telemetry-unit">MB</span></div>
+        <div class="telemetry-label">Static Binary Footprint</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="telemetry-val">Zero</div>
+        <div class="telemetry-label">Daemon or Agent Required</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Query Plan Inspector -->
+  <section class="section" id="inspector">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">// EXECUTION PLAN TELEMETRY</span>
+        <h2 class="section-title">Raw <code class="mono" style="color: var(--accent-primary);">EXPLAIN ANALYZE</code> is cryptic. Tern makes it actionable.</h2>
+        <p class="section-desc">
+          Instead of dumping 80 lines of nested planner nodes, Tern isolates high-cost operators, calculates buffer heap fetches, and synthesizes the exact DDL migration needed to fix it.
+        </p>
+      </div>
+
+      <div class="inspector-card">
+        <div class="inspector-toolbar">
+          <div class="query-signature">
+            <span class="t-badge-crit" id="insp-badge">SEQ SCAN</span>
+            <span>Query #8f92a — Fetch active organization invoices</span>
+            <span class="file-loc">src/billing/repo.ts:142</span>
+          </div>
+          <div class="plan-toggle">
+            <button class="toggle-btn active bad" id="btn-plan-before">Before Index (418.4ms)</button>
+            <button class="toggle-btn good" id="btn-plan-after">After Tern Fix (1.9ms)</button>
+          </div>
+        </div>
+
+        <div class="inspector-grid">
+          <!-- Left Pane: SQL & Suggested DDL -->
+          <div class="inspector-pane">
+            <div class="pane-title">
+              <span>Captured Statement</span>
+              <span>PostgreSQL 16.2</span>
+            </div>
+            <div class="sql-block">
+<span class="kw">SELECT</span> <span class="ident">id, total_cents, created_at</span>
+<span class="kw">FROM</span> <span class="ident">invoices</span>
+<span class="kw">WHERE</span> <span class="ident">org_id</span> = <span class="str">'org_01HXY9B2'</span>
+  <span class="kw">AND</span> <span class="ident">status</span> = <span class="str">'unpaid'</span>
+<span class="kw">ORDER BY</span> <span class="ident">created_at</span> <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 25;</div>
+
+            <div class="pane-title">
+              <span>Tern Synthesis</span>
+              <span id="ddl-status" style="color: var(--accent-primary);">Est. 220x Speedup</span>
+            </div>
+            <div class="sql-block" style="margin-bottom: 0; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.04);">
+<span class="comment">-- Covers equality predicates + sort order</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> <span class="ident">idx_invoices_org_status_created</span>
+<span class="kw">ON</span> <span class="ident">invoices (org_id, status, created_at</span> <span class="kw">DESC</span><span class="ident">);</span></div>
+          </div>
+
+          <!-- Right Pane: Visual Cost Breakdown -->
+          <div class="inspector-pane">
+            <div class="pane-title">
+              <span>Node Cost Distribution</span>
+              <span id="total-cost-label">cost=0.00..48291.40</span>
+            </div>
+
+            <div class="flame-node">
+              <div class="flame-label">
+                <span id="node-1-name" style="color: var(--accent-danger);">▸ Seq Scan on invoices (Filter: org_id &amp; status)</span>
+                <span id="node-1-time">389.2 ms (93%)</span>
+              </div>
+              <div class="flame-bar-bg">
+                <div class="flame-bar-fill" id="node-1-bar" style="width: 93%; background: var(--accent-danger);"></div>
+              </div>
+            </div>
+
+            <div class="flame-node">
+              <div class="flame-label">
+                <span id="node-2-name" style="color: var(--accent-primary);">▸ Sort (Key: created_at DESC, Method: external merge)</span>
+                <span id="node-2-time">28.7 ms (6.8%)</span>
+              </div>
+              <div class="flame-bar-bg">
+                <div class="flame-bar-fill" id="node-2-bar" style="width: 18%; background: var(--accent-primary);"></div>
+              </div>
+            </div>
+
+            <div class="flame-node">
+              <div class="flame-label">
+                <span id="node-3-name">▸ Limit (25 rows)</span>
+                <span id="node-3-time">0.5 ms (0.2%)</span>
+              </div>
+              <div class="flame-bar-bg">
+                <div class="flame-bar-fill" id="node-3-bar" style="width: 3%; background: var(--accent-blue);"></div>
+              </div>
+            </div>
+
+            <div class="mini-console" id="plan-diagnostic-note" style="margin-top: 24px;">
+              <span class="t-err">! Bottleneck:</span> Scanned <span class="t-cmd">1,420,880 rows</span> from disk to return <span class="t-cmd">25 rows</span>. Sort spilled <span class="t-warn">14.2 MB</span> to temporary disk files because <code class="mono">work_mem</code> was exceeded.
+            </div>
+          </div>
+        </div>
+
+        <div class="inspector-metrics">
+          <div class="metric-cell">
+            <span class="m-key">Execution Time</span>
+            <span class="m-val" id="m-exec" style="color: var(--accent-danger);">418.4 ms</span>
+          </div>
+          <div class="metric-cell">
+            <span class="m-key">Rows Filtered / Examined</span>
+            <span class="m-val" id="m-rows">1,420,855</span>
+          </div>
+          <div class="metric-cell">
+            <span class="m-key">Shared Buffers Read</span>
+            <span class="m-val" id="m-buffers">18,412 blks (143 MB)</span>
+          </div>
+          <div class="metric-cell">
+            <span class="m-key">Scan Strategy</span>
+            <span class="m-val" id="m-strategy" style="color: var(--accent-primary);">Sequential Heap Scan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Feature Bento Grid -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">// BUILT FOR BACKEND ENGINEERS</span>
+        <h2 class="section-title">Everything APM dashboards hide behind five clicks.</h2>
+        <p class="section-desc">
+          Designed for local debugging, staging load tests, and automated CI quality gates. No SaaS accounts, no data leaving your VPC.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        
+        <!-- Card 1: N+1 Loop Detector -->
+        <div class="bento-card span-7">
+          <div>
+            <span class="card-tag">01 / PATTERN FINGERPRINTING</span>
+            <h3>Automatic N+1 Query Loop Detection</h3>
+            <p>
+              ORMs love hiding 150 identical <code class="mono">SELECT</code> queries inside a serializer loop. Tern normalizes query literals into structural AST fingerprints and alerts you when burst concurrency spikes within a single HTTP request trace.
+            </p>
+          </div>
+          <div class="mini-console">
+<span class="t-warn">[N+1 DETECTED]</span> Fingerprint <span class="t-info">#a409c</span> executed <span class="t-err">84 times</span> in 112ms window
+  <span class="t-dim">├─</span> <span class="t-sql">SELECT * FROM "users" WHERE "users"."id" = $1</span>
+  <span class="t-dim">├─</span> Avg duration: <span class="t-cmd">1.3ms</span> │ Cumulative wall time: <span class="t-err">109.2ms</span>
+  <span class="t-dim">└─</span> <span class="t-ok">Fix:</span> Replace loop lookup with <span class="t-sql">WHERE "users"."id" = ANY($1)</span></div>
+        </div>
+
+        <!-- Card 2: Index Advisor -->
+        <div class="bento-card span-5">
+          <div>
+            <span class="card-tag">02 / CARDINALITY-AWARE DDL</span>
+            <h3>Smart Composite Index Synthesis</h3>
+            <p>
+              Tern queries <code class="mono">pg_stats</code> histograms to order composite index columns by selectivity—placing equality predicates first, range scans second, and <code class="mono">INCLUDE</code> payload columns last for Index-Only Scans.
+            </p>
+          </div>
+          <div class="mini-console">
+<span class="t-dim">Column Selectivity Analysis (table: events):</span>
+  • tenant_id   <span class="t-ok">n_distinct: 4,210</span>  (1st: Equality)
+  • event_type  <span class="t-ok">n_distinct: 18</span>     (2nd: Equality)
+  • occurred_at <span class="t-info">histogram_bounds</span>   (3rd: Range B-Tree)</div>
+        </div>
+
+        <!-- Card 3: GitHub CI Gate -->
+        <div class="bento-card span-6">
+          <div>
+            <span class="card-tag">03 / CI/CD REGRESSION GATES</span>
+            <h3>Block Slow Migrations in Pull Requests</h3>
+            <p>
+              Run <code class="mono">tern ci</code> against your integration test suite. If a PR introduces a full table scan on a growing table or regresses query cost by &gt;25%, Tern exits non-zero and posts a diagnostic breakdown on the PR.
+            </p>
+          </div>
+          <div class="pr-comment">
+            <div class="pr-header">
+              <div>
+                <strong style="color: var(--text-primary);">tern-bot</strong>
+                <span class="bot-badge">bot</span>
+                <span style="color: var(--text-muted); margin-left: 8px;">commented 2m ago</span>
+              </div>
+              <span class="t-badge-crit">1 Blocker</span>
+            </div>
+            <div class="pr-body">
+              <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                Detected <strong>1 high-cost query regression</strong> in commit <code class="mono">e49a12b</code>:
+              </div>
+              <table class="pr-table">
+                <thead>
+                  <tr>
+                    <th>Query Location</th>
+                    <th>Scan Type</th>
+                    <th>Cost Delta</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code class="mono">orders_controller.rb:88</code></td>
+                    <td><span class="t-err">Seq Scan</span></td>
+                    <td><span class="t-err">+1,420%</span></td>
+                    <td>❌ Failed</td>
+                  </tr>
+                  <tr>
+                    <td><code class="mono">auth_middleware.rb:19</code></td>
+                    <td><span class="t-ok">Index Only</span></td>
+                    <td><span class="t-ok">-12%</span></td>
+                    <td>✅ Passed</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Lock & Contention Profiler -->
+        <div class="bento-card span-6">
+          <div>
+            <span class="card-tag">04 / CONCURRENCY &amp; LOCKS</span>
+            <h3>Deadlock &amp; Row-Lock Contention Graph</h3>
+            <p>
+              Sometimes a fast query takes 12 seconds because it's blocked behind an uncommitted transaction holding an <code class="mono">AccessExclusiveLock</code>. Tern inspects <code class="mono">pg_locks</code> blocking trees live.
+            </p>
+          </div>
+          <div class="mini-console">
+<span class="t-err">LOCK WAIT TREE (Blocked for 8.4s)</span>
+<span class="t-cmd">PID 41092</span> [idle in transaction] <span class="t-warn">Holding: RowExclusiveLock</span>
+  <span class="t-dim">Query:</span> <span class="t-sql">UPDATE accounts SET balance = $1 WHERE id = 991;</span>
+  └── <span class="t-err">Blocking PID 41884</span> (Waiting: 8,412ms)
+      <span class="t-dim">Query:</span> <span class="t-sql">SELECT * FROM accounts WHERE id = 991 FOR UPDATE;</span>
+      └── <span class="t-err">Blocking 14 additional worker threads...</span></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 3-Step Workflow -->
+  <section class="section" id="workflow">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">// ZERO-FRICTION DEPLOYMENT</span>
+        <h2 class="section-title">Three ways to attach Tern to your stack.</h2>
+        <p class="section-desc">
+          Whether you're debugging locally on a laptop or auditing a 4TB production RDS instance, Tern adapts to your connection constraints.
+        </p>
+      </div>
+
+      <div class="pipeline-steps">
+        <div class="step-card">
+          <span class="step-num">MODE 01 // PROXY</span>
+          <h3>Local Wire Proxy</h3>
+          <p>
+            Point your app's <code class="mono">DATABASE_URL</code> at Tern's transparent local port. Tern intercepts every query packet with sub-millisecond overhead.
+          </p>
+          <div class="mini-console">
+<span class="prompt-sign">$</span> tern proxy \
+  --listen 127.0.0.1:5433 \
+  --upstream postgres://localhost:5432/app</div>
+        </div>
+
+        <div class="step-card">
+          <span class="step-num">MODE 02 // STAT_STATEMENTS</span>
+          <h3>Live Telemetry Polling</h3>
+          <p>
+            Connect with a read-only user to production or staging. Tern samples <code class="mono">pg_stat_statements</code> or MySQL <code class="mono">performance_schema</code> safely.
+          </p>
+          <div class="mini-console">
+<span class="prompt-sign">$</span> tern top \
+  --dsn $READONLY_PROD_URL \
+  --sort total-time</div>
+        </div>
+
+        <div class="step-card">
+          <span class="step-num">MODE 03 // STDIN PIPE</span>
+          <h3>Log Stream Piping</h3>
+          <p>
+            No direct DB access? Pipe standard Docker, CloudWatch, or Rails/Prisma debug logs directly into Tern for offline plan analysis.
+          </p>
+          <div class="mini-console">
+<span class="prompt-sign">$</span> kubectl logs deploy/api -f \
+  | tern parse --dialect postgres</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI Flags & Configuration Reference -->
+  <section class="section" id="cli-ref" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">// ERGONOMIC CLI</span>
+        <h2 class="section-title">UNIX-first flags &amp; predictable exit codes.</h2>
+        <p class="section-desc">
+          Scriptable JSON output, threshold flags, and <code class="mono">.tern.toml</code> project configuration files.
+        </p>
+      </div>
+
+      <div class="flags-table-wrap">
+        <table class="flags-table">
+          <thead>
+            <tr>
+              <th>Flag / Option</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">--threshold, -t &lt;ms&gt;</td>
+              <td class="flag-default">50ms</td>
+              <td>Only flag queries whose execution duration or planner estimate exceeds this threshold.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--fail-on-seq-scan</td>
+              <td class="flag-default">false</td>
+              <td>Exit with code <code class="mono">2</code> if a Sequential Scan occurs on any table exceeding <code class="mono">--min-rows</code> (default 10,000).</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--detect-n-plus-one</td>
+              <td class="flag-default">true</td>
+              <td>Group normalized AST fingerprints over a sliding 250ms window to surface repeated loop queries.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--suggest-indexes</td>
+              <td class="flag-default">true</td>
+              <td>Synthesize <code class="mono">CREATE INDEX CONCURRENTLY</code> statements using live column cardinality statistics.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--format &lt;fmt&gt;</td>
+              <td class="flag-default">tty</td>
+              <td>Output format: <code class="mono">tty</code> (interactive TUI), <code class="mono">json</code>, <code class="mono">sarif</code>, or <code class="mono">github-markdown</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom CTA -->
+  <section class="section" style="padding-top: 24px;">
+    <div class="container">
+      <div class="cta-banner">
+        <h2>Audit your database in 30 seconds.</h2>
+        <p>
+          Single static binary. Zero configuration files required to start. Point Tern at your local dev database and see what your ORM is actually doing.
+        </p>
+        
+        <div class="cta-cmd">
+          <div class="install-box" style="border-radius: 8px;">
+            <div class="install-cmd-text">
+              <span class="prompt-sign">$</span>
+              <span>curl -sSfL https://tern.sh/install | sh</span>
+            </div>
+            <button class="copy-btn" id="copy-footer-btn" title="Copy command" aria-label="Copy curl command">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+          <a href="https://github.com" class="btn btn-primary">Read the Documentation</a>
+          <a href="https://github.com" class="btn">View Source on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="brand-icon" style="width: 20px; height: 20px; font-size: 0.75rem;">&gt;_</span>
+        <span>Tern CLI — Built with Rust &amp; libpg_query.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#inspector">Benchmarks</a>
+        <a href="#features">Architecture</a>
+        <a href="#cli-ref">Man Pages</a>
+        <a href="https://github.com">Releases</a>
+        <a href="https://github.com">Security</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive Scripts -->
+  <script>
+    // 1. Package Manager Install Tab Switcher
+    const pkgTabs = document.querySelectorAll('.pkg-tab');
+    const installCode = document.getElementById('install-code');
+    const copyInstallBtn = document.getElementById('copy-install-btn');
+
+    pkgTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        pkgTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        installCode.textContent = tab.getAttribute('data-cmd');
+      });
+    });
+
+    function setupCopyButton(btn, getTextFn) {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(getTextFn());
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+        }, 1600);
+      });
+    }
+
+    setupCopyButton(copyInstallBtn, () => installCode.textContent);
+    setupCopyButton(document.getElementById('copy-footer-btn'), () => 'curl -sSfL https://tern.sh/install | sh');
+
+    // 2. Interactive Hero Terminal Modes
+    const terminalOutput = document.getElementById('terminal-output');
+    const termTabs = document.querySelectorAll('.term-tab');
+
+    const terminalModes = {
+      watch: `
+<div class="term-line"><span class="prompt-sign">$</span> <span class="t-cmd">tern watch --dsn postgres://localhost:5432/prod_replica --threshold 50ms</span></div>
+<div class="term-line t-dim">ℹ Attached to PostgreSQL 16.2 (wire proxy :5433) — sampling threshold ≥ 50ms</div>
+<div class="term-line t-dim">──────────────────────────────────────────────────────────────────────────────</div>
+
+<div class="term-line"><span class="t-badge-crit">CRITICAL 412.8ms</span> <span class="t-cmd">SELECT</span> * <span class="t-cmd">FROM</span> orders <span class="t-cmd">WHERE</span> customer_email = $1 <span class="t-cmd">ORDER BY</span> placed_at <span class="t-cmd">DESC</span></div>
+<div class="t-box crit">
+  <div class="term-line"><span class="t-dim">Plan:</span>   <span class="t-err">Parallel Seq Scan</span> on <span class="t-cmd">public.orders</span> (cost=0.00..84210.22 rows=1,840,120)</div>
+  <div class="term-line"><span class="t-dim">I/O:</span>    Shared Read: <span class="t-warn">24,190 blocks (189.0 MB)</span> │ Rows Filtered: <span class="t-err">1,840,116</span></div>
+  <div class="t-suggestion">
+    <span class="t-ok">⚡ Suggested Index (Est. 412ms → 0.9ms):</span><br/>
+    CREATE INDEX CONCURRENTLY idx_orders_email_placed ON orders (customer_email, placed_at DESC);
+  </div>
+</div>
+
+<div class="term-line"><span class="t-badge-warn">N+1 LOOP 148.2ms</span> <span class="t-cmd">SELECT</span> id, name, avatar_url <span class="t-cmd">FROM</span> users <span class="t-cmd">WHERE</span> id = $1</div>
+<div class="t-box warn">
+  <div class="term-line"><span class="t-dim">Burst:</span>  Executed <span class="t-warn">92 times</span> within 148ms (avg 1.6ms/query)</div>
+  <div class="term-line"><span class="t-dim">Caller:</span> <span class="t-info">app/graphql/resolvers/feed_resolver.ts:64</span></div>
+  <div class="term-line"><span class="t-ok">⚡ Fix:</span>    Batch user IDs using DataLoader or <span class="t-sql">WHERE id = ANY($1::uuid[])</span></div>
+</div>
+
+<div class="term-line"><span class="t-badge-ok">OK 2.1ms</span> <span class="t-dim">SELECT * FROM sessions WHERE token_hash = $1 (Index Scan: idx_sessions_token)</span> <span class="cursor"></span></div>`,
+
+      explain: `
+<div class="term-line"><span class="prompt-sign">$</span> <span class="t-cmd">tern explain "SELECT count(*) FROM events WHERE metadata->>'plan' = 'enterprise'"</span></div>
+<div class="term-line t-dim">ℹ Running safe EXPLAIN (ANALYZE, BUFFERS, WAL) inside rolled-back read transaction...</div>
+<div class="term-line t-dim">──────────────────────────────────────────────────────────────────────────────</div>
+
+<div class="term-line"><span class="t-cmd">Execution Tree &amp; Bottleneck Breakdown:</span></div>
+<div class="term-line">  └─ <span class="t-dim">Aggregate (cost=61209.40..61209.41 rows=1)</span> [actual: <span class="t-warn">284.6ms</span>]</div>
+<div class="term-line">     └─ <span class="t-err">Seq Scan on public.events</span> [actual: <span class="t-err">281.1ms</span> | <span class="t-err">98.7% of total time</span>]</div>
+<div class="term-line">        ├─ <span class="t-dim">Filter:</span> <span class="t-sql">((metadata ->> 'plan'::text) = 'enterprise'::text)</span></div>
+<div class="term-line">        └─ <span class="t-dim">Rows Removed by Filter:</span> <span class="t-warn">942,110</span> (Returned: 8,402)</div>
+
+<div class="t-box crit">
+  <div class="term-line"><span class="t-err">Diagnostic:</span> Unindexed JSONB extraction operator <span class="t-sql">->></span> forces full table evaluation.</div>
+  <div class="t-suggestion">
+    <span class="t-ok">⚡ Option A — Expression B-Tree Index (Best for single key equality):</span><br/>
+    CREATE INDEX CONCURRENTLY idx_events_meta_plan ON events ((metadata->>'plan'));<br/><br/>
+    <span class="t-ok">⚡ Option B — GIN Index (If querying arbitrary JSONB keys):</span><br/>
+    CREATE INDEX CONCURRENTLY idx_events_meta_gin ON events USING gin (metadata jsonb_path_ops);
+  </div>
+</div>
+<div class="term-line"><span class="prompt-sign">$</span> <span class="cursor"></span></div>`,
+
+      ci: `
+<div class="term-line"><span class="prompt-sign">$</span> <span class="t-cmd">tern ci --baseline main --fail-on-seq-scan --max-cost-regression 25%</span></div>
+<div class="term-line t-dim">ℹ Comparing 38 captured SQL fingerprints against baseline branch 'main'...</div>
+<div class="term-line t-dim">──────────────────────────────────────────────────────────────────────────────</div>
+
+<div class="term-line"><span class="t-ok">✓ PASS</span>  GET /api/v1/projects              <span class="t-dim">3 queries │ 4.2ms  (Δ -0.4ms)</span></div>
+<div class="term-line"><span class="t-ok">✓ PASS</span>  POST /api/v1/webhooks/dispatch    <span class="t-dim">2 queries │ 1.8ms  (Δ  0.0ms)</span></div>
+<div class="term-line"><span class="t-err">✗ FAIL</span>  GET /api/v1/analytics/retention   <span class="t-err">1 query   │ 612ms  (Δ +598ms / +4,270%)</span></div>
+
+<div class="t-box crit">
+  <div class="term-line"><span class="t-err">Regression Details:</span></div>
+  <div class="term-line">  Migration <span class="t-info">20250218_drop_legacy_cohort_idx.sql</span> dropped index <span class="t-cmd">idx_users_cohort_date</span>,</div>
+  <div class="term-line">  causing query at <span class="t-info">src/analytics/retention.go:119</span> to degrade from</div>
+  <div class="term-line">  <span class="t-ok">Index Only Scan</span> → <span class="t-err">Parallel Seq Scan</span>.</div>
+</div>
+
+<div class="term-line"><span class="t-err">Error:</span> CI check failed with <span class="t-err">1 critical query regression</span>. Exit code 2. <span class="cursor"></span></div>`
+    };
+
+    function renderTerminal(mode) {
+      terminalOutput.innerHTML = terminalModes[mode].trim();
+    }
+
+    termTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        termTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderTerminal(tab.getAttribute('data-mode'));
+      });
+    });
+
+    // Initial render
+    renderTerminal('watch');
+
+    // 3. Interactive Execution Plan Inspector Toggle
+    const btnBefore = document.getElementById('btn-plan-before');
+    const btnAfter = document.getElementById('btn-plan-after');
+
+    const inspBadge = document.getElementById('insp-badge');
+    const totalCostLabel = document.getElementById('total-cost-label');
+    const node1Name = document.getElementById('node-1-name');
+    const node1Time = document.getElementById('node-1-time');
+    const node1Bar = document.getElementById('node-1-bar');
+
+    const node2Name = document.getElementById('node-2-name');
+    const node2Time = document.getElementById('node-2-time');
+    const node2Bar = document.getElementById('node-2-bar');
+
+    const node3Name = document.getElementById('node-3-name');
+    const node3Time = document.getElementById('node-3-time');
+    const node3Bar = document.getElementById('node-3-bar');
+
+    const planNote = document.getElementById('plan-diagnostic-note');
+    const mExec = document.getElementById('m-exec');
+    const mRows = document.getElementById('m-rows');
+    const mBuffers = document.getElementById('m-buffers');
+    const mStrategy = document.getElementById('m-strategy');
+
+    btnBefore.addEventListener('click', () => {
+      btnBefore.classList.add('active');
+      btnAfter.classList.remove('active');
+
+      inspBadge.className = 't-badge-crit';
+      inspBadge.textContent = 'SEQ SCAN';
+      totalCostLabel.textContent = 'cost=0.00..48291.40';
+
+      node1Name.textContent = '▸ Seq Scan on invoices (Filter: org_id & status)';
+      node1Name.style.color = 'var(--accent-danger)';
+      node1Time.textContent = '389.2 ms (93%)';
+      node1Bar.style.width = '93%';
+      node1Bar.style.background = 'var(--accent-danger)';
+
+      node2Name.textContent = '▸ Sort (Key: created_at DESC, Method: external merge)';
+      node2Name.style.color = 'var(--accent-primary)';
+      node2Time.textContent = '28.7 ms (6.8%)';
+      node2Bar.style.width = '18%';
+      node2Bar.style.background = 'var(--accent-primary)';
+
+      node3Name.textContent = '▸ Limit (25 rows)';
+      node3Time.textContent = '0.5 ms (0.2%)';
+      node3Bar.style.width = '3%';
+
+      planNote.innerHTML = `<span class="t-err">! Bottleneck:</span> Scanned <span class="t-cmd">1,420,880 rows</span> from disk to return <span class="t-cmd">25 rows</span>. Sort spilled <span class="t-warn">14.2 MB</span> to temporary disk files because <code class="mono">work_mem</code> was exceeded.`;
+
+      mExec.textContent = '418.4 ms';
+      mExec.style.color = 'var(--accent-danger)';
+      mRows.textContent = '1,420,855';
+      mBuffers.textContent = '18,412 blks (143 MB)';
+      mStrategy.textContent = 'Sequential Heap Scan';
+      mStrategy.style.color = 'var(--accent-primary)';
+    });
+
+    btnAfter.addEventListener('click', () => {
+      btnAfter.classList.add('active');
+      btnBefore.classList.remove('active');
+
+      inspBadge.className = 't-badge-ok';
+      inspBadge.textContent = 'INDEX SCAN';
+      totalCostLabel.textContent = 'cost=0.43..18.92';
+
+      node1Name.textContent = '▸ Index Scan using idx_invoices_org_status_created';
+      node1Name.style.color = 'var(--accent-secondary)';
+      node1Time.textContent = '1.8 ms (94%)';
+      node1Bar.style.width = '8%';
+      node1Bar.style.background = 'var(--accent-secondary)';
+
+      node2Name.textContent = '▸ Sort Eliminated (Pre-sorted by B-Tree Index)';
+      node2Name.style.color = 'var(--text-muted)';
+      node2Time.textContent = '0.0 ms (0%)';
+      node2Bar.style.width = '0%';
+
+      node3Name.textContent = '▸ Limit (Early termination after 25 index tuples)';
+      node3Time.textContent = '0.1 ms (6%)';
+      node3Bar.style.width = '2%';
+
+      planNote.innerHTML = `<span class="t-ok">✓ Optimized:</span> Index satisfied both <code class="mono">WHERE</code> equality clauses and <code class="mono">ORDER BY created_at DESC</code>. Zero rows filtered in memory; sort node completely eliminated.`;
+
+      mExec.textContent = '1.9 ms';
+      mExec.style.color = 'var(--accent-secondary)';
+      mRows.textContent = '0 filtered (25 read)';
+      mBuffers.textContent = '4 blks (32 KB)';
+      mStrategy.textContent = 'B-Tree Index Scan';
+      mStrategy.style.color = 'var(--accent-secondary)';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Hall — Bookkeeping for freelancers</title>
+<meta name="description" content="Tally Hall keeps sales, expenses and tax in one place before tax time. Private beta, one week live. Request an invite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<style>
+  :root{
+    --canvas:#F4F1EA;
+    --ink:#171717;
+    --ink-muted:#706C64;
+    --rule:#B8B1A6;
+    --hairline:#D7D1C7;
+    --paper:#FFFFFF;
+    --voltage:#E5A22B;
+    --voltage-soft:#F6E7BF;
+    --income:#2F765B;
+    --expense:#B44D3C;
+
+    --display:"Fraunces", Georgia, "Times New Roman", serif;
+    --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --gap-col:16px;
+    --gutter:32px;
+    --maxw:1280px;
+    --section-gap:144px;
+    --section-pad:48px;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.55;
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  img,svg{display:block;max-width:100%;}
+  a{color:inherit;}
+  h1,h2,h3,h4,p,figure{margin:0;}
+  ul{margin:0;padding:0;list-style:none;}
+  button,input,select,textarea{font:inherit;color:inherit;}
+
+  .wrap{
+    width:100%;
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding-left:var(--gutter);
+    padding-right:var(--gutter);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr));
+    column-gap:var(--gap-col);
+    row-gap:var(--gap-col);
+  }
+
+  /* ---------- type roles ---------- */
+  .display{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(52px,6.6vw,88px);
+    line-height:0.92;
+    letter-spacing:-0.015em;
+  }
+  .display-sm{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(38px,4.4vw,56px);
+    line-height:0.98;
+    letter-spacing:-0.012em;
+  }
+  .section-title{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:28px;
+    line-height:1.05;
+    letter-spacing:-0.008em;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    font-weight:500;
+    line-height:1.3;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+  }
+  .lede{font-size:16px;line-height:1.55;max-width:46ch;}
+  .meta{
+    font-family:var(--mono);
+    font-size:11px;
+    font-weight:400;
+    line-height:1.35;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .data{
+    font-family:var(--mono);
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+    font-variant-numeric:tabular-nums;
+  }
+  .ui-label{
+    font-family:var(--body);
+    font-size:12px;
+    font-weight:600;
+    line-height:1.2;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .num{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:72px;
+    line-height:0.9;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- icons ---------- */
+  .icon{
+    width:24px;height:24px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.5;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    flex:0 0 auto;
+  }
+  .icon-sm{width:18px;height:18px;}
+  .icon-chip{width:14px;height:14px;}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    height:48px;
+    padding:0 20px;
+    border:0;
+    border-radius:4px;
+    background:var(--voltage);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:14px;
+    font-weight:600;
+    line-height:1.2;
+    letter-spacing:0.02em;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background 150ms ease;
+  }
+  .btn:hover{background:#D5921F;}
+  .btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px;}
+  .btn .arrow{transition:transform 150ms ease;}
+  .btn:hover .arrow{transform:translateX(4px);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--rule);
+  }
+  .btn-ghost:hover{background:var(--paper);}
+
+  .textlink{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    text-decoration:none;
+    font-family:var(--body);
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    border-bottom:1px solid var(--ink-muted);
+    padding-bottom:2px;
+    transition:border-color 150ms ease,color 150ms ease;
+  }
+  .textlink:hover{border-color:var(--voltage);}
+  .textlink:focus-visible{outline:3px solid var(--ink);outline-offset:3px;}
+
+  /* ---------- chips ---------- */
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    height:28px;
+    padding:0 10px;
+    border:1px solid var(--ink-muted);
+    border-radius:9999px;
+    background:transparent;
+    font-family:var(--body);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink);
+    white-space:nowrap;
+    transition:transform 360ms cubic-bezier(.34,1.56,.64,1);
+  }
+  .chip .dot{width:6px;height:6px;border-radius:9999px;background:var(--income);flex:0 0 auto;}
+  .chip.is-pending .dot{background:var(--voltage);}
+  .chip.is-flag .dot{background:var(--expense);}
+  .chip-pop{transform:scale(1);}
+  .js .chip-pop{transform:scale(.92);}
+  .js .chip-pop.is-in{transform:scale(1);}
+
+  /* ---------- header ---------- */
+  .site-header{
+    position:sticky;
+    top:0;
+    z-index:60;
+    height:72px;
+    background:var(--canvas);
+    border-bottom:1px solid var(--rule);
+    transition:height 180ms ease, background 180ms ease;
+  }
+  .site-header.is-stuck{height:64px;box-shadow:0 8px 24px rgba(23,23,23,0.08);}
+  .header-inner{
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+  }
+  .brand{display:flex;align-items:baseline;gap:12px;text-decoration:none;}
+  .wordmark{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:24px;
+    line-height:1;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  .nav{display:flex;align-items:center;gap:28px;}
+  .nav a{
+    text-decoration:none;
+    font-family:var(--body);
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    color:var(--ink);
+    padding-bottom:3px;
+    border-bottom:1px solid transparent;
+    transition:border-color 150ms ease;
+  }
+  .nav a:hover{border-color:var(--voltage);}
+  .nav a:focus-visible{outline:3px solid var(--ink);outline-offset:3px;}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;}
+  .hero-grid{
+    position:relative;
+    min-height:min(760px, calc(100vh - 72px));
+    padding-top:144px;
+    padding-bottom:88px;
+    align-items:start;
+  }
+  .hero-copy{grid-column:2 / span 5;}
+  .hero-copy .eyebrow{margin-bottom:22px;}
+  .hero-copy .display{margin-bottom:26px;}
+  .hero-copy .lede{margin-bottom:18px;}
+  .proof-note{
+    border-left:2px solid var(--voltage);
+    padding-left:14px;
+    margin-bottom:32px;
+    max-width:42ch;
+  }
+  .proof-note p{margin-bottom:6px;}
+  .proof-note p:last-child{margin-bottom:0;}
+  .hero-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+
+  .hero-progress{
+    position:absolute;
+    left:8px;
+    top:150px;
+    width:2px;
+    height:0;
+    background:var(--voltage);
+    transition:height 480ms cubic-bezier(.22,1,.36,1);
+  }
+  .hero-progress.is-in{height:120px;}
+  .hero-progress-label{
+    position:absolute;
+    left:2px;
+    top:282px;
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    opacity:0;
+    transition:opacity 480ms ease;
+  }
+  .hero-progress-label.is-in{opacity:1;}
+
+  .hero-ledger{
+    grid-column:7 / span 6;
+    margin-top:88px;
+    margin-right:-32px;
+    position:relative;
+    z-index:2;
+  }
+
+  /* ---------- ledger sheet ---------- */
+  .sheet{
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:4px;
+    box-shadow:0 8px 24px rgba(23,23,23,0.08);
+    overflow:hidden;
+  }
+  .sheet-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:14px 20px;
+    border-bottom:1px solid var(--hairline);
+    background:var(--paper);
+    flex-wrap:wrap;
+  }
+  .sheet-bar .file{display:flex;align-items:center;gap:10px;}
+  .sheet-tools{display:flex;align-items:center;gap:14px;}
+  .tool{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:transparent;
+    border:0;
+    padding:2px 0;
+    cursor:pointer;
+    color:var(--ink-muted);
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    transition:color 150ms ease;
+  }
+  .tool:hover{color:var(--ink);}
+  .tool:focus-visible{outline:3px solid var(--ink);outline-offset:3px;}
+  .scroll-note{display:none;}
+
+  .ledger-scroll{overflow-x:auto;overflow-y:hidden;}
+  table.ledger{
+    width:100%;
+    min-width:520px;
+    border-collapse:collapse;
+    background:var(--paper);
+    font-variant-numeric:tabular-nums;
+  }
+  table.ledger caption{
+    text-align:left;
+    padding:0;
+    height:0;
+    overflow:hidden;
+    position:absolute;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+  }
+  table.ledger thead th{
+    text-align:left;
+    padding:12px 16px;
+    border-bottom:1px solid var(--hairline);
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    background:var(--paper);
+    white-space:nowrap;
+  }
+  table.ledger th.col-amount,table.ledger td.col-amount{text-align:right;}
+  table.ledger th.col-status,table.ledger td.col-status{text-align:right;}
+  table.ledger tbody td,table.ledger tfoot th,table.ledger tfoot td{
+    padding:16px;
+    border-bottom:1px solid var(--hairline);
+    vertical-align:middle;
+    font-family:var(--body);
+    font-size:15px;
+    color:var(--ink);
+  }
+  table.ledger tbody td.col-date,table.ledger tfoot td.col-date{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    white-space:nowrap;
+  }
+  table.ledger td.col-category{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    white-space:nowrap;
+  }
+  table.ledger td.col-amount{
+    font-family:var(--mono);
+    font-size:15px;
+    font-weight:500;
+    white-space:nowrap;
+    transition:color 360ms ease;
+  }
+  table.ledger tr.is-done td.col-amount{color:var(--income);}
+  table.ledger tbody tr{
+    background:var(--paper);
+    transition:background 360ms ease;
+  }
+  table.ledger tbody tr.is-active{
+    background:var(--voltage-soft);
+  }
+  table.ledger tbody tr.is-active td:first-child{
+    box-shadow:inset 3px 0 0 0 var(--voltage);
+  }
+  table.ledger tfoot th{
+    font-family:var(--mono);
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    background:var(--paper);
+    text-align:left;
+  }
+  table.ledger tfoot tr:last-child th,
+  table.ledger tfoot tr:last-child td{border-bottom:0;}
+  table.ledger tfoot tr:last-child{
+    background:var(--voltage-soft);
+  }
+  table.ledger tfoot tr:last-child th,
+  table.ledger tfoot tr:last-child td{
+    font-family:var(--body);
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink);
+    border-top:1px solid var(--voltage);
+  }
+  .val-income{color:var(--income);}
+  .val-expense{color:var(--expense);}
+
+  .sheet-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:12px 20px;
+    border-top:1px solid var(--hairline);
+    flex-wrap:wrap;
+  }
+
+  /* ledger sequence */
+  .js table.ledger tbody tr{opacity:0;}
+  .js table.ledger tbody tr.is-in{opacity:1;transition:opacity 260ms ease, background 360ms ease;}
+  .js .sheet-foot .status-step{opacity:0;transition:opacity 300ms ease;}
+  .js .sheet-foot .status-step.is-in{opacity:1;}
+
+  /* ---------- rhythm ---------- */
+  .rhythm{padding-top:var(--section-gap);}
+  .rhythm-head{grid-column:1 / span 5;}
+  .rhythm-head .eyebrow{margin-bottom:20px;}
+  .rhythm-head .display-sm{margin-bottom:22px;}
+  .rhythm-head .lede{color:var(--ink-muted);}
+  .rhythm-rows{grid-column:7 / span 6;}
+  .r-row{
+    display:grid;
+    grid-template-columns:96px minmax(0,1fr);
+    column-gap:24px;
+    padding:28px 0;
+    border-top:1px solid var(--rule);
+    align-items:start;
+  }
+  .r-row:last-child{border-bottom:1px solid var(--rule);}
+  .r-row .num{font-size:72px;}
+  .r-row .r-body{padding-top:6px;}
+  .r-row h3{
+    font-family:var(--body);
+    font-size:20px;
+    font-weight:600;
+    line-height:1.25;
+    letter-spacing:-0.005em;
+    display:inline-block;
+    padding-bottom:6px;
+    border-bottom:2px solid transparent;
+  }
+  .r-row.is-marked h3{border-bottom-color:var(--voltage);}
+  .r-row p{margin-top:10px;color:var(--ink-muted);max-width:40ch;}
+  .r-row .r-icon{margin-top:14px;color:var(--ink);}
+  .rhythm-note{
+    grid-column:7 / span 6;
+    margin-top:28px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    color:var(--ink);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    line-height:1.5;
+  }
+
+  /* ---------- honest start (dark band) ---------- */
+  .honest{
+    margin-top:var(--section-gap);
+    background:var(--ink);
+    color:var(--canvas);
+    padding:var(--section-gap) 0;
+  }
+  .honest .eyebrow{color:#A8A29A;}
+  .honest-head{grid-column:1 / span 8;}
+  .honest-head .eyebrow{margin-bottom:22px;}
+  .honest-head .display-sm{margin-bottom:26px;max-width:16ch;}
+  .honest-head .lede{color:#CFC8BC;max-width:52ch;}
+  .honest-head .lede + .lede{margin-top:14px;}
+  .status-panel{
+    grid-column:9 / span 4;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:4px;
+    padding:28px;
+  }
+  .status-panel .eyebrow{color:var(--ink-muted);margin-bottom:20px;}
+  .stat{padding:12px 0;border-top:1px solid var(--hairline);}
+  .stat:first-of-type{border-top:0;padding-top:0;}
+  .stat .stat-val{
+    font-family:var(--display);
+    font-size:32px;
+    font-weight:500;
+    line-height:1;
+    letter-spacing:-0.015em;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .stat-key{
+    display:block;
+    margin-top:6px;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+  }
+  .timeline{margin-top:22px;padding-top:22px;border-top:1px solid var(--hairline);}
+  .timeline svg{width:100%;height:auto;}
+  .timeline text{
+    font-family:var(--mono);
+    font-size:8px;
+    letter-spacing:0.08em;
+    fill:var(--ink-muted);
+    text-transform:uppercase;
+  }
+  .timeline text.is-now{fill:var(--ink);}
+
+  /* ---------- first entry ---------- */
+  .first{padding-top:var(--section-gap);}
+  .first-head{grid-column:1 / span 6;}
+  .first-head .eyebrow{margin-bottom:22px;}
+  .first-head .display-sm{margin-bottom:24px;}
+  .first-head .lede{color:var(--ink-muted);margin-bottom:28px;}
+  .taxonomy{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 18px;
+    padding-top:22px;
+    border-top:1px solid var(--rule);
+  }
+  .taxonomy li{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+  }
+  .taxonomy li span.mark{
+    width:8px;height:2px;background:var(--ink-muted);display:block;
+  }
+  .form-wrap{grid-column:8 / span 5;}
+  form.invite{
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:4px;
+    padding:28px;
+    box-shadow:0 8px 24px rgba(23,23,23,0.08);
+  }
+  form.invite .form-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    margin-bottom:22px;
+  }
+  .field{margin-bottom:18px;}
+  .field label{
+    display:block;
+    margin-bottom:8px;
+    font-family:var(--body);
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink);
+  }
+  .field input,.field select{
+    width:100%;
+    height:48px;
+    padding:0 14px;
+    background:var(--canvas);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    font-family:var(--body);
+    font-size:15px;
+    color:var(--ink);
+    transition:border-color 150ms ease, background 150ms ease;
+    appearance:none;
+  }
+  .field select{
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-muted) 50%),linear-gradient(135deg,var(--ink-muted) 50%,transparent 50%);
+    background-position:calc(100% - 20px) 21px, calc(100% - 14px) 21px;
+    background-size:6px 6px,6px 6px;
+    background-repeat:no-repeat;
+    padding-right:40px;
+  }
+  .field input:focus,.field select:focus{
+    outline:3px solid var(--ink);
+    outline-offset:0;
+    border-color:var(--ink);
+    background:var(--paper);
+  }
+  .field input::placeholder{color:var(--ink-muted);}
+  .check{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    margin:6px 0 22px;
+    padding:14px;
+    border:1px solid var(--hairline);
+    border-radius:4px;
+    background:var(--canvas);
+  }
+  .check input{
+    width:20px;height:20px;
+    margin:1px 0 0;
+    accent-color:var(--voltage);
+    flex:0 0 auto;
+  }
+  .check label{
+    font-family:var(--body);
+    font-size:13px;
+    line-height:1.45;
+    color:var(--ink);
+  }
+  .form-status{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:16px;
+    min-height:22px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .form-status.is-ok{color:var(--income);}
+  .form-status.is-err{color:var(--expense);}
+  .form-privacy{
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid var(--hairline);
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    color:var(--ink-muted);
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.06em;
+    line-height:1.5;
+    text-transform:uppercase;
+  }
+
+  /* ---------- footer ---------- */
+  .site-footer{
+    margin-top:var(--section-gap);
+    background:var(--ink);
+    color:var(--canvas);
+    min-height:360px;
+    padding:var(--section-pad) 0 28px;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    gap:64px;
+  }
+  .footer-mark{
+    position:absolute;
+    left:50%;
+    top:52%;
+    transform:translate(-50%,-50%);
+    font-family:var(--display);
+    font-weight:600;
+    font-size:clamp(88px,16vw,160px);
+    line-height:1;
+    color:var(--voltage);
+    opacity:.18;
+    white-space:nowrap;
+    pointer-events:none;
+    user-select:none;
+    letter-spacing:-0.02em;
+  }
+  .footer-statement{position:relative;z-index:2;}
+  .footer-statement .display-sm{max-width:16ch;}
+  .footer-statement .footer-cta{margin-top:28px;}
+  .footer-bottom{
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    padding-top:20px;
+    border-top:1px solid rgba(244,241,234,0.22);
+    flex-wrap:wrap;
+  }
+  .footer-links{display:flex;gap:24px;flex-wrap:wrap;}
+  .footer-links a{
+    text-decoration:none;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--canvas);
+    border-bottom:1px solid transparent;
+    padding-bottom:2px;
+    transition:border-color 150ms ease;
+  }
+  .footer-links a:hover{border-color:var(--voltage);}
+  .footer-links a:focus-visible{outline:3px solid var(--canvas);outline-offset:3px;}
+  .footer-meta{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#A8A29A;
+    font-variant-numeric:tabular-nums;
+    line-height:1.6;
+    text-align:right;
+  }
+
+  /* ---------- reveal motion ---------- */
+  .js [data-reveal]{
+    clip-path:inset(0 0 100% 0);
+    transition:clip-path 480ms cubic-bezier(.22,1,.36,1);
+  }
+  .js [data-reveal].is-in{clip-path:inset(0 0 0 0);}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1180px){
+    .hero-progress,.hero-progress-label{display:none;}
+    .hero-copy{grid-column:1 / span 6;}
+    .hero-ledger{grid-column:7 / span 6;}
+    .status-panel{grid-column:8 / span 5;}
+    .honest-head{grid-column:1 / span 7;}
+    .form-wrap{grid-column:7 / span 6;}
+  }
+
+  @media (max-width:1024px){
+    :root{--gutter:24px;--gap-col:14px;--section-gap:104px;}
+    .grid{grid-template-columns:repeat(8,minmax(0,1fr));}
+    .hero-copy{grid-column:1 / span 8;}
+    .hero-ledger{grid-column:1 / span 8;margin-top:56px;margin-right:0;}
+    .hero-grid{padding-top:88px;min-height:0;}
+    .rhythm-head{grid-column:1 / span 8;}
+    .rhythm-rows{grid-column:1 / span 8;margin-top:40px;}
+    .rhythm-note{grid-column:1 / span 8;}
+    .honest-head{grid-column:1 / span 8;}
+    .status-panel{grid-column:1 / span 8;margin-top:40px;}
+    .first-head{grid-column:1 / span 8;}
+    .form-wrap{grid-column:1 / span 8;margin-top:40px;}
+  }
+
+  @media (max-width:720px){
+    :root{--gutter:20px;--section-gap:88px;--section-pad:32px;}
+    body{font-size:15px;}
+    .grid{grid-template-columns:minmax(0,1fr);}
+    .hero-copy,.hero-ledger,.rhythm-head,.rhythm-rows,.rhythm-note,
+    .honest-head,.status-panel,.first-head,.form-wrap{grid-column:1 / -1;}
+    .site-header{height:64px;}
+    .site-header.is-stuck{height:60px;}
+    .nav{display:none;}
+    .header-inner .btn{height:40px;padding:0 14px;}
+    .brand .meta{display:none;}
+    .hero-grid{padding-top:56px;padding-bottom:56px;}
+    .hero-copy .display{margin-bottom:22px;}
+    .hero-actions{gap:18px;}
+    .hero-actions .btn{width:100%;justify-content:space-between;}
+    .hero-ledger{margin-top:40px;}
+    .scroll-note{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 20px;
+      border-top:1px solid var(--hairline);
+      color:var(--ink-muted);
+    }
+    .sheet-foot{gap:10px;}
+    table.ledger{min-width:520px;}
+    table.ledger thead th,table.ledger tbody td,table.ledger tfoot th,table.ledger tfoot td{padding:14px 12px;}
+    .r-row{grid-template-columns:minmax(0,1fr);row-gap:8px;padding:24px 0;}
+    .r-row .num{font-size:56px;}
+    .r-row .r-body{padding-top:0;}
+    .status-panel{padding:22px;}
+    .form-wrap form.invite{padding:22px;}
+    .footer-mark{opacity:.12;font-size:clamp(56px,17vw,96px);}
+    .footer-bottom{flex-direction:column;align-items:flex-start;}
+    .footer-meta{text-align:left;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+      animation-duration:0.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.001ms !important;
+    }
+    .js [data-reveal]{clip-path:none !important;}
+    .js table.ledger tbody tr{opacity:1 !important;}
+    .js .sheet-foot .status-step{opacity:1 !important;}
+    .js .chip-pop{transform:scale(1) !important;}
+    .hero-progress{height:120px !important;}
+    .hero-progress-label{opacity:1 !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow-ur" viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></symbol>
+  <symbol id="i-arrow-dr" viewBox="0 0 24 24"><path d="M7 7l10 10"/><path d="M17 8v9H8"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6"/><path d="M9 12h6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M7 12h10"/><path d="M10 18h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14"/><path d="M5 15h14"/><path d="M10 4 8 20"/><path d="M16 4l-2 16"/></symbol>
+</svg>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="Tally Hall, home">
+      <span class="wordmark">Tally Hall</span>
+      <span class="meta">Beta / 01.00</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#rhythm">How it works</a>
+      <a href="#honest">For freelancers</a>
+      <a href="#invite">Request an invite</a>
+    </nav>
+    <a class="btn" href="#invite">
+      Request an invite
+      <svg class="icon icon-sm arrow" aria-hidden="true"><use href="#i-arrow-ur"></use></svg>
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ THE DESK ============ -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap grid hero-grid">
+      <div class="hero-progress" id="heroProgress" aria-hidden="true"></div>
+      <div class="hero-progress-label" id="heroProgressLabel" aria-hidden="true">01 / The desk</div>
+
+      <div class="hero-copy">
+        <p class="eyebrow">Bookkeeping for freelancers</p>
+        <h1 class="display" id="hero-title">Know where your money stands.</h1>
+        <p class="lede">Tally Hall keeps sales, expenses and tax in one place before tax time.</p>
+
+        <div class="proof-note">
+          <p class="lede"><strong>Nothing to show you yet. That’s the point.</strong></p>
+          <p class="lede">A clear record beats a complicated stack.</p>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn" href="#invite">
+            Request an invite
+            <svg class="icon icon-sm arrow" aria-hidden="true"><use href="#i-arrow-ur"></use></svg>
+          </a>
+          <a class="textlink" href="#rhythm">
+            See how it works
+            <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-ledger">
+        <div class="sheet" id="ledger">
+          <div class="sheet-bar">
+            <div class="file">
+              <svg class="icon icon-sm" aria-hidden="true" style="color:var(--ink-muted)"><use href="#i-receipt"></use></svg>
+              <span class="meta">Tally_Hall / Live_ledger</span>
+            </div>
+            <div class="sheet-tools">
+              <button class="tool" type="button">
+                <svg class="icon icon-chip" aria-hidden="true"><use href="#i-filter"></use></svg>
+                Filter
+              </button>
+              <button class="tool" type="button">
+                <svg class="icon icon-chip" aria-hidden="true"><use href="#i-upload"></use></svg>
+                Import
+              </button>
+            </div>
+          </div>
+
+          <div class="ledger-scroll">
+            <table class="ledger">
+              <caption>Live ledger: three example entries, sales, expenses and a running total ready for review.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Entry</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" class="col-amount">Amount</th>
+                  <th scope="col" class="col-status">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-row="1">
+                  <td class="col-date">Mar 04</td>
+                  <td class="col-entry">Studio retainer</td>
+                  <td class="col-category">Sales</td>
+                  <td class="col-amount">$860.00</td>
+                  <td class="col-status">
+                    <span class="chip"><span class="dot" aria-hidden="true"></span>Filed</span>
+                  </td>
+                </tr>
+                <tr data-row="2">
+                  <td class="col-date">Mar 11</td>
+                  <td class="col-entry">Adobe subscription</td>
+                  <td class="col-category">Software</td>
+                  <td class="col-amount">−$54.99</td>
+                  <td class="col-status">
+                    <span class="chip is-flag"><span class="dot" aria-hidden="true"></span>Tax due</span>
+                  </td>
+                </tr>
+                <tr data-row="3" id="rowHighlight">
+                  <td class="col-date">Mar 21</td>
+                  <td class="col-entry">March invoice</td>
+                  <td class="col-category">Sales</td>
+                  <td class="col-amount" id="hlAmount">$1,200.00</td>
+                  <td class="col-status">
+                    <span class="chip is-pending chip-pop" id="hlChip"><span class="dot" aria-hidden="true"></span>Ready</span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row" colspan="3">Sales</th>
+                  <td class="col-amount val-income" id="salesTotal">+$2,480.00</td>
+                  <td class="col-status"><span class="meta">Income</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" colspan="3">Expenses</th>
+                  <td class="col-amount val-expense">−$515.00</td>
+                  <td class="col-status"><span class="meta">Outgoing</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" colspan="3">Ready for review</th>
+                  <td class="col-amount" id="reviewTotal">3 entries</td>
+                  <td class="col-status"><span class="meta">Next</span></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="sheet-foot">
+            <span class="meta status-step" data-step="0">01 / Record it</span>
+            <span class="meta status-step" data-step="1">02 / Categorise it</span>
+            <span class="meta status-step" data-step="2">03 / Review it</span>
+          </div>
+          <div class="scroll-note">
+            <svg class="icon icon-chip" aria-hidden="true"><use href="#i-hash"></use></svg>
+            <span class="meta">Scroll the ledger sideways</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE RHYTHM ============ -->
+  <section class="rhythm" id="rhythm" aria-labelledby="rhythm-title">
+    <div class="wrap grid">
+      <div class="rhythm-head">
+        <p class="eyebrow" data-reveal>The rhythm</p>
+        <h2 class="display-sm" id="rhythm-title" data-reveal style="transition-delay:60ms">Less admin. More making.</h2>
+        <p class="lede" data-reveal style="transition-delay:120ms">Three habits replace the spreadsheet you keep meaning to fix. Each one is a line in the ledger, not a project.</p>
+      </div>
+
+      <ul class="rhythm-rows">
+        <li class="r-row" data-reveal>
+          <span class="num">01</span>
+          <div class="r-body">
+            <h3>Record it</h3>
+            <p>Capture a sale or expense while the details are fresh.</p>
+            <svg class="icon r-icon" aria-hidden="true"><use href="#i-receipt"></use></svg>
+          </div>
+        </li>
+        <li class="r-row is-marked" data-reveal style="transition-delay:60ms">
+          <span class="num">02</span>
+          <div class="r-body">
+            <h3>Categorise it</h3>
+            <p>Give every entry a place without building a finance system.</p>
+            <svg class="icon r-icon" aria-hidden="true"><use href="#i-filter"></use></svg>
+          </div>
+        </li>
+        <li class="r-row" data-reveal style="transition-delay:120ms">
+          <span class="num">03</span>
+          <div class="r-body">
+            <h3>Review it</h3>
+            <p>See what came in, what went out, and what still needs attention.</p>
+            <svg class="icon r-icon" aria-hidden="true"><use href="#i-check"></use></svg>
+          </div>
+        </li>
+      </ul>
+
+      <p class="rhythm-note" data-reveal>
+        <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-dr"></use></svg>
+        Everything is in one place before tax time.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ THE HONEST START ============ -->
+  <section class="honest" id="honest" aria-labelledby="honest-title">
+    <div class="wrap grid">
+      <div class="honest-head">
+        <p class="eyebrow" data-reveal>The honest start</p>
+        <h2 class="display-sm" id="honest-title" data-reveal style="transition-delay:60ms">Nothing to show you yet. That’s the point.</h2>
+        <p class="lede" data-reveal style="transition-delay:120ms">Tally Hall launched one week ago. There are no customers, reviews or success stories to borrow from.</p>
+        <p class="lede" data-reveal style="transition-delay:180ms">There is a working ledger and a clear first step. Every entry you file makes the picture more useful.</p>
+      </div>
+
+      <aside class="status-panel" data-reveal style="transition-delay:120ms" aria-label="Launch status">
+        <p class="eyebrow">Launch status</p>
+
+        <div class="stat">
+          <span class="stat-val">0</span>
+          <span class="stat-key">Customers</span>
+        </div>
+        <div class="stat">
+          <span class="stat-val">0</span>
+          <span class="stat-key">Reviews</span>
+        </div>
+        <div class="stat">
+          <span class="stat-val">1 week</span>
+          <span class="stat-key">Live</span>
+        </div>
+
+        <div class="timeline">
+          <svg viewBox="0 0 320 64" role="img" aria-label="Progress timeline: released, collecting, first entries, improving. Currently at released.">
+            <line x1="30" y1="26" x2="292" y2="26" stroke="#B8B1A6" stroke-width="1"/>
+            <circle cx="30" cy="26" r="5" fill="#E5A22B"/>
+            <circle cx="118" cy="26" r="5" fill="none" stroke="#171717" stroke-width="1.5"/>
+            <circle cx="210" cy="26" r="5" fill="none" stroke="#171717" stroke-width="1.5"/>
+            <circle cx="292" cy="26" r="5" fill="none" stroke="#171717" stroke-width="1.5"/>
+            <text x="30" y="46" text-anchor="middle" class="is-now">Released</text>
+            <text x="118" y="46" text-anchor="middle">Collecting</text>
+            <text x="210" y="46" text-anchor="middle">First entries</text>
+            <text x="292" y="46" text-anchor="middle">Improving</text>
+          </svg>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ THE FIRST ENTRY ============ -->
+  <section class="first" id="invite" aria-labelledby="first-title">
+    <div class="wrap grid">
+      <div class="first-head">
+        <p class="eyebrow" data-reveal>The first entry</p>
+        <h2 class="display-sm" id="first-title" data-reveal style="transition-delay:60ms">Start with the next useful number.</h2>
+        <p class="lede" data-reveal style="transition-delay:120ms">Join the private beta and make your first entry feel ordinary. No demo call, no card, no sales story.</p>
+
+        <ul class="taxonomy" data-reveal style="transition-delay:180ms">
+          <li><span class="mark" aria-hidden="true"></span>Sales</li>
+          <li><span class="mark" aria-hidden="true"></span>Marketing</li>
+          <li><span class="mark" aria-hidden="true"></span>Equipment</li>
+          <li><span class="mark" aria-hidden="true"></span>Software</li>
+          <li><span class="mark" aria-hidden="true"></span>Travel</li>
+        </ul>
+      </div>
+
+      <div class="form-wrap">
+        <form class="invite" id="inviteForm" novalidate data-reveal style="transition-delay:120ms">
+          <p class="form-title">Request an invite / Beta 01.00</p>
+
+          <div class="field">
+            <label for="f-name">Name</label>
+            <input type="text" id="f-name" name="name" autocomplete="name" placeholder="What should we call you?">
+          </div>
+
+          <div class="field">
+            <label for="f-email">Email address</label>
+            <input type="email" id="f-email" name="email" autocomplete="email" required placeholder="you@studio.com">
+          </div>
+
+          <div class="field">
+            <label for="f-work">What kind of work do you do?</label>
+            <select id="f-work" name="work">
+              <option value="">Choose one</option>
+              <option>Illustration</option>
+              <option>Design</option>
+              <option>Copywriting</option>
+              <option>Photography</option>
+              <option>Development</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="f-concern">What is your main bookkeeping concern?</label>
+            <input type="text" id="f-concern" name="concern" placeholder="Tax time, receipts, late invoices…">
+          </div>
+
+          <div class="check">
+            <input type="checkbox" id="f-consent" name="consent" checked>
+            <label for="f-consent">I want occasional product updates and early-access notes.</label>
+          </div>
+
+          <button class="btn" type="submit" style="width:100%;justify-content:space-between;">
+            Request an invite
+            <svg class="icon icon-sm arrow" aria-hidden="true"><use href="#i-arrow-ur"></use></svg>
+          </button>
+
+          <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+
+          <p class="form-privacy">
+            <svg class="icon icon-chip" aria-hidden="true"><use href="#i-lock"></use></svg>
+            One email when there is something worth filing. Nothing else.
+          </p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-mark" aria-hidden="true">Tally Hall</div>
+
+  <div class="wrap footer-statement">
+    <h2 class="display-sm">Write it down. Know where you stand.</h2>
+    <div class="footer-cta">
+      <a class="btn" href="#invite">
+        Request an invite
+        <svg class="icon icon-sm arrow" aria-hidden="true"><use href="#i-arrow-ur"></use></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="wrap footer-bottom">
+    <nav class="footer-links" aria-label="Footer">
+      <a href="#invite">Privacy</a>
+      <a href="#invite">Terms</a>
+      <a href="#invite">Contact</a>
+      <a href="#rhythm">How it works</a>
+    </nav>
+    <p class="footer-meta">
+      Tally Hall is in private beta. / © 2025 Tally Hall.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- sticky header ---------- */
+  var header = document.getElementById('siteHeader');
+  function onScroll() {
+    if (window.scrollY > 72) header.classList.add('is-stuck');
+    else header.classList.remove('is-stuck');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- hero progress rule ---------- */
+  var progress = document.getElementById('heroProgress');
+  var progressLabel = document.getElementById('heroProgressLabel');
+  function drawProgress() {
+    if (progress) progress.classList.add('is-in');
+    if (progressLabel) progressLabel.classList.add('is-in');
+  }
+  if (reduce) drawProgress();
+  else window.requestAnimationFrame(function () { window.setTimeout(drawProgress, 120); });
+
+  /* ---------- section reveal ---------- */
+  var revealItems = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
+  if (reduce || !('IntersectionObserver' in window)) {
+    revealItems.forEach(function (el) { el.classList.add('is-in'); });
+  } else {
+    var revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    revealItems.forEach(function (el) { revealObserver.observe(el); });
+  }
+
+  /* ---------- ledger sequence (signature moment) ---------- */
+  var ledger = document.getElementById('ledger');
+  var rows = ledger ? Array.prototype.slice.call(ledger.querySelectorAll('tbody tr')) : [];
+  var highlightRow = document.getElementById('rowHighlight');
+  var highlightAmount = document.getElementById('hlAmount');
+  var highlightChip = document.getElementById('hlChip');
+  var salesTotal = document.getElementById('salesTotal');
+  var reviewTotal = document.getElementById('reviewTotal');
+  var stepLabels = Array.prototype.slice.call(document.querySelectorAll('.status-step'));
+
+  function tick(el, from, to, duration, formatter) {
+    if (!el) return;
+    if (reduce) { el.textContent = formatter(to); return; }
+    var start = null;
+    function frame(now) {
+      if (start === null) start = now;
+      var t = Math.min(1, (now - start) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = formatter(from + (to - from) * eased);
+      if (t < 1) window.requestAnimationFrame(frame);
+    }
+    window.requestAnimationFrame(frame);
+  }
+
+  function money(v) {
+    return '+$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function completeHighlight() {
+    if (highlightRow) {
+      highlightRow.classList.add('is-active', 'is-done');
+    }
+    if (highlightAmount) highlightAmount.textContent = '+$1,200.00';
+    if (highlightChip) highlightChip.classList.add('is-in');
+    tick(salesTotal, 0, 2480, 720, money);
+    tick(reviewTotal, 0, 3, 720, function (v) { return Math.round(v) + ' entries'; });
+    stepLabels.forEach(function (el, i) {
+      window.setTimeout(function () { el.classList.add('is-in'); }, reduce ? 0 : i * 140);
+    });
+  }
+
+  function runLedgerSequence() {
+    if (!rows.length) return;
+    if (reduce) {
+      rows.forEach(function (r) { r.classList.add('is-in'); });
+      completeHighlight();
+      return;
+    }
+    rows.forEach(function (row, i) {
+      window.setTimeout(function () {
+        row.classList.add('is-in');
+        if (row === highlightRow) {
+          window.setTimeout(completeHighlight, 360);
+        }
+      }, i * 140);
+    });
+  }
+
+  if (ledger) {
+    if (reduce || !('IntersectionObserver' in window)) {
+      runLedgerSequence();
+    } else {
+      var ledgerObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            runLedgerSequence();
+            ledgerObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.2 });
+      ledgerObserver.observe(ledger);
+    }
+  }
+
+  /* ---------- invite form ---------- */
+  var form = document.getElementById('inviteForm');
+  var status = document.getElementById('formStatus');
+
+  function setStatus(kind, text, icon) {
+    if (!status) return;
+    status.className = 'form-status ' + kind;
+    status.innerHTML =
+      '<svg class="icon icon-chip" aria-hidden="true"><use href="#' + icon + '"></use></svg>' +
+      '<span>' + text + '</span>';
+  }
+
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var emailField = document.getElementById('f-email');
+      var value = emailField ? emailField.value.trim() : '';
+      var valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+      if (!valid) {
+        setStatus('is-err', 'That did not file. Try again.', 'i-warning');
+        if (emailField) emailField.focus();
+        return;
+      }
+
+      setStatus('is-ok', 'You’re on the list.', 'i-check');
+      form.reset();
+    });
+  }
+})();
+</script>
+</body>
+</html>

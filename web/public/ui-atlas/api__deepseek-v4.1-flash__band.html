@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Violet Hours — Static Bloom</title>
+<meta name="description" content="Static Bloom, the new album from Violet Hours. Out now everywhere.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0910;
+    --ink-2:#141019;
+    --cream:#f4ede2;
+    --muted:#948ba1;
+    --coral:#ff6a3d;
+    --violet:#a06cff;
+    --amber:#ffc46b;
+    --line:rgba(244,237,226,.13);
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{scroll-behavior:smooth}
+
+  body{
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-weight:300;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    background:
+      radial-gradient(900px 600px at 85% -5%, rgba(160,108,255,.13), transparent 65%),
+      radial-gradient(700px 500px at 5% 40%, rgba(255,106,61,.07), transparent 60%);
+  }
+
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9998;
+    opacity:.28;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+
+  ::selection{background:var(--coral);color:var(--ink)}
+
+  .container{width:min(1200px,100% - 44px);margin-inline:auto;position:relative;z-index:1}
+
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:400}
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:200;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:20px clamp(20px,4vw,50px);
+    border-bottom:1px solid transparent;
+    transition:background .45s var(--ease),backdrop-filter .45s,border-color .45s,padding .45s var(--ease);
+  }
+  .nav.scrolled{
+    background:rgba(11,9,16,.72);
+    -webkit-backdrop-filter:blur(16px) saturate(150%);
+    backdrop-filter:blur(16px) saturate(150%);
+    border-bottom-color:var(--line);
+    padding-top:12px;padding-bottom:12px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    color:var(--cream);text-decoration:none;
+    font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;
+    font-weight:500;
+  }
+  .brand .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:linear-gradient(140deg,var(--amber),var(--coral));
+    box-shadow:0 0 14px rgba(255,106,61,.8);
+  }
+  .nav-links{display:flex;gap:32px}
+  .nav-links a{
+    color:var(--muted);text-decoration:none;font-size:.82rem;
+    letter-spacing:.14em;text-transform:uppercase;font-weight:400;
+    transition:color .3s;
+    position:relative;
+  }
+  .nav-links a::after{
+    content:"";position:absolute;left:0;bottom:-6px;height:1px;width:0;
+    background:var(--coral);transition:width .35s var(--ease);
+  }
+  .nav-links a:hover{color:var(--cream)}
+  .nav-links a:hover::after{width:100%}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:'Inter',sans-serif;font-size:.86rem;font-weight:500;
+    letter-spacing:.02em;
+    padding:14px 26px;border-radius:100px;
+    text-decoration:none;border:1px solid transparent;
+    cursor:pointer;transition:.4s var(--ease);
+    white-space:nowrap;
+  }
+  .btn-sm{padding:10px 20px;font-size:.78rem}
+  .btn-primary{background:var(--cream);color:var(--ink)}
+  .btn-primary:hover{background:var(--coral);color:var(--ink);transform:translateY(-2px);box-shadow:0 14px 34px -12px rgba(255,106,61,.8)}
+  .btn-ghost{border-color:var(--line);color:var(--cream);background:transparent}
+  .btn-ghost:hover{border-color:rgba(244,237,226,.5);transform:translateY(-2px)}
+  .arrow{transition:transform .35s var(--ease);display:inline-block}
+  .btn:hover .arrow{transform:translateX(4px)}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    padding:clamp(140px,20vh,200px) 0 clamp(70px,10vw,110px);
+    z-index:1;
+  }
+  .hero-grid{
+    display:grid;
+    grid-template-columns:1.05fr .95fr;
+    gap:clamp(36px,6vw,80px);
+    align-items:center;
+  }
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--line);border-radius:100px;
+    padding:8px 16px;margin-bottom:32px;
+    background:rgba(244,237,226,.02);
+  }
+  .pulse{
+    width:6px;height:6px;border-radius:50%;background:var(--coral);
+    box-shadow:0 0 0 0 rgba(255,106,61,.75);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,106,61,.7)}
+    70%{box-shadow:0 0 0 11px rgba(255,106,61,0)}
+    100%{box-shadow:0 0 0 0 rgba(255,106,61,0)}
+  }
+
+  h1{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(3.6rem,11.5vw,8.6rem);
+    line-height:.86;
+    letter-spacing:-.03em;
+    margin-bottom:30px;
+  }
+  h1 em{
+    font-style:italic;
+    background:linear-gradient(105deg,var(--amber) 0%,var(--coral) 42%,var(--violet) 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+
+  .lede{
+    font-size:clamp(1rem,1.5vw,1.12rem);
+    color:var(--muted);
+    max-width:44ch;
+    margin-bottom:38px;
+    line-height:1.75;
+  }
+
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:34px}
+
+  .meta{
+    font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+    color:rgba(244,237,226,.35);
+  }
+
+  /* ---- album art ---- */
+  .hero-art{
+    position:relative;
+    width:100%;
+    max-width:540px;
+    aspect-ratio:1;
+    margin-left:auto;
+    perspective:1400px;
+  }
+  .vinyl{
+    position:absolute;
+    top:9%;left:22%;width:78%;aspect-ratio:1;
+    border-radius:50%;
+    background:repeating-radial-gradient(circle at 50% 50%,#181420 0 2px,#0d0a13 2px 5px);
+    box-shadow:0 40px 80px -25px rgba(0,0,0,.95),inset 0 0 0 1px rgba(244,237,226,.07);
+    animation:spin 18s linear infinite;
+    z-index:1;
+  }
+  .vinyl::before{
+    content:"";position:absolute;inset:36%;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#ff8a4d,#a0346a 70%);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
+  }
+  .vinyl::after{
+    content:"";position:absolute;inset:48.5%;border-radius:50%;
+    background:var(--ink);
+    box-shadow:inset 0 0 4px rgba(0,0,0,.9);
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .cover{
+    position:absolute;top:0;left:0;width:78%;aspect-ratio:1;z-index:2;
+    border-radius:3px;
+    overflow:hidden;
+    background:radial-gradient(118% 118% at 50% 116%,#ffe0b5 0%,#ff8a4d 15%,#ff4d4d 29%,#a0346a 51%,#4b2168 73%,#120d1c 100%);
+    box-shadow:0 55px 100px -32px rgba(0,0,0,.95),0 0 0 1px rgba(244,237,226,.14),inset 0 0 0 1px rgba(0,0,0,.25);
+    transform-style:preserve-3d;
+    transition:transform .9s var(--ease),box-shadow .9s var(--ease);
+    will-change:transform;
+  }
+  .cover::before{
+    content:"";position:absolute;inset:-25%;
+    background:repeating-radial-gradient(circle at 50% 82%,rgba(255,242,224,.2) 0 1px,transparent 1px 21px);
+    mix-blend-mode:overlay;
+  }
+  .cover::after{
+    content:"";position:absolute;inset:-45%;
+    background:conic-gradient(from 0deg at 50% 50%,
+      rgba(255,170,110,0) 0deg,
+      rgba(255,170,110,.5) 55deg,
+      rgba(255,90,90,0) 135deg,
+      rgba(160,108,255,.5) 235deg,
+      rgba(160,108,255,0) 325deg);
+    filter:blur(42px);
+    mix-blend-mode:screen;
+    animation:spin 30s linear infinite;
+  }
+  .cover-tag{
+    position:absolute;bottom:16px;left:18px;z-index:4;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;
+    color:rgba(255,255,255,.85);
+    text-shadow:0 1px 10px rgba(0,0,0,.6);
+  }
+  .cover-rpm{
+    position:absolute;top:16px;right:18px;z-index:4;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;
+    color:rgba(255,255,255,.7);
+    text-shadow:0 1px 10px rgba(0,0,0,.6);
+  }
+  .cover-shine{
+    position:absolute;inset:0;z-index:3;pointer-events:none;
+    background:linear-gradient(118deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 34%,rgba(255,255,255,0) 66%,rgba(255,255,255,.07) 100%);
+  }
+
+  /* ---------- MARQUEE ---------- */
+  .marquee{
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding:20px 0;
+    overflow:hidden;
+    white-space:nowrap;
+    background:linear-gradient(180deg,rgba(160,108,255,.055),transparent);
+    position:relative;z-index:1;
+  }
+  .marquee-track{display:inline-flex;animation:slide 38s linear infinite}
+  .marquee-track span{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-size:clamp(1.9rem,4.4vw,3.2rem);
+    line-height:1.2;
+    letter-spacing:-.01em;
+    padding-right:.35em;
+  }
+  .marquee-track .out{
+    color:transparent;
+    -webkit-text-stroke:1px rgba(244,237,226,.42);
+  }
+  .marquee-track .hot{color:var(--coral);font-style:italic}
+  @keyframes slide{to{transform:translateX(-50%)}}
+
+  /* ---------- SECTIONS ---------- */
+  .section{
+    padding:clamp(80px,12vw,140px) 0;
+    position:relative;z-index:1;
+    scroll-margin-top:80px;
+  }
+  .label{
+    display:flex;align-items:center;gap:14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--coral);
+    margin-bottom:26px;
+  }
+  .label::after{
+    content:"";flex:1;max-width:70px;height:1px;
+    background:linear-gradient(90deg,var(--coral),transparent);
+  }
+
+  h2{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(2.1rem,5vw,3.6rem);
+    line-height:1.06;
+    letter-spacing:-.02em;
+    margin-bottom:26px;
+  }
+  h2 em{font-style:italic;color:var(--coral)}
+
+  .body-text{
+    color:var(--muted);
+    max-width:52ch;
+    margin-bottom:20px;
+    line-height:1.8;
+    font-size:.98rem;
+  }
+
+  /* ---------- ALBUM ---------- */
+  .album-grid{
+    display:grid;
+    grid-template-columns:.92fr 1.08fr;
+    gap:clamp(40px,6vw,90px);
+    align-items:start;
+  }
+  .album-info{position:sticky;top:120px}
+
+  .credits{margin-top:44px;display:grid;gap:0}
+  .credits > div{
+    display:grid;
+    grid-template-columns:130px 1fr;
+    gap:16px;
+    padding:13px 0;
+    border-top:1px solid var(--line);
+  }
+  .credits > div:last-child{border-bottom:1px solid var(--line)}
+  .credits dt{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;
+    color:rgba(244,237,226,.4);
+    padding-top:3px;
+  }
+  .credits dd{font-size:.92rem;color:var(--cream);font-weight:400}
+
+  .tracks{list-style:none}
+  .track{
+    position:relative;
+    display:grid;
+    grid-template-columns:42px 1fr auto;
+    align-items:center;
+    gap:16px;
+    padding:17px 12px;
+    border-bottom:1px solid var(--line);
+    transition:background .35s var(--ease);
+  }
+  .track:first-child{border-top:1px solid var(--line)}
+  .track:hover{background:rgba(244,237,226,.04)}
+  .t-num{
+    font-size:.72rem;letter-spacing:.1em;
+    color:rgba(244,237,226,.35);
+    transition:opacity .25s;
+  }
+  .t-play{
+    position:absolute;left:12px;width:42px;
+    display:flex;align-items:center;
+    color:var(--coral);
+    opacity:0;transform:translateX(-7px);
+    transition:.35s var(--ease);
+  }
+  .t-name{
+    font-size:1.02rem;font-weight:400;
+    transition:.35s var(--ease);
+    color:var(--cream);
+  }
+  .t-dur{
+    font-size:.72rem;letter-spacing:.08em;
+    color:rgba(244,237,226,.35);
+  }
+  .track:hover .t-num{opacity:0}
+  .track:hover .t-play{opacity:1;transform:none}
+  .track:hover .t-name{transform:translateX(5px);color:#fff}
+
+  .track-foot{
+    display:flex;justify-content:space-between;
+    padding:18px 12px 0;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;
+    color:rgba(244,237,226,.35);
+  }
+
+  /* ---------- LISTEN ---------- */
+  .listen-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-top:52px;
+    overflow:hidden;
+  }
+  .listen-card{
+    background:var(--ink);
+    padding:30px 26px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;
+    text-decoration:none;color:var(--cream);
+    transition:background .4s var(--ease),color .4s var(--ease);
+    position:relative;
+  }
+  .listen-card:hover{background:var(--cream);color:var(--ink)}
+  .lc-left{display:flex;flex-direction:column;gap:5px}
+  .lc-name{font-size:1rem;font-weight:500;letter-spacing:.01em}
+  .lc-sub{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;
+    color:rgba(244,237,226,.38);
+    transition:color .4s var(--ease);
+  }
+  .listen-card:hover .lc-sub{color:rgba(11,9,16,.5)}
+  .lc-arrow{
+    font-size:1.15rem;
+    transition:transform .4s var(--ease);
+    opacity:.6;
+  }
+  .listen-card:hover .lc-arrow{transform:translate(4px,-4px);opacity:1}
+
+  /* ---------- TOUR ---------- */
+  .tour-list{list-style:none;margin-top:48px;border-top:1px solid var(--line)}
+  .show{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:28px;
+    padding:24px 6px;
+    border-bottom:1px solid var(--line);
+    transition:background .35s var(--ease),padding .35s var(--ease);
+  }
+  .show:hover{background:rgba(244,237,226,.035);padding-left:18px;padding-right:18px}
+  .s-main{
+    display:grid;
+    grid-template-columns:100px minmax(150px,1fr) minmax(150px,1fr);
+    gap:20px;align-items:baseline;flex:1;
+  }
+  .s-date{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--coral);
+  }
+  .s-city{font-size:1.06rem;font-weight:400}
+  .s-venue{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.72rem;letter-spacing:.06em;
+    color:rgba(244,237,226,.4);
+  }
+  .s-btn{
+    font-size:.76rem;font-weight:500;
+    letter-spacing:.06em;
+    padding:10px 22px;border-radius:100px;
+    border:1px solid var(--line);
+    color:var(--cream);text-decoration:none;
+    transition:.35s var(--ease);
+    white-space:nowrap;
+  }
+  .s-btn:hover{background:var(--cream);color:var(--ink);border-color:var(--cream)}
+  .show.sold .s-btn{
+    border-color:transparent;
+    color:rgba(244,237,226,.3);
+    cursor:not-allowed;
+    pointer-events:none;
+  }
+  .show.sold .s-city{color:rgba(244,237,226,.45)}
+
+  /* ---------- SIGNUP ---------- */
+  .signup{
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding:clamp(64px,9vw,110px) 0;
+    background:
+      radial-gradient(600px 300px at 50% 0%,rgba(160,108,255,.12),transparent 70%);
+    position:relative;z-index:1;
+  }
+  .signup-inner{max-width:660px;margin-inline:auto;text-align:center}
+  .signup h2{margin-bottom:14px}
+  .signup p.sub{color:var(--muted);margin-bottom:34px;font-size:.96rem}
+  .signup-form{
+    display:flex;gap:10px;
+    background:rgba(244,237,226,.04);
+    border:1px solid var(--line);
+    border-radius:100px;
+    padding:7px 7px 7px 24px;
+    transition:border-color .4s var(--ease),box-shadow .4s var(--ease);
+  }
+  .signup-form:focus-within{
+    border-color:rgba(255,106,61,.6);
+    box-shadow:0 0 0 4px rgba(255,106,61,.1);
+  }
+  .signup-form input{
+    flex:1;background:transparent;border:none;outline:none;
+    color:var(--cream);font-family:'Inter',sans-serif;
+    font-size:.94rem;font-weight:300;
+  }
+  .signup-form input::placeholder{color:rgba(244,237,226,.32)}
+  .signup-form button{
+    border:none;cursor:pointer;
+    background:var(--cream);color:var(--ink);
+    font-family:'Inter',sans-serif;font-weight:500;font-size:.86rem;
+    padding:13px 26px;border-radius:100px;
+    transition:.35s var(--ease);
+    white-space:nowrap;
+  }
+  .signup-form button:hover{background:var(--coral)}
+  .form-note{
+    margin-top:18px;height:1.2em;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--amber);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{padding:clamp(60px,8vw,90px) 0 40px;position:relative;z-index:1}
+  .footer-big{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-size:clamp(3rem,13vw,10rem);
+    line-height:.85;
+    letter-spacing:-.03em;
+    color:transparent;
+    -webkit-text-stroke:1px rgba(244,237,226,.24);
+    margin-bottom:52px;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .footer-cols{
+    display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;
+    padding-bottom:34px;
+    border-bottom:1px solid var(--line);
+  }
+  .footer-col{display:flex;flex-direction:column;gap:11px}
+  .footer-col a{
+    color:var(--muted);text-decoration:none;
+    font-size:.82rem;letter-spacing:.04em;
+    transition:color .3s,transform .3s var(--ease);
+    display:inline-block;
+  }
+  .footer-col a:hover{color:var(--cream);transform:translateX(4px)}
+  .footer-col .fc-head{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;
+    color:rgba(244,237,226,.32);
+    margin-bottom:4px;
+  }
+  .footer-bottom{
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    padding-top:26px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(244,237,226,.28);
+  }
+
+  /* ---------- REVEAL ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(26px);
+    transition:opacity .9s var(--ease),transform .9s var(--ease);
+    transition-delay:var(--d,0s);
+  }
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:980px){
+    .hero-grid{grid-template-columns:1fr;gap:60px}
+    .hero-art{margin-inline:auto;max-width:460px}
+    .album-grid{grid-template-columns:1fr;gap:48px}
+    .album-info{position:static}
+    .listen-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:760px){
+    .nav-links{display:none}
+    .hero{padding-top:120px}
+    .s-main{grid-template-columns:1fr;gap:5px}
+    .show{align-items:flex-start}
+    .show:hover{padding-left:6px;padding-right:6px}
+    .credits > div{grid-template-columns:1fr;gap:4px}
+    .footer-big{font-size:clamp(2.6rem,17vw,5rem)}
+  }
+  @media (max-width:520px){
+    .listen-grid{grid-template-columns:1fr}
+    .cta-row .btn{flex:1;justify-content:center}
+    .signup-form{flex-direction:column;border-radius:24px;padding:14px}
+    .signup-form input{padding:6px 10px;text-align:center}
+    .signup-form button{width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition-duration:.01ms!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top"><span class="dot"></span> Violet Hours</a>
+  <nav class="nav-links">
+    <a href="#album">Album</a>
+    <a href="#listen">Listen</a>
+    <a href="#tour">Tour</a>
+  </nav>
+  <a class="btn btn-sm btn-primary" href="#listen">Get the record</a>
+</header>
+
+<section class="hero" id="top">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow reveal"><span class="pulse"></span> New album · Out now</p>
+      <h1 class="reveal" style="--d:.08s">Static<br><em>Bloom</em></h1>
+      <p class="lede reveal" style="--d:.16s">Ten songs about neon, insomnia, and the long drive home. Recorded over one winter in a converted garage on the east side of Portland.</p>
+      <div class="cta-row reveal" style="--d:.24s">
+        <a class="btn btn-primary" href="#listen">Listen now</a>
+        <a class="btn btn-ghost" href="#album">Tracklist <span class="arrow">→</span></a>
+      </div>
+      <p class="meta reveal" style="--d:.32s">Violet Hours · 10 tracks · 44:18</p>
+    </div>
+
+    <div class="hero-art reveal" style="--d:.2s">
+      <div class="vinyl"></div>
+      <div class="cover" id="cover">
+        <div class="cover-shine"></div>
+        <span class="cover-rpm">33⅓ rpm</span>
+        <span class="cover-tag">VH · 001</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Static Bloom <span class="out">·</span> <span class="hot">Out Now</span> <span class="out">·</span> Violet Hours <span class="out">·</span> Side A <span class="out">·</span> </span>
+    <span>Static Bloom <span class="out">·</span> <span class="hot">Out Now</span> <span class="out">·</span> Violet Hours <span class="out">·</span> Side A <span class="out">·</span> </span>
+  </div>
+</div>
+
+<section class="section" id="album">
+  <div class="container album-grid">
+    <div class="album-info reveal">
+      <p class="label">01 — The Record</p>
+      <h2>Ten songs for the<br><em>blue hour.</em></h2>
+      <p class="body-text">Static Bloom began as a set of voice memos recorded on a phone in a tour van, and ended as the loudest, softest thing we've ever made. It's a record about the space between a city at night and the person sleeping next to you.</p>
+      <p class="body-text">Mixed on tape, mastered quiet, and meant to be played loud.</p>
+
+      <dl class="credits">
+        <div><dt>Produced by</dt><dd>Mara Ellison &amp; Violet Hours</dd></div>
+        <div><dt>Recorded at</dt><dd>Garage No. 7, Portland OR</dd></div>
+        <div><dt>Mixed by</dt><dd>Devon Park</dd></div>
+        <div><dt>Mastered by</dt><dd>Astrid Lindqvist</dd></div>
+      </dl>
+    </div>
+
+    <div class="album-tracks reveal" style="--d:.12s">
+      <ol class="tracks">
+        <li class="track">
+          <span class="t-num mono">01</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Neon Cathedral</span>
+          <span class="t-dur mono">4:12</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">02</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Static Bloom</span>
+          <span class="t-dur mono">3:48</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">03</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Paper Street</span>
+          <span class="t-dur mono">5:02</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">04</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Half Light</span>
+          <span class="t-dur mono">3:31</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">05</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Cassette Ghost</span>
+          <span class="t-dur mono">4:27</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">06</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Violet Hours</span>
+          <span class="t-dur mono">6:14</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">07</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Slow Apocalypse</span>
+          <span class="t-dur mono">3:55</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">08</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Car Radio Sunrise</span>
+          <span class="t-dur mono">4:08</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">09</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Everything, Eventually</span>
+          <span class="t-dur mono">3:22</span>
+        </li>
+        <li class="track">
+          <span class="t-num mono">10</span>
+          <span class="t-play" aria-hidden="true"><svg viewBox="0 0 12 14" width="11" height="13"><path d="M0 0l12 7-12 7z" fill="currentColor"/></svg></span>
+          <span class="t-name">Long Drive Home</span>
+          <span class="t-dur mono">5:39</span>
+        </li>
+      </ol>
+      <div class="track-foot">
+        <span>Total runtime</span>
+        <span>44:18</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="listen">
+  <div class="container">
+    <p class="label reveal">02 — Listen</p>
+    <h2 class="reveal" style="--d:.06s">Everywhere you<br><em>listen to things.</em></h2>
+
+    <div class="listen-grid reveal" style="--d:.12s">
+      <a class="listen-card" href="#" aria-label="Listen on Spotify">
+        <span class="lc-left"><span class="lc-name">Spotify</span><span class="lc-sub">Stream</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+      <a class="listen-card" href="#" aria-label="Listen on Apple Music">
+        <span class="lc-left"><span class="lc-name">Apple Music</span><span class="lc-sub">Stream</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+      <a class="listen-card" href="#" aria-label="Buy on Bandcamp">
+        <span class="lc-left"><span class="lc-name">Bandcamp</span><span class="lc-sub">Buy</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+      <a class="listen-card" href="#" aria-label="Watch on YouTube">
+        <span class="lc-left"><span class="lc-name">YouTube</span><span class="lc-sub">Watch</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+      <a class="listen-card" href="#" aria-label="Listen on SoundCloud">
+        <span class="lc-left"><span class="lc-name">SoundCloud</span><span class="lc-sub">Stream</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+      <a class="listen-card" href="#" aria-label="Shop vinyl and cassettes">
+        <span class="lc-left"><span class="lc-name">Vinyl + Cassette</span><span class="lc-sub">Shop</span></span>
+        <span class="lc-arrow">↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tour">
+  <div class="container">
+    <p class="label reveal">03 — On the road</p>
+    <h2 class="reveal" style="--d:.06s">Autumn <em>tour.</em></h2>
+
+    <ul class="tour-list reveal" style="--d:.12s">
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 03</span>
+          <span class="s-city">Portland, OR</span>
+          <span class="s-venue">Revolution Hall</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 07</span>
+          <span class="s-city">Seattle, WA</span>
+          <span class="s-venue">The Crocodile</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show sold">
+        <div class="s-main">
+          <span class="s-date">Oct 11</span>
+          <span class="s-city">San Francisco, CA</span>
+          <span class="s-venue">The Independent</span>
+        </div>
+        <a class="s-btn" href="#" tabindex="-1">Sold out</a>
+      </li>
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 15</span>
+          <span class="s-city">Los Angeles, CA</span>
+          <span class="s-venue">Teragram Ballroom</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 19</span>
+          <span class="s-city">Austin, TX</span>
+          <span class="s-venue">Mohawk (Outdoor)</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 24</span>
+          <span class="s-city">Chicago, IL</span>
+          <span class="s-venue">Thalia Hall</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show">
+        <div class="s-main">
+          <span class="s-date">Oct 28</span>
+          <span class="s-city">Brooklyn, NY</span>
+          <span class="s-venue">Music Hall of Williamsburg</span>
+        </div>
+        <a class="s-btn" href="#">Tickets</a>
+      </li>
+      <li class="show sold">
+        <div class="s-main">
+          <span class="s-date">Nov 02</span>
+          <span class="s-city">Boston, MA</span>
+          <span class="s-venue">The Sinclair</span>
+        </div>
+        <a class="s-btn" href="#" tabindex="-1">Sold out</a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="signup">
+  <div class="container signup-inner reveal">
+    <h2>Join the <em>mailing list</em></h2>
+    <p class="sub">Tour announcements, unreleased demos, and the occasional bad poem. No spam, ever.</p>
+    <form class="signup-form" id="signupForm" novalidate>
+      <input type="email" id="email" placeholder="you@email.com" aria-label="Email address" required>
+      <button type="submit">Sign up</button>
+    </form>
+    <p class="form-note" id="formNote" role="status"></p>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-big">Violet Hours</div>
+
+    <div class="footer-cols">
+      <div class="footer-col">
+        <span class="fc-head">Music</span>
+        <a href="#">Spotify</a>
+        <a href="#">Apple Music</a>
+        <a href="#">Bandcamp</a>
+        <a href="#">YouTube</a>
+      </div>
+      <div class="footer-col">
+        <span class="fc-head">Follow</span>
+        <a href="#">Instagram</a>
+        <a href="#">TikTok</a>
+        <a href="#">Twitter / X</a>
+        <a href="#">Discord</a>
+      </div>
+      <div class="footer-col">
+        <span class="fc-head">Contact</span>
+        <a href="#">Booking — North America</a>
+        <a href="#">Booking — Europe</a>
+        <a href="#">Press &amp; sync</a>
+        <a href="#">hello@violethours.band</a>
+      </div>
+      <div class="footer-col">
+        <span class="fc-head">Shop</span>
+        <a href="#">Vinyl LP</a>
+        <a href="#">Cassette</a>
+        <a href="#">Tour tee</a>
+        <a href="#">Poster set</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2025 Violet Hours · All rights reserved</span>
+      <span>Made in a garage in Portland, OR</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* Nav background on scroll */
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 40);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* Scroll reveals */
+  const reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -70px 0px' });
+    reveals.forEach((el) => io.observe(el));
+  } else {
+    reveals.forEach((el) => el.classList.add('in'));
+  }
+
+  /* Subtle 3D tilt on the album cover */
+  const art = document.querySelector('.hero-art');
+  const cover = document.getElementById('cover');
+  if (art && cover && window.matchMedia('(pointer: fine)').matches) {
+    art.addEventListener('mousemove', (e) => {
+      const r = art.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      cover.style.transform =
+        'rotateY(' + (x * 13).toFixed(2) + 'deg) rotateX(' + (-y * 13).toFixed(2) + 'deg) scale(1.015)';
+    });
+    art.addEventListener('mouseleave', () => { cover.style.transform = ''; });
+  }
+
+  /* Signup form */
+  const form = document.getElementById('signupForm');
+  const note = document.getElementById('formNote');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email');
+    const value = email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      note.style.color = '#ff6a3d';
+      note.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    note.style.color = '#ffc46b';
+    note.textContent = '✓ You\u2019re on the list. See you on the road.';
+    form.reset();
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --col: #ebe9e3;
+    --border: #dcd9d0;
+    --border-strong: #cfcbc0;
+    --text: #1f1e1b;
+    --muted: #77736a;
+    --accent: #6d5efc;
+    --accent-hover: #5a4be6;
+    --danger: #d64545;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 18px; margin: 0 10px 0 0; font-weight: 700; letter-spacing: -0.01em; }
+  .spacer { flex: 1; }
+
+  input, select, textarea, button { font: inherit; }
+
+  .search, .filter {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+  }
+  .search { width: 220px; }
+
+  button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: var(--text);
+  }
+  button:hover { background: #f0efea; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-hover); }
+  button.danger { color: var(--danger); }
+
+  /* Board */
+  main {
+    flex: 1;
+    display: flex;
+    gap: 14px;
+    padding: 16px 20px 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .column {
+    flex: 0 0 290px;
+    background: var(--col);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    border: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .column.over { border-color: var(--accent); }
+
+  .col-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px 8px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .count {
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 8px;
+    border-radius: 999px;
+  }
+
+  .col-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 80px;
+  }
+
+  .empty {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 18px 8px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  .add-btn {
+    margin: 0 10px 12px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--muted);
+    text-align: left;
+  }
+  .add-btn:hover { background: rgba(255, 255, 255, 0.5); color: var(--text); }
+
+  .drop-indicator {
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex: 0 0 auto;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: grab;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: var(--border-strong); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.4; }
+
+  .card h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .card p {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .tag {
+    font-size: 11px;
+    background: #eeecff;
+    color: #4b3fc4;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .prio { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .due.overdue { color: var(--danger); font-weight: 600; }
+
+  .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  /* Dialog */
+  dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    width: min(480px, 94vw);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    color: var(--text);
+  }
+  dialog::backdrop { background: rgba(20, 18, 15, 0.35); }
+
+  .dlg-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  form.editor { margin: 0; }
+  .dlg-body { padding: 16px 20px; display: grid; gap: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  label {
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  form.editor input,
+  form.editor select,
+  form.editor textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font-size: 14px;
+  }
+  form.editor textarea { resize: vertical; min-height: 70px; }
+
+  .dlg-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
+  }
+  .dlg-foot .spacer { flex: 1; }
+
+  @media (max-width: 600px) {
+    .search { width: 100%; }
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Design Board</h1>
+  <input class="search" id="search" type="search" placeholder="Search cards…" aria-label="Search cards">
+  <select class="filter" id="filter" aria-label="Filter by assignee"></select>
+  <div class="spacer"></div>
+  <button id="export">Export JSON</button>
+  <button id="reset" class="danger">Reset</button>
+  <button id="new-card" class="primary">+ New card</button>
+</header>
+
+<main id="board"></main>
+
+<dialog id="editor" aria-labelledby="editor-title">
+  <div class="dlg-head" id="editor-title">New card</div>
+  <form class="editor" id="editor-form">
+    <div class="dlg-body">
+      <label>Title
+        <input name="title" type="text" required maxlength="120" placeholder="What needs doing?">
+      </label>
+      <label>Description
+        <textarea name="description" maxlength="1000" placeholder="Context, links, acceptance criteria…"></textarea>
+      </label>
+      <div class="row">
+        <label>Column
+          <select name="status" id="status-select"></select>
+        </label>
+        <label>Assignee
+          <select name="assignee" id="assignee-select"></select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Priority
+          <select name="priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+        <label>Due date
+          <input name="due" type="date">
+        </label>
+      </div>
+      <label>Tags <span style="font-weight:400">(comma separated)</span>
+        <input name="tags" type="text" placeholder="web, icons, brand">
+      </label>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" id="delete-btn" class="danger" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="cancel-btn">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  // ---- Configuration ----------------------------------------------------
+  // Edit this list to match your team.
+  const MEMBERS = ["Ava Chen", "Ben Ortiz", "Chloe Park", "Dev Patel", "Eli Rossi"];
+
+  const STATUSES = [
+    { id: "backlog",  name: "Backlog" },
+    { id: "progress", name: "In progress" },
+    { id: "review",   name: "In review" },
+    { id: "done",     name: "Done" },
+  ];
+
+  const PRIORITY = {
+    low:    { label: "Low",    color: "#4caf7a" },
+    medium: { label: "Medium", color: "#e0a526" },
+    high:   { label: "High",   color: "#e0533f" },
+  };
+
+  const KEY = "design-board-v1";
+
+  // ---- State ------------------------------------------------------------
+  let cards = load();
+  let editingId = null;
+  let dragId = null;
+  let dropBeforeId = null;
+  let indicator = null;
+
+  // ---- DOM refs ---------------------------------------------------------
+  const board = document.getElementById("board");
+  const searchEl = document.getElementById("search");
+  const filterEl = document.getElementById("filter");
+  const dlg = document.getElementById("editor");
+  const form = document.getElementById("editor-form");
+  const deleteBtn = document.getElementById("delete-btn");
+
+  // ---- Utilities --------------------------------------------------------
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else if (k === "dataset") Object.assign(node.dataset, v);
+      else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? "" : String(v));
+    }
+    for (const c of children.flat()) {
+      if (c == null || c === false) continue;
+      node.append(c.nodeType ? c : document.createTextNode(String(c)));
+    }
+    return node;
+  }
+
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+  function ymd(d) {
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+  }
+  const todayStr = () => ymd(new Date());
+
+  function addDays(n) {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return ymd(d);
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function avatar(name) {
+    const initials = name.split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase();
+    const hue = [...name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 0);
+    return el("span", {
+      class: "avatar",
+      title: name,
+      style: `background:hsl(${hue} 50% 42%)`,
+      text: initials,
+    });
+  }
+
+  // ---- Persistence ------------------------------------------------------
+  function seed() {
+    return [
+      { id: uid(), title: "Audit icon set for dark mode", description: "Check contrast on all 48 icons against the new dark surfaces.", assignee: "Chloe Park", priority: "low", due: addDays(10), tags: ["icons"], status: "backlog" },
+      { id: uid(), title: "Write onboarding copy for new tool", description: "First-run tooltips and empty states.", assignee: "Ava Chen", priority: "medium", due: "", tags: ["copy"], status: "backlog" },
+      { id: uid(), title: "Homepage hero redesign", description: "Explore two layout directions and pick one with the team.", assignee: "Ben Ortiz", priority: "high", due: addDays(3), tags: ["web", "hero"], status: "progress" },
+      { id: uid(), title: "Design tokens v2", description: "Consolidate spacing and type scale into shared tokens.", assignee: "Dev Patel", priority: "medium", due: addDays(7), tags: ["system"], status: "progress" },
+      { id: uid(), title: "Checkout flow mobile variants", description: "Three variants for A/B test. Needs eng feasibility notes.", assignee: "Eli Rossi", priority: "high", due: addDays(-1), tags: ["mobile", "checkout"], status: "review" },
+      { id: uid(), title: "Brand color audit", description: "Documented usage across marketing site and product.", assignee: "Ava Chen", priority: "low", due: "", tags: ["brand"], status: "done" },
+    ];
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) return data.map(c => ({ tags: [], description: "", due: "", assignee: "", priority: "medium", ...c }));
+      }
+    } catch (e) { /* fall through to seed */ }
+    return seed();
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(cards)); } catch (e) { /* storage unavailable */ }
+  }
+
+  // ---- Filtering --------------------------------------------------------
+  function matches(c, q, who) {
+    if (who === "__none" && c.assignee) return false;
+    if (who && who !== "__none" && c.assignee !== who) return false;
+    if (q) {
+      const hay = [c.title, c.description, c.assignee, ...(c.tags || [])].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+
+  // ---- Rendering --------------------------------------------------------
+  function cardEl(c, today) {
+    const overdue = !!c.due && c.status !== "done" && c.due < today;
+    const p = PRIORITY[c.priority] || PRIORITY.medium;
+    const tags = c.tags || [];
+
+    return el("article", {
+      class: "card",
+      draggable: "true",
+      tabindex: "0",
+      dataset: { id: c.id },
+      onclick: () => openEditor(c.id),
+      onkeydown: e => { if (e.key === "Enter") openEditor(c.id); },
+      ondragstart: onDragStart,
+      ondragend: onDragEnd,
+    },
+      tags.length ? el("div", { class: "tags" }, tags.map(t => el("span", { class: "tag", text: t }))) : null,
+      el("h3", { text: c.title }),
+      c.description ? el("p", { text: c.description }) : null,
+      el("div", { class: "meta" },
+        el("span", { class: "prio", title: `${p.label} priority` },
+          el("span", { class: "dot", style: `background:${p.color}` }),
+          p.label
+        ),
+        el("span", { class: "spacer" }),
+        c.due ? el("span", { class: overdue ? "due overdue" : "due", text: fmtDate(c.due), title: overdue ? "Overdue" : "Due" }) : null,
+        c.assignee ? avatar(c.assignee) : el("span", { text: "Unassigned" })
+      )
+    );
+  }
+
+  function columnEl(s, q, who, today) {
+    const list = cards.filter(c => c.status === s.id && matches(c, q, who));
+
+    const body = el("div", {
+      class: "col-body",
+      dataset: { status: s.id },
+      ondragover: onDragOver,
+      ondragleave: onDragLeave,
+      ondrop: onDrop,
+    },
+      list.length ? list.map(c => cardEl(c, today)) : el("div", { class: "empty", text: "No cards" })
+    );
+
+    return el("section", { class: "column", dataset: { status: s.id }, "aria-label": s.name },
+      el("div", { class: "col-head" },
+        el("span", { text: s.name }),
+        el("span", { class: "count", text: String(list.length) })
+      ),
+      body,
+      el("button", { class: "add-btn", type: "button", onclick: () => openEditor(null, s.id), text: "+ Add card" })
+    );
+  }
+
+  function render() {
+    const q = searchEl.value.trim().toLowerCase();
+    const who = filterEl.value;
+    const today = todayStr();
+    board.replaceChildren(...STATUSES.map(s => columnEl(s, q, who, today)));
+  }
+
+  // ---- Drag and drop ----------------------------------------------------
+  function onDragStart(e) {
+    const node = e.currentTarget;
+    dragId = node.dataset.id;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragId);
+    requestAnimationFrame(() => node.classList.add("dragging"));
+  }
+
+  function onDragEnd(e) {
+    e.currentTarget.classList.remove("dragging");
+    cleanupDrag();
+  }
+
+  function onDragOver(e) {
+    if (!dragId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    const body = e.currentTarget;
+    const others = [...body.querySelectorAll(".card:not(.dragging)")];
+    const after = others.find(c => {
+      const r = c.getBoundingClientRect();
+      return e.clientY < r.top + r.height / 2;
+    });
+    dropBeforeId = after ? after.dataset.id : null;
+
+    if (!indicator) indicator = el("div", { class: "drop-indicator" });
+    body.querySelectorAll(".empty").forEach(n => n.remove());
+    if (indicator.parentElement !== body || indicator.nextElementSibling !== (after || null)) {
+      body.insertBefore(indicator, after || null);
+    }
+    body.parentElement.classList.add("over");
+  }
+
+  function onDragLeave(e) {
+    const body = e.currentTarget;
+    if (body.contains(e.relatedTarget)) return;
+    if (indicator) indicator.remove();
+    body.parentElement.classList.remove("over");
+    dropBeforeId = null;
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    if (!dragId) return;
+    const status = e.currentTarget.dataset.status;
+    moveCard(dragId, status, dropBeforeId);
+    cleanupDrag();
+  }
+
+  function cleanupDrag() {
+    dragId = null;
+    dropBeforeId = null;
+    if (indicator) indicator.remove();
+    indicator = null;
+    document.querySelectorAll(".column.over").forEach(n => n.classList.remove("over"));
+  }
+
+  function moveCard(id, status, beforeId) {
+    const from = cards.findIndex(c => c.id === id);
+    if (from < 0) return;
+    const [card] = cards.splice(from, 1);
+    card.status = status;
+
+    let idx = beforeId ? cards.findIndex(c => c.id === beforeId) : -1;
+    if (idx < 0) {
+      let last = -1;
+      cards.forEach((c, i) => { if (c.status === status) last = i; });
+      idx = last >= 0 ? last + 1 : cards.length;
+    }
+    cards.splice(idx, 0, card);
+    save();
+    render();
+  }
+
+  // ---- Editor dialog ----------------------------------------------------
+  const statusSelect = document.getElementById("status-select");
+  const assigneeSelect = document.getElementById("assignee-select");
+  const filterOptions = [
+    el("option", { value: "", text: "All members" }),
+    el("option", { value: "__none", text: "Unassigned" }),
+    ...MEMBERS.map(m => el("option", { value: m, text: m })),
+  ];
+  filterEl.replaceChildren(...filterOptions);
+  statusSelect.replaceChildren(...STATUSES.map(s => el("option", { value: s.id, text: s.name })));
+  assigneeSelect.replaceChildren(
+    el("option", { value: "", text: "Unassigned" }),
+    ...MEMBERS.map(m => el("option", { value: m, text: m }))
+  );
+
+  function openEditor(id, status = "backlog") {
+    editingId = id;
+    const c = id ? cards.find(x => x.id === id) : null;
+    const f = form.elements;
+
+    form.reset();
+    f.namedItem("title").value = c ? c.title : "";
+    f.namedItem("description").value = c ? (c.description || "") : "";
+    f.namedItem("status").value = c ? c.status : status;
+    f.namedItem("assignee").value = c ? (c.assignee || "") : "";
+    f.namedItem("priority").value = c ? c.priority : "medium";
+    f.namedItem("due").value = c ? (c.due || "") : "";
+    f.namedItem("tags").value = c ? (c.tags || []).join(", ") : "";
+
+    document.getElementById("editor-title").textContent = c ? "Edit card" : "New card";
+    deleteBtn.hidden = !c;
+    dlg.showModal();
+    f.namedItem("title").focus();
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const f = form.elements;
+    const title = f.namedItem("title").value.trim();
+    if (!title) return;
+
+    const data = {
+      title,
+      description: f.namedItem("description").value.trim(),
+      status: f.namedItem("status").value,
+      assignee: f.namedItem("assignee").value,
+      priority: f.namedItem("priority").value,
+      due: f.namedItem("due").value,
+      tags: f.namedItem("tags").value.split(",").map(t => t.trim()).filter(Boolean).slice(0, 8),
+    };
+
+    dlg.close();
+
+    if (editingId) {
+      const c = cards.find(x => x.id === editingId);
+      if (c) {
+        const changed = c.status !== data.status;
+        Object.assign(c, data);
+        if (changed) { moveCard(c.id, c.status, null); return; }
+      }
+    } else {
+      cards.push({ id: uid(), ...data });
+    }
+    save();
+    render();
+  });
+
+  deleteBtn.addEventListener("click", () => {
+    if (!editingId) return;
+    const c = cards.find(x => x.id === editingId);
+    if (!confirm(`Delete "${c ? c.title : "this card"}"?`)) return;
+    cards = cards.filter(x => x.id !== editingId);
+    dlg.close();
+    save();
+    render();
+  });
+
+  document.getElementById("cancel-btn").addEventListener("click", () => dlg.close());
+
+  // ---- Header controls --------------------------------------------------
+  searchEl.addEventListener("input", render);
+  filterEl.addEventListener("change", render);
+
+  document.getElementById("new-card").addEventListener("click", () => openEditor(null));
+
+  document.getElementById("export").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(cards, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = el("a", { href: url, download: "design-board.json" });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    if (!confirm("Reset the board to sample data? This cannot be undone.")) return;
+    cards = seed();
+    save();
+    render();
+  });
+
+  // Press "n" to create a card when not typing somewhere.
+  document.addEventListener("keydown", e => {
+    if (e.key !== "n" || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (dlg.open || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    openEditor(null);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

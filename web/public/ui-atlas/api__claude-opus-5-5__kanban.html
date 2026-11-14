@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Board — Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f3ef;
+    --col:#ebe8e2;
+    --card:#ffffff;
+    --ink:#1f1d1a;
+    --muted:#77726a;
+    --line:#ddd8cf;
+    --accent:#2f5bea;
+    --danger:#d64545;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(31,29,26,.06),0 2px 8px rgba(31,29,26,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);
+    display:flex;flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+
+  /* Header */
+  header{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:20px 28px 14px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+  .logo{
+    width:34px;height:34px;border-radius:10px;
+    background:conic-gradient(from 200deg,#f4a261,#e76f51,#8e5cf7,#2f5bea,#2a9d8f,#f4a261);
+  }
+  .brand h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.01em}
+  .brand p{margin:0;font-size:12.5px;color:var(--muted)}
+  .search{
+    display:flex;align-items:center;gap:8px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:0 12px;height:38px;min-width:220px;
+  }
+  .search input{border:0;outline:0;background:transparent;width:100%;font-size:14px}
+  .search svg{flex:none;color:var(--muted)}
+  .members{display:flex;align-items:center}
+  .members .avatar{
+    margin-left:-6px;border:2px solid var(--bg);
+    transition:transform .15s, opacity .15s, box-shadow .15s;
+  }
+  .members .avatar:first-child{margin-left:0}
+  .members button{background:none;border:0;padding:0}
+  .members button:hover .avatar{transform:translateY(-2px)}
+  .members.filtering button:not(.on) .avatar{opacity:.35}
+  .members button.on .avatar{box-shadow:0 0 0 2px var(--ink)}
+  .btn{
+    height:38px;padding:0 16px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.primary:hover{background:#000}
+  .btn.danger{color:var(--danger);border-color:#f0cccc;background:#fff}
+  .btn.danger:hover{background:#fdf1f1}
+  .btn:focus-visible,.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .toolbar{
+    display:flex;gap:8px;padding:0 28px 14px;flex-wrap:wrap;align-items:center;
+  }
+  .chip-filter{
+    border:1px solid var(--line);background:#fff;border-radius:999px;
+    padding:5px 12px;font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  }
+  .chip-filter .dot{width:8px;height:8px;border-radius:50%}
+  .chip-filter.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .toolbar .hint{margin-left:auto;font-size:12px;color:var(--muted)}
+  kbd{font-family:inherit;font-size:11px;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px}
+
+  /* Board */
+  main{
+    flex:1;display:flex;gap:16px;overflow-x:auto;
+    padding:4px 28px 28px;align-items:flex-start;
+  }
+  .column{
+    flex:0 0 300px;background:var(--col);border-radius:var(--radius);
+    display:flex;flex-direction:column;max-height:100%;
+    transition:background .15s;
+  }
+  .column.over{background:#e2ded6}
+  .col-head{
+    display:flex;align-items:center;gap:8px;padding:14px 14px 8px;
+  }
+  .col-head .mark{width:10px;height:10px;border-radius:3px}
+  .col-head h2{font-size:14px;margin:0;font-weight:600}
+  .count{
+    font-size:12px;color:var(--muted);background:rgba(255,255,255,.7);
+    padding:1px 8px;border-radius:999px;font-weight:500;
+  }
+  .count.over-limit{background:#fde2e2;color:var(--danger)}
+  .icon-btn{
+    margin-left:auto;width:28px;height:28px;border-radius:8px;border:0;background:transparent;
+    display:grid;place-items:center;color:var(--muted);
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.7);color:var(--ink)}
+  .list{
+    padding:6px 10px 10px;display:flex;flex-direction:column;gap:8px;
+    overflow-y:auto;min-height:60px;
+  }
+  .empty{
+    font-size:13px;color:var(--muted);text-align:center;
+    border:1.5px dashed var(--line);border-radius:10px;padding:18px 8px;
+  }
+  .add-card{
+    margin:0 10px 12px;border:0;background:transparent;text-align:left;
+    padding:8px 10px;border-radius:8px;color:var(--muted);font-size:13.5px;font-weight:500;
+  }
+  .add-card:hover{background:rgba(255,255,255,.6);color:var(--ink)}
+
+  /* Card */
+  .card{
+    background:var(--card);border-radius:11px;padding:12px 12px 10px;
+    box-shadow:var(--shadow);cursor:grab;position:relative;
+    border:1px solid transparent;transition:box-shadow .15s,transform .15s, border-color .15s;
+    user-select:none;
+  }
+  .card:hover{box-shadow:0 2px 4px rgba(31,29,26,.07),0 8px 20px rgba(31,29,26,.08)}
+  .card:focus-visible{outline:none;border-color:var(--accent)}
+  .card.dragging{opacity:.4;transform:rotate(1.5deg)}
+  .card.hidden{display:none}
+  .card .top{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .tag{
+    font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;letter-spacing:.01em;
+  }
+  .prio{margin-left:auto;display:flex;gap:2px;align-items:flex-end;height:12px}
+  .prio i{width:3px;border-radius:1px;background:var(--line)}
+  .prio i:nth-child(1){height:5px}.prio i:nth-child(2){height:8px}.prio i:nth-child(3){height:12px}
+  .prio[data-p="low"] i:nth-child(1){background:#8a857c}
+  .prio[data-p="medium"] i:nth-child(-n+2){background:#e9a23b}
+  .prio[data-p="high"] i{background:var(--danger)}
+  .card h3{font-size:14.5px;line-height:1.35;margin:0 0 4px;font-weight:600}
+  .card p{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .due{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px}
+  .due.overdue{background:#fde2e2;color:var(--danger);font-weight:600}
+  .due.soon{background:#fff1d6;color:#9a6100;font-weight:600}
+  .column[data-col="done"] .card h3{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}
+  .column[data-col="done"] .due{background:none;color:var(--muted);font-weight:400}
+  .meta .avatar{margin-left:auto}
+  .placeholder{
+    height:64px;border-radius:11px;border:2px dashed #b9b3a8;background:rgba(255,255,255,.4);
+  }
+
+  .avatar{
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    font-size:10.5px;font-weight:700;color:#fff;flex:none;
+  }
+  .avatar.lg{width:30px;height:30px;font-size:11.5px}
+
+  /* Dialog */
+  dialog{
+    border:0;border-radius:18px;padding:0;width:min(520px,calc(100vw - 32px));
+    box-shadow:0 20px 60px rgba(0,0,0,.25);color:var(--ink);
+  }
+  dialog::backdrop{background:rgba(31,29,26,.4);backdrop-filter:blur(2px)}
+  dialog form{padding:22px 24px 20px}
+  dialog h2{margin:0 0 16px;font-size:18px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .field input,.field select,.field textarea{
+    border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;background:#fff;outline:none;
+  }
+  .field textarea{resize:vertical;min-height:80px}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,91,234,.15)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .actions{display:flex;gap:8px;margin-top:6px}
+  .actions .spacer{flex:1}
+
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:all .2s;display:flex;gap:12px;align-items:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .toast button{background:none;border:0;color:#9db4ff;font-weight:600;padding:0}
+
+  @media (max-width:640px){
+    header,.toolbar,main{padding-left:16px;padding-right:16px}
+    .search{min-width:0;flex:1}
+    .toolbar .hint{display:none}
+    .column{flex-basis:84vw}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h1>Studio Board</h1>
+      <p id="summary">Design team workflow</p>
+    </div>
+  </div>
+  <label class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" type="search" placeholder="Search cards…" aria-label="Search cards">
+  </label>
+  <div class="members" id="members" aria-label="Filter by teammate"></div>
+  <button class="btn primary" id="newBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    New card
+  </button>
+</header>
+
+<div class="toolbar" id="tagFilters">
+  <span class="hint">Drag to move · focus a card and press <kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to shift columns · <kbd>N</kbd> new card</span>
+</div>
+
+<main id="board"></main>
+
+<dialog id="dialog">
+  <form method="dialog" id="form">
+    <h2 id="dialogTitle">New card</h2>
+    <div class="field">
+      <label for="f-title">Title</label>
+      <input id="f-title" required maxlength="120" placeholder="e.g. Onboarding illustrations">
+    </div>
+    <div class="field">
+      <label for="f-desc">Description</label>
+      <textarea id="f-desc" placeholder="Context, links, acceptance notes…"></textarea>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="f-col">Status</label>
+        <select id="f-col"></select>
+      </div>
+      <div class="field">
+        <label for="f-tag">Discipline</label>
+        <select id="f-tag"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="f-assignee">Assignee</label>
+        <select id="f-assignee"></select>
+      </div>
+      <div class="field">
+        <label for="f-due">Due date</label>
+        <input id="f-due" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-prio">Priority</label>
+      <select id="f-prio">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="deleteBtn">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary" id="saveBtn">Save card</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
+
+<script>
+const STORAGE_KEY = 'studio-board-v1';
+
+const COLUMNS = [
+  { id:'backlog',  name:'Backlog',     color:'#9a948a' },
+  { id:'progress', name:'In progress', color:'#2f5bea', limit:4 },
+  { id:'review',   name:'In review',   color:'#e9a23b', limit:3 },
+  { id:'done',     name:'Done',        color:'#2a9d8f' }
+];
+
+const MEMBERS = [
+  { id:'ana',   name:'Ana Ruiz',      color:'#e76f51' },
+  { id:'ben',   name:'Ben Okafor',    color:'#2a9d8f' },
+  { id:'chloe', name:'Chloe Park',    color:'#8e5cf7' },
+  { id:'dev',   name:'Dev Malhotra',  color:'#2f5bea' }
+];
+
+const TAGS = [
+  { id:'ui',       name:'UI',           bg:'#e3eaff', fg:'#2443b8' },
+  { id:'branding', name:'Branding',     bg:'#ffe6dc', fg:'#b2462a' },
+  { id:'illus',    name:'Illustration', bg:'#efe6ff', fg:'#6838c9' },
+  { id:'research', name:'Research',     bg:'#dcf3ef', fg:'#1d7468' },
+  { id:'motion',   name:'Motion',       bg:'#fff1d6', fg:'#9a6100' }
+];
+
+const dayOffset = n => { const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+
+const SEED = [
+  { title:'Audit icon set for consistency', desc:'Stroke widths drift between 1.5 and 2px across the app. Catalogue and propose a single grid.', col:'backlog', tag:'ui', assignee:'dev', due:dayOffset(10), prio:'medium' },
+  { title:'User interviews: checkout friction', desc:'Recruit 6 participants from the beta list. Script draft in the research folder.', col:'backlog', tag:'research', assignee:'ben', due:dayOffset(14), prio:'high' },
+  { title:'Seasonal hero illustration', desc:'Autumn campaign — warm palette, keep the mascot silhouette recognisable.', col:'backlog', tag:'illus', assignee:'chloe', due:'', prio:'low' },
+  { title:'Settings page redesign', desc:'Group preferences into tabs; align with new form components.', col:'progress', tag:'ui', assignee:'ana', due:dayOffset(2), prio:'high' },
+  { title:'Logo lockups for partner deck', desc:'Horizontal, stacked and mono versions. Export SVG + PNG @2x.', col:'progress', tag:'branding', assignee:'chloe', due:dayOffset(4), prio:'medium' },
+  { title:'Loading micro-interaction', desc:'Lottie prototype for the upload state, under 40kb.', col:'progress', tag:'motion', assignee:'dev', due:dayOffset(-1), prio:'medium' },
+  { title:'Empty states pack', desc:'Five spot illustrations for empty inbox, search, projects, files and errors.', col:'review', tag:'illus', assignee:'chloe', due:dayOffset(1), prio:'medium' },
+  { title:'Color token rename', desc:'Migrate from blue-500 style names to semantic tokens. Needs eng sign-off.', col:'review', tag:'ui', assignee:'ana', due:dayOffset(3), prio:'low' },
+  { title:'Brand voice one-pager', desc:'Tone guidelines with do/don\'t examples for marketing.', col:'done', tag:'branding', assignee:'ben', due:dayOffset(-5), prio:'low' },
+  { title:'Competitive teardown: dashboards', desc:'Summary deck shared in #design.', col:'done', tag:'research', assignee:'ben', due:dayOffset(-8), prio:'medium' }
+];
+
+const uid = () => Math.random().toString(36).slice(2,10);
+
+let cards = load();
+let filters = { q:'', member:null, tag:null };
+let editingId = null;
+let lastDeleted = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return SEED.map(c => ({ id:uid(), ...c }));
+}
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cards)); }catch(e){} }
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if(cls) e.className = cls; if(html!=null) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const member = id => MEMBERS.find(m => m.id===id);
+const tagOf = id => TAGS.find(t => t.id===id);
+const initials = n => n.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+
+function avatar(m, lg){
+  if(!m) return '<span class="avatar" style="background:#cfc9bf" title="Unassigned">?</span>';
+  return `<span class="avatar${lg?' lg':''}" style="background:${m.color}" title="${esc(m.name)}">${initials(m.name)}</span>`;
+}
+
+function dueInfo(due){
+  if(!due) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due+'T00:00:00');
+  const diff = Math.round((d - today)/86400000);
+  const label = d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  let cls = '', text = label;
+  if(diff < 0){ cls='overdue'; text = `${label} · overdue`; }
+  else if(diff === 0){ cls='soon'; text='Today'; }
+  else if(diff === 1){ cls='soon'; text='Tomorrow'; }
+  else if(diff <= 3){ cls='soon'; }
+  return { cls, text };
+}
+
+/* ---------- Header controls ---------- */
+function renderMembers(){
+  const wrap = $('#members');
+  wrap.innerHTML = '';
+  wrap.classList.toggle('filtering', !!filters.member);
+  MEMBERS.forEach(m => {
+    const b = el('button', filters.member===m.id ? 'on' : '');
+    b.innerHTML = avatar(m, true);
+    b.setAttribute('aria-pressed', filters.member===m.id);
+    b.setAttribute('aria-label', `Show cards for ${m.name}`);
+    b.onclick = () => { filters.member = filters.member===m.id ? null : m.id; renderMembers(); applyFilters(); };
+    wrap.appendChild(b);
+  });
+}
+
+function renderTagFilters(){
+  const bar = $('#tagFilters');
+  bar.querySelectorAll('.chip-filter').forEach(n => n.remove());
+  const hint = bar.querySelector('.hint');
+  const all = el('button','chip-filter'+(filters.tag?'':' on'),'All work');
+  all.onclick = () => { filters.tag=null; renderTagFilters(); applyFilters(); };
+  bar.insertBefore(all, hint);
+  TAGS.forEach(t => {
+    const b = el('button','chip-filter'+(filters.tag===t.id?' on':''),`<span class="dot" style="background:${t.fg}"></span>${t.name}`);
+    b.onclick = () => { filters.tag = filters.tag===t.id ? null : t.id; renderTagFilters(); applyFilters(); };
+    bar.insertBefore(b, hint);
+  });
+}
+
+/* ---------- Board ---------- */
+function render(){
+  const board = $('#board');
+  board.innerHTML = '';
+  COLUMNS.forEach(col => {
+    const colEl = el('section','column');
+    colEl.dataset.col = col.id;
+    colEl.setAttribute('aria-label', col.name);
+    const head = el('div','col-head',
+      `<span class="mark" style="background:${col.color}"></span><h2>${col.name}</h2><span class="count"></span>`);
+    const addIcon = el('button','icon-btn','<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>');
+    addIcon.setAttribute('aria-label',`Add card to ${col.name}`);
+    addIcon.onclick = () => openDialog(null, col.id);
+    head.appendChild(addIcon);
+
+    const list = el('div','list');
+    list.dataset.col = col.id;
+    cards.filter(c => c.col===col.id).forEach(c => list.appendChild(cardEl(c)));
+    list.appendChild(el('div','empty','Drop cards here'));
+
+    const add = el('button','add-card','+ Add a card');
+    add.onclick = () => openDialog(null, col.id);
+
+    colEl.append(head, list, add);
+    attachDrop(colEl, list);
+    board.appendChild(colEl);
+  });
+  applyFilters();
+}
+
+function cardEl(c){
+  const t = tagOf(c.tag) || TAGS[0];
+  const m = member(c.assignee);
+  const due = dueInfo(c.due);
+  const card = el('article','card');
+  card.draggable = true;
+  card.tabIndex = 0;
+  card.dataset.id = c.id;
+  card.setAttribute('aria-label', `${c.title}. ${t.name}. ${m?m.name:'Unassigned'}`);
+  card.innerHTML = `
+    <div class="top">
+      <span class="tag" style="background:${t.bg};color:${t.fg}">${t.name}</span>
+      <span class="prio" data-p="${c.prio}" title="${c.prio} priority"><i></i><i></i><i></i></span>
+    </div>
+    <h3>${esc(c.title)}</h3>
+    ${c.desc ? `<p>${esc(c.desc)}</p>` : ''}
+    <div class="meta">
+      ${due ? `<span class="due ${due.cls}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${due.text}</span>` : ''}
+      ${avatar(m)}
+    </div>`;
+
+  card.addEventListener('click', () => openDialog(c.id));
+  card.addEventListener('keydown', e => {
+    if(e.key==='Enter'){ e.preventDefault(); openDialog(c.id); }
+    if(e.altKey && (e.key==='ArrowRight'||e.key==='ArrowLeft')){
+      e.preventDefault();
+      const idx = COLUMNS.findIndex(k => k.id===c.col);
+      const next = COLUMNS[idx + (e.key==='ArrowRight'?1:-1)];
+      if(next){ moveCard(c.id, next.id); focusCard(c.id); }
+    }
+    if(e.key==='Delete' || e.key==='Backspace'){ e.preventDefault(); deleteCard(c.id); }
+  });
+  card.addEventListener('dragstart', e => {
+    dragId = c.id;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', c.id);
+    requestAnimationFrame(() => card.classList.add('dragging'));
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    cleanupDrag();
+  });
+  return card;
+}
+
+function focusCard(id){
+  const n = document.querySelector(`.card[data-id="${id}"]`);
+  if(n) n.focus();
+}
+
+function moveCard(id, colId){
+  const i = cards.findIndex(c => c.id===id);
+  if(i<0) return;
+  const [c] = cards.splice(i,1);
+  c.col = colId;
+  cards.push(c);
+  save(); render();
+}
+
+/* ---------- Filtering ---------- */
+function applyFilters(){
+  const q = filters.q.trim().toLowerCase();
+  document.querySelectorAll('.card').forEach(n => {
+    const c = cards.find(x => x.id===n.dataset.id);
+    const match =
+      (!filters.member || c.assignee===filters.member) &&
+      (!filters.tag || c.tag===filters.tag) &&
+      (!q || (c.title+' '+c.desc).toLowerCase().includes(q));
+    n.classList.toggle('hidden', !match);
+  });
+  updateCounts();
+}
+
+function updateCounts(){
+  COLUMNS.forEach(col => {
+    const colEl = document.querySelector(`.column[data-col="${col.id}"]`);
+    if(!colEl) return;
+    const total = cards.filter(c => c.col===col.id).length;
+    const visible = colEl.querySelectorAll('.card:not(.hidden)').length;
+    const count = colEl.querySelector('.count');
+    const filtered = visible !== total;
+    count.textContent = (filtered ? `${visible} of ${total}` : total) + (col.limit ? ` / ${col.limit}` : '');
+    count.classList.toggle('over-limit', !!col.limit && total > col.limit);
+    count.title = col.limit ? `WIP limit: ${col.limit}` : '';
+    colEl.querySelector('.empty').style.display = visible ? 'none' : '';
+  });
+  const open = cards.filter(c => c.col!=='done').length;
+  const overdue = cards.filter(c => c.col!=='done' && c.due && dueInfo(c.due).cls==='overdue').length;
+  $('#summary').textContent = `${open} open · ${cards.length - open} done` + (overdue ? ` · ${overdue} overdue` : '');
+}
+
+/* ---------- Drag & drop ---------- */
+let dragId = null;
+const placeholder = el('div','placeholder');
+
+function attachDrop(colEl, list){
+  colEl.addEventListener('dragover', e => {
+    if(!dragId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.column.over').forEach(n => n!==colEl && n.classList.remove('over'));
+    colEl.classList.add('over');
+    const after = getAfter(list, e.clientY);
+    if(after) list.insertBefore(placeholder, after);
+    else list.insertBefore(placeholder, list.querySelector('.empty'));
+  });
+  colEl.addEventListener('dragleave', e => {
+    if(!colEl.contains(e.relatedTarget)) colEl.classList.remove('over');
+  });
+  colEl.addEventListener('drop', e => {
+    e.preventDefault();
+    if(!dragId) return;
+    const dragged = document.querySelector(`.card[data-id="${dragId}"]`);
+    if(dragged && placeholder.parentNode) placeholder.parentNode.insertBefore(dragged, placeholder);
+    syncFromDom();
+    const id = dragId;
+    cleanupDrag();
+    render();
+    focusCard(id);
+  });
+}
+
+function getAfter(list, y){
+  const items = [...list.querySelectorAll('.card:not(.dragging):not(.hidden)')];
+  return items.find(n => { const b = n.getBoundingClientRect(); return y < b.top + b.height/2; }) || null;
+}
+
+function syncFromDom(){
+  const order = [];
+  document.querySelectorAll('.list').forEach(list => {
+    list.querySelectorAll('.card').forEach(n => {
+      const c = cards.find(x => x.id===n.dataset.id);
+      if(c){ c.col = list.dataset.col; order.push(c); }
+    });
+  });
+  cards = order;
+  save();
+}
+
+function cleanupDrag(){
+  dragId = null;
+  placeholder.remove();
+  document.querySelectorAll('.column.over').forEach(n => n.classList.remove('over'));
+}
+
+/* ---------- Dialog ---------- */
+const dialog = $('#dialog');
+function fillSelects(){
+  $('#f-col').innerHTML = COLUMNS.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  $('#f-tag').innerHTML = TAGS.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  $('#f-assignee').innerHTML = '<option value="">Unassigned</option>' + MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+function openDialog(id, colId){
+  editingId = id;
+  const c = id ? cards.find(x => x.id===id) : null;
+  $('#dialogTitle').textContent = c ? 'Edit card' : 'New card';
+  $('#saveBtn').textContent = c ? 'Save changes' : 'Create card';
+  $('#deleteBtn').style.display = c ? '' : 'none';
+  $('#f-title').value = c ? c.title : '';
+  $('#f-desc').value = c ? c.desc : '';
+  $('#f-col').value = c ? c.col : (colId || 'backlog');
+  $('#f-tag').value = c ? c.tag : (filters.tag || 'ui');
+  $('#f-assignee').value = c ? (c.assignee||'') : (filters.member || '');
+  $('#f-due').value = c ? c.due : '';
+  $('#f-prio').value = c ? c.prio : 'medium';
+  dialog.showModal();
+  $('#f-title').focus();
+}
+
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = {
+    title: $('#f-title').value.trim(),
+    desc: $('#f-desc').value.trim(),
+    col: $('#f-col').value,
+    tag: $('#f-tag').value,
+    assignee: $('#f-assignee').value,
+    due: $('#f-due').value,
+    prio: $('#f-prio').value
+  };
+  if(!data.title) return;
+  let id = editingId;
+  if(editingId){
+    const c = cards.find(x => x.id===editingId);
+    const moved = c.col !== data.col;
+    Object.assign(c, data);
+    if(moved){ cards = cards.filter(x => x!==c); cards.push(c); }
+  } else {
+    id = uid();
+    cards.push({ id, ...data });
+  }
+  save(); dialog.close(); render(); focusCard(id);
+});
+
+$('#cancelBtn').onclick = () => dialog.close();
+$('#deleteBtn').onclick = () => { dialog.close(); deleteCard(editingId); };
+dialog.addEventListener('click', e => { if(e.target===dialog) dialog.close(); });
+
+function deleteCard(id){
+  const i = cards.findIndex(c => c.id===id);
+  if(i<0) return;
+  lastDeleted = { card:cards[i], index:i };
+  cards.splice(i,1);
+  save(); render();
+  toast(`Deleted “${lastDeleted.card.title.slice(0,40)}”`);
+}
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function toast(msg){
+  $('#toastMsg').textContent = msg;
+  $('#toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 5000);
+}
+$('#undoBtn').onclick = () => {
+  if(!lastDeleted) return;
+  cards.splice(lastDeleted.index, 0, lastDeleted.card);
+  const id = lastDeleted.card.id;
+  lastDeleted = null;
+  save(); render(); focusCard(id);
+  $('#toast').classList.remove('show');
+};
+
+/* ---------- Global ---------- */
+$('#newBtn').onclick = () => openDialog(null, 'backlog');
+$('#search').addEventListener('input', e => { filters.q = e.target.value; applyFilters(); });
+document.addEventListener('keydown', e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if(dialog.open || typing) return;
+  if(e.key==='n' || e.key==='N'){ e.preventDefault(); openDialog(null,'backlog'); }
+  if(e.key==='/'){ e.preventDefault(); $('#search').focus(); }
+});
+
+fillSelects();
+renderMembers();
+renderTagFilters();
+render();
+</script>
+</body>
+</html>

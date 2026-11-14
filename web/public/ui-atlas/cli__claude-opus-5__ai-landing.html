@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — Notes that listen</title>
+<meta name="description" content="Murmur is an AI note-taking app that listens while you think, talk, and meet — then hands back notes that actually make sense.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#08080b;
+    --ink-2:#0d0d12;
+    --card:#12121a;
+    --line:rgba(244,241,234,.09);
+    --line-2:rgba(244,241,234,.16);
+    --ivory:#f4f1ea;
+    --mute:#8f8d9c;
+    --mute-2:#6b6978;
+    --accent:#a99cff;
+    --accent-dim:#6d5fd6;
+    --mint:#6ee7c8;
+    --warm:#ffb487;
+    --maxw:1140px;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--ivory);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--accent);color:#0b0b10}
+
+  /* ---------- atmosphere ---------- */
+  .glow{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .glow::before,.glow::after{content:"";position:absolute;border-radius:50%;filter:blur(120px);opacity:.5}
+  .glow::before{
+    width:760px;height:760px;top:-340px;left:50%;transform:translateX(-50%);
+    background:radial-gradient(circle,rgba(169,156,255,.38),transparent 68%);
+  }
+  .glow::after{
+    width:620px;height:620px;top:420px;right:-240px;
+    background:radial-gradient(circle,rgba(110,231,200,.14),transparent 70%);
+  }
+  .grain{
+    position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .page{position:relative;z-index:2}
+
+  .wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 28px}
+
+  /* ---------- type ---------- */
+  h1,h2,h3{font-weight:400;letter-spacing:-.02em;line-height:1.05;margin:0}
+  .serif{font-family:'Instrument Serif',Georgia,serif}
+  .ital{font-style:italic}
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.17em;text-transform:uppercase;
+    color:var(--mute);font-weight:500;
+  }
+  .lead{color:var(--mute);font-size:17.5px;font-weight:300;line-height:1.65}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* ---------- nav ---------- */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    transition:background .4s var(--ease),border-color .4s var(--ease),backdrop-filter .4s;
+    border-bottom:1px solid transparent;
+  }
+  header.stuck{
+    background:rgba(8,8,11,.72);
+    backdrop-filter:blur(16px) saturate(140%);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    border-bottom-color:var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ivory)}
+  .mark{display:flex;align-items:flex-end;gap:2.5px;height:17px}
+  .mark i{width:2.5px;border-radius:2px;background:var(--accent);display:block;animation:bob 1.5s ease-in-out infinite}
+  .mark i:nth-child(1){height:7px;animation-delay:0s}
+  .mark i:nth-child(2){height:16px;animation-delay:.18s}
+  .mark i:nth-child(3){height:11px;animation-delay:.36s}
+  .mark i:nth-child(4){height:5px;animation-delay:.54s}
+  @keyframes bob{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
+  .brand span{font-family:'Instrument Serif',serif;font-size:23px;letter-spacing:.01em}
+
+  .links{display:flex;align-items:center;gap:34px}
+  .links a{color:var(--mute);text-decoration:none;font-size:14.5px;transition:color .25s}
+  .links a:hover{color:var(--ivory)}
+  .nav-cta{display:flex;align-items:center;gap:18px}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-size:14.5px;font-weight:500;letter-spacing:-.01em;text-decoration:none;
+    padding:11px 20px;border-radius:999px;border:1px solid transparent;cursor:pointer;
+    transition:transform .3s var(--ease),background .3s,border-color .3s,color .3s,box-shadow .3s;
+  }
+  .btn-primary{background:var(--ivory);color:#0b0b10;box-shadow:0 1px 0 rgba(255,255,255,.4) inset}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 34px -14px rgba(244,241,234,.5)}
+  .btn-ghost{border-color:var(--line-2);color:var(--ivory)}
+  .btn-ghost:hover{border-color:rgba(244,241,234,.4);background:rgba(244,241,234,.04);transform:translateY(-2px)}
+  .btn-lg{padding:15px 28px;font-size:15.5px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:168px 0 70px;text-align:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:6px 14px 6px 8px;border:1px solid var(--line-2);border-radius:999px;
+    font-size:12.5px;color:var(--mute);background:rgba(244,241,234,.03);
+    backdrop-filter:blur(6px);
+  }
+  .pill b{
+    color:#0b0b10;background:var(--mint);font-weight:600;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;padding:2.5px 8px;border-radius:999px;
+  }
+  .hero h1{
+    font-family:'Instrument Serif',serif;
+    font-size:clamp(46px,8.2vw,94px);
+    margin:28px auto 0;max-width:15ch;letter-spacing:-.025em;
+  }
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero .lead{max-width:50ch;margin:26px auto 0;font-size:18.5px}
+  .hero-actions{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:38px}
+  .micro{margin-top:18px;font-size:13px;color:var(--mute-2)}
+
+  /* ---------- waveform ---------- */
+  .wave{
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    height:92px;margin:62px auto 0;max-width:720px;
+    mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+  }
+  .wave b{
+    display:block;width:3px;border-radius:999px;
+    background:linear-gradient(180deg,var(--accent),rgba(169,156,255,.25));
+    height:calc(8px + var(--h) * 1px);
+    animation:pulse 1.9s var(--ease) infinite;
+    animation-delay:calc(var(--i) * -.085s);
+  }
+  @keyframes pulse{0%,100%{transform:scaleY(.22);opacity:.45}50%{transform:scaleY(1);opacity:1}}
+
+  /* ---------- marquee ---------- */
+  .strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:26px 0;overflow:hidden;margin-top:36px}
+  .strip-inner{display:flex;gap:70px;width:max-content;animation:slide 32s linear infinite;align-items:center}
+  .strip:hover .strip-inner{animation-play-state:paused}
+  @keyframes slide{to{transform:translateX(-50%)}}
+  .strip span{
+    font-family:'Instrument Serif',serif;font-size:22px;color:var(--mute-2);
+    white-space:nowrap;transition:color .3s;
+  }
+  .strip span:hover{color:var(--mute)}
+
+  /* ---------- sections ---------- */
+  section{position:relative}
+  .sec{padding:120px 0}
+  .sec-head{max-width:640px}
+  .sec-head.center{margin:0 auto;text-align:center}
+  .sec-head h2{
+    font-family:'Instrument Serif',serif;
+    font-size:clamp(34px,5vw,56px);margin-top:18px;letter-spacing:-.02em;
+  }
+  .sec-head h2 em{font-style:italic;color:var(--accent)}
+  .sec-head .lead{margin-top:20px}
+
+  /* ---------- demo ---------- */
+  .demo{
+    margin-top:58px;border:1px solid var(--line);border-radius:22px;
+    background:linear-gradient(170deg,rgba(244,241,234,.045),rgba(244,241,234,.012));
+    overflow:hidden;box-shadow:0 50px 100px -50px rgba(0,0,0,.9);
+  }
+  .demo-bar{
+    display:flex;align-items:center;gap:12px;padding:14px 20px;
+    border-bottom:1px solid var(--line);background:rgba(8,8,11,.4);
+  }
+  .dots{display:flex;gap:6px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:rgba(244,241,234,.14);display:block}
+  .demo-bar .title{font-size:13px;color:var(--mute);margin-left:4px}
+  .rec{
+    margin-left:auto;display:flex;align-items:center;gap:7px;font-size:11.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--warm);
+  }
+  .rec i{width:7px;height:7px;border-radius:50%;background:var(--warm);animation:blink 1.6s infinite}
+  @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,180,135,.5)}50%{opacity:.35;box-shadow:0 0 0 6px rgba(255,180,135,0)}}
+
+  .demo-grid{display:grid;grid-template-columns:1fr 1fr}
+  .pane{padding:30px 28px}
+  .pane + .pane{border-left:1px solid var(--line)}
+  .pane-label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute-2);margin-bottom:22px}
+  .line{display:grid;grid-template-columns:52px 1fr;gap:14px;margin-bottom:17px;opacity:.92}
+  .line .t{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--mute-2);padding-top:3px}
+  .line .s{font-size:14.5px;color:var(--mute);font-weight:300}
+  .line .s b{color:var(--ivory);font-weight:500;display:block;font-size:12.5px;margin-bottom:2px;letter-spacing:.01em}
+  .note h4{
+    font-family:'Instrument Serif',serif;font-size:22px;font-weight:400;margin:0 0 6px;
+  }
+  .note .meta{font-size:12px;color:var(--mute-2);margin-bottom:22px}
+  .note h5{
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    margin:22px 0 11px;font-weight:600;
+  }
+  .note ul{list-style:none;margin:0;padding:0}
+  .note li{
+    font-size:14.5px;color:var(--mute);font-weight:300;padding-left:22px;position:relative;
+    margin-bottom:9px;line-height:1.5;
+  }
+  .note li::before{
+    content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;
+    background:var(--mute-2);
+  }
+  .note li.todo::before{
+    content:"";top:5px;width:12px;height:12px;border-radius:3.5px;border:1.4px solid var(--accent-dim);background:none;
+  }
+  .note li.todo{padding-left:24px}
+  .tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:26px}
+  .tag{
+    font-size:11.5px;color:var(--mute);border:1px solid var(--line);
+    padding:4px 11px;border-radius:999px;background:rgba(244,241,234,.03);
+  }
+
+  /* ---------- bento ---------- */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:56px}
+  .cell{
+    border:1px solid var(--line);border-radius:18px;padding:30px 28px;
+    background:linear-gradient(165deg,rgba(244,241,234,.04),rgba(244,241,234,.008));
+    position:relative;overflow:hidden;
+    transition:border-color .4s var(--ease),transform .4s var(--ease);
+  }
+  .cell:hover{border-color:var(--line-2);transform:translateY(-3px)}
+  .cell::after{
+    content:"";position:absolute;inset:0;opacity:0;transition:opacity .5s;pointer-events:none;
+    background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(169,156,255,.10),transparent 60%);
+  }
+  .cell:hover::after{opacity:1}
+  .c-3{grid-column:span 3}
+  .c-2{grid-column:span 2}
+  .c-6{grid-column:span 6}
+  .ico{
+    width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+    border:1px solid var(--line-2);background:rgba(169,156,255,.08);margin-bottom:20px;
+  }
+  .ico svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .cell h3{font-size:19px;letter-spacing:-.015em;margin-bottom:9px;font-weight:500;font-family:'Inter',sans-serif}
+  .cell p{color:var(--mute);font-size:14.5px;font-weight:300;margin:0;line-height:1.6}
+  .cell.wide{display:flex;gap:40px;align-items:center;flex-wrap:wrap}
+  .cell.wide > div{flex:1 1 300px}
+  .chips{display:flex;gap:9px;flex-wrap:wrap;flex:1 1 280px}
+  .chip{
+    display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--mute);
+    border:1px solid var(--line);border-radius:10px;padding:9px 13px;background:rgba(8,8,11,.5);
+    transition:color .3s,border-color .3s;
+  }
+  .chip:hover{color:var(--ivory);border-color:var(--line-2)}
+  .chip i{width:6px;height:6px;border-radius:50%;background:var(--mint);display:block;flex:none}
+
+  /* ---------- steps ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:62px;border-top:1px solid var(--line)}
+  .step{padding:36px 30px 0;border-right:1px solid var(--line);position:relative}
+  .step:last-child{border-right:none}
+  .step:first-child{padding-left:0}
+  .step .n{
+    font-family:'Instrument Serif',serif;font-size:15px;color:var(--accent);
+    display:block;margin-bottom:16px;
+  }
+  .step h3{font-size:21px;font-family:'Instrument Serif',serif;margin-bottom:11px}
+  .step p{color:var(--mute);font-size:14.5px;font-weight:300;margin:0}
+  .step::before{
+    content:"";position:absolute;top:-1px;left:0;height:1px;width:0;background:var(--accent);
+    transition:width .9s var(--ease);
+  }
+  .step.in::before{width:100%}
+  .step:nth-child(2).in::before{transition-delay:.15s}
+  .step:nth-child(3).in::before{transition-delay:.3s}
+
+  /* ---------- quote ---------- */
+  .quote-sec{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:100px 0}
+  .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .quote{
+    border:1px solid var(--line);border-radius:18px;padding:30px 28px;
+    background:rgba(244,241,234,.022);
+  }
+  .quote p{
+    font-family:'Instrument Serif',serif;font-size:19.5px;line-height:1.45;
+    margin:0 0 22px;letter-spacing:-.01em;
+  }
+  .who{display:flex;align-items:center;gap:11px}
+  .av{
+    width:33px;height:33px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-size:12px;font-weight:600;color:#0b0b10;
+  }
+  .who div{line-height:1.35}
+  .who strong{display:block;font-size:13.5px;font-weight:500}
+  .who small{font-size:12px;color:var(--mute-2)}
+
+  /* ---------- pricing ---------- */
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:56px;align-items:start}
+  .tier{
+    border:1px solid var(--line);border-radius:20px;padding:32px 28px;
+    background:linear-gradient(175deg,rgba(244,241,234,.035),rgba(244,241,234,.008));
+    transition:border-color .4s,transform .4s var(--ease);
+  }
+  .tier:hover{transform:translateY(-4px);border-color:var(--line-2)}
+  .tier.hot{
+    border-color:rgba(169,156,255,.42);
+    background:linear-gradient(175deg,rgba(169,156,255,.11),rgba(169,156,255,.015));
+    box-shadow:0 40px 80px -46px rgba(169,156,255,.5);
+  }
+  .tier-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .tier h3{font-size:16px;font-weight:500;font-family:'Inter',sans-serif;letter-spacing:0}
+  .hot-badge{
+    font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;
+    background:var(--accent);color:#0b0b10;padding:3px 9px;border-radius:999px;
+  }
+  .price{display:flex;align-items:baseline;gap:7px;margin:22px 0 6px}
+  .price b{font-family:'Instrument Serif',serif;font-size:50px;font-weight:400;letter-spacing:-.03em}
+  .price span{font-size:13.5px;color:var(--mute-2)}
+  .tier > p{font-size:13.5px;color:var(--mute);font-weight:300;margin:0 0 26px;min-height:40px}
+  .tier .btn{width:100%}
+  .feats{list-style:none;padding:0;margin:26px 0 0;border-top:1px solid var(--line);padding-top:22px}
+  .feats li{
+    font-size:14px;color:var(--mute);font-weight:300;margin-bottom:11px;
+    padding-left:24px;position:relative;
+  }
+  .feats li::before{
+    content:"";position:absolute;left:1px;top:7px;width:11px;height:6px;
+    border-left:1.6px solid var(--mint);border-bottom:1.6px solid var(--mint);
+    transform:rotate(-45deg);
+  }
+
+  /* ---------- cta ---------- */
+  .cta{padding:130px 0;text-align:center;position:relative;overflow:hidden}
+  .cta h2{font-family:'Instrument Serif',serif;font-size:clamp(38px,6.4vw,74px);letter-spacing:-.025em}
+  .cta h2 em{font-style:italic;color:var(--accent)}
+  .cta .lead{max-width:44ch;margin:24px auto 0}
+  .cta-glow{
+    position:absolute;width:900px;height:420px;left:50%;bottom:-240px;transform:translateX(-50%);
+    background:radial-gradient(ellipse,rgba(169,156,255,.3),transparent 70%);filter:blur(80px);
+    pointer-events:none;
+  }
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:62px 0 40px}
+  .f-grid{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:40px}
+  .f-brand p{color:var(--mute-2);font-size:13.5px;font-weight:300;max-width:30ch;margin:16px 0 0}
+  .f-col h6{
+    font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ivory);
+    margin:4px 0 16px;font-weight:600;
+  }
+  .f-col a{display:block;color:var(--mute);font-size:14px;text-decoration:none;margin-bottom:11px;transition:color .25s}
+  .f-col a:hover{color:var(--ivory)}
+  .f-base{
+    margin-top:54px;padding-top:26px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    font-size:13px;color:var(--mute-2);
+  }
+  .f-base span{display:inline-flex;align-items:center;gap:8px}
+  .f-base i{width:6px;height:6px;border-radius:50%;background:var(--mint);display:block}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+  .d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+
+  @media (max-width:900px){
+    .links{display:none}
+    .sec{padding:86px 0}
+    .hero{padding:132px 0 50px}
+    .demo-grid{grid-template-columns:1fr}
+    .pane + .pane{border-left:none;border-top:1px solid var(--line)}
+    .bento{grid-template-columns:1fr}
+    .c-3,.c-2,.c-6{grid-column:auto}
+    .steps{grid-template-columns:1fr}
+    .step{border-right:none;border-bottom:1px solid var(--line);padding:30px 0}
+    .quotes,.tiers{grid-template-columns:1fr}
+    .f-grid{grid-template-columns:1fr 1fr;gap:32px}
+  }
+  @media (max-width:540px){
+    .wrap{padding:0 20px}
+    .nav-cta .btn-ghost{display:none}
+    .hero h1{max-width:100%}
+    .f-grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition-duration:.01ms!important}
+    .rv{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="grain"></div>
+
+<header id="hdr">
+  <div class="wrap nav">
+    <a href="#" class="brand">
+      <span class="mark"><i></i><i></i><i></i><i></i></span>
+      <span>Murmur</span>
+    </a>
+    <nav class="links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#story">Stories</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#pricing" class="btn btn-primary">Start free</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="pill rv"><b>New</b> On-device transcription in 41 languages</div>
+      <h1 class="rv d1">Think out loud.<br>Keep the <em>signal</em>.</h1>
+      <p class="lead rv d2">Murmur listens while you talk, meet, and ramble — then hands back notes with the decisions, the open questions, and the thing you promised to do by Friday.</p>
+      <div class="hero-actions rv d3">
+        <a href="#pricing" class="btn btn-primary btn-lg">Start free — no card</a>
+        <a href="#how" class="btn btn-ghost btn-lg">See how it works</a>
+      </div>
+      <p class="micro rv d3">Mac · iOS · Windows · Web &nbsp;·&nbsp; 14-day Pro trial included</p>
+    </div>
+    <div class="wave" id="wave" aria-hidden="true"></div>
+  </section>
+
+  <div class="strip" aria-label="Teams using Murmur">
+    <div class="strip-inner">
+      <span>Northwind Research</span><span>Lumen Health</span><span>Atlas &amp; Co</span>
+      <span>Fieldnote Studio</span><span>Perihelion Labs</span><span>Cedar Union</span>
+      <span>Northwind Research</span><span>Lumen Health</span><span>Atlas &amp; Co</span>
+      <span>Fieldnote Studio</span><span>Perihelion Labs</span><span>Cedar Union</span>
+    </div>
+  </div>
+
+  <!-- DEMO -->
+  <section class="sec" id="how">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">The transformation</p>
+        <h2>Messy in. <em>Meaningful</em> out.</h2>
+        <p class="lead">No templates to pick, no tags to maintain. Murmur writes the note the way you would have — if you'd had an hour and a clear head.</p>
+      </div>
+
+      <div class="demo rv d1">
+        <div class="demo-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="title mono">standup-tue.murmur</span>
+          <span class="rec"><i></i> Listening · 11:42</span>
+        </div>
+        <div class="demo-grid">
+          <div class="pane">
+            <p class="pane-label">Raw audio → live transcript</p>
+            <div class="line"><span class="t">00:04</span><span class="s"><b>Priya</b>okay so the onboarding drop-off is worse than we thought, it's like sixty percent at the email step—</span></div>
+            <div class="line"><span class="t">00:19</span><span class="s"><b>Dai</b>wait sixty? last week we said forty. did something change in the tracking</span></div>
+            <div class="line"><span class="t">00:27</span><span class="s"><b>Priya</b>new events landed Thursday, so yeah the old number was undercounting. anyway I think we kill the verification email entirely for the trial path</span></div>
+            <div class="line"><span class="t">00:44</span><span class="s"><b>Sam</b>legal might care. let me check. um, can we ship a magic link instead by the fifteenth</span></div>
+            <div class="line"><span class="t">01:02</span><span class="s"><b>Dai</b>doable if we skip the SSO piece for now. I'll scope it today</span></div>
+          </div>
+          <div class="pane note">
+            <p class="pane-label">Murmur note · auto-generated</p>
+            <h4>Onboarding drop-off: kill the email gate</h4>
+            <p class="meta mono">Tue 10 Nov · 12 min · 3 speakers · Product weekly</p>
+
+            <h5>Decisions</h5>
+            <ul>
+              <li>Remove verification email from the trial signup path, pending legal review.</li>
+              <li>Ship magic-link auth as the replacement; SSO deferred to a later cycle.</li>
+            </ul>
+
+            <h5>Action items</h5>
+            <ul>
+              <li class="todo"><b style="color:var(--ivory);font-weight:500">Sam</b> — confirm legal position on dropping verification</li>
+              <li class="todo"><b style="color:var(--ivory);font-weight:500">Dai</b> — scope magic-link work today, target 15 Nov</li>
+            </ul>
+
+            <h5>Worth flagging</h5>
+            <ul>
+              <li>Drop-off restated 40% → 60% after new tracking events shipped Thursday. Earlier dashboards undercounted.</li>
+            </ul>
+
+            <div class="tags">
+              <span class="tag">#onboarding</span><span class="tag">#auth</span>
+              <span class="tag">#q4-retention</span><span class="tag">↗ Linear ×2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEPS -->
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">Three steps, one of them optional</p>
+        <h2>It fits where your thinking already happens.</h2>
+      </div>
+      <div class="steps">
+        <div class="step rv"><span class="n mono">01</span><h3>Hit the hotkey</h3><p>⌥Space from anywhere — a call, a walk, the car. Murmur starts capturing before you've finished the thought. Works fully offline.</p></div>
+        <div class="step rv d1"><span class="n mono">02</span><h3>Keep talking</h3><p>Speaker-aware transcription runs live. Say "note to self" or "that's an action item" and Murmur picks up the cue without breaking your flow.</p></div>
+        <div class="step rv d2"><span class="n mono">03</span><h3>Walk away</h3><p>Seconds after you stop, the note is written, titled, tagged, linked to related notes, and pushed wherever your team already works.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="sec" id="features">
+    <div class="wrap">
+      <div class="sec-head center rv">
+        <p class="eyebrow">Features</p>
+        <h2>Built for people who talk<br>faster than they <em>type</em>.</h2>
+      </div>
+
+      <div class="bento" id="bento">
+        <div class="cell c-3 rv">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></div>
+          <h3>Ambient capture</h3>
+          <p>One hotkey, any app, any device. Murmur buffers the last 30 seconds too, so the idea you had before you started recording isn't lost.</p>
+        </div>
+        <div class="cell c-3 rv d1">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M17 5a3 3 0 0 1 0 6M19 20a6 6 0 0 0-3-5.2"/></svg></div>
+          <h3>Knows who said what</h3>
+          <p>Diarization that holds up on bad conference audio. Learns voices over time, so attributions and action-item owners land on the right person.</p>
+        </div>
+        <div class="cell c-2 rv">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8.5 11h5M11 8.5v5"/></svg></div>
+          <h3>Ask your archive</h3>
+          <p>"What did we decide about pricing in August?" Semantic search across every note, with citations back to the exact minute of audio.</p>
+        </div>
+        <div class="cell c-2 rv d1">
+          <div class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></svg></div>
+          <h3>Private by default</h3>
+          <p>Transcription runs on-device. Audio never leaves your machine unless you turn on cloud summaries. SOC 2 Type II, zero training on your data.</p>
+        </div>
+        <div class="cell c-2 rv d2">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/><path d="M19 15l2 2-2 2"/></svg></div>
+          <h3>Threads, not folders</h3>
+          <p>Murmur links new notes to the conversations they continue, so a project reads as one evolving story instead of forty orphaned files.</p>
+        </div>
+        <div class="cell c-6 wide rv">
+          <div>
+            <div class="ico"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>
+            <h3>Lands where work already lives</h3>
+            <p>Action items become real tickets. Summaries post to the right channel. Notes sync both ways with your existing system — Murmur doesn't ask to be another place you forget to check.</p>
+          </div>
+          <div class="chips">
+            <span class="chip"><i></i>Notion</span><span class="chip"><i></i>Linear</span>
+            <span class="chip"><i></i>Slack</span><span class="chip"><i></i>Obsidian</span>
+            <span class="chip"><i></i>Google Calendar</span><span class="chip"><i></i>Jira</span>
+            <span class="chip"><i></i>Granola import</span><span class="chip"><i></i>REST + webhooks</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTES -->
+  <section class="quote-sec" id="story">
+    <div class="wrap">
+      <div class="sec-head rv" style="margin-bottom:46px">
+        <p class="eyebrow">Stories</p>
+        <h2>What people stopped doing.</h2>
+      </div>
+      <div class="quotes">
+        <div class="quote rv">
+          <p>“I used to spend Friday afternoons rewriting my own meeting scrawl. That hour is just gone now — and the notes are better than the ones I wrote.”</p>
+          <div class="who">
+            <span class="av" style="background:var(--accent)">PR</span>
+            <div><strong>Priya Raman</strong><small>Head of Product, Lumen Health</small></div>
+          </div>
+        </div>
+        <div class="quote rv d1">
+          <p>“Twenty-two participant interviews in three weeks. Murmur found the pattern in them before I'd finished the second round of coding.”</p>
+          <div class="who">
+            <span class="av" style="background:var(--mint)">DO</span>
+            <div><strong>Dai Okonkwo</strong><small>UX Researcher, Northwind</small></div>
+          </div>
+        </div>
+        <div class="quote rv d2">
+          <p>“It's the only AI tool my legal team approved without a six-week review. On-device transcription did all the convincing.”</p>
+          <div class="who">
+            <span class="av" style="background:var(--warm)">SL</span>
+            <div><strong>Sam Lindqvist</strong><small>Chief of Staff, Atlas &amp; Co</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="sec" id="pricing">
+    <div class="wrap">
+      <div class="sec-head center rv">
+        <p class="eyebrow">Pricing</p>
+        <h2>Start quiet. Scale when it <em>sticks</em>.</h2>
+        <p class="lead">Billed yearly. Monthly costs about 20% more. Cancel in two clicks, export everything in Markdown.</p>
+      </div>
+      <div class="tiers">
+        <div class="tier rv">
+          <div class="tier-top"><h3>Solo</h3></div>
+          <div class="price"><b>$0</b><span>forever</span></div>
+          <p>For capturing the thoughts you'd otherwise lose on the walk home.</p>
+          <a href="#" class="btn btn-ghost">Download Murmur</a>
+          <ul class="feats">
+            <li>5 hours of capture per month</li>
+            <li>On-device transcription</li>
+            <li>Auto summaries &amp; action items</li>
+            <li>Search across all notes</li>
+            <li>Markdown export</li>
+          </ul>
+        </div>
+        <div class="tier hot rv d1">
+          <div class="tier-top"><h3>Pro</h3><span class="hot-badge">Most popular</span></div>
+          <div class="price"><b>$12</b><span>/ month</span></div>
+          <p>For anyone whose day is mostly conversations that matter later.</p>
+          <a href="#" class="btn btn-primary">Start 14-day trial</a>
+          <ul class="feats">
+            <li>Unlimited capture &amp; storage</li>
+            <li>Speaker identification</li>
+            <li>Ask-your-archive with citations</li>
+            <li>Linked note threads</li>
+            <li>All integrations + webhooks</li>
+            <li>41 languages, auto-detected</li>
+          </ul>
+        </div>
+        <div class="tier rv d2">
+          <div class="tier-top"><h3>Team</h3></div>
+          <div class="price"><b>$20</b><span>/ seat / mo</span></div>
+          <p>For teams who'd rather decide once than re-litigate every quarter.</p>
+          <a href="#" class="btn btn-ghost">Talk to us</a>
+          <ul class="feats">
+            <li>Everything in Pro</li>
+            <li>Shared workspaces &amp; permissions</li>
+            <li>Cross-team decision log</li>
+            <li>SSO / SAML &amp; audit trail</li>
+            <li>Admin retention controls</li>
+            <li>Priority support, 4h response</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-glow"></div>
+    <div class="wrap">
+      <h2 class="rv">Say it once.<br><em>Never</em> rewrite it again.</h2>
+      <p class="lead rv d1">Install Murmur in under a minute. Your next conversation writes itself up.</p>
+      <div class="hero-actions rv d2">
+        <a href="#" class="btn btn-primary btn-lg">Download for Mac</a>
+        <a href="#" class="btn btn-ghost btn-lg">Get the iOS app</a>
+      </div>
+      <p class="micro rv d2">Free plan, no card, no meeting with sales.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="f-grid">
+        <div class="f-brand">
+          <a href="#" class="brand">
+            <span class="mark"><i></i><i></i><i></i><i></i></span>
+            <span>Murmur</span>
+          </a>
+          <p>Notes that listen. Built quietly in Lisbon and Montréal.</p>
+        </div>
+        <div class="f-col">
+          <h6>Product</h6>
+          <a href="#features">Features</a><a href="#pricing">Pricing</a>
+          <a href="#">Changelog</a><a href="#">Integrations</a><a href="#">Download</a>
+        </div>
+        <div class="f-col">
+          <h6>Company</h6>
+          <a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="#">Press kit</a>
+        </div>
+        <div class="f-col">
+          <h6>Resources</h6>
+          <a href="#">Docs &amp; API</a><a href="#">Security</a><a href="#">Privacy</a><a href="#">Support</a>
+        </div>
+      </div>
+      <div class="f-base">
+        <p style="margin:0">© 2026 Murmur Labs, Lda. All rights reserved.</p>
+        <span><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // waveform bars
+  (function(){
+    var w = document.getElementById('wave'), n = 56, html = '';
+    for (var i = 0; i < n; i++){
+      var env = Math.sin((i / (n - 1)) * Math.PI);
+      var h = Math.round((18 + Math.random() * 56) * (0.35 + env * 0.65));
+      html += '<b style="--h:' + h + ';--i:' + i + '"></b>';
+    }
+    w.innerHTML = html;
+  })();
+
+  // sticky header
+  var hdr = document.getElementById('hdr');
+  var onScroll = function(){ hdr.classList.toggle('stuck', window.scrollY > 14); };
+  onScroll();
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  // reveal on scroll
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.12, rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.rv, .step').forEach(function(el){ io.observe(el); });
+
+  // cursor spotlight on bento cells
+  document.querySelectorAll('#bento .cell').forEach(function(c){
+    c.addEventListener('pointermove', function(ev){
+      var r = c.getBoundingClientRect();
+      c.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+      c.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+    });
+  });
+</script>
+</body>
+</html>

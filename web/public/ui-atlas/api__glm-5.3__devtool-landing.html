@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tern — find the queries slowing your database</title>
+<meta name="description" content="Tern is a command-line tool that times every query, ranks the ones actually hurting your p95, and hands you the plan to fix them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FF4B1F' d='M12 22 L8.6 14.6 L2 5.5 L11 11 L13 11 L22 5.5 L15.4 14.6 Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Fragment+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0C0F0D; --ink-2:#121612; --ink-3:#1A1F1A;
+    --bone:#EDE9DD; --bone-dim:#A9B0A2; --faint:#7C847B;
+    --line:rgba(237,233,221,.14); --line-soft:rgba(237,233,221,.08);
+    --acc:#FF4B1F; --teal:#6FBFAE;
+    --paper:#EFEAE0; --paper-2:#E6E0D3; --pink-ink:#171614; --paper-line:rgba(23,22,20,.18);
+    --mono:'Fragment Mono', ui-monospace, monospace;
+    --disp:'Bricolage Grotesque', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--ink);color:var(--bone);font-family:var(--disp);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--acc);color:var(--ink)}
+  a{color:inherit}
+  section{scroll-margin-top:76px}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 28px}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+  h1,h2,h3{font-weight:700;letter-spacing:-.02em}
+  .hairline{border:0;border-top:1px solid var(--line)}
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* ---------- nav ---------- */
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--ink);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;height:60px;gap:28px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.01em;text-decoration:none}
+  .brand svg{display:block}
+  .navlinks{display:flex;gap:26px;margin-left:auto;font-family:var(--mono);font-size:13px}
+  .navlinks a{color:var(--bone-dim);text-decoration:none;padding:6px 2px;border-bottom:1px solid transparent;transition:color .15s}
+  .navlinks a:hover,.navlinks a.on{color:var(--bone);border-bottom-color:var(--acc)}
+  .btn{font-family:var(--mono);font-size:13px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--bone);padding:8px 14px;text-decoration:none;transition:border-color .15s,color .15s;white-space:nowrap}
+  .btn:hover{border-color:var(--bone-dim)}
+  .btn.solid{background:var(--acc);border-color:var(--acc);color:var(--ink);font-weight:700}
+  .btn.solid:hover{background:var(--bone);border-color:var(--bone)}
+  .ghost{background:none;border:none;color:var(--bone-dim);font-family:var(--mono);font-size:13px;cursor:pointer;padding:8px 10px}
+  .ghost:hover{color:var(--bone)}
+  @media(max-width:760px){.navlinks{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:150px 0 0;position:relative;
+    background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--line-soft) 31px 32px);}
+  .hero .wrap{position:relative}
+  .kicker{display:flex;gap:14px;align-items:center;margin-bottom:22px}
+  .kicker .rule{flex:1;height:1px;background:var(--line)}
+  h1{font-size:clamp(46px,6.6vw,92px);line-height:.98;letter-spacing:-.035em;font-weight:800;max-width:14ch}
+  h1 .acc{color:var(--acc)}
+  .hero-grid{display:grid;grid-template-columns:7fr 5fr;gap:48px;align-items:end;margin-top:26px}
+  .lede{font-size:18px;color:var(--bone-dim);max-width:56ch}
+  .lede strong{color:var(--bone);font-weight:600}
+  .hero-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .install-cmd{display:flex;align-items:center;gap:0;border:1px solid var(--line);background:var(--ink-2)}
+  .install-cmd .pre{font-family:var(--mono);font-size:13px;color:var(--faint);padding:12px 0 12px 14px}
+  .install-cmd code{font-family:var(--mono);font-size:13px;color:var(--bone);padding:12px 6px 12px 8px;flex:1}
+  .install-cmd button{border:none;background:var(--ink-3);color:var(--bone-dim);cursor:pointer;padding:0 16px;font-family:var(--mono);font-size:12px;transition:color .15s}
+  .install-cmd button:hover{color:var(--acc)}
+  .chips{display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+  .chips span b{color:var(--bone-dim);font-weight:400}
+
+  /* ---------- instrument panel ---------- */
+  .panel{margin:56px 0 0;border:1px solid var(--line);background:var(--ink-2)}
+  .panel-bar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .led{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .panel-bar .grow{flex:1}
+  #term{font-family:var(--mono);font-size:13px;line-height:1.7;padding:18px 20px;min-height:236px;white-space:pre-wrap;overflow:hidden}
+  #term .dim{color:var(--faint)} #term .acc{color:var(--acc)} #term .num{color:var(--teal)}
+  #term .cmd{color:var(--bone)} #term .cur{display:inline-block;width:8px;height:15px;background:var(--acc);vertical-align:-2px;animation:pulse 1s infinite}
+  .tl-head{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px 6px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .tl-head b{color:var(--acc);font-weight:400}
+  #tlWrap{position:relative;padding:0 10px 6px}
+  #tlCanvas{display:block;width:100%;height:190px;cursor:ns-resize;touch-action:none;outline:none}
+  #tlCanvas:focus-visible{box-shadow:inset 0 0 0 1px var(--acc)}
+  #tlTip{position:absolute;pointer-events:none;background:var(--bone);color:var(--ink);font-family:var(--mono);font-size:11px;line-height:1.5;padding:8px 10px;max-width:300px;opacity:0;transition:opacity .12s;z-index:5;transform:translate(-50%,-100%)}
+  #tlTip .t{font-weight:700}
+  .tl-inspector{border-top:1px solid var(--line);padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--bone-dim);min-height:76px}
+  .tl-inspector .sql{color:var(--bone);display:block;margin:4px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-inspector .why{color:var(--acc)} .tl-inspector .fix{color:var(--teal)}
+  @media(max-width:900px){.hero-grid{grid-template-columns:1fr}.hero{padding-top:120px}}
+
+  /* ---------- sections ---------- */
+  .sect{padding:110px 0}
+  .sect-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:54px;flex-wrap:wrap}
+  .sect-head h2{font-size:clamp(30px,3.6vw,48px);letter-spacing:-.03em;max-width:16ch;font-weight:700}
+  .sect-head p{max-width:38ch;color:var(--bone-dim);font-size:15px}
+  .eyebrow{margin-bottom:12px}
+
+  /* steps */
+  .step{display:grid;grid-template-columns:110px 1fr 1fr;gap:36px;padding:34px 0;border-top:1px solid var(--line)}
+  .step:last-child{border-bottom:1px solid var(--line)}
+  .step .n{font-family:var(--mono);font-size:13px;color:var(--acc);padding-top:6px}
+  .step h3{font-size:22px;margin-bottom:8px;font-weight:600}
+  .step p{color:var(--bone-dim);font-size:15px}
+  .step .code{font-family:var(--mono);font-size:12.5px;background:var(--ink-2);border:1px solid var(--line);padding:14px 16px;color:var(--bone-dim);align-self:start}
+  .step .code b{color:var(--teal);font-weight:400}
+  .step .code .p{color:var(--acc)}
+  @media(max-width:820px){.step{grid-template-columns:56px 1fr}.step .code{grid-column:2}}
+
+  /* ledger */
+  .row{display:grid;grid-template-columns:70px 300px 1fr 190px;gap:28px;padding:26px 0;border-top:1px solid var(--line);align-items:baseline;transition:background .15s}
+  .ledger > .row:last-child{border-bottom:1px solid var(--line)}
+  .row:hover{background:rgba(237,233,221,.03)}
+  .row .n{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .row:hover .n{color:var(--acc)}
+  .row h3{font-size:21px;font-weight:600;letter-spacing:-.01em}
+  .row p{color:var(--bone-dim);font-size:15px}
+  .row .tag{font-family:var(--mono);font-size:11px;color:var(--teal);text-align:right;letter-spacing:.04em}
+  @media(max-width:820px){.row{grid-template-columns:44px 1fr}.row .tag{grid-column:2;text-align:left}}
+
+  /* ticker */
+  .ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;padding:13px 0;font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap}
+  .ticker-track{display:inline-block;animation:tick 40s linear infinite}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  @keyframes tick{to{transform:translateX(-50%)}}
+  .ticker b{color:var(--bone-dim);font-weight:400} .ticker .slow{color:var(--acc)}
+
+  /* paper report */
+  .paper{background:var(--paper);color:var(--pink-ink)}
+  .paper .eyebrow{color:#C93A14}
+  .paper h2{color:var(--pink-ink)}
+  .paper .sect-head p{color:#5B564C}
+  .report-grid{display:grid;grid-template-columns:7fr 4fr;gap:56px;align-items:start}
+  .artifact{background:var(--paper-2);border:1px solid var(--paper-line);box-shadow:8px 8px 0 var(--pink-ink);font-family:var(--mono);font-size:12.5px;line-height:1.75;padding:22px 24px;white-space:pre;overflow-x:auto}
+  .artifact .hd{border-bottom:1px solid var(--paper-line);padding-bottom:10px;margin-bottom:12px;display:block}
+  .artifact .r{color:#C93A14} .artifact .dim{color:#8A8577} .artifact .fx{color:#0F6B5C} .artifact b{font-weight:700}
+  .notes{border-left:1px solid var(--paper-line);padding-left:28px;display:flex;flex-direction:column;gap:26px}
+  .note{font-size:14px;color:#5B564C}
+  .note .k{font-family:var(--mono);font-size:11px;color:#C93A14;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:6px}
+  .note strong{color:var(--pink-ink);font-weight:600}
+  @media(max-width:900px){.report-grid{grid-template-columns:1fr}}
+
+  /* install */
+  .opt{display:grid;grid-template-columns:150px 1fr 90px;align-items:center;gap:24px;padding:20px 0;border-top:1px solid var(--line)}
+  .install-list > .opt:last-child{border-bottom:1px solid var(--line)}
+  .opt .lbl{font-family:var(--mono);font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
+  .opt code{font-family:var(--mono);font-size:14px;color:var(--bone)}
+  .opt .btn{justify-self:end}
+  .fineprint{margin-top:28px;color:var(--faint);font-size:13px;font-family:var(--mono)}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:56px 0 40px}
+  .foot{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-start}
+  .foot .tagline{max-width:34ch;color:var(--bone-dim);font-size:14px;margin-top:10px}
+  .foot .cols{display:flex;gap:64px;font-family:var(--mono);font-size:13px}
+  .foot .cols div{display:flex;flex-direction:column;gap:8px}
+  .foot .cols b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:400}
+  .foot a{color:var(--bone-dim);text-decoration:none} .foot a:hover{color:var(--acc)}
+  .fine2{margin-top:44px;padding-top:18px;border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:var(--bone);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:10px 18px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* reveal */
+  .rev{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+  .rev.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--acc)" d="M12 22 L8.6 14.6 L2 5.5 L11 11 L13 11 L22 5.5 L15.4 14.6 Z"/></svg>
+      tern
+    </a>
+    <div class="navlinks">
+      <a href="#how" data-spy="how">How it works</a>
+      <a href="#features" data-spy="features">Features</a>
+      <a href="#report" data-spy="report">Report</a>
+      <a href="#install" data-spy="install">Install</a>
+    </div>
+    <a class="btn" href="#" id="ghLink" style="margin-left:auto">GitHub</a>
+    <a class="btn solid" href="#install">Get tern</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="kicker"><span class="eyebrow">tern — query latency, from the terminal</span><span class="rule"></span></div>
+    <div class="hero-grid">
+      <h1>Slow queries leave a <span class="acc">wake.</span></h1>
+      <div>
+        <p class="lede">Tern is a command-line tool that times every statement your database runs, ranks the ones actually hurting your <strong>p95</strong>, and hands you the plan to fix them. <strong>No agent. No dashboard. One binary.</strong></p>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:30px">
+      <div class="install-cmd">
+        <span class="pre">$</span><code id="heroCmd">curl -fsSL tern.sh/install.sh | sh</code>
+        <button id="heroCopy" aria-label="Copy install command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="1"/><path d="M5 15V4a1 1 0 0 1 1-1h10"/></svg>
+        </button>
+      </div>
+      <a class="btn solid" href="#install">Install</a>
+      <a class="btn" href="#how">See how it works</a>
+    </div>
+    <div class="chips" style="margin-top:18px">
+      <span><b>4.1 MB</b> static binary</span><span>postgres · mysql · sqlite</span><span>zero dependencies</span><span>MIT</span>
+    </div>
+
+    <!-- instrument panel -->
+    <div class="panel rev">
+      <div class="panel-bar">
+        <span class="led"></span><span>tern · session prod-main</span><span class="grow"></span>
+        <button class="ghost" id="termReplay">replay ⟳</button>
+        <span>latency / 24h</span>
+      </div>
+      <div id="term" aria-live="polite"></div>
+      <div class="tl-head">
+        <span>statements · log scale</span>
+        <span><b id="tlCount">—</b> over threshold · est. <b id="tlLost">—</b> recoverable</span>
+      </div>
+      <div id="tlWrap">
+        <canvas id="tlCanvas" role="img" aria-label="Latency timeline of sampled queries. Drag horizontally-lined threshold to change the slow-query cutoff."></canvas>
+        <div id="tlTip"></div>
+      </div>
+      <div class="tl-inspector" id="inspector">
+        <span id="insBody">Drag the dashed line to set your slow-query threshold. Hover a bar to inspect it; click to pin it.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="sect" id="how">
+  <div class="wrap">
+    <div class="sect-head rev">
+      <div><p class="eyebrow">How it works</p><h2>Three commands between you and a faster database.</h2></div>
+      <p>Tern never sits in the path of your queries. It reads the statistics your database already keeps and turns them into an opinion.</p>
+    </div>
+    <div class="step rev">
+      <div class="n">01</div>
+      <div><h3>Point it at a database</h3><p>Connect over the normal protocol, read-only. Tern samples <span class="mono" style="font-size:13px">pg_stat_statements</span>, MySQL's performance schema, or the slow log — credentials never leave the process.</p></div>
+      <div class="code"><span class="dim">$</span> tern watch postgres://prod-main<br><span class="p">connected · sampling 12.5M statements/day</span></div>
+    </div>
+    <div class="step rev">
+      <div class="n">02</div>
+      <div><h3>Let it read the water</h3><p>Every statement gets fingerprinted — literals, IN-lists and aliases normalized — then weighed by <em>total impact</em>. A 40 ms query called 40,000 times outranks a one-off 4&nbsp;second straggler.</p></div>
+      <div class="code"><span class="dim">$</span> tern scan --since 24h --top 10<br><span class="p">214 fingerprints from 12,584,391 statements</span></div>
+    </div>
+    <div class="step rev">
+      <div class="n">03</div>
+      <div><h3>Get a report, not a dashboard</h3><p>Ranked fingerprints, the expensive step of each plan, and an index you can paste. Pipe it, diff it against yesterday, fail CI on it.</p></div>
+      <div class="code"><span class="dim">$</span> tern report --format md &gt; findings.md<br><span class="p">exit 1 · threshold exceeded · 6.4h recoverable</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sect" id="features" style="padding-top:0">
+  <div class="wrap">
+    <div class="sect-head rev">
+      <div><p class="eyebrow">Features</p><h2>Built by people who get paged.</h2></div>
+      <p>Everything a slow-query tool needs, nothing it doesn't. Each row is a decision, not a feature checkbox.</p>
+    </div>
+    <div class="ledger">
+      <div class="row rev"><span class="n">01</span><h3>Impact ranking, not raw p95</h3><p>Sorted by calls × latency — the seconds your database actually loses. The view that matches what users feel.</p><span class="tag">calls × latency</span></div>
+      <div class="row rev"><span class="n">02</span><h3>Fingerprints that survive real code</h3><p>10,000 variants of the same query collapse into one signature. Constants, IN-lists, comments and aliases normalized away.</p><span class="tag">214 fingerprints / 12.5M stmts</span></div>
+      <div class="row rev"><span class="n">03</span><h3>EXPLAIN on tap</h3><p><span class="mono" style="font-size:13px">tern explain orders:by-customer</span> pulls the live plan and marks the step eating your time.</p><span class="tag">plan analysis</span></div>
+      <div class="row rev"><span class="n">04</span><h3>Fails like a test</h3><p><span class="mono" style="font-size:13px">--fail-over 500ms</span> exits non-zero when a fingerprint regresses, so CI, cron and your pager can do the waking up.</p><span class="tag">cron · CI · pagers</span></div>
+      <div class="row rev"><span class="n">05</span><h3>Never in the path</h3><p>Passive sampling of existing statistics. Your queries never route through tern, and nothing is written back.</p><span class="tag">read-only</span></div>
+      <div class="row rev"><span class="n">06</span><h3>One static binary</h3><p>Linux, macOS, FreeBSD. No runtime, no daemon, no config file required — copy it over and run.</p><span class="tag">4.1 MB · go build</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<section class="sect paper" id="report">
+  <div class="wrap">
+    <div class="sect-head rev">
+      <div><p class="eyebrow" style="color:#C93A14">The report</p><h2 style="color:var(--pink-ink)">Something you can paste into a ticket.</h2></div>
+      <p>Plain text, ranked by recoverable time, with a suggested fix per offender. Diff it, comment on it, close it.</p>
+    </div>
+    <div class="report-grid rev">
+      <pre class="artifact"><span class="hd"><b>TERN REPORT</b>  prod-main · postgres 16.2
+window 24h · 12,584,391 statements · 214 fingerprints</span><span class="r">#1  orders:by-customer</span>   <span class="r">46.2% of db time</span>
+    p95 <b>4,212 ms</b> · 138 calls · regression ↑
+    SELECT * FROM orders WHERE customer_id = $1 …
+    <span class="dim">cause  seq scan on orders — 1.2M rows, filter hits 0.1%</span>
+    <span class="fx">fix    CREATE INDEX CONCURRENTLY ON orders (customer_id, created_at DESC);</span>
+    <span class="dim">saves  est. 3.1 h / day</span>
+
+<span class="r">#2  events:count-range</span>   <span class="r">21.8% of db time</span>
+    p95 <b>1,983 ms</b> · 402 calls · stable
+    SELECT count(*) FROM events WHERE created_at BETWEEN $1 AND $2
+    <span class="dim">cause  counting 38M rows with no covering index</span>
+    <span class="fx">fix    CREATE INDEX ON events USING brin (created_at);</span>
+    <span class="dim">saves  est. 1.4 h / day</span>
+
+<span class="r">#3  sessions:expire-sweep</span>   <span class="r">9.4% of db time</span>
+    p95 <b>712 ms</b> · 1,204 calls · new
+    UPDATE sessions SET expires_at = now() + interval '30 days' …
+    <span class="dim">cause  row-lock contention with the login path</span>
+    <span class="fx">fix    index (user_id, expires_at); batch the sweep</span>
+    <span class="dim">saves  est. 0.6 h / day</span>
+
+<span class="dim">… 44 more fingerprints below the fold</span></pre>
+      <div class="notes">
+        <div class="note"><span class="k">ranked by recoverable time</span><strong>Not by how scary one slow call looks.</strong> Calls × latency is the only number that matches what your users feel.</div>
+        <div class="note"><span class="k">the step that hurts</span>The plan step doing the damage is named in plain language — no guessing which of thirty nodes to read.</div>
+        <div class="note"><span class="k">a fix you can paste</span>Every offender ships with a concrete suggestion — an index, a rewrite, or a setting. Yours to accept or argue with.</div>
+        <div class="note"><span class="k">regression arrows</span>Each fingerprint carries its trend. <strong>↑</strong> means it got worse since yesterday — catch it before the pager does.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sect" id="install">
+  <div class="wrap">
+    <div class="sect-head rev">
+      <div><p class="eyebrow">Install</p><h2>One command, then forget it's installed.</h2></div>
+      <p>Tern is a single binary with zero runtime dependencies. Pick your channel.</p>
+    </div>
+    <div class="install-list">
+      <div class="opt rev"><span class="lbl">macOS · Linux</span><code>curl -fsSL tern.sh/install.sh | sh</code><button class="btn copy-btn" data-copy="curl -fsSL tern.sh/install.sh | sh">Copy</button></div>
+      <div class="opt rev"><span class="lbl">Homebrew</span><code>brew install ternio/tap/tern</code><button class="btn copy-btn" data-copy="brew install ternio/tap/tern">Copy</button></div>
+      <div class="opt rev"><span class="lbl">Docker</span><code>docker run --rm ternio/tern scan postgres://prod-main</code><button class="btn copy-btn" data-copy="docker run --rm ternio/tern scan postgres://prod-main">Copy</button></div>
+    </div>
+    <p class="fineprint rev">Works with PostgreSQL 12+, MySQL 5.7+ and SQLite. Static binary for linux / darwin / freebsd — amd64 &amp; arm64.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="#top" style="font-size:17px">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--acc)" d="M12 22 L8.6 14.6 L2 5.5 L11 11 L13 11 L22 5.5 L15.4 14.6 Z"/></svg>
+          tern
+        </a>
+        <p class="tagline">Built by people who got paged at 3 a.m. and wanted receipts.</p>
+      </div>
+      <div class="cols">
+        <div><b>Product</b><a href="#how">How it works</a><a href="#features">Features</a><a href="#report">Report</a><a href="#install">Install</a></div>
+        <div><b>Code</b><a href="#" data-toast="The public repo lands with 1.0 — the demo up top is real.">GitHub</a><a href="#" data-toast="Changelog ships with 1.0.">Changelog</a><a href="#" data-toast="MIT. Do what you like.">License</a></div>
+      </div>
+    </div>
+    <div class="fine2"><span>© 2025 tern contributors</span><span>no queries were harmed</span></div>
+  </div>
+</footer>
+
+<div id="toast" role="status"></div>
+
+<script>
+/* ---------- utilities ---------- */
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=mulberry32(0xC0FFEE);
+function gauss(){let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const fmt=d=>d>=1000?(d/1000).toFixed(2)+' s':Math.round(d)+' ms';
+const fmtH=h=>h>=1?h.toFixed(1)+' h':Math.round(h*60)+' min';
+
+/* ---------- toast ---------- */
+let toastT;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+
+/* ---------- copy buttons ---------- */
+function copy(text){navigator.clipboard?.writeText(text).then(()=>toast('Copied: '+text),()=>toast('Copy failed — select it manually'))}
+$('#heroCopy').addEventListener('click',()=>copy($('#heroCmd').textContent.trim()));
+document.querySelectorAll('.copy-btn').forEach(b=>b.addEventListener('click',()=>copy(b.dataset.copy)));
+document.querySelectorAll('[data-toast]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();toast(a.dataset.toast)}));
+
+/* ---------- fake data ---------- */
+const SLOW=[
+ {n:'orders:by-customer',sql:'SELECT * FROM orders WHERE customer_id = $1 ORDER BY created_at DESC',cause:'seq scan on orders — 1.2M rows, filter hits 0.1%',fix:'CREATE INDEX ON orders (customer_id, created_at DESC)',p95:4212,w:12},
+ {n:'events:count-range',sql:'SELECT count(*) FROM events WHERE created_at BETWEEN $1 AND $2',cause:'counting 38M rows with no covering index',fix:'CREATE INDEX ON events USING brin (created_at)',p95:1983,w:9},
+ {n:'sessions:expire-sweep',sql:"UPDATE sessions SET expires_at = now() + interval '30 days' WHERE user_id = $1",cause:'row-lock contention with the login path',fix:'index (user_id, expires_at); batch the sweep',p95:712,w:26},
+ {n:'users:search',sql:"SELECT id, name FROM users WHERE name ILIKE '%' || $1 || '%'",cause:'ILIKE cannot use btree — full trigram scan',fix:'CREATE EXTENSION pg_trgm; gin index on name',p95:1890,w:6},
+ {n:'orders:join-items',sql:'SELECT o.* FROM orders o JOIN order_items i USING (order_id) ORDER BY o.total DESC',cause:'sort over 2.1M joined rows spills to disk',fix:'composite index; raise work_mem for this query',p95:958,w:10},
+ {n:'events:insert-burst',sql:'INSERT INTO events VALUES (…), (…) — 214 rows',cause:'autovacuum lag; HOT updates blocked',fix:'tune autovacuum_vacuum_insert_scale_factor',p95:640,w:5}
+];
+const FAST=['SELECT * FROM users WHERE id = $1','SELECT * FROM sessions WHERE token = $1','INSERT INTO audit_log …','SELECT count(*) FROM queue_jobs WHERE state = 0','UPDATE counters SET n = n + 1','SELECT * FROM products WHERE sku = $1','BEGIN','SELECT * FROM roles WHERE id = ANY($1)','COMMIT','SELECT … FROM carts WHERE user_id = $1'];
+const act=h=>0.28+0.8*Math.exp(-((h-10.5)**2)/9)+0.55*Math.exp(-((h-16)**2)/12)+0.3*Math.exp(-((h-20.5)**2)/6);
+function sampleHour(){for(;;){const h=R()*24;if(R()<act(h)/1.65)return h}}
+let pts=[];
+(function gen(){
+  for(let i=0;i<1540;i++){let d=Math.exp(3.55+1.12*gauss());if(d<0.4)d=0.4+R()*3;if(R()<0.02)d*=5+R()*7;pts.push({t:sampleHour()+R()*0.02,d:Math.min(d,4800),tpl:-1,sql:FAST[(R()*FAST.length)|0]})}
+  SLOW.forEach((s,i)=>{for(let k=0;k<s.w;k++){const night=R()<0.12;const h=night?2+R()*2.5:9+R()*7.5;pts.push({t:h,d:s.p95*(0.55+R()*0.9),tpl:i,sql:s.sql})}});
+  pts.sort((a,b)=>a.t-b.t);
+})();
+function statsAt(thr){let c=0,lost=0;const by={};pts.forEach(p=>{if(p.d>thr){c++;lost+=p.d-thr;by[p.tpl]=(by[p.tpl]||0)+p.d-thr}});let top=-1,tv=-1;by[-1]=0;Object.entries(by).forEach(([k,v])=>{if(v>tv){tv=v;top=+k}});return{c,lost,top, hours:lost*290/3.6e6}}
+
+/* ---------- canvas timeline ---------- */
+const cv=$('#tlCanvas'),ctx=cv.getContext('2d'),wrap=$('#tlWrap'),tip=$('#tlTip');
+const H=190,PL=56,PR=18,PT=14,PB=26,MAXD=5000;
+let THR=500,prog=1,hover=null,pin=null,dragging=false,moved=0,sy=0;
+const yFor=d=>PT+(1-(Math.log10(d))/Math.log10(MAXD))*(H-PT-PB);
+const dFor=y=>Math.pow(10,(1-(y-PT)/(H-PT-PB))*Math.log10(MAXD));
+function resize(){const r=wrap.getBoundingClientRect();const dpr=devicePixelRatio||1;cv.width=r.width*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
+new ResizeObserver(resize).observe(wrap);
+function draw(){
+  const W=cv.width/(devicePixelRatio||1);ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(237,233,221,.10)';ctx.fillStyle='#7C847B';ctx.font='10px "Fragment Mono"';ctx.textAlign='right';
+  [10,100,1000].forEach(g=>{const y=yFor(g);ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();ctx.fillText(g>=1000?(g/1000)+'s':g+'ms',PL-8,y+3)});
+  ctx.textAlign='center';ctx.fillStyle='#666f66';
+  [['24h ago',0],['18h',6],['12h',12],['6h',18],['now',24]].forEach(([l,h])=>ctx.fillText(l,PL+(h/24)*(W-PL-PR),H-8));
+  const e=1-Math.pow(1-prog,3);
+  ctx.lineWidth=2;
+  pts.forEach((p,i)=>{const x=PL+(p.t/24)*(W-PL-PR);const y=yFor(p.d);const bh=(H-PB-y)*e;const hot=p.d>THR;ctx.strokeStyle=hot?'#FF4B1F':'rgba(237,233,221,.32)';ctx.globalAlpha=hot?0.92:0.35;ctx.beginPath();ctx.moveTo(x,H-PB);ctx.lineTo(x,H-PB-Math.max(1.5,bh));ctx.stroke()});
+  ctx.globalAlpha=1;
+  // threshold line
+  const ty=yFor(THR);ctx.strokeStyle='#EDE9DD';ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PL,ty);ctx.lineTo(W-PR,ty);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#EDE9DD';ctx.fillRect(W-PR-1,ty-1,2,2);ctx.font='10px "Fragment Mono"';ctx.textAlign='right';ctx.fillText(fmt(THR),W-PR-6,ty-6);ctx.textAlign='left';
+  // hover crosshair
+  if(hover){const x=PL+(hover.t/24)*(W-PL-PR);ctx.strokeStyle='rgba(237,233,221,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,PT-4);ctx.lineTo(x,H-PB);ctx.stroke();ctx.fillStyle='#EDE9DD';ctx.fillRect(x-1.25,yFor(hover.d)-1.5,2.5,10)}
+  if(pin){const x=PL+(pin.t/24)*(W-PL-PR);ctx.strokeStyle='#FF4B1F';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,yFor(pin.d),6,0,7);ctx.stroke()}
+}
+function updateStats(){const s=statsAt(THR);$('#tlCount').textContent=s.c;$('#tlLost').textContent=fmtH(s.hours);$('#thrVal')||0;cv.setAttribute('aria-valuenow',Math.round(THR))}
+function nearest(px,py){const W=cv.clientWidth;let best=null,bd=8;pts.forEach(p=>{const x=PL+(p.t/24)*(W-PL-PR);const d=Math.abs(x-px);if(d<bd&&Math.abs(yFor(p.d)-py)<24){bd=d;best=p}});return best}
+function evPos(e){const r=cv.getBoundingClientRect();return{ x:(e.clientX-r.left), y:(e.clientY-r.top)}}
+cv.addEventListener('pointerdown',e=>{const{x,y}=evPos(e);dragging=true;moved=0;sy=y;cv.setPointerCapture(e.pointerId);const p=nearest(x,y);if(p){hover=p;showTip(p,x,y)}setThr(y)});
+cv.addEventListener('pointermove',e=>{const{x,y}=evPos(e);
+  if(dragging){moved+=Math.abs(y-sy);sy=y;setThr(y)}
+  else{const p=nearest(x,y);hover=p;p?showTip(p,x,y):tip.style.opacity=0}});
+cv.addEventListener('pointerup',e=>{const{x,y}=evPos(e);dragging=false;const p=nearest(x,y);if(moved<5&&p){pin=p;renderInspector(p)}else if(moved<5&&y>yFor(THR)+8){pin=null;insDefault()}});
+cv.addEventListener('pointerleave',()=>{hover=null;tip.style.opacity=0;draw()});
+function setThr(y){THR=Math.round(Math.min(4200,Math.max(3,dFor(y))));updateStats();draw()}
+function showTip(p,x,y){tip.innerHTML=`<span class="t">${fmt(p.d)}</span> · ${String(Math.floor(p.t)).padStart(2,'0')}:${String(Math.floor(p.t%1*60)).padStart(2,'0')}<br>${p.sql.slice(0,44)}…`;tip.style.opacity=1;const r=cv.getBoundingClientRect();tip.style.left=Math.min(Math.max(x,120),r.width-120)+'px';tip.style.top=(yFor(p.d)-10)+'px'}
+function insDefault(){$('#insBody').innerHTML='Drag the dashed line to set your slow-query threshold. Hover a bar to inspect it; click to pin it.'}
+function renderInspector(p){
+  if(p.tpl>=0){const s=SLOW[p.tpl];$('#insBody').innerHTML=`<span class="sql">${p.sql}</span><span class="why">why it hurts — ${s.cause}</span><br><span class="fix">fix — ${s.fix}</span>`}
+  else $('#insBody').innerHTML=`<span class="sql">${p.sql}</span><span class="why">why it hurts — ad-hoc spike: lock wait or cold cache, no fingerprint</span><br><span class="fix">fix — pin it and run tern explain to pull the live plan</span>`;
+}
+$('#tlWrap').addEventListener('keydown',e=>{if(e.key=='ArrowUp'||e.key=='ArrowDown'){e.preventDefault();THR=Math.max(3,Math.min(4200,THR*(e.key=='ArrowUp'?1.12:0.89)));updateStats();draw()}});
+/* click-to-focus for keyboard */
+cv.tabIndex=0;cv.addEventListener('keydown',e=>{if(e.key=='ArrowUp'||e.key=='ArrowDown'){e.preventDefault();THR=Math.max(3,Math.min(4200,+(e.key=='ArrowUp'?THR*1.12:THR*0.89).toFixed(0)));updateStats();draw()}});
+resize();updateStats();
+
+/* ---------- terminal typing ---------- */
+const term=$('#term');const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function el(html){const d=document.createElement('div');d.innerHTML=html;return d}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function typeCmd(cmd){const line=el('');const pre=el('<span class="dim">$ </span>');const span=document.createElement('span');span.className='cmd';const cur=el('<span class="cur"></span>');line.append(pre,span,cur);term.appendChild(line);for(const ch of cmd){span.textContent+=ch;await sleep(reduce?0:24+Math.random()*30)}cur.remove()}
+async function put(html,ms){const d=el(html);term.appendChild(d);await sleep(reduce?0:ms);return d}
+let termRun=0;
+async function runTerm(){
+  const my=++termRun;term.innerHTML='';const s=statsAt(500);const h=s.hours;
+  await typeCmd('tern scan --since 24h');if(my!=termRun)return;
+  const lines=[['<span class="dim">tern 0.9.2 · connected to prod-main (postgresql 16.2)</span>',260],
+   ['<span class="dim">sampling pg_stat_statements … 1,842 statements · 214 fingerprints</span>',420],
+   ['<span class="dim">normalizing literals … done</span>',300],[' ',140],
+   ['<span class="dim">  rank  p95        calls  fingerprint</span>',360],
+   ['<span class="acc">▸</span> 1     <span class="num">4,212 ms</span>  138    orders:by-customer',300],
+   ['  2     <span class="num">1,983 ms</span>  402    events:count-range',260],
+   ['  3     <span class="num">712 ms</span>    1,204  sessions:expire-sweep',260],
+   ['<span class="dim">  … 44 more below the fold</span>',380],
+   [`<span class="num">${s.c}</span> statements over <span class="num">500 ms</span> · est. <span class="num">${fmtH(h)}</span> recoverable per day`,560],
+   ['<span class="acc">→ set your threshold in the timeline below</span>',0]];
+  for(const [h,ms] of lines){if(my!=termRun)return;await put(h,ms)}
+  term.appendChild(el('<span class="cur"></span>'));animateTL();updateStats();
+}
+function animateTL(){const t0=performance.now();(function f(t){prog=Math.min(1,(t-t0)/1100);draw();if(prog<1)requestAnimationFrame(f)})(t0)}
+$('#termReplay').addEventListener('click',()=>{pin=null;insDefault();THR=500;runTerm()});
+
+/* ---------- ticker ---------- */
+(function(){const items=pts.filter((_,i)=>i%97==0).slice(0,26).map(p=>`${p.tpl>=0?SLOW[p.tpl].n:p.sql.slice(0,22).replace(/\s+/g,' ')} <b>${fmt(p.d)}</b>`);const html=items.map(i=>`<span class="${i.includes('ms')&&parseInt(i.match(/(\d+)/)[0])>500?'slow':''}">${i}</span>`).join('<span style="opacity:.35"> · </span>');$('#tickerTrack').innerHTML=html+' <span style="opacity:.35">·</span> '+html})();
+
+/* ---------- reveal + scrollspy ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:.12});
+document.querySelectorAll('.rev').forEach(x=>io.observe(x));
+const links={};document.querySelectorAll('[data-spy]').forEach(a=>links[a.dataset.spy]=a);
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('[data-spy]').forEach(a=>a.classList.remove('on'));links[e.target.id]?.classList.add('on')}}),{rootMargin:'-40% 0px -55% 0px'});
+['how','features','report','install'].forEach(id=>{const s=document.getElementById(id);s&&new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('[data-spy]').forEach(a=>a.classList.remove('on'));links[id].classList.add('on')}}),{rootMargin:'-40% 0px -55% 0px'}).observe(s)});
+window.addEventListener('load',()=>{resize();runTerm()});
+</script>
+</body>
+</html>

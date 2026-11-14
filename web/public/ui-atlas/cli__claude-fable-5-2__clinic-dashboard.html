@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Alder Street Family Clinic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3F0E8;
+    --surface: #FBFAF6;
+    --ink: #1B2623;
+    --muted: #5A6661;
+    --line: #DDD8CB;
+    --line-soft: #EAE6DB;
+    --green: #1F5145;
+    --green-soft: #DCE8E1;
+    --amber: #7A4708;
+    --amber-soft: #F6E7C8;
+    --amber-line: #D9A441;
+    --red: #9C3421;
+    --red-soft: #F6DDD5;
+    --p-ok: #1F5145;
+    --p-re: #74457F;
+    --p-li: #2A5B86;
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 var(--body);
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3, p, ul, ol { margin: 0; padding: 0; }
+  ul, ol { list-style: none; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 28px 56px; }
+
+  /* ---------- Header ---------- */
+  .top {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+    padding-bottom: 22px; border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 500; font-size: 14px; }
+  .brand svg { flex: none; }
+  .top h1 {
+    font: 500 clamp(30px, 4vw, 44px)/1.05 var(--display);
+    letter-spacing: -0.015em; margin-top: 10px;
+  }
+  .clock { text-align: right; }
+  .clock-time { font: 500 clamp(30px, 4vw, 44px)/1.05 var(--display); letter-spacing: -0.01em; white-space: nowrap; }
+  .clock-time small { font: 500 15px var(--body); color: var(--muted); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .clock-note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  /* ---------- Stats ---------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-top: 22px;
+  }
+  .stat { padding: 18px 22px 20px; border-left: 1px solid var(--line-soft); min-width: 0; }
+  .stat:first-child { border-left: 0; }
+  .stat-label { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+  .stat-num { font: 500 46px/1.05 var(--display); margin-top: 6px; letter-spacing: -0.02em; }
+  .stat-num span { font-size: 24px; color: var(--muted); }
+  .stat-sub { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .stat.is-alert .stat-num { color: var(--red); }
+  .pips { display: flex; gap: 5px; margin-top: 10px; }
+  .pips i { width: 22px; height: 6px; border-radius: 3px; background: var(--line); }
+  .pips i.on { background: var(--green); }
+  .pips i.turn { background: var(--amber-line); }
+
+  /* ---------- Layout ---------- */
+  .main {
+    display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(300px, 1fr);
+    gap: 22px; margin-top: 22px; align-items: start;
+  }
+  .side { display: grid; gap: 22px; min-width: 0; position: sticky; top: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+  .panel-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 18px 22px 0;
+  }
+  .panel-head h2 { font: 500 23px/1.2 var(--display); letter-spacing: -0.01em; }
+  .panel-head .meta { font-size: 13.5px; color: var(--muted); }
+
+  /* ---------- Schedule controls ---------- */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 14px 22px 16px; border-bottom: 1px solid var(--line); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 auto; }
+  .chip {
+    border: 1px solid var(--line); background: transparent; border-radius: 999px;
+    padding: 6px 12px; min-height: 34px; cursor: pointer; font-size: 13.5px; font-weight: 500; white-space: nowrap;
+  }
+  .chip b { font-weight: 600; color: var(--muted); margin-left: 4px; }
+  .chip:hover { border-color: var(--muted); }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+  .chip[aria-pressed="true"] b { color: #C9D2CE; }
+  .field {
+    border: 1px solid var(--line); background: #fff; border-radius: 8px;
+    padding: 6px 10px; min-height: 34px; font-size: 14px;
+  }
+  input.field { width: 170px; }
+  input.field::placeholder { color: #7B8581; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- Schedule rows ---------- */
+  .row {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1.5fr) minmax(0, 1fr) 84px 104px minmax(0, auto);
+    grid-template-areas: "t who prov room st act";
+    gap: 4px 14px; align-items: center;
+    padding: 11px 22px; border-bottom: 1px solid var(--line-soft);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row > * { min-width: 0; }
+  .t { grid-area: t; }
+  .t b { display: block; font-weight: 600; white-space: nowrap; }
+  .t span { font-size: 12.5px; color: var(--muted); }
+  .who { grid-area: who; }
+  .name { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .why { display: block; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .prov { grid-area: prov; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .prov span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ini {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center; color: #fff;
+    font: 600 10.5px var(--body); font-style: normal; letter-spacing: 0.03em;
+  }
+  .p-ok { background: var(--p-ok); } .p-re { background: var(--p-re); } .p-li { background: var(--p-li); }
+  .room { grid-area: room; font-size: 14px; color: var(--muted); white-space: nowrap; }
+  .st { grid-area: st; }
+  .act { grid-area: act; display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+  .st small { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; white-space: nowrap; }
+
+  .row.s-done .name, .row.s-done .t b { font-weight: 500; }
+  .row.s-done .who, .row.s-done .t, .row.s-done .prov { color: var(--muted); }
+  .row.s-done .ini { opacity: 0.55; }
+  .row.s-inroom { background: #F1F6F2; }
+  .row.s-noshow .name { text-decoration: line-through; text-decoration-color: rgba(156, 52, 33, 0.55); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .pill-scheduled { border-color: var(--line); color: var(--muted); }
+  .pill-late { border-color: var(--amber-line); color: var(--amber); }
+  .pill-waiting { background: var(--amber-soft); color: var(--amber); }
+  .pill-inroom { background: var(--green); color: #fff; }
+  .pill-done { color: var(--muted); padding-left: 0; }
+  .pill-noshow { background: var(--red-soft); color: var(--red); }
+
+  .btn {
+    border: 1px solid var(--line); background: #fff; border-radius: 8px;
+    padding: 5px 11px; min-height: 34px; cursor: pointer; font-size: 13.5px; font-weight: 600; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--ink); }
+  .btn-primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn-primary:hover { background: #173E35; border-color: #173E35; }
+  .btn-quiet { background: transparent; }
+  .btn-done { background: var(--green-soft); border-color: var(--green-soft); color: var(--green); }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    padding: 7px 22px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .divider::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: 0.35; }
+  .divider.now { color: var(--red); scroll-margin-top: 90px; }
+  .divider.now::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .divider.lunch { color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(0,0,0,0.025) 8px 16px); }
+  .empty { padding: 28px 22px; color: var(--muted); }
+
+  /* ---------- Rooms ---------- */
+  .rooms { padding: 12px 22px 18px; }
+  .rm { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 14px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+  .rm:last-child { border-bottom: 0; padding-bottom: 0; }
+  .rm-name { font-weight: 600; }
+  .rm-state { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .rm-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+  .rm.occ .rm-state { color: var(--green); }
+  .rm.turn .rm-state { color: var(--amber); }
+  .rm.free .rm-state { color: var(--muted); }
+  .rm.free .rm-state::before { background: transparent; border: 1.5px solid currentColor; }
+  .rm-body { min-width: 0; }
+  .rm-body strong { font-weight: 600; display: block; overflow-wrap: anywhere; }
+  .rm-body span { font-size: 13.5px; color: var(--muted); display: block; }
+  .bar { height: 5px; border-radius: 3px; background: var(--green-soft); margin-top: 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--green); border-radius: 3px; }
+
+  /* ---------- No-shows ---------- */
+  .ns-list { padding: 6px 22px 18px; }
+  .ns { padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
+  .ns:last-child { border-bottom: 0; padding-bottom: 0; }
+  .ns-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .ns-top strong { font-weight: 600; overflow-wrap: anywhere; }
+  .ns-top span { color: var(--red); font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+  .ns p { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+  .ns a { color: var(--ink); text-decoration-color: var(--line); text-underline-offset: 3px; }
+  .ns a:hover { text-decoration-color: var(--ink); }
+  .ns-act { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .ns.resolved .ns-top strong { color: var(--muted); }
+  .ns.resolved .ns-top span { color: var(--muted); }
+
+  footer { margin-top: 26px; color: var(--muted); font-size: 13px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1080px) {
+    .main { grid-template-columns: minmax(0, 1fr); }
+    .side { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  }
+  @media (max-width: 820px) {
+    .wrap { padding: 20px 16px 40px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:nth-child(3) { border-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--line-soft); }
+    .side { grid-template-columns: minmax(0, 1fr); }
+    .panel-head, .controls, .row, .divider, .rooms, .ns-list, .empty { padding-left: 16px; padding-right: 16px; }
+    .row {
+      grid-template-columns: 76px minmax(0, 1fr) auto;
+      grid-template-areas:
+        "t who st"
+        "t prov room"
+        "t act act";
+      align-items: start;
+    }
+    .st { text-align: right; }
+    .room { text-align: right; }
+    .act { justify-content: flex-start; }
+    .act:empty { display: none; }
+    input.field { width: 100%; }
+    .tools { width: 100%; }
+    .tools > * { flex: 1 1 140px; }
+    .clock { text-align: left; }
+  }
+  @media (max-width: 420px) {
+    .stat { padding: 14px 16px 16px; }
+    .stat-num { font-size: 38px; }
+  }
+  @media (pointer: coarse) {
+    .btn, .chip, .field { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .btn, .chip { transition: background-color .15s, border-color .15s; }
+    html { scroll-behavior: smooth; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="brand">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c4.2 2.6 6.3 5.6 6.3 9A6.3 6.3 0 0 1 10 18.5a6.3 6.3 0 0 1-6.3-8c0-3.4 2.1-6.4 6.3-9Z" fill="#1F5145"/><path d="M10 7v9M10 11l3-2.4M10 13.2 7.4 11" stroke="#F3F0E8" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+        Alder Street Family Clinic
+      </div>
+      <h1 id="date">Today</h1>
+    </div>
+    <div class="clock">
+      <div class="clock-time" id="clock" aria-label="Current time"></div>
+      <div class="clock-note" id="clockNote"></div>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Today at a glance" id="stats"></section>
+
+  <div class="main">
+    <section class="panel" aria-labelledby="schedTitle">
+      <div class="panel-head">
+        <h2 id="schedTitle">Today's schedule</h2>
+        <span class="meta" id="schedMeta"></span>
+      </div>
+      <div class="controls">
+        <div class="chips" id="chips" role="group" aria-label="Filter by status"></div>
+        <div class="tools">
+          <label class="sr-only" for="prov">Provider</label>
+          <select class="field" id="prov">
+            <option value="">All providers</option>
+            <option value="ok">Dr. Okafor</option>
+            <option value="re">Dr. Reyes</option>
+            <option value="li">Hannah Lindqvist, NP</option>
+          </select>
+          <label class="sr-only" for="q">Search patients</label>
+          <input class="field" id="q" type="search" placeholder="Search patient" autocomplete="off">
+          <button class="btn btn-quiet" id="jump" type="button">Jump to now</button>
+        </div>
+      </div>
+      <ol id="sched"></ol>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="roomsTitle">
+        <div class="panel-head">
+          <h2 id="roomsTitle">Rooms</h2>
+          <span class="meta" id="roomsMeta"></span>
+        </div>
+        <ul class="rooms" id="rooms"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="nsTitle">
+        <div class="panel-head">
+          <h2 id="nsTitle">No-shows</h2>
+          <span class="meta" id="nsMeta"></span>
+        </div>
+        <ul class="ns-list" id="noshows"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <footer>Sample data for demonstration. Patients are marked no-show 15 minutes after their start time.</footer>
+  <div class="sr-only" aria-live="polite" id="live"></div>
+</div>
+
+<script>
+(function () {
+  var PROV = {
+    ok: { name: 'Dr. Amara Okafor', short: 'Dr. Okafor', ini: 'AO' },
+    re: { name: 'Dr. Lucas Reyes', short: 'Dr. Reyes', ini: 'LR' },
+    li: { name: 'Hannah Lindqvist, NP', short: 'H. Lindqvist, NP', ini: 'HL' }
+  };
+  var ROOMS = ['Exam 1', 'Exam 2', 'Exam 3', 'Procedure', 'Lab'];
+  var GRACE = 15, TURNOVER = 6;
+
+  // [start, minutes, patient, reason, provider, room, phone, options]
+  var RAW = [
+    ['08:00', 30, 'Marisol Vega', 'Annual physical', 'ok', 'Exam 1', '555-0112'],
+    ['08:10', 20, 'Carmen Ibáñez', 'Flu shot', 'li', 'Exam 3', '555-0147'],
+    ['08:20', 20, 'Owen Gallagher', 'Sore throat', 're', 'Exam 2', '555-0163'],
+    ['08:30', 15, 'Walter Greaves', 'Blood draw', 'li', 'Lab', '555-0129'],
+    ['08:40', 20, 'Desmond Achterberg', 'Blood pressure follow-up', 'ok', 'Exam 1', '555-0184', { ns: 1 }],
+    ['08:50', 30, 'Mei-Ling Tran', 'Asthma review', 're', 'Exam 2', '555-0105'],
+    ['09:00', 30, 'Aisha Rahman', 'Contraception consult', 'li', 'Exam 3', '555-0171'],
+    ['09:10', 30, 'Priya Raman', 'Diabetes review', 'ok', 'Exam 1', '555-0138'],
+    ['09:30', 20, 'Samuel Adeyemi', 'Back pain', 're', 'Exam 2', '555-0156', { ns: 1 }],
+    ['09:40', 20, 'Felix Baumann', 'Wound check', 'li', 'Exam 3', '555-0192'],
+    ['09:50', 20, 'Tobias Ferreira', 'Medication review', 'ok', 'Exam 1', '555-0120'],
+    ['10:00', 30, 'Beatrice Lombardi', 'Thyroid follow-up', 're', 'Exam 2', '555-0177'],
+    ['10:20', 40, 'Rosalind Mbeki', 'Joint injection', 'li', 'Procedure', '555-0143'],
+    ['10:30', 30, 'Eleanor Whitcombe', 'New patient visit', 'ok', 'Exam 1', '555-0109'],
+    ['10:35', 30, 'Henrik Aaltonen', 'Chest cold', 're', 'Exam 2', '555-0168'],
+    ['11:00', 20, 'Elliot Sandoval', 'Travel vaccines', 'li', 'Exam 3', '555-0131', { early: 20 }],
+    ['11:10', 20, 'Jun-ho Park', 'Knee pain', 'ok', 'Exam 1', '555-0199', { early: 32 }],
+    ['11:20', 30, 'Yasmin Haddad', 'Migraine follow-up', 're', 'Exam 2', '555-0115'],
+    ['11:30', 20, 'Naomi Feldstein', 'Blood draw', 'li', 'Lab', '555-0152'],
+    ['13:00', 30, 'Fatima El-Sayed', 'Prenatal check', 'ok', 'Exam 1', '555-0186'],
+    ['13:10', 20, 'Arthur Pennington', 'Hearing check', 're', 'Exam 2', '555-0124'],
+    ['13:20', 30, 'Gabriel Thibault', 'Smoking cessation', 'li', 'Exam 3', '555-0173'],
+    ['13:40', 20, 'Calvin Brooks', 'Rash', 'ok', 'Exam 1', '555-0141'],
+    ['13:40', 30, 'Lucia Morales', 'Well-child visit (age 4)', 're', 'Exam 2', '555-0107'],
+    ['14:00', 20, 'Sunita Deshpande', 'B12 injection', 'li', 'Exam 3', '555-0165', { ns: 1 }],
+    ['14:20', 40, 'Ingrid Solheim', 'Mole removal', 'ok', 'Procedure', '555-0133'],
+    ['14:30', 20, 'Dmitri Volkov', 'Sports physical', 're', 'Exam 2', '555-0190', { ns: 1 }],
+    ['14:40', 30, 'Patrick O\u2019Donnell', 'Wound dressing', 'li', 'Exam 3', '555-0118'],
+    ['15:00', 30, 'Grace Oyelaran', 'Anxiety follow-up', 're', 'Exam 2', '555-0159'],
+    ['15:10', 20, 'Rafael Quintero', 'Lab results', 'ok', 'Exam 1', '555-0182'],
+    ['15:30', 20, 'Zara Hussain', 'Flu shot', 'li', 'Exam 3', '555-0126'],
+    ['15:40', 30, 'Nadia Kowalczyk', 'Annual physical', 'ok', 'Exam 1', '555-0175'],
+    ['16:00', 20, 'Theo Nakamura', 'Ear infection', 're', 'Exam 2', '555-0149'],
+    ['16:10', 30, 'Leon Castellanos', 'Cholesterol review', 'li', 'Exam 3', '555-0103']
+  ];
+
+  function toMin(s) { var p = s.split(':'); return +p[0] * 60 + +p[1]; }
+  var APPTS = RAW.map(function (r, i) {
+    var o = r[7] || {};
+    return { id: i, start: toMin(r[0]), dur: r[1], patient: r[2], reason: r[3], prov: r[4], room: r[5], phone: r[6], ns: !!o.ns, early: o.early || 8 };
+  });
+
+  // Manual overrides (check-ins, no-shows) and no-show follow-up, kept in memory.
+  var S = {}, F = {};
+  var filter = 'all', provFilter = '', query = '';
+
+  // Clock: real time during clinic hours, otherwise a mid-morning preview so the board has something on it.
+  var loaded = Date.now();
+  var d0 = new Date();
+  var realAtLoad = d0.getHours() * 60 + d0.getMinutes();
+  var preview = realAtLoad < 480 || realAtLoad > 1010;
+  function nowMin() {
+    if (preview) return 642 + Math.floor((Date.now() - loaded) / 60000);
+    var d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+  function fmt(m, bare) {
+    var h = Math.floor(m / 60) % 24, mm = m % 60;
+    var h12 = h % 12 || 12;
+    return h12 + ':' + (mm < 10 ? '0' : '') + mm + (bare ? '' : (h < 12 ? ' am' : ' pm'));
+  }
+  function mins(n) { return n + ' min'; }
+
+  function info(a, now) {
+    var o = S[a.id] || {};
+    if (o.noshow) return { status: 'noshow' };
+    if (o.arrivedAt != null) {
+      var begin = o.startedAt != null ? o.startedAt : (o.arrivedAt <= a.start ? a.start : null);
+      if (begin == null || now < begin) return { status: 'waiting', arrivedAt: o.arrivedAt, manual: begin == null };
+      return now < begin + a.dur
+        ? { status: 'inroom', begin: begin, end: begin + a.dur }
+        : { status: 'done', begin: begin, end: begin + a.dur };
+    }
+    if (a.ns) {
+      if (now < a.start) return { status: 'scheduled' };
+      if (now < a.start + GRACE) return { status: 'late' };
+      return { status: 'noshow' };
+    }
+    var arr = a.start - a.early;
+    if (now < arr) return { status: 'scheduled' };
+    if (now < a.start) return { status: 'waiting', arrivedAt: arr };
+    if (now < a.start + a.dur) return { status: 'inroom', begin: a.start, end: a.start + a.dur };
+    return { status: 'done', begin: a.start, end: a.start + a.dur };
+  }
+
+  var LABEL = { scheduled: 'Scheduled', late: 'Late', waiting: 'Waiting', inroom: 'In room', done: '\u2713 Seen', noshow: 'No-show' };
+  var FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['upcoming', 'Upcoming', function (x) { return x.status === 'scheduled' || x.status === 'late'; }],
+    ['waiting', 'Waiting', function (x) { return x.status === 'waiting'; }],
+    ['inroom', 'In room', function (x) { return x.status === 'inroom'; }],
+    ['done', 'Seen', function (x) { return x.status === 'done'; }],
+    ['noshow', 'No-show', function (x) { return x.status === 'noshow'; }]
+  ];
+
+  function $(id) { return document.getElementById(id); }
+  function btn(act, id, label, cls) {
+    return '<button type="button" class="btn ' + (cls || '') + '" data-act="' + act + '" data-id="' + id + '">' + label + '</button>';
+  }
+
+  function render(focusId) {
+    var now = nowMin();
+    var list = APPTS.map(function (a) {
+      var x = info(a, now), o = {};
+      for (var k in a) o[k] = a[k];
+      for (var j in x) o[j] = x[j];
+      return o;
+    });
+
+    // Clock
+    var t = fmt(now).split(' ');
+    $('clock').innerHTML = t[0] + '<small>' + t[1] + '</small>';
+    $('clockNote').textContent = preview ? 'Preview clock \u00b7 clinic is closed right now' : 'Open 8:00 am \u2013 4:40 pm';
+
+    // Counts
+    var c = { scheduled: 0, late: 0, waiting: 0, inroom: 0, done: 0, noshow: 0 };
+    list.forEach(function (x) { c[x.status]++; });
+    var waits = list.filter(function (x) { return x.status === 'waiting'; });
+    var longest = waits.reduce(function (m, x) { return Math.max(m, now - x.arrivedAt); }, 0);
+    var due = c.done + c.noshow + c.inroom;
+
+    // Rooms
+    var rooms = ROOMS.map(function (name) {
+      var mine = list.filter(function (x) { return x.room === name; });
+      var cur = mine.filter(function (x) { return x.status === 'inroom'; })[0];
+      var next = mine.filter(function (x) { return (x.status === 'scheduled' || x.status === 'waiting' || x.status === 'late') && x.start >= now; })[0];
+      if (cur) return { name: name, state: 'occ', cur: cur, next: next };
+      var just = mine.filter(function (x) { return x.status === 'done' && now - x.end < TURNOVER; })[0];
+      if (just) return { name: name, state: 'turn', readyAt: just.end + TURNOVER, next: next };
+      return { name: name, state: 'free', next: next };
+    });
+    var inUse = rooms.filter(function (r) { return r.state === 'occ'; }).length;
+
+    // Stats
+    $('stats').innerHTML =
+      '<div class="stat"><div class="stat-label">Appointments today</div><div class="stat-num">' + list.length + '</div>' +
+        '<div class="stat-sub">' + c.done + ' seen \u00b7 ' + (c.scheduled + c.late + c.waiting) + ' still to come</div></div>' +
+      '<div class="stat"><div class="stat-label">Waiting now</div><div class="stat-num">' + c.waiting + '</div>' +
+        '<div class="stat-sub">' + (c.waiting ? 'Longest wait ' + mins(longest) : 'Waiting room is empty') + '</div></div>' +
+      '<div class="stat' + (c.noshow ? ' is-alert' : '') + '"><div class="stat-label">No-shows</div><div class="stat-num">' + c.noshow + '</div>' +
+        '<div class="stat-sub">' + (due ? Math.round(c.noshow / due * 100) + '% of ' + due + ' appointments so far' : 'None due yet') +
+        (c.late ? ' \u00b7 ' + c.late + ' running late' : '') + '</div></div>' +
+      '<div class="stat"><div class="stat-label">Rooms in use</div><div class="stat-num">' + inUse + '<span> / ' + ROOMS.length + '</span></div>' +
+        '<div class="pips" aria-hidden="true">' + rooms.map(function (r) { return '<i class="' + (r.state === 'occ' ? 'on' : r.state === 'turn' ? 'turn' : '') + '"></i>'; }).join('') + '</div></div>';
+
+    // Chips
+    $('chips').innerHTML = FILTERS.map(function (f) {
+      var n = list.filter(f[2]).length;
+      return '<button type="button" class="chip" data-filter="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + f[1] + '<b>' + n + '</b></button>';
+    }).join('');
+
+    // Schedule
+    var test = FILTERS.filter(function (f) { return f[0] === filter; })[0][2];
+    var q = query.trim().toLowerCase();
+    var shown = list.filter(function (x) {
+      return test(x) && (!provFilter || x.prov === provFilter) &&
+        (!q || (x.patient + ' ' + x.reason).toLowerCase().indexOf(q) > -1);
+    });
+    $('schedMeta').textContent = shown.length === list.length ? list.length + ' appointments' : 'Showing ' + shown.length + ' of ' + list.length;
+
+    var html = '', nowDone = false, lunchDone = false, showMarks = filter === 'all' && !q;
+    shown.forEach(function (x) {
+      if (showMarks && !lunchDone && x.start >= 780) {
+        lunchDone = true;
+        if (!nowDone && now < 780 && now >= 720) { nowDone = true; html += '<li class="divider now" id="nowline">Now \u00b7 ' + fmt(now) + '</li>'; }
+        html += '<li class="divider lunch">Lunch \u00b7 12:00 \u2013 1:00 pm</li>';
+      }
+      if (showMarks && !nowDone && x.start > now) {
+        nowDone = true;
+        html += '<li class="divider now" id="nowline">Now \u00b7 ' + fmt(now) + '</li>';
+      }
+      var p = PROV[x.prov], note = '', act = '';
+      if (x.status === 'waiting') note = 'Arrived ' + fmt(x.arrivedAt);
+      if (x.status === 'inroom') note = 'Until ' + fmt(x.end);
+      if (x.status === 'late') note = mins(now - x.start) + ' late';
+      if (x.status === 'scheduled') act = btn('checkin', x.id, 'Check in');
+      if (x.status === 'late') act = btn('checkin', x.id, 'Check in', 'btn-primary') + btn('noshow', x.id, 'No-show');
+      if (x.status === 'waiting' && x.manual) act = btn('start', x.id, 'Start visit', 'btn-primary');
+      if (x.status === 'noshow') act = btn('checkin', x.id, 'Arrived late');
+      html +=
+        '<li class="row s-' + x.status + '" data-row="' + x.id + '" tabindex="-1">' +
+          '<div class="t"><b>' + fmt(x.start) + '</b><span>' + mins(x.dur) + '</span></div>' +
+          '<div class="who"><span class="name">' + x.patient + '</span><span class="why">' + x.reason + '</span></div>' +
+          '<div class="prov"><i class="ini p-' + x.prov + '" aria-hidden="true">' + p.ini + '</i><span>' + p.short + '</span></div>' +
+          '<div class="room">' + x.room + '</div>' +
+          '<div class="st"><span class="pill pill-' + x.status + '">' + LABEL[x.status] + '</span>' + (note ? '<small>' + note + '</small>' : '') + '</div>' +
+          '<div class="act">' + act + '</div>' +
+        '</li>';
+    });
+    if (showMarks && !nowDone && shown.length) html += '<li class="divider now" id="nowline">Now \u00b7 ' + fmt(now) + '</li>';
+    $('sched').innerHTML = html || '<li class="empty">No appointments match these filters.</li>';
+    $('jump').hidden = !document.getElementById('nowline');
+
+    // Rooms panel
+    $('roomsMeta').textContent = inUse + ' of ' + ROOMS.length + ' in use';
+    $('rooms').innerHTML = rooms.map(function (r) {
+      var body, state;
+      var nextTxt = r.next ? 'Next: ' + r.next.patient + ' at ' + fmt(r.next.start) : 'Nothing else booked today';
+      if (r.state === 'occ') {
+        var left = r.cur.end - now, pct = Math.min(100, Math.max(4, Math.round((now - r.cur.begin) / r.cur.dur * 100)));
+        state = 'In use';
+        body = '<strong>' + r.cur.patient + '</strong><span>' + PROV[r.cur.prov].short + ' \u00b7 ' + r.cur.reason + '</span>' +
+          '<span>Until ' + fmt(r.cur.end) + ' \u00b7 ' + mins(left) + ' left</span>' +
+          '<div class="bar" role="img" aria-label="' + pct + '% of visit elapsed"><i style="width:' + pct + '%"></i></div>';
+      } else if (r.state === 'turn') {
+        state = 'Turnover';
+        body = '<strong>Being cleaned</strong><span>Ready about ' + fmt(r.readyAt) + '</span><span>' + nextTxt + '</span>';
+      } else {
+        state = 'Free';
+        body = '<strong>Available' + (r.next ? ' for ' + mins(r.next.start - now) : '') + '</strong><span>' + nextTxt + '</span>';
+      }
+      return '<li class="rm ' + r.state + '"><div><div class="rm-name">' + r.name + '</div><div class="rm-state">' + state + '</div></div><div class="rm-body">' + body + '</div></li>';
+    }).join('');
+
+    // No-shows panel
+    var ns = list.filter(function (x) { return x.status === 'noshow'; });
+    var open = ns.filter(function (x) { return !(F[x.id] || {}).resched; }).length;
+    $('nsMeta').textContent = ns.length ? (open ? open + ' to follow up' : 'All followed up') : '';
+    $('noshows').innerHTML = ns.length ? ns.map(function (x) {
+      var f = F[x.id] || {};
+      return '<li class="ns' + (f.resched ? ' resolved' : '') + '" data-ns="' + x.id + '">' +
+        '<div class="ns-top"><strong>' + x.patient + '</strong><span>Missed ' + fmt(x.start) + '</span></div>' +
+        '<p>' + x.reason + ' \u00b7 ' + PROV[x.prov].short + '</p>' +
+        '<p><a href="tel:' + x.phone + '">' + x.phone + '</a>' + (f.called != null ? ' \u00b7 Called at ' + fmt(f.called) : '') + '</p>' +
+        '<div class="ns-act">' +
+          btn('call', x.id, f.called != null ? '\u2713 Call logged' : 'Log call', f.called != null ? 'btn-done' : '') +
+          btn('resched', x.id, f.resched ? '\u2713 Rescheduled' : 'Mark rescheduled', f.resched ? 'btn-done' : '') +
+        '</div></li>';
+    }).join('') : '<li class="empty" style="padding-left:0;padding-right:0">No no-shows so far today.</li>';
+
+    if (focusId != null) {
+      var sel = focusId.ns ? '[data-ns="' + focusId.id + '"] [data-act="' + focusId.act + '"]' : '[data-row="' + focusId.id + '"]';
+      var el = document.querySelector(sel);
+      if (el) { var b = focusId.ns ? el : (el.querySelector('button') || el); b.focus({ preventScroll: true }); }
+    }
+  }
+
+  function say(msg) { $('live').textContent = msg; }
+
+  document.addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-filter]');
+    if (chip) {
+      filter = chip.getAttribute('data-filter');
+      render();
+      var again = document.querySelector('[data-filter="' + filter + '"]');
+      if (again) again.focus();
+      return;
+    }
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var id = +b.getAttribute('data-id'), act = b.getAttribute('data-act'), a = APPTS[id], now = nowMin();
+    if (act === 'checkin') { S[id] = { arrivedAt: now }; say(a.patient + ' checked in.'); render({ id: id }); }
+    else if (act === 'noshow') { S[id] = { noshow: true }; say(a.patient + ' marked as no-show.'); render({ id: id }); }
+    else if (act === 'start') { S[id].startedAt = now; say('Visit started for ' + a.patient + '.'); render({ id: id }); }
+    else if (act === 'call') {
+      F[id] = F[id] || {};
+      F[id].called = F[id].called != null ? null : now;
+      say(F[id].called != null ? 'Call to ' + a.patient + ' logged.' : 'Call log removed.');
+      render({ ns: true, id: id, act: act });
+    }
+    else if (act === 'resched') {
+      F[id] = F[id] || {};
+      F[id].resched = !F[id].resched;
+      say(a.patient + (F[id].resched ? ' marked as rescheduled.' : ' needs follow-up again.'));
+      render({ ns: true, id: id, act: act });
+    }
+  });
+
+  $('prov').addEventListener('change', function () { provFilter = this.value; render(); });
+  $('q').addEventListener('input', function () { query = this.value; render(); });
+  $('jump').addEventListener('click', function () {
+    var n = document.getElementById('nowline');
+    if (n) n.scrollIntoView({ block: 'start' });
+  });
+
+  $('date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  render();
+
+  // Refresh on the minute, but never while someone is typing or tabbing through the board.
+  var last = nowMin();
+  setInterval(function () {
+    var n = nowMin();
+    if (n === last) return;
+    var ae = document.activeElement;
+    if (ae && ae !== document.body && ae.closest && ae.closest('.main')) {
+      if (ae.id === 'q' || ae.id === 'prov') return;
+    }
+    last = n;
+    render();
+  }, 5000);
+})();
+</script>
+</body>
+</html>

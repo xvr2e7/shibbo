@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ridgeline — A declarative charting library for the web</title>
+<meta name="description" content="Ridgeline is a fast, accessible, zero-dependency charting library for React, Vue, Svelte and vanilla JavaScript. 12 KB gzipped, 60 FPS with a million points." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------ */
+/*  Tokens                                                             */
+/* ------------------------------------------------------------------ */
+:root{
+  --bg:#FAF9F7;
+  --bg-soft:#F3F1EC;
+  --surface:#FFFFFF;
+  --surface-2:#FBFAF8;
+  --border:#E7E2DA;
+  --border-strong:#D8D2C8;
+  --ink:#14171C;
+  --ink-2:#2C323B;
+  --muted:#69717E;
+  --muted-2:#8B929D;
+  --accent:#5A48E8;
+  --accent-ink:#4A38D6;
+  --accent-soft:#EEEBFF;
+  --green:#12B886;
+  --orange:#FF7A45;
+  --pink:#E93D82;
+  --sky:#0EA5E9;
+  --shadow-sm:0 1px 2px rgba(20,23,28,.05), 0 1px 1px rgba(20,23,28,.03);
+  --shadow-md:0 4px 12px rgba(20,23,28,.06), 0 1px 3px rgba(20,23,28,.05);
+  --shadow-lg:0 20px 50px -18px rgba(20,23,28,.22), 0 4px 12px rgba(20,23,28,.06);
+  --radius:14px;
+  --radius-sm:9px;
+  --topbar:64px;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --grid-line:rgba(20,23,28,.07);
+}
+[data-theme="dark"]{
+  --bg:#0C0E12;
+  --bg-soft:#121519;
+  --surface:#151920;
+  --surface-2:#191E25;
+  --border:#252B33;
+  --border-strong:#333A44;
+  --ink:#EDF0F5;
+  --ink-2:#C9D0DA;
+  --muted:#98A2B0;
+  --muted-2:#737D8B;
+  --accent:#8B7CFF;
+  --accent-ink:#A296FF;
+  --accent-soft:#221E42;
+  --green:#2BD9A6;
+  --orange:#FF9266;
+  --pink:#FF6BA3;
+  --sky:#4FC3F7;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 14px rgba(0,0,0,.35);
+  --shadow-lg:0 24px 60px -20px rgba(0,0,0,.65), 0 4px 14px rgba(0,0,0,.35);
+  --grid-line:rgba(255,255,255,.08);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--topbar) + 28px)}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  transition:background .35s ease,color .35s ease;
+}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+code,pre,kbd{font-family:var(--mono)}
+::selection{background:var(--accent);color:#fff}
+
+h1,h2,h3,h4{margin:0;line-height:1.15;letter-spacing:-.022em;font-weight:700}
+p{margin:0}
+
+.wrap{max-width:1540px;margin:0 auto;padding:0 28px}
+
+/* scroll progress */
+#progress{
+  position:fixed;top:0;left:0;height:2px;width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--pink));
+  z-index:400;transition:width .12s linear;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Topbar                                                             */
+/* ------------------------------------------------------------------ */
+.topbar{
+  position:sticky;top:0;z-index:300;
+  height:var(--topbar);
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-inner{
+  max-width:1540px;margin:0 auto;padding:0 28px;height:100%;
+  display:flex;align-items:center;gap:22px;
+}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand-mark{
+  width:30px;height:30px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(140deg,#6B57FF,#4A38D6 55%,#2F1FA8);
+  display:grid;place-items:center;box-shadow:0 4px 12px rgba(90,72,232,.32);
+}
+.brand-name{font-size:16.5px;font-weight:700;letter-spacing:-.03em}
+.brand-name span{color:var(--muted-2);font-weight:500}
+.version-pill{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  padding:3px 8px;border-radius:20px;
+  background:var(--accent-soft);color:var(--accent-ink);
+  border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.topnav{display:flex;align-items:center;gap:2px;margin-left:8px}
+.topnav a{
+  padding:7px 11px;border-radius:8px;font-size:14px;font-weight:500;
+  color:var(--muted);transition:.18s;
+}
+.topnav a:hover{color:var(--ink);background:var(--bg-soft)}
+.topbar-spacer{flex:1}
+
+.search-trigger{
+  display:flex;align-items:center;gap:9px;
+  width:236px;height:36px;padding:0 10px 0 12px;
+  border:1px solid var(--border);border-radius:10px;
+  background:var(--surface);color:var(--muted-2);font-size:13.5px;
+  transition:.2s;box-shadow:var(--shadow-sm);
+}
+.search-trigger:hover{border-color:var(--border-strong);color:var(--muted)}
+.search-trigger .kbd{
+  margin-left:auto;display:flex;gap:3px;
+}
+kbd{
+  font-size:10.5px;line-height:1;padding:3px 5px;border-radius:5px;
+  background:var(--bg-soft);border:1px solid var(--border);
+  color:var(--muted-2);font-weight:500;
+}
+.icon-btn{
+  width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+  color:var(--muted);border:1px solid transparent;transition:.18s;
+}
+.icon-btn:hover{background:var(--bg-soft);color:var(--ink);border-color:var(--border)}
+.gh-btn{
+  display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;
+  border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;
+  color:var(--ink-2);transition:.18s;box-shadow:var(--shadow-sm);
+}
+.gh-btn:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.gh-btn .count{
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  padding-left:8px;margin-left:2px;border-left:1px solid var(--border);
+}
+.menu-btn{display:none}
+
+/* ------------------------------------------------------------------ */
+/*  Shell layout                                                       */
+/* ------------------------------------------------------------------ */
+.shell{display:flex;align-items:flex-start;max-width:1540px;margin:0 auto}
+
+.sidebar{
+  width:262px;flex-shrink:0;position:sticky;top:var(--topbar);
+  height:calc(100vh - var(--topbar));overflow-y:auto;
+  padding:30px 22px 60px 28px;
+  border-right:1px solid var(--border);
+}
+.sidebar::-webkit-scrollbar{width:6px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px}
+
+.side-group{margin-bottom:26px}
+.side-title{
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted-2);margin:0 0 9px 10px;
+}
+.side-link{
+  display:flex;align-items:center;gap:9px;
+  padding:6px 10px;border-radius:8px;font-size:13.6px;font-weight:500;
+  color:var(--muted);transition:.16s;position:relative;
+}
+.side-link:hover{color:var(--ink);background:var(--bg-soft)}
+.side-link.active{color:var(--accent-ink);background:var(--accent-soft);font-weight:600}
+.side-link.active::before{
+  content:"";position:absolute;left:-23px;top:50%;transform:translateY(-50%);
+  width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--accent);
+}
+.side-link .tag{
+  margin-left:auto;font-family:var(--mono);font-size:9.5px;font-weight:600;
+  padding:1px 5px;border-radius:4px;background:var(--bg-soft);
+  border:1px solid var(--border);color:var(--muted-2);letter-spacing:.03em;
+}
+.side-link .tag.new{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+.side-divider{height:1px;background:var(--border);margin:22px 10px}
+
+/* ------------------------------------------------------------------ */
+/*  Main                                                               */
+/* ------------------------------------------------------------------ */
+.main{flex:1;min-width:0;padding:0 52px 40px}
+
+.toc{
+  width:218px;flex-shrink:0;position:sticky;top:var(--topbar);
+  padding:36px 28px 40px 0;
+}
+.toc-title{
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted-2);margin-bottom:12px;
+}
+.toc a{
+  display:block;font-size:12.8px;line-height:1.5;padding:5px 0 5px 12px;
+  color:var(--muted);border-left:2px solid var(--border);transition:.18s;
+}
+.toc a:hover{color:var(--ink);border-color:var(--border-strong)}
+.toc a.active{color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.toc .toc-sub{padding-left:24px;font-size:12px}
+
+.toc-promo{
+  margin-top:28px;padding:15px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);
+}
+.toc-promo strong{display:block;font-size:13px;letter-spacing:-.01em}
+.toc-promo p{font-size:11.8px;color:var(--muted);margin-top:4px;line-height:1.55}
+.toc-promo a{border:0;padding:0;margin-top:9px;display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:600;color:var(--accent-ink)}
+
+/* ------------------------------------------------------------------ */
+/*  Buttons & shared bits                                              */
+/* ------------------------------------------------------------------ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:46px;padding:0 21px;border-radius:11px;font-size:14.5px;font-weight:600;
+  letter-spacing:-.01em;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;
+  white-space:nowrap;
+}
+.btn-primary{
+  background:var(--accent);color:#fff;
+  box-shadow:0 1px 2px rgba(90,72,232,.3),0 8px 22px -8px rgba(90,72,232,.55);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(90,72,232,.3),0 18px 34px -10px rgba(90,72,232,.6)}
+.btn-ghost{border:1px solid var(--border-strong);color:var(--ink-2);background:var(--surface)}
+.btn-ghost:hover{transform:translateY(-2px);border-color:var(--ink-2);box-shadow:var(--shadow-md)}
+.btn-sm{height:38px;padding:0 15px;font-size:13.5px;border-radius:9px}
+
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 11px 5px 7px;border-radius:30px;font-size:12.5px;font-weight:600;
+  background:var(--surface);border:1px solid var(--border);color:var(--ink-2);
+  box-shadow:var(--shadow-sm);
+}
+.eyebrow .dot{
+  width:18px;height:18px;border-radius:50%;background:var(--accent-soft);
+  display:grid;place-items:center;
+}
+.eyebrow .dot i{width:7px;height:7px;border-radius:50%;background:var(--accent);display:block}
+
+.section{padding:88px 0;border-top:1px solid var(--border)}
+.section-head{max-width:660px}
+.section-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--accent-ink);margin-bottom:16px;
+}
+.section-tag::before{content:"";width:20px;height:2px;background:var(--accent);border-radius:2px}
+.section h2{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.032em}
+.section-lead{margin-top:16px;font-size:17px;line-height:1.65;color:var(--muted)}
+
+/* ------------------------------------------------------------------ */
+/*  Hero                                                               */
+/* ------------------------------------------------------------------ */
+.hero{
+  position:relative;padding:70px 0 78px;overflow:hidden;
+}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:-2;
+  background:
+    radial-gradient(900px 420px at 78% 12%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
+    radial-gradient(700px 380px at 8% 72%, color-mix(in srgb, var(--green) 10%, transparent), transparent 72%);
+}
+.hero::after{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background-image:
+    linear-gradient(var(--grid-line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(circle at 50% 32%, #000 0%, transparent 72%);
+  -webkit-mask-image:radial-gradient(circle at 50% 32%, #000 0%, transparent 72%);
+}
+.hero-grid{
+  display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1.12fr);
+  gap:56px;align-items:center;
+}
+.hero h1{
+  margin-top:22px;
+  font-size:clamp(40px,5.2vw,66px);
+  line-height:1.03;letter-spacing:-.042em;font-weight:800;
+}
+.hero h1 .grad{
+  background:linear-gradient(100deg,var(--accent) 0%,var(--pink) 52%,var(--orange) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{margin-top:22px;font-size:18.5px;line-height:1.62;color:var(--muted);max-width:530px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+
+.install-line{
+  display:flex;align-items:center;gap:12px;margin-top:22px;
+  height:48px;padding:0 8px 0 16px;max-width:400px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow-sm);font-family:var(--mono);font-size:13px;
+}
+.install-line .prompt{color:var(--muted-2)}
+.install-line .cmd{color:var(--ink-2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{
+  margin-left:auto;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  color:var(--muted);border:1px solid var(--border);transition:.16s;flex-shrink:0;
+}
+.copy-btn:hover{background:var(--bg-soft);color:var(--ink);border-color:var(--border-strong)}
+.copy-btn.copied{background:var(--green);border-color:var(--green);color:#fff}
+
+.hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:22px;margin-top:30px}
+.hero-meta .stat{display:flex;flex-direction:column;line-height:1.25}
+.hero-meta .stat b{font-size:19px;font-weight:700;letter-spacing:-.025em}
+.hero-meta .stat span{font-size:11.6px;color:var(--muted-2);font-weight:500;letter-spacing:.02em}
+.hero-meta .sep{width:1px;height:30px;background:var(--border)}
+
+/* chart card */
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  box-shadow:var(--shadow-lg);overflow:hidden;
+  transition:transform .4s cubic-bezier(.2,.8,.3,1),box-shadow .4s;
+}
+.chart-card:hover{transform:translateY(-4px)}
+.chart-card-top{
+  display:flex;align-items:center;gap:12px;
+  padding:15px 18px;border-bottom:1px solid var(--border);
+  background:var(--surface-2);
+}
+.chart-card-top h3{font-size:14.5px;letter-spacing:-.015em}
+.chart-card-top .sub{font-size:11.5px;color:var(--muted-2);margin-top:2px;font-family:var(--mono)}
+.legend{display:flex;align-items:center;gap:14px;margin-left:auto}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.legend-item i{width:9px;height:9px;border-radius:3px;display:block}
+.live-pill{
+  display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:20px;
+  background:color-mix(in srgb,var(--green) 14%,transparent);
+  color:var(--green);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+}
+.live-pill i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+
+.chart-body{padding:18px 14px 8px;position:relative}
+.hero-chart{width:100%;height:auto;display:block;overflow:visible}
+.chart-foot{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 18px 15px;border-top:1px solid var(--border);
+}
+.chart-foot .metric{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
+.chart-foot .delta{
+  margin-left:auto;display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--green);
+  background:color-mix(in srgb,var(--green) 12%,transparent);padding:3px 8px;border-radius:6px;
+}
+
+/* chart styling */
+.gridline{stroke:var(--grid-line);stroke-width:1}
+.axis-label{fill:var(--muted-2);font-family:var(--mono);font-size:10.5px;font-weight:500}
+.series-line{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.draw{stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 1.5s cubic-bezier(.4,0,.2,1) forwards}
+.draw.d2{animation-delay:.18s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.fade-in{opacity:0;animation:fadeUp .8s ease forwards .5s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.tooltip{
+  position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-118%);
+  background:var(--ink);color:var(--bg);padding:8px 11px;border-radius:9px;
+  font-size:11.5px;line-height:1.5;white-space:nowrap;box-shadow:var(--shadow-lg);
+  transition:opacity .16s;z-index:5;
+}
+[data-theme="dark"] .tooltip{background:#22272F;color:#EDF0F5}
+.tooltip b{font-family:var(--mono);font-size:10.5px;display:block;opacity:.6;font-weight:500;margin-bottom:3px}
+.tooltip .row{display:flex;align-items:center;gap:7px;font-weight:600}
+.tooltip .row i{width:7px;height:7px;border-radius:2px;display:block}
+
+/* ------------------------------------------------------------------ */
+/*  Logo strip                                                         */
+/* ------------------------------------------------------------------ */
+.logostrip{padding:30px 0 34px;border-top:1px solid var(--border)}
+.logostrip .label{
+  text-align:center;font-size:11px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted-2);
+}
+.logos{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:14px 46px;margin-top:22px;
+}
+.logo-item{
+  display:flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--muted-2);
+  opacity:.72;transition:.22s;
+}
+.logo-item:hover{opacity:1;color:var(--ink)}
+.logo-item svg{opacity:.85}
+
+/* ------------------------------------------------------------------ */
+/*  Bento / features                                                   */
+/* ------------------------------------------------------------------ */
+.bento{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:44px;
+}
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:26px;position:relative;overflow:hidden;
+  transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s,border-color .3s;
+}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.card h3{font-size:17.5px;letter-spacing:-.022em}
+.card p{margin-top:10px;font-size:14.2px;line-height:1.62;color:var(--muted)}
+.card .icon{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  margin-bottom:18px;
+}
+.icon.violet{background:var(--accent-soft);color:var(--accent-ink)}
+.icon.green{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+.icon.orange{background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)}
+.icon.pink{background:color-mix(in srgb,var(--pink) 15%,transparent);color:var(--pink)}
+.icon.sky{background:color-mix(in srgb,var(--sky) 15%,transparent);color:var(--sky)}
+
+.span-3{grid-column:span 3}
+.span-2{grid-column:span 2}
+.span-4{grid-column:span 4}
+.span-6{grid-column:span 6}
+
+.card-feature{display:flex;flex-direction:column;padding:0;overflow:hidden}
+.card-feature .pad{padding:28px 28px 22px}
+.card-feature .visual{
+  margin-top:auto;padding:0 20px 20px;position:relative;
+}
+.mini-panel{
+  border:1px solid var(--border);border-radius:12px;background:var(--surface-2);
+  overflow:hidden;
+}
+.mini-panel-head{
+  display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid var(--border);
+}
+.mini-panel-head .dots{display:flex;gap:5px}
+.mini-panel-head .dots i{width:8px;height:8px;border-radius:50%;background:var(--border-strong);display:block}
+.mini-panel-head span{
+  margin-left:6px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2);
+}
+
+/* code */
+.code{
+  position:relative;background:#12151B;border-radius:14px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+}
+[data-theme="light"] .code{background:#14171E}
+.code-head{
+  display:flex;align-items:center;gap:8px;padding:11px 14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.code-head .dots{display:flex;gap:6px}
+.code-head .dots i{width:10px;height:10px;border-radius:50%;display:block}
+.code-head .fname{
+  font-family:var(--mono);font-size:11.5px;color:#7E8794;margin-left:8px;
+}
+.code-copy{
+  margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10.5px;color:#8B94A1;
+  padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1);transition:.16s;
+}
+.code-copy:hover{color:#fff;background:rgba(255,255,255,.08)}
+.code pre{
+  margin:0;padding:18px 20px;overflow-x:auto;
+  font-size:12.6px;line-height:1.82;color:#C8D0DC;
+}
+.code pre::-webkit-scrollbar{height:6px}
+.code pre::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:9px}
+.tok-key{color:#C792EA}
+.tok-str{color:#8FD98A}
+.tok-num{color:#F7A46B}
+.tok-fn{color:#82AAFF}
+.tok-com{color:#5C6773;font-style:italic}
+.tok-prop{color:#7FD6E8}
+.tok-tag{color:#F07178}
+.tok-attr{color:#FFCB6B}
+.tok-punc{color:#7E8794}
+
+.code-tabs{display:flex;gap:2px;padding:9px 10px 0;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.08)}
+.code-tab{
+  padding:8px 13px;border-radius:8px 8px 0 0;font-family:var(--mono);font-size:11.5px;
+  color:#8B94A1;transition:.18s;border-bottom:2px solid transparent;font-weight:500;
+}
+.code-tab:hover{color:#D6DCE6}
+.code-tab.active{color:#fff;background:rgba(255,255,255,.06);border-bottom-color:var(--accent)}
+
+/* ------------------------------------------------------------------ */
+/*  Gallery                                                            */
+/* ------------------------------------------------------------------ */
+.gallery{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px;
+}
+.g-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:15px;
+  padding:18px 18px 15px;transition:.28s cubic-bezier(.2,.8,.3,1);position:relative;overflow:hidden;
+}
+.g-card::after{
+  content:"";position:absolute;inset:0;border-radius:15px;pointer-events:none;
+  box-shadow:inset 0 0 0 1px transparent;transition:.28s;
+}
+.g-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-md);border-color:color-mix(in srgb,var(--accent) 40%,var(--border))}
+.g-card:hover::after{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
+.g-visual{
+  height:132px;border-radius:10px;background:var(--surface-2);
+  border:1px solid var(--border);display:grid;place-items:center;overflow:hidden;
+}
+.g-card h4{font-size:14.5px;letter-spacing:-.018em;margin-top:15px;display:flex;align-items:center;gap:8px}
+.g-card p{font-size:12.4px;color:var(--muted);margin-top:5px;line-height:1.55}
+.g-card .arrow{
+  position:absolute;right:16px;bottom:15px;color:var(--muted-2);
+  opacity:0;transform:translateX(-4px);transition:.25s;
+}
+.g-card:hover .arrow{opacity:1;transform:none;color:var(--accent-ink)}
+.g-tag{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;
+  padding:2px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent-ink);
+  text-transform:uppercase;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Getting started steps                                              */
+/* ------------------------------------------------------------------ */
+.steps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);gap:48px;margin-top:44px;align-items:start}
+.step{display:flex;gap:18px;padding-bottom:30px;position:relative}
+.step:last-child{padding-bottom:0}
+.step:not(:last-child)::before{
+  content:"";position:absolute;left:16px;top:38px;bottom:6px;width:2px;
+  background:linear-gradient(var(--border),transparent);
+}
+.step-num{
+  width:34px;height:34px;flex-shrink:0;border-radius:10px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12.5px;font-weight:600;
+  background:var(--accent-soft);color:var(--accent-ink);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);
+}
+.step h3{font-size:17px;letter-spacing:-.022em}
+.step p{margin-top:8px;font-size:14.2px;color:var(--muted);line-height:1.65}
+.step .inline-code{
+  font-family:var(--mono);font-size:12.5px;background:var(--bg-soft);
+  border:1px solid var(--border);border-radius:6px;padding:1px 6px;color:var(--ink-2);
+}
+
+.preview{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;box-shadow:var(--shadow-lg);position:sticky;top:calc(var(--topbar) + 24px);
+}
+.preview-head{
+  display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);
+}
+.preview-head h4{font-size:13.5px}
+.preview-head .badge{
+  margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);
+  padding:3px 8px;border-radius:6px;background:var(--bg-soft);border:1px solid var(--border);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Performance                                                        */
+/* ------------------------------------------------------------------ */
+.perf-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:48px;margin-top:44px;align-items:center}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:32px}
+.stat-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px;
+}
+.stat-box b{display:block;font-size:27px;font-weight:750;letter-spacing:-.035em;line-height:1.1}
+.stat-box span{font-size:11.8px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.bars{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  padding:26px 28px;box-shadow:var(--shadow-md);
+}
+.bars h4{font-size:14px;letter-spacing:-.015em}
+.bars .sub{font-size:11.5px;color:var(--muted-2);margin-top:3px;font-family:var(--mono)}
+.bar-row{margin-top:19px}
+.bar-row:first-of-type{margin-top:24px}
+.bar-label{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.bar-label .name{font-size:13px;font-weight:600}
+.bar-label .val{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.bar-track{height:11px;border-radius:8px;background:var(--bg-soft);overflow:hidden;border:1px solid var(--border)}
+.bar-fill{
+  height:100%;width:0;border-radius:8px;
+  transition:width 1.15s cubic-bezier(.2,.8,.25,1);
+}
+.bar-fill.primary{background:linear-gradient(90deg,var(--accent),#8B7CFF)}
+.bar-fill.muted{background:var(--border-strong)}
+.bar-fill.muted2{background:color-mix(in srgb,var(--border-strong) 62%,transparent)}
+
+/* ------------------------------------------------------------------ */
+/*  Ecosystem                                                          */
+/* ------------------------------------------------------------------ */
+.eco{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px}
+.eco-item{
+  display:flex;align-items:center;gap:13px;padding:17px 18px;
+  background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  transition:.24s;
+}
+.eco-item:hover{transform:translateY(-3px);border-color:var(--border-strong);box-shadow:var(--shadow-md)}
+.eco-logo{
+  width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+}
+.eco-item strong{display:block;font-size:13.8px;letter-spacing:-.015em}
+.eco-item span{font-size:11.5px;color:var(--muted-2)}
+
+/* ------------------------------------------------------------------ */
+/*  Community                                                          */
+/* ------------------------------------------------------------------ */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:42px}
+.quote{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;
+  display:flex;flex-direction:column;transition:.28s;
+}
+.quote:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.quote .mark{font-size:38px;line-height:.7;color:var(--border-strong);font-weight:800;letter-spacing:-.06em}
+.quote p{margin-top:16px;font-size:14.4px;line-height:1.68;color:var(--ink-2)}
+.quote .who{display:flex;align-items:center;gap:11px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.avatar{
+  width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-.01em;
+}
+.who .n{font-size:13.2px;font-weight:650;letter-spacing:-.012em}
+.who .r{font-size:11.4px;color:var(--muted-2)}
+
+.community-cta{
+  margin-top:22px;border-radius:18px;overflow:hidden;position:relative;
+  background:linear-gradient(120deg,#4A38D6,#6B57FF 42%,#8A5CF0 72%,#B75CE8);
+  padding:42px 44px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;
+  color:#fff;
+}
+.community-cta::after{
+  content:"";position:absolute;inset:0;opacity:.16;
+  background-image:
+    linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:radial-gradient(circle at 82% 40%, #000, transparent 68%);
+  -webkit-mask-image:radial-gradient(circle at 82% 40%, #000, transparent 68%);
+}
+.community-cta h3{font-size:26px;letter-spacing:-.032em;position:relative;z-index:1}
+.community-cta p{margin-top:9px;font-size:15px;opacity:.9;max-width:480px;position:relative;z-index:1;line-height:1.6}
+.community-cta .actions{display:flex;gap:11px;margin-left:auto;position:relative;z-index:1;flex-wrap:wrap}
+.btn-white{background:#fff;color:#3B2BB8;box-shadow:0 10px 28px -10px rgba(0,0,0,.4)}
+.btn-white:hover{transform:translateY(-2px)}
+.btn-glass{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn-glass:hover{background:rgba(255,255,255,.22);transform:translateY(-2px)}
+
+.contributors{display:flex;align-items:center;gap:18px;margin-top:32px;flex-wrap:wrap}
+.avatars{display:flex}
+.avatars .avatar{width:36px;height:36px;font-size:11.5px;border:2px solid var(--bg);margin-left:-10px}
+.avatars .avatar:first-child{margin-left:0}
+.contributors .txt{font-size:13.2px;color:var(--muted)}
+.contributors .txt b{color:var(--ink);font-weight:650}
+
+/* ------------------------------------------------------------------ */
+/*  Footer                                                             */
+/* ------------------------------------------------------------------ */
+.footer{
+  border-top:1px solid var(--border);margin-top:70px;
+  background:var(--surface-2);
+}
+.footer-inner{
+  max-width:1540px;margin:0 auto;padding:56px 28px 30px;
+  display:grid;grid-template-columns:1.7fr repeat(4,1fr);gap:36px;
+}
+.footer-brand p{margin-top:15px;font-size:13.4px;color:var(--muted);line-height:1.68;max-width:280px}
+.footer-social{display:flex;gap:8px;margin-top:20px}
+.footer-social a{
+  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  border:1px solid var(--border);color:var(--muted);transition:.18s;
+}
+.footer-social a:hover{color:var(--ink);border-color:var(--border-strong);transform:translateY(-2px)}
+.footer h5{
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted-2);margin:0 0 15px;
+}
+.footer ul{list-style:none;margin:0;padding:0}
+.footer li{margin-bottom:9px}
+.footer li a{font-size:13.3px;color:var(--muted);transition:.16s;display:inline-flex;align-items:center;gap:6px}
+.footer li a:hover{color:var(--accent-ink);transform:translateX(2px)}
+.footer-bottom{
+  border-top:1px solid var(--border);
+  max-width:1540px;margin:0 auto;padding:20px 28px 30px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  font-size:12.3px;color:var(--muted-2);
+}
+.footer-bottom .links{margin-left:auto;display:flex;gap:20px}
+.footer-bottom a:hover{color:var(--ink)}
+.status{display:flex;align-items:center;gap:7px}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block;box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 22%,transparent)}
+
+/* ------------------------------------------------------------------ */
+/*  Search modal                                                       */
+/* ------------------------------------------------------------------ */
+.overlay{
+  position:fixed;inset:0;z-index:500;display:none;
+  background:rgba(12,14,18,.55);backdrop-filter:blur(5px);
+  padding:12vh 20px 20px;
+}
+.overlay.open{display:block;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.search-box{
+  max-width:620px;margin:0 auto;background:var(--surface);
+  border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  box-shadow:0 40px 90px -20px rgba(0,0,0,.5);animation:pop .22s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes pop{from{opacity:0;transform:translateY(-12px) scale(.98)}to{opacity:1;transform:none}}
+.search-input-row{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.search-input-row input{
+  flex:1;border:0;outline:0;background:none;font-family:var(--sans);
+  font-size:16px;color:var(--ink);
+}
+.search-input-row input::placeholder{color:var(--muted-2)}
+.search-results{max-height:min(52vh,420px);overflow-y:auto;padding:10px}
+.search-group-title{
+  font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted-2);padding:10px 12px 6px;
+}
+.search-item{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;transition:.14s;
+}
+.search-item:hover{background:var(--bg-soft)}
+.search-item .si-icon{
+  width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:var(--bg-soft);border:1px solid var(--border);color:var(--muted);
+}
+.search-item .si-title{font-size:13.8px;font-weight:600;letter-spacing:-.012em}
+.search-item .si-desc{font-size:11.5px;color:var(--muted-2)}
+.search-item .si-key{margin-left:auto}
+.search-foot{
+  display:flex;align-items:center;gap:14px;padding:11px 16px;
+  border-top:1px solid var(--border);background:var(--surface-2);
+  font-size:11.2px;color:var(--muted-2);
+}
+.search-foot .grp{display:flex;align-items:center;gap:5px}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+  background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:11px;
+  font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:600;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:9px;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ------------------------------------------------------------------ */
+/*  Reveal animations                                                  */
+/* ------------------------------------------------------------------ */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s cubic-bezier(.2,.8,.3,1),transform .7s cubic-bezier(.2,.8,.3,1)}
+.reveal.is-visible{opacity:1;transform:none}
+.reveal[data-delay="1"]{transition-delay:.08s}
+.reveal[data-delay="2"]{transition-delay:.16s}
+.reveal[data-delay="3"]{transition-delay:.24s}
+.reveal[data-delay="4"]{transition-delay:.32s}
+
+/* ------------------------------------------------------------------ */
+/*  Responsive                                                         */
+/* ------------------------------------------------------------------ */
+@media (max-width:1380px){
+  .toc{display:none}
+  .main{padding:0 40px 40px}
+}
+@media (max-width:1120px){
+  .hero-grid{grid-template-columns:1fr;gap:44px}
+  .hero-sub{max-width:none}
+  .gallery{grid-template-columns:repeat(2,1fr)}
+  .eco{grid-template-columns:repeat(2,1fr)}
+  .quotes{grid-template-columns:1fr}
+  .steps,.perf-grid{grid-template-columns:1fr;gap:34px}
+  .preview{position:static}
+  .footer-inner{grid-template-columns:1fr 1fr 1fr;gap:32px}
+}
+@media (max-width:900px){
+  .sidebar{
+    position:fixed;left:0;top:var(--topbar);z-index:250;background:var(--bg);
+    transform:translateX(-102%);transition:transform .32s cubic-bezier(.2,.8,.3,1);
+    box-shadow:var(--shadow-lg);width:280px;
+  }
+  .sidebar.open{transform:none}
+  .menu-btn{display:grid}
+  .topnav{display:none}
+  .search-trigger{width:44px;padding:0;justify-content:center}
+  .search-trigger .txt,.search-trigger .kbd{display:none}
+  .gh-btn .count{display:none}
+  .gh-btn span.label{display:none}
+  .main{padding:0 22px 40px}
+  .bento{grid-template-columns:1fr}
+  .span-3,.span-2,.span-4,.span-6{grid-column:span 1}
+  .section{padding:62px 0}
+  .hero{padding:48px 0 56px}
+}
+@media (max-width:620px){
+  .wrap{padding:0 18px}
+  .topbar-inner{padding:0 16px;gap:12px}
+  .brand-name{font-size:15px}
+  .version-pill{display:none}
+  .gallery{grid-template-columns:1fr}
+  .eco{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:1fr}
+  .footer-inner{grid-template-columns:1fr 1fr;padding:42px 18px 22px}
+  .footer-bottom{padding:18px 18px 26px}
+  .hero-actions .btn{width:100%}
+  .install-line{max-width:none}
+  .community-cta{padding:30px 24px}
+  .community-cta .actions{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- ============================= TOPBAR ============================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open navigation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+
+    <a href="#" class="brand">
+      <span class="brand-mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 17l5-7 4 4 3-5 4 6 4-8"/><path d="M2 21h20" opacity=".55"/>
+        </svg>
+      </span>
+      <span class="brand-name">Ridgeline</span>
+    </a>
+    <span class="version-pill">v3.2.0</span>
+
+    <nav class="topnav">
+      <a href="#why">Features</a>
+      <a href="#gallery">Examples</a>
+      <a href="#start">Guides</a>
+      <a href="#performance">Benchmarks</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#community">Community</a>
+    </nav>
+
+    <div class="topbar-spacer"></div>
+
+    <button class="search-trigger" id="searchTrigger">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+      <span class="txt">Search docs…</span>
+      <span class="kbd"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </button>
+
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle colour theme">
+      <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+
+    <a class="gh-btn" href="#">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.22-3.37-1.22-.46-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.35 4.79-4.58 5.05.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+      <span class="label">GitHub</span>
+      <span class="count">24.8k</span>
+    </a>
+  </div>
+</header>
+
+<!-- ============================== SHELL ============================= -->
+<div class="shell">
+
+  <!-- ---------------------------- SIDEBAR --------------------------- -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-group">
+      <div class="side-title">Getting started</div>
+      <a class="side-link active" href="#overview">Introduction</a>
+      <a class="side-link" href="#start">Installation</a>
+      <a class="side-link" href="#start">Your first chart</a>
+      <a class="side-link" href="#why">Core concepts</a>
+      <a class="side-link" href="#start">Data formats</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-title">Chart types</div>
+      <a class="side-link" href="#gallery">Line &amp; area <span class="tag">12</span></a>
+      <a class="side-link" href="#gallery">Bar &amp; column</a>
+      <a class="side-link" href="#gallery">Scatter &amp; bubble</a>
+      <a class="side-link" href="#gallery">Statistical</a>
+      <a class="side-link" href="#gallery">Financial <span class="tag new">new</span></a>
+      <a class="side-link" href="#gallery">Geospatial</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-title">Guides</div>
+      <a class="side-link" href="#why">Theming &amp; design tokens</a>
+      <a class="side-link" href="#why">Animation system</a>
+      <a class="side-link" href="#performance">Rendering large data</a>
+      <a class="side-link" href="#why">Accessibility</a>
+      <a class="side-link" href="#why">Server-side rendering</a>
+      <a class="side-link" href="#start">Testing charts</a>
+    </div>
+
+    <div class="side-divider"></div>
+
+    <div class="side-group">
+      <div class="side-title">Reference</div>
+      <a class="side-link" href="#start">Chart API</a>
+      <a class="side-link" href="#start">Marks &amp; primitives</a>
+      <a class="side-link" href="#start">Scales</a>
+      <a class="side-link" href="#start">Interactions</a>
+      <a class="side-link" href="#start">Configuration</a>
+      <a class="side-link" href="#start">TypeScript types</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-title">Integrations</div>
+      <a class="side-link" href="#ecosystem">React</a>
+      <a class="side-link" href="#ecosystem">Vue</a>
+      <a class="side-link" href="#ecosystem">Svelte</a>
+      <a class="side-link" href="#ecosystem">Solid</a>
+      <a class="side-link" href="#ecosystem">Web components</a>
+    </div>
+  </aside>
+
+  <!-- ------------------------------ MAIN ---------------------------- -->
+  <main class="main">
+
+    <!-- =========================== HERO =========================== -->
+    <section class="hero" id="overview">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">
+            <span class="dot"><i></i></span>
+            v3.2 — WebGL renderer &amp; streaming data support
+          </span>
+
+          <h1>Charts that feel<br><span class="grad">hand-drawn.</span><br>Engineered to scale.</h1>
+
+          <p class="hero-sub">
+            Ridgeline is a declarative, zero-dependency charting library for React, Vue, Svelte
+            and vanilla JavaScript. Beautiful defaults, pixel-level control, and a rendering
+            pipeline that stays at 60&nbsp;FPS with a million points.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#start" class="btn btn-primary">
+              Get started
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#gallery" class="btn btn-ghost">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+              Explore 60+ examples
+            </a>
+          </div>
+
+          <div class="install-line">
+            <span class="prompt">$</span>
+            <span class="cmd">npm i @ridgeline/core @ridgeline/react</span>
+            <button class="copy-btn" data-copy="npm i @ridgeline/core @ridgeline/react" aria-label="Copy install command">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+            </button>
+          </div>
+
+          <div class="hero-meta">
+            <div class="stat"><b>12.4 KB</b><span>core, gzipped</span></div>
+            <div class="sep"></div>
+            <div class="stat"><b>0</b><span>dependencies</span></div>
+            <div class="sep"></div>
+            <div class="stat"><b>100%</b><span>TypeScript</span></div>
+            <div class="sep"></div>
+            <div class="stat"><b>MIT</b><span>licensed</span></div>
+          </div>
+        </div>
+
+        <!-- chart card -->
+        <div class="chart-card">
+          <div class="chart-card-top">
+            <div>
+              <h3>Revenue by region</h3>
+              <div class="sub">rolling 12 months · USD</div>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><i style="background:var(--accent)"></i>North</span>
+              <span class="legend-item"><i style="background:var(--green)"></i>South</span>
+            </div>
+            <div class="live-pill"><i></i>Live</div>
+          </div>
+
+          <div class="chart-body" id="heroChartWrap">
+            <svg class="hero-chart" id="heroChart" viewBox="0 0 640 320" role="img" aria-label="Line chart of monthly revenue for two regions">
+              <defs>
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5A48E8" stop-opacity="0.30"/>
+                  <stop offset="100%" stop-color="#5A48E8" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="areaGradB" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#12B886" stop-opacity="0.18"/>
+                  <stop offset="100%" stop-color="#12B886" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- grid -->
+              <line class="gridline" x1="48" y1="272" x2="612" y2="272"/>
+              <line class="gridline" x1="48" y1="210" x2="612" y2="210"/>
+              <line class="gridline" x1="48" y1="148" x2="612" y2="148"/>
+              <line class="gridline" x1="48" y1="86" x2="612" y2="86"/>
+              <line class="gridline" x1="48" y1="24" x2="612" y2="24"/>
+
+              <!-- y labels -->
+              <text class="axis-label" x="36" y="276" text-anchor="end">0</text>
+              <text class="axis-label" x="36" y="214" text-anchor="end">25k</text>
+              <text class="axis-label" x="36" y="152" text-anchor="end">50k</text>
+              <text class="axis-label" x="36" y="90" text-anchor="end">75k</text>
+              <text class="axis-label" x="36" y="28" text-anchor="end">100k</text>
+
+              <!-- x labels -->
+              <text class="axis-label" x="48" y="296" text-anchor="middle">Jan</text>
+              <text class="axis-label" x="150.5" y="296" text-anchor="middle">Mar</text>
+              <text class="axis-label" x="253.1" y="296" text-anchor="middle">May</text>
+              <text class="axis-label" x="355.6" y="296" text-anchor="middle">Jul</text>
+              <text class="axis-label" x="458.2" y="296" text-anchor="middle">Sep</text>
+              <text class="axis-label" x="560.7" y="296" text-anchor="middle">Nov</text>
+
+              <!-- area + line : series B -->
+              <path class="fade-in" d="M48,217.4 L99.3,202.6 L150.5,207.5 L201.8,195.1 L253.1,167.8 L304.4,175.3 L355.6,153 L406.9,135.6 L458.2,145.5 L509.5,123.2 L560.7,103.4 L612,113.3 L612,272 L48,272 Z" fill="url(#areaGradB)"/>
+              <path class="series-line draw d2" stroke="#12B886" d="M48,217.4 L99.3,202.6 L150.5,207.5 L201.8,195.1 L253.1,167.8 L304.4,175.3 L355.6,153 L406.9,135.6 L458.2,145.5 L509.5,123.2 L560.7,103.4 L612,113.3"/>
+
+              <!-- area + line : series A -->
+              <path class="fade-in" d="M48,187.7 L99.3,170.3 L150.5,177.8 L201.8,143 L253.1,150.5 L304.4,118.2 L355.6,95.9 L406.9,108.3 L458.2,78.6 L509.5,61.2 L560.7,71.1 L612,41.4 L612,272 L48,272 Z" fill="url(#areaGrad)"/>
+              <path class="series-line draw" stroke="#5A48E8" d="M48,187.7 L99.3,170.3 L150.5,177.8 L201.8,143 L253.1,150.5 L304.4,118.2 L355.6,95.9 L406.9,108.3 L458.2,78.6 L509.5,61.2 L560.7,71.1 L612,41.4"/>
+
+              <!-- crosshair -->
+              <line id="crosshair" x1="0" y1="24" x2="0" y2="272" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+              <circle id="dotA" r="5" fill="#5A48E8" stroke="var(--surface)" stroke-width="2.5" opacity="0"/>
+              <circle id="dotB" r="5" fill="#12B886" stroke="var(--surface)" stroke-width="2.5" opacity="0"/>
+            </svg>
+            <div class="tooltip" id="chartTip"></div>
+          </div>
+
+          <div class="chart-foot">
+            <span class="metric">rendered in 4.2 ms</span>
+            <span class="metric">·</span>
+            <span class="metric">12 points</span>
+            <span class="delta">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+              +24.6% YoY
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= LOGO STRIP ========================= -->
+    <section class="logostrip">
+      <div class="label">Powering dashboards and data products at</div>
+      <div class="logos">
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>Northwind</div>
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5"/></svg>Helios Labs</div>
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l10 18H2z"/></svg>Quantic</div>
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>Orbital</div>
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="20" height="12" rx="6"/></svg>Papertrail</div>
+        <div class="logo-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V8l8-5 8 5v12h-6v-6h-4v6z"/></svg>Vector</div>
+      </div>
+    </section>
+
+    <!-- =========================== WHY ============================ -->
+    <section class="section" id="why">
+      <div class="section-head reveal">
+        <div class="section-tag">Why Ridgeline</div>
+        <h2>Everything a serious chart needs. Nothing it doesn't.</h2>
+        <p class="section-lead">
+          A small, composable core with a rendering pipeline built for real-world data —
+          typed end to end, accessible by default, and themeable down to the last tick.
+        </p>
+      </div>
+
+      <div class="bento">
+        <!-- big feature card -->
+        <div class="card card-feature span-3 reveal">
+          <div class="pad">
+            <div class="icon violet">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+            </div>
+            <h3>Fast where it counts</h3>
+            <p>
+              A retained-mode scene graph, adaptive path sampling and off-thread layout let
+              Ridgeline render a million points without dropping a frame — on a phone.
+            </p>
+          </div>
+          <div class="visual">
+            <div class="mini-panel">
+              <div class="mini-panel-head">
+                <div class="dots"><i></i><i></i><i></i></div>
+                <span>renderer · webgl2</span>
+              </div>
+              <div style="padding:16px">
+                <svg viewBox="0 0 420 120" style="width:100%;height:auto">
+                  <g stroke="var(--grid-line)">
+                    <line x1="0" y1="30" x2="420" y2="30"/><line x1="0" y1="60" x2="420" y2="60"/><line x1="0" y1="90" x2="420" y2="90"/>
+                  </g>
+                  <polyline class="draw" fill="none" stroke="#5A48E8" stroke-width="2" stroke-linejoin="round"
+                    points="0,96 24,88 48,92 72,74 96,80 120,62 144,68 168,50 192,54 216,38 240,44 264,30 288,36 312,22 336,28 360,16 384,22 420,10"/>
+                  <polyline class="draw d2" fill="none" stroke="#FF7A45" stroke-width="1.6" stroke-linejoin="round" opacity=".7"
+                    points="0,108 24,102 48,105 72,96 96,99 120,88 144,92 168,82 192,86 216,74 240,78 264,68 288,72 312,62 336,66 360,56 384,60 420,50"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span-3 reveal" data-delay="1">
+          <div class="icon green">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>Accessible by default</h3>
+          <p>
+            Every chart ships with a generated data table, ARIA labelling, keyboard navigation
+            between marks, and contrast-safe palettes that meet WCAG 2.2 AA — no extra work
+            required from your team.
+          </p>
+          <div style="margin-top:22px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="g-tag">aria</span>
+            <span class="g-tag">keyboard</span>
+            <span class="g-tag">screen reader</span>
+            <span class="g-tag">reduced motion</span>
+          </div>
+        </div>
+
+        <div class="card span-2 reveal">
+          <div class="icon orange">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <h3>Composable marks</h3>
+          <p>Build any chart from a handful of primitives — lines, areas, bars, bands, points and annotations — that share scales and interactions.</p>
+        </div>
+
+        <div class="card span-2 reveal" data-delay="1">
+          <div class="icon pink">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg>
+          </div>
+          <h3>Typed end to end</h3>
+          <p>Generics flow from your data shape to the tooltip formatter. If it compiles, the chart renders — full inference, zero casts.</p>
+        </div>
+
+        <div class="card span-2 reveal" data-delay="2">
+          <div class="icon sky">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+          </div>
+          <h3>Design-token theming</h3>
+          <p>Bind scales, typography and spacing to your own tokens. Light, dark and print variants fall out of one source of truth.</p>
+        </div>
+
+        <div class="card span-6 reveal" style="display:flex;gap:34px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <h3>One syntax. Four frameworks. No wrappers.</h3>
+            <p style="max-width:640px">
+              The same declarative config drives the vanilla core and every official binding.
+              Charts are portable between teams, frameworks and even to static export —
+              <em>ridgeline export</em> writes SVG or PNG straight from CI.
+            </p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <span class="eco-item" style="padding:11px 15px"><span class="eco-logo" style="background:#EAF4FF;color:#0B82D6;width:30px;height:30px;font-size:10px">R</span><strong>React 18+</strong></span>
+            <span class="eco-item" style="padding:11px 15px"><span class="eco-logo" style="background:#E9F9F0;color:#2E9E6B;width:30px;height:30px;font-size:10px">V</span><strong>Vue 3</strong></span>
+            <span class="eco-item" style="padding:11px 15px"><span class="eco-logo" style="background:#FFF0E4;color:#E2702B;width:30px;height:30px;font-size:10px">S</span><strong>Svelte 5</strong></span>
+            <span class="eco-item" style="padding:11px 15px"><span class="eco-logo" style="background:#EEEBFF;color:#5A48E8;width:30px;height:30px;font-size:10px">TS</span><strong>Vanilla</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== GALLERY ========================== -->
+    <section class="section" id="gallery">
+      <div class="section-head reveal">
+        <div class="section-tag">Chart gallery</div>
+        <h2>Twenty-four chart types. Sixty working examples.</h2>
+        <p class="section-lead">
+          Every example is a live, editable sandbox with the full source and a copy-paste
+          config. Start from one and make it yours.
+        </p>
+      </div>
+
+      <div class="gallery">
+        <a class="g-card reveal" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <g stroke="var(--grid-line)"><line x1="12" y1="28" x2="188" y2="28"/><line x1="12" y1="55" x2="188" y2="55"/><line x1="12" y1="82" x2="188" y2="82"/></g>
+              <polyline class="draw" fill="none" stroke="#5A48E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                points="12,80 34,66 56,72 78,52 100,58 122,38 144,44 166,26 188,20"/>
+              <polyline class="draw d2" fill="none" stroke="#12B886" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                points="12,92 34,84 56,88 78,74 100,80 122,66 144,70 166,58 188,52"/>
+            </svg>
+          </div>
+          <h4>Line &amp; multi-series</h4>
+          <p>Smooth curves, gaps, reference lines and shared crosshairs.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="1" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <defs>
+                <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5A48E8" stop-opacity=".38"/><stop offset="100%" stop-color="#5A48E8" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line x1="12" y1="92" x2="188" y2="92" stroke="var(--grid-line)"/>
+              <path class="fade-in" fill="url(#gA)" d="M12,92 L12,72 L34,58 L56,64 L78,44 L100,50 L122,32 L144,38 L166,22 L188,18 L188,92 Z"/>
+              <polyline class="draw" fill="none" stroke="#5A48E8" stroke-width="2.2" stroke-linejoin="round"
+                points="12,72 34,58 56,64 78,44 100,50 122,32 144,38 166,22 188,18"/>
+            </svg>
+          </div>
+          <h4>Area &amp; stacked</h4>
+          <p>Gradients, streamgraphs and percentage stacking.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="2" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <line x1="12" y1="92" x2="188" y2="92" stroke="var(--grid-line)"/>
+              <rect x="18" y="58" width="16" height="34" rx="3" fill="#5A48E8" class="fade-in"/>
+              <rect x="42" y="42" width="16" height="50" rx="3" fill="#5A48E8" class="fade-in"/>
+              <rect x="66" y="66" width="16" height="26" rx="3" fill="#5A48E8" class="fade-in"/>
+              <rect x="90" y="30" width="16" height="62" rx="3" fill="#5A48E8" class="fade-in"/>
+              <rect x="114" y="50" width="16" height="42" rx="3" fill="#5A48E8" class="fade-in"/>
+              <rect x="138" y="22" width="16" height="70" rx="3" fill="#12B886" class="fade-in"/>
+              <rect x="162" y="38" width="16" height="54" rx="3" fill="#5A48E8" class="fade-in"/>
+            </svg>
+          </div>
+          <h4>Bar &amp; column</h4>
+          <p>Grouped, stacked, diverging and rounded-corner variants.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="3" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <g stroke="var(--grid-line)"><line x1="12" y1="30" x2="188" y2="30"/><line x1="12" y1="58" x2="188" y2="58"/><line x1="12" y1="86" x2="188" y2="86"/></g>
+              <g class="fade-in">
+                <circle cx="34" cy="74" r="5" fill="#5A48E8" opacity=".85"/>
+                <circle cx="56" cy="62" r="8" fill="#5A48E8" opacity=".6"/>
+                <circle cx="80" cy="80" r="4" fill="#12B886" opacity=".85"/>
+                <circle cx="102" cy="48" r="7" fill="#5A48E8" opacity=".7"/>
+                <circle cx="126" cy="56" r="5" fill="#FF7A45" opacity=".85"/>
+                <circle cx="150" cy="34" r="9" fill="#5A48E8" opacity=".55"/>
+                <circle cx="172" cy="44" r="4.5" fill="#12B886" opacity=".85"/>
+                <circle cx="46" cy="40" r="3.5" fill="#FF7A45" opacity=".8"/>
+                <circle cx="118" cy="82" r="6" fill="#12B886" opacity=".55"/>
+                <circle cx="162" cy="72" r="3.5" fill="#FF7A45" opacity=".8"/>
+              </g>
+            </svg>
+          </div>
+          <h4>Scatter &amp; bubble</h4>
+          <p>Sizes, jitter, density shading and regression overlays.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <g fill="none" stroke-width="13">
+                <circle cx="100" cy="55" r="34" stroke="var(--border)"/>
+                <circle cx="100" cy="55" r="34" stroke="#5A48E8" stroke-dasharray="118 214" stroke-dashoffset="0" transform="rotate(-90 100 55)"/>
+                <circle cx="100" cy="55" r="34" stroke="#12B886" stroke-dasharray="62 214" stroke-dashoffset="-124" transform="rotate(-90 100 55)"/>
+                <circle cx="100" cy="55" r="34" stroke="#FF7A45" stroke-dasharray="32 214" stroke-dashoffset="-190" transform="rotate(-90 100 55)"/>
+              </g>
+              <text x="100" y="59" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="600" fill="var(--ink)">72%</text>
+            </svg>
+          </div>
+          <h4>Pie &amp; donut</h4>
+          <p>Smart label collision handling and inner summary stats.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="1" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <g class="fade-in">
+                <rect x="16" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".18"/>
+                <rect x="44" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".55"/>
+                <rect x="72" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".85"/>
+                <rect x="100" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".35"/>
+                <rect x="128" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".7"/>
+                <rect x="156" y="18" width="24" height="17" rx="3" fill="#5A48E8" opacity=".12"/>
+                <rect x="16" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".62"/>
+                <rect x="44" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".28"/>
+                <rect x="72" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".48"/>
+                <rect x="100" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".92"/>
+                <rect x="128" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".22"/>
+                <rect x="156" y="39" width="24" height="17" rx="3" fill="#5A48E8" opacity=".66"/>
+                <rect x="16" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".38"/>
+                <rect x="44" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".8"/>
+                <rect x="72" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".2"/>
+                <rect x="100" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".58"/>
+                <rect x="128" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".9"/>
+                <rect x="156" y="60" width="24" height="17" rx="3" fill="#5A48E8" opacity=".3"/>
+                <rect x="16" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".72"/>
+                <rect x="44" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".16"/>
+                <rect x="72" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".52"/>
+                <rect x="100" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".26"/>
+                <rect x="128" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".68"/>
+                <rect x="156" y="81" width="24" height="17" rx="3" fill="#5A48E8" opacity=".42"/>
+              </g>
+            </svg>
+          </div>
+          <h4>Heatmap</h4>
+          <p>Continuous colour scales, clustering and threshold bands.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="2" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <g stroke="var(--grid-line)"><line x1="12" y1="26" x2="188" y2="26"/><line x1="12" y1="56" x2="188" y2="56"/><line x1="12" y1="86" x2="188" y2="86"/></g>
+              <g stroke-width="1.6">
+                <line x1="30" y1="34" x2="30" y2="82" stroke="#12B886"/><rect x="24" y="46" width="12" height="24" fill="#12B886" rx="2"/>
+                <line x1="56" y1="28" x2="56" y2="74" stroke="#E93D82"/><rect x="50" y="40" width="12" height="22" fill="#E93D82" rx="2"/>
+                <line x1="82" y1="38" x2="82" y2="88" stroke="#12B886"/><rect x="76" y="52" width="12" height="20" fill="#12B886" rx="2"/>
+                <line x1="108" y1="20" x2="108" y2="70" stroke="#12B886"/><rect x="102" y="32" width="12" height="26" fill="#12B886" rx="2"/>
+                <line x1="134" y1="30" x2="134" y2="80" stroke="#E93D82"/><rect x="128" y="44" width="12" height="20" fill="#E93D82" rx="2"/>
+                <line x1="160" y1="18" x2="160" y2="64" stroke="#12B886"/><rect x="154" y="28" width="12" height="24" fill="#12B886" rx="2"/>
+              </g>
+            </svg>
+          </div>
+          <h4>Financial <span class="g-tag">new</span></h4>
+          <p>OHLC, candles, volume panes and zoomable time axes.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+
+        <a class="g-card reveal" data-delay="3" href="#">
+          <div class="g-visual">
+            <svg viewBox="0 0 200 110" width="176">
+              <defs>
+                <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5A48E8" stop-opacity=".3"/><stop offset="100%" stop-color="#5A48E8" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <g class="fade-in">
+                <path fill="url(#rg)" stroke="#5A48E8" stroke-width="1.6" d="M12,90 C34,66 44,84 62,58 C78,36 92,62 110,42 C126,26 142,50 160,32 C172,20 182,28 188,22 L188,90 Z"/>
+                <path fill="none" stroke="#12B886" stroke-width="1.6" opacity=".85" d="M12,96 C34,84 44,92 62,78 C78,66 92,80 110,68 C126,58 142,72 160,62 C172,56 182,62 188,58"/>
+                <path fill="none" stroke="#FF7A45" stroke-width="1.6" opacity=".85" d="M12,102 C34,98 44,100 62,94 C78,90 92,96 110,90 C126,86 142,92 160,88 C172,86 182,90 188,88"/>
+              </g>
+            </svg>
+          </div>
+          <h4>Ridgeline &amp; density</h4>
+          <p>Overlapping distributions, KDE smoothing and joy plots.</p>
+          <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+        </a>
+      </div>
+
+      <div style="margin-top:26px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <a class="btn btn-ghost btn-sm" href="#">Browse the full gallery</a>
+        <span style="font-size:13px;color:var(--muted)">Including radar, sankey, treemap, funnel, box plot, polar bar, choropleth and more.</span>
+      </div>
+    </section>
+
+    <!-- ======================== GET STARTED ======================== -->
+    <section class="section" id="start">
+      <div class="section-head reveal">
+        <div class="section-tag">Get started</div>
+        <h2>From install to first chart in under a minute.</h2>
+        <p class="section-lead">
+          No build configuration, no peer-dependency puzzles, no wrapper components to learn.
+          Add the package, describe your chart, render it.
+        </p>
+      </div>
+
+      <div class="steps">
+        <div>
+          <div class="step reveal">
+            <div class="step-num">1</div>
+            <div>
+              <h3>Install the core and your binding</h3>
+              <p>
+                The core is framework-agnostic and <span class="inline-code">12.4&nbsp;KB</span> gzipped.
+                Bindings add about <span class="inline-code">1.8&nbsp;KB</span> each and re-export the same API.
+              </p>
+            </div>
+          </div>
+
+          <div class="step reveal" data-delay="1">
+            <div class="step-num">2</div>
+            <div>
+              <h3>Describe your chart declaratively</h3>
+              <p>
+                Pass your data, the channels to plot, and any options you want to override.
+                Everything else uses sensible, design-reviewed defaults.
+              </p>
+            </div>
+          </div>
+
+          <div class="step reveal" data-delay="2">
+            <div class="step-num">3</div>
+            <div>
+              <h3>Style it with your tokens</h3>
+              <p>
+                Swap the built-in theme for your own, or just change two colours.
+                Ridgeline resolves everything through CSS custom properties at render time.
+              </p>
+            </div>
+          </div>
+
+          <div class="step reveal" data-delay="3">
+            <div class="step-num">4</div>
+            <div>
+              <h3>Add interaction when you need it</h3>
+              <p>
+                Tooltips, brush selection, zoom and crosshairs are opt-in plugins.
+                They share one event pipeline, so nothing double-binds.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- live preview -->
+        <div class="preview reveal" data-delay="1">
+          <div class="preview-head">
+            <h4>Live preview</h4>
+            <span class="badge">sandbox · editable</span>
+          </div>
+          <div style="padding:20px 16px 6px">
+            <svg viewBox="0 0 520 220" style="width:100%;height:auto">
+              <defs>
+                <linearGradient id="prevGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5A48E8" stop-opacity=".28"/>
+                  <stop offset="100%" stop-color="#5A48E8" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <g stroke="var(--grid-line)">
+                <line x1="42" y1="24" x2="502" y2="24"/>
+                <line x1="42" y1="67" x2="502" y2="67"/>
+                <line x1="42" y1="110" x2="502" y2="110"/>
+                <line x1="42" y1="153" x2="502" y2="153"/>
+                <line x1="42" y1="196" x2="502" y2="196"/>
+              </g>
+              <g class="axis-label" font-family="var(--mono)" font-size="10" fill="var(--muted-2)">
+                <text x="34" y="28" text-anchor="end">60</text>
+                <text x="34" y="71" text-anchor="end">45</text>
+                <text x="34" y="114" text-anchor="end">30</text>
+                <text x="34" y="157" text-anchor="end">15</text>
+                <text x="34" y="200" text-anchor="end">0</text>
+                <text x="42" y="214" text-anchor="middle">Q1</text>
+                <text x="195" y="214" text-anchor="middle">Q2</text>
+                <text x="348" y="214" text-anchor="middle">Q3</text>
+                <text x="502" y="214" text-anchor="middle">Q4</text>
+              </g>
+              <path class="fade-in" fill="url(#prevGrad)" d="M42,168 L118,140 L195,150 L272,102 L348,112 L425,62 L502,38 L502,196 L42,196 Z"/>
+              <path class="draw" fill="none" stroke="#5A48E8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"
+                d="M42,168 L118,140 L195,150 L272,102 L348,112 L425,62 L502,38"/>
+              <path class="draw d2" fill="none" stroke="#FF7A45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                d="M42,182 L118,172 L195,178 L272,152 L348,160 L425,132 L502,118"/>
+              <g class="fade-in">
+                <circle cx="42" cy="168" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="118" cy="140" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="195" cy="150" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="272" cy="102" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="348" cy="112" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="425" cy="62" r="4" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+                <circle cx="502" cy="38" r="4.5" fill="#5A48E8" stroke="var(--surface)" stroke-width="2"/>
+              </g>
+            </svg>
+          </div>
+          <div class="code" style="margin:8px 12px 12px;border-radius:11px">
+            <div class="code-head">
+              <div class="dots"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+              <span class="fname">revenue.ts</span>
+              <button class="code-copy" data-copy="import { chart, Area, Line } from '@ridgeline/core';">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre><code><span class="tok-key">import</span> { <span class="tok-fn">chart</span>, <span class="tok-prop">Area</span>, <span class="tok-prop">Line</span> } <span class="tok-key">from</span> <span class="tok-str">'@ridgeline/core'</span>;
+
+<span class="tok-key">const</span> view = <span class="tok-fn">chart</span>(<span class="tok-str">'#app'</span>, {
+  <span class="tok-prop">data</span>: revenue,
+  <span class="tok-prop">x</span>: <span class="tok-str">'quarter'</span>,
+  <span class="tok-prop">y</span>: [<span class="tok-str">'recurring'</span>, <span class="tok-str">'usage'</span>],
+  <span class="tok-prop">smooth</span>: <span class="tok-num">0.32</span>,
+  <span class="tok-prop">theme</span>: <span class="tok-str">'auto'</span>,
+});
+
+view.<span class="tok-fn">render</span>();</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= FRAMEWORK TABS ====================== -->
+    <section class="section">
+      <div class="section-head reveal">
+        <div class="section-tag">Write it your way</div>
+        <h2>The same chart in every framework.</h2>
+        <p class="section-lead">
+          Identical options, identical output. Move a chart between codebases without
+          rewriting a single line of configuration.
+        </p>
+      </div>
+
+      <div class="code reveal" style="margin-top:36px">
+        <div class="code-tabs" id="fwTabs">
+          <button class="code-tab active" data-tab="react">React</button>
+          <button class="code-tab" data-tab="vue">Vue</button>
+          <button class="code-tab" data-tab="svelte">Svelte</button>
+          <button class="code-tab" data-tab="vanilla">Vanilla</button>
+          <div style="margin-left:auto;display:flex;align-items:center;padding-right:8px">
+            <button class="code-copy" data-copy="import { Chart, Area, Line, Axis } from '@ridgeline/react';">Copy</button>
+          </div>
+        </div>
+
+        <pre data-panel="react"><code><span class="tok-com">// RevenueChart.tsx</span>
+<span class="tok-key">import</span> { <span class="tok-prop">Chart</span>, <span class="tok-prop">Area</span>, <span class="tok-prop">Line</span>, <span class="tok-prop">Axis</span> } <span class="tok-key">from</span> <span class="tok-str">'@ridgeline/react'</span>;
+
+<span class="tok-key">export function</span> <span class="tok-fn">RevenueChart</span>({ revenue }: <span class="tok-prop">Props</span>) {
+  <span class="tok-key">return</span> (
+    <span class="tok-punc">&lt;</span><span class="tok-tag">Chart</span>
+      <span class="tok-attr">data</span>={revenue}
+      <span class="tok-attr">x</span>=<span class="tok-str">"quarter"</span>
+      <span class="tok-attr">height</span>={<span class="tok-num">320</span>}
+      <span class="tok-attr">theme</span>=<span class="tok-str">"auto"</span>
+    <span class="tok-punc">&gt;</span>
+      <span class="tok-punc">&lt;</span><span class="tok-tag">Area</span> <span class="tok-attr">y</span>=<span class="tok-str">"recurring"</span> <span class="tok-attr">smooth</span>={<span class="tok-num">0.32</span>} <span class="tok-attr">fill</span>=<span class="tok-str">"url(#grad)"</span> <span class="tok-punc">/&gt;</span>
+      <span class="tok-punc">&lt;</span><span class="tok-tag">Line</span>  <span class="tok-attr">y</span>=<span class="tok-str">"usage"</span> <span class="tok-attr">stroke</span>=<span class="tok-str">"#FF7A45"</span> <span class="tok-attr">dash</span>={<span class="tok-num">4</span>} <span class="tok-punc">/&gt;</span>
+      <span class="tok-punc">&lt;</span><span class="tok-tag">Axis</span> <span class="tok-attr">position</span>=<span class="tok-str">"bottom"</span> <span class="tok-attr">ticks</span>=<span class="tok-str">"quarter"</span> <span class="tok-punc">/&gt;</span>
+      <span class="tok-punc">&lt;</span><span class="tok-tag">Tooltip</span> <span class="tok-attr">shared</span> <span class="tok-attr">format</span>={<span class="tok-fn">usd</span>} <span class="tok-punc">/&gt;</span>
+    <span class="tok-punc">&lt;/</span><span class="tok-tag">Chart</span><span class="tok-punc">&gt;</span>
+  );
+}</code></pre>
+
+        <pre data-panel="vue" hidden><code><span class="tok-com">&lt;!-- RevenueChart.vue --&gt;</span>
+<span class="tok-punc">&lt;</span><span class="tok-tag">template</span><span class="tok-punc">&gt;</span>
+  <span class="tok-punc">&lt;</span><span class="tok-tag">Chart</span> <span class="tok-attr">:data</span>=<span class="tok-str">"revenue"</span> <span class="tok-attr">x</span>=<span class="tok-str">"quarter"</span> <span class="tok-attr">:height</span>=<span class="tok-str">"320"</span> <span class="tok-attr">theme</span>=<span class="tok-str">"auto"</span><span class="tok-punc">&gt;</span>
+    <span class="tok-punc">&lt;</span><span class="tok-tag">Area</span> <span class="tok-attr">y</span>=<span class="tok-str">"recurring"</span> <span class="tok-attr">:smooth</span>=<span class="tok-str">"0.32"</span> <span class="tok-attr">fill</span>=<span class="tok-str">"url(#grad)"</span> <span class="tok-punc">/&gt;</span>
+    <span class="tok-punc">&lt;</span><span class="tok-tag">Line</span> <span class="tok-attr">y</span>=<span class="tok-str">"usage"</span> <span class="tok-attr">stroke</span>=<span class="tok-str">"#FF7A45"</span> <span class="tok-attr">:dash</span>=<span class="tok-str">"4"</span> <span class="tok-punc">/&gt;</span>
+    <span class="tok-punc">&lt;</span><span class="tok-tag">Axis</span> <span class="tok-attr">position</span>=<span class="tok-str">"bottom"</span> <span class="tok-attr">ticks</span>=<span class="tok-str">"quarter"</span> <span class="tok-punc">/&gt;</span>
+    <span class="tok-punc">&lt;</span><span class="tok-tag">Tooltip</span> <span class="tok-attr">shared</span> <span class="tok-attr">:format</span>=<span class="tok-str">"usd"</span> <span class="tok-punc">/&gt;</span>
+  <span class="tok-punc">&lt;/</span><span class="tok-tag">Chart</span><span class="tok-punc">&gt;</span>
+<span class="tok-punc">&lt;/</span><span class="tok-tag">template</span><span class="tok-punc">&gt;</span></code></pre>
+
+        <pre data-panel="svelte" hidden><code><span class="tok-com">&lt;!-- RevenueChart.svelte --&gt;</span>
+<span class="tok-punc">&lt;</span><span class="tok-tag">script</span> <span class="tok-attr">lang</span>=<span class="tok-str">"ts"</span><span class="tok-punc">&gt;</span>
+  <span class="tok-key">import</span> { <span class="tok-prop">Chart</span>, <span class="tok-prop">Area</span>, <span class="tok-prop">Line</span>, <span class="tok-prop">Axis</span> } <span class="tok-key">from</span> <span class="tok-str">'@ridgeline/svelte'</span>;
+  <span class="tok-key">export let</span> revenue: <span class="tok-prop">Row</span>[];
+<span class="tok-punc">&lt;/</span><span class="tok-tag">script</span><span class="tok-punc">&gt;</span>
+
+<span class="tok-punc">&lt;</span><span class="tok-tag">Chart</span> <span class="tok-attr">data</span>={revenue} <span class="tok-attr">x</span>=<span class="tok-str">"quarter"</span> <span class="tok-attr">height</span>={<span class="tok-num">320</span>}<span class="tok-punc">&gt;</span>
+  <span class="tok-punc">&lt;</span><span class="tok-tag">Area</span> <span class="tok-attr">y</span>=<span class="tok-str">"recurring"</span> <span class="tok-attr">smooth</span>={<span class="tok-num">0.32</span>} <span class="tok-punc">/&gt;</span>
+  <span class="tok-punc">&lt;</span><span class="tok-tag">Line</span> <span class="tok-attr">y</span>=<span class="tok-str">"usage"</span> <span class="tok-attr">stroke</span>=<span class="tok-str">"#FF7A45"</span> <span class="tok-punc">/&gt;</span>
+<span class="tok-punc">&lt;/</span><span class="tok-tag">Chart</span><span class="tok-punc">&gt;</span></code></pre>
+
+        <pre data-panel="vanilla" hidden><code><span class="tok-com">// main.ts</span>
+<span class="tok-key">import</span> { <span class="tok-fn">chart</span>, <span class="tok-prop">Area</span>, <span class="tok-prop">Line</span>, <span class="tok-prop">Axis</span> } <span class="tok-key">from</span> <span class="tok-str">'@ridgeline/core'</span>;
+
+<span class="tok-key">const</span> view = <span class="tok-fn">chart</span>(<span class="tok-str">'#app'</span>, {
+  <span class="tok-prop">data</span>: revenue,
+  <span class="tok-prop">x</span>: <span class="tok-str">'quarter'</span>,
+  <span class="tok-prop">height</span>: <span class="tok-num">320</span>,
+  <span class="tok-prop">theme</span>: <span class="tok-str">'auto'</span>,
+  <span class="tok-prop">marks</span>: [
+    <span class="tok-key">new</span> <span class="tok-fn">Area</span>({ <span class="tok-prop">y</span>: <span class="tok-str">'recurring'</span>, <span class="tok-prop">smooth</span>: <span class="tok-num">0.32</span> }),
+    <span class="tok-key">new</span> <span class="tok-fn">Line</span>({  <span class="tok-prop">y</span>: <span class="tok-str">'usage'</span>, <span class="tok-prop">stroke</span>: <span class="tok-str">'#FF7A45'</span> }),
+    <span class="tok-key">new</span> <span class="tok-fn">Axis</span>({ <span class="tok-prop">position</span>: <span class="tok-str">'bottom'</span>, <span class="tok-prop">ticks</span>: <span class="tok-str">'quarter'</span> }),
+  ],
+});
+
+view.<span class="tok-fn">render</span>();</code></pre>
+      </div>
+    </section>
+
+    <!-- ======================== PERFORMANCE ======================== -->
+    <section class="section" id="performance">
+      <div class="perf-grid">
+        <div class="reveal">
+          <div class="section-tag">Performance</div>
+          <h2 style="font-size:clamp(28px,3.4vw,40px);letter-spacing:-.032em">
+            Million-point datasets,<br>frame-perfect rendering.
+          </h2>
+          <p class="section-lead">
+            Ridgeline samples paths adaptively, batches DOM writes and streams new points
+            into an existing scene graph instead of re-rendering. Interaction stays smooth
+            even when the data doesn't.
+          </p>
+
+          <div class="stat-row">
+            <div class="stat-box">
+              <b><span data-count="1.2" data-decimals="1"></span>M</b>
+              <span>points at 60 FPS</span>
+            </div>
+            <div class="stat-box">
+              <b><span data-count="4.2" data-decimals="1"></span>ms</b>
+              <span>median render time</span>
+            </div>
+            <div class="stat-box">
+              <b><span data-count="12.4" data-decimals="1"></span>KB</b>
+              <span>core, gzipped</span>
+            </div>
+          </div>
+
+          <div style="margin-top:26px;display:flex;gap:11px;flex-wrap:wrap">
+            <a class="btn btn-primary btn-sm" href="#">Read the methodology</a>
+            <a class="btn btn-ghost btn-sm" href="#">Run the benchmark</a>
+          </div>
+        </div>
+
+        <div class="bars reveal" data-delay="1" id="benchChart">
+          <h4>Time to render 100,000 points · lower is better</h4>
+          <div class="sub">macOS · M2 · Chrome 131 · median of 200 runs</div>
+
+          <div class="bar-row">
+            <div class="bar-label"><span class="name">Ridgeline 3.2</span><span class="val">12 ms</span></div>
+            <div class="bar-track"><div class="bar-fill primary" data-width="16"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label"><span class="name">Library A</span><span class="val">41 ms</span></div>
+            <div class="bar-track"><div class="bar-fill muted" data-width="55"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label"><span class="name">Library B</span><span class="val">63 ms</span></div>
+            <div class="bar-track"><div class="bar-fill muted" data-width="84"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label"><span class="name">Library C</span><span class="val">78 ms</span></div>
+            <div class="bar-track"><div class="bar-fill muted2" data-width="100"></div></div>
+          </div>
+
+          <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);display:flex;gap:22px;flex-wrap:wrap">
+            <div><b style="font-size:16px;letter-spacing:-.02em">3.4×</b><div style="font-size:11.4px;color:var(--muted-2)">faster first paint</div></div>
+            <div><b style="font-size:16px;letter-spacing:-.02em">0</b><div style="font-size:11.4px;color:var(--muted-2)">layout thrash</div></div>
+            <div><b style="font-size:16px;letter-spacing:-.02em">1.1 ms</b><div style="font-size:11.4px;color:var(--muted-2)">interaction latency</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= ECOSYSTEM ========================= -->
+    <section class="section" id="ecosystem">
+      <div class="section-head reveal">
+        <div class="section-tag">Ecosystem</div>
+        <h2>Plays nicely with the tools you already use.</h2>
+        <p class="section-lead">
+          Official packages for the frameworks and runtimes that matter, plus community
+          plugins for export, theming and domain-specific marks.
+        </p>
+      </div>
+
+      <div class="eco">
+        <div class="eco-item reveal">
+          <div class="eco-logo" style="background:#EAF4FF;color:#0B82D6">Re</div>
+          <div><strong>@ridgeline/react</strong><span>Hooks, SSR, Suspense-ready</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="1">
+          <div class="eco-logo" style="background:#E9F9F0;color:#2E9E6B">Vu</div>
+          <div><strong>@ridgeline/vue</strong><span>Composition API, Nuxt module</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="2">
+          <div class="eco-logo" style="background:#FFF0E4;color:#E2702B">Sv</div>
+          <div><strong>@ridgeline/svelte</strong><span>Stores, runes, SvelteKit</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="3">
+          <div class="eco-logo" style="background:#EEEBFF;color:#5A48E8">So</div>
+          <div><strong>@ridgeline/solid</strong><span>Fine-grained reactivity</span></div>
+        </div>
+        <div class="eco-item reveal">
+          <div class="eco-logo" style="background:#E9F0FF;color:#2C62D6">TS</div>
+          <div><strong>TypeScript</strong><span>Strict types, full inference</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="1">
+          <div class="eco-logo" style="background:#E8F8F6;color:#128C7E">Dn</div>
+          <div><strong>Deno &amp; Node</strong><span>SSR, edge runtimes, WASM</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="2">
+          <div class="eco-logo" style="background:#F4EDFF;color:#7A4BD6">Fg</div>
+          <div><strong>Figma plugin</strong><span>Sync tokens with design</span></div>
+        </div>
+        <div class="eco-item reveal" data-delay="3">
+          <div class="eco-logo" style="background:#FFEBEE;color:#D64545">Ex</div>
+          <div><strong>CLI export</strong><span>SVG, PNG &amp; PDF from CI</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== COMMUNITY ======================== -->
+    <section class="section" id="community">
+      <div class="section-head reveal">
+        <div class="section-tag">Community</div>
+        <h2>Built in the open, with people who ship.</h2>
+        <p class="section-lead">
+          Ridgeline is MIT-licensed and developed on GitHub with a public roadmap,
+          monthly releases and a very friendly Discord.
+        </p>
+      </div>
+
+      <div class="quotes">
+        <div class="quote reveal">
+          <div class="mark">“</div>
+          <p>
+            We replaced three charting libraries with Ridgeline and deleted about 4,000 lines
+            of glue code. The theming system alone paid for the migration.
+          </p>
+          <div class="who">
+            <div class="avatar" style="background:linear-gradient(135deg,#6B57FF,#B75CE8)">MK</div>
+            <div><div class="n">Mara Kowalski</div><div class="r">Staff Engineer · Northwind</div></div>
+          </div>
+        </div>
+
+        <div class="quote reveal" data-delay="1">
+          <div class="mark">“</div>
+          <p>
+            The accessibility defaults are the best I've seen in any charting library. Our
+            audit passed on the first run — screen reader output actually makes sense.
+          </p>
+          <div class="who">
+            <div class="avatar" style="background:linear-gradient(135deg,#12B886,#0EA5E9)">AO</div>
+            <div><div class="n">Adaeze Okonkwo</div><div class="r">Accessibility Lead · Quantic</div></div>
+          </div>
+        </div>
+
+        <div class="quote reveal" data-delay="2">
+          <div class="mark">“</div>
+          <p>
+            Streaming a million telemetry points used to lock up the dashboard. With the WebGL
+            renderer it's genuinely smooth — and the API didn't change at all.
+          </p>
+          <div class="who">
+            <div class="avatar" style="background:linear-gradient(135deg,#FF7A45,#E93D82)">TR</div>
+            <div><div class="n">Tomás Rivera</div><div class="r">Data Platform · Helios Labs</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contributors reveal">
+        <div class="avatars">
+          <div class="avatar" style="background:#5A48E8">JS</div>
+          <div class="avatar" style="background:#12B886">EL</div>
+          <div class="avatar" style="background:#FF7A45">PN</div>
+          <div class="avatar" style="background:#E93D82">KW</div>
+          <div class="avatar" style="background:#0EA5E9">MR</div>
+          <div class="avatar" style="background:#7A4BD6">+312</div>
+        </div>
+        <div class="txt"><b>317 contributors</b> have merged code into Ridgeline. First-time PRs are labelled and mentored.</div>
+      </div>
+
+      <div class="community-cta reveal">
+        <div>
+          <h3>Start charting in under a minute.</h3>
+          <p>Install the core, join 11,000 developers on Discord, and tell us what you're building.</p>
+        </div>
+        <div class="actions">
+          <a href="#" class="btn btn-white">Read the docs</a>
+          <a href="#" class="btn btn-glass">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4a18 18 0 0 0-4.5-1.4l-.2.4A16.6 16.6 0 0 0 8.5 3.1L8.3 2.6A18 18 0 0 0 3.8 4C.9 8.4.1 12.7.5 16.9a18.4 18.4 0 0 0 5.6 2.8l1.2-1.9a11.7 11.7 0 0 1-1.8-.9l.4-.3c3.5 1.6 7.3 1.6 10.7 0l.4.3c-.6.3-1.2.6-1.8.9l1.2 1.9a18.3 18.3 0 0 0 5.6-2.8c.5-4.9-.7-9.2-2.6-12.9zM8.6 14.4c-1 0-1.9-1-1.9-2.2 0-1.2.8-2.2 1.9-2.2s1.9 1 1.9 2.2c0 1.2-.9 2.2-1.9 2.2zm6.8 0c-1 0-1.9-1-1.9-2.2 0-1.2.9-2.2 1.9-2.2s1.9 1 1.9 2.2c0 1.2-.9 2.2-1.9 2.2z"/></svg>
+            Join Discord
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== FOOTER ========================== -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a href="#" class="brand">
+            <span class="brand-mark">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 17l5-7 4 4 3-5 4 6 4-8"/><path d="M2 21h20" opacity=".55"/>
+              </svg>
+            </span>
+            <span class="brand-name">Ridgeline</span>
+          </a>
+          <p>
+            A declarative charting library for the web. Free, open source and MIT-licensed —
+            built by developers who care about both data and design.
+          </p>
+          <div class="footer-social">
+            <a href="#" aria-label="GitHub"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.22-3.37-1.22-.46-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.35 4.79-4.58 5.05.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg></a>
+            <a href="#" aria-label="Discord"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4a18 18 0 0 0-4.5-1.4l-.2.4A16.6 16.6 0 0 0 8.5 3.1L8.3 2.6A18 18 0 0 0 3.8 4C.9 8.4.1 12.7.5 16.9a18.4 18.4 0 0 0 5.6 2.8l1.2-1.9a11.7 11.7 0 0 1-1.8-.9l.4-.3c3.5 1.6 7.3 1.6 10.7 0l.4.3c-.6.3-1.2.6-1.8.9l1.2 1.9a18.3 18.3 0 0 0 5.6-2.8c.5-4.9-.7-9.2-2.6-12.9zM8.6 14.4c-1 0-1.9-1-1.9-2.2 0-1.2.8-2.2 1.9-2.2s1.9 1 1.9 2.2c0 1.2-.9 2.2-1.9 2.2zm6.8 0c-1 0-1.9-1-1.9-2.2 0-1.2.9-2.2 1.9-2.2s1.9 1 1.9 2.2c0 1.2-.9 2.2-1.9 2.2z"/></svg></a>
+            <a href="#" aria-label="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.3l-7.2 8.3L23 22h-6.7l-5.2-6.9L5.1 22H1.8l7.7-8.9L1 2h6.8l4.7 6.3L18.2 2zm-1.2 18h1.8L7.1 3.8H5.2L17 20z"/></svg></a>
+            <a href="#" aria-label="npm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16h-10v-3h-5v3H2V4zm3 3v9h2V10h3v6h2V7H5z"/></svg></a>
+          </div>
+        </div>
+
+        <div>
+          <h5>Product</h5>
+          <ul>
+            <li><a href="#why">Features</a></li>
+            <li><a href="#gallery">Chart types</a></li>
+            <li><a href="#performance">Benchmarks</a></li>
+            <li><a href="#">Roadmap</a></li>
+            <li><a href="#">Changelog <span class="g-tag">3.2</span></a></li>
+            <li><a href="#">Playground</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h5>Docs</h5>
+          <ul>
+            <li><a href="#start">Getting started</a></li>
+            <li><a href="#">API reference</a></li>
+            <li><a href="#">Configuration</a></li>
+            <li><a href="#">Theming</a></li>
+            <li><a href="#">Accessibility</a></li>
+            <li><a href="#">Migration guides</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h5>Community</h5>
+          <ul>
+            <li><a href="#">GitHub</a></li>
+            <li><a href="#">Discord</a></li>
+            <li><a href="#">Discussions</a></li>
+            <li><a href="#">Contributing</a></li>
+            <li><a href="#">Showcase</a></li>
+            <li><a href="#">Sponsor</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Case studies</a></li>
+            <li><a href="#">Design guide</a></li>
+            <li><a href="#">Security</a></li>
+            <li><a href="#">Brand assets</a></li>
+            <li><a href="#">Support</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2025 Ridgeline contributors. Released under the MIT License.</span>
+        <div class="status"><i></i> All systems operational</div>
+        <div class="links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Code of conduct</a>
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- ------------------------------ TOC ---------------------------- -->
+  <aside class="toc">
+    <div class="toc-title">On this page</div>
+    <a href="#overview" class="active">Overview</a>
+    <a href="#why">Why Ridgeline</a>
+    <a href="#gallery" class="toc-sub">Chart gallery</a>
+    <a href="#start">Getting started</a>
+    <a href="#start" class="toc-sub">Framework bindings</a>
+    <a href="#performance">Performance</a>
+    <a href="#ecosystem">Ecosystem</a>
+    <a href="#community">Community</a>
+
+    <div class="toc-promo">
+      <strong>Upgrading to v3?</strong>
+      <p>Most charts work unchanged. The migration guide covers the four breaking changes.</p>
+      <a href="#">
+        Migration guide
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <div class="toc-promo">
+      <strong>Star on GitHub</strong>
+      <p>24,812 stars · 1,204 forks · 317 contributors</p>
+      <a href="#">
+        View repository
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </aside>
+</div>
+
+<!-- ============================ SEARCH ============================= -->
+<div class="overlay" id="searchOverlay">
+  <div class="search-box">
+    <div class="search-input-row">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+      <input type="text" id="searchInput" placeholder="Search documentation, guides and API…" autocomplete="off">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-group-title">Getting started</div>
+      <a class="search-item" href="#start">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v13M6 11l6 6 6-6M4 21h16"/></svg></span>
+        <div><div class="si-title">Installation</div><div class="si-desc">npm, pnpm, yarn and CDN builds</div></div>
+        <span class="si-key"><kbd>↵</kbd></span>
+      </a>
+      <a class="search-item" href="#start">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span>
+        <div><div class="si-title">Your first chart</div><div class="si-desc">Render a line chart in five lines</div></div>
+      </a>
+
+      <div class="search-group-title">Guides</div>
+      <a class="search-item" href="#why">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></span>
+        <div><div class="si-title">Theming with design tokens</div><div class="si-desc">CSS variables, palettes and dark mode</div></div>
+      </a>
+      <a class="search-item" href="#performance">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
+        <div><div class="si-title">Rendering large datasets</div><div class="si-desc">Sampling, WebGL and streaming updates</div></div>
+      </a>
+
+      <div class="search-group-title">API reference</div>
+      <a class="search-item" href="#start">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/></svg></span>
+        <div><div class="si-title">chart()</div><div class="si-desc">Create and configure a chart instance</div></div>
+      </a>
+      <a class="search-item" href="#start">
+        <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V4M16 19v-7M22 19V7"/></svg></span>
+        <div><div class="si-title">Marks &amp; primitives</div><div class="si-desc">Line, Area, Bar, Band, Point, Rule</div></div>
+      </a>
+    </div>
+    <div class="search-foot">
+      <div class="grp"><kbd>↑</kbd><kbd>↓</kbd> navigate</div>
+      <div class="grp"><kbd>↵</kbd> open</div>
+      <div class="grp"><kbd>Esc</kbd> close</div>
+      <div style="margin-left:auto">Search powered by Ridgeline Index</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  <span id="toastText">Copied to clipboard</span>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* --------------------------- theme ------------------------------ */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem("ridgeline-theme"); } catch (e) {}
+  if (stored) {
+    root.setAttribute("data-theme", stored);
+  } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    root.setAttribute("data-theme", "dark");
+  }
+  var themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", function () {
+    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("ridgeline-theme", next); } catch (e) {}
+  });
+
+  /* ------------------------ scroll progress ----------------------- */
+  var progress = document.getElementById("progress");
+  function updateProgress() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+    progress.style.width = Math.min(100, Math.max(0, p)) + "%";
+  }
+  window.addEventListener("scroll", updateProgress, { passive: true });
+  updateProgress();
+
+  /* --------------------------- reveal ----------------------------- */
+  var reveals = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    var ro = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          en.target.classList.add("is-visible");
+          ro.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    reveals.forEach(function (el) { ro.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add("is-visible"); });
+  }
+
+  /* ------------------------ animated bars ------------------------- */
+  var bench = document.getElementById("benchChart");
+  if (bench && "IntersectionObserver" in window) {
+    var bo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        bench.querySelectorAll(".bar-fill").forEach(function (bar, i) {
+          setTimeout(function () {
+            bar.style.width = bar.getAttribute("data-width") + "%";
+          }, i * 130);
+        });
+        bo.unobserve(bench);
+      });
+    }, { threshold: 0.35 });
+    bo.observe(bench);
+  }
+
+  /* ------------------------ animated counters -------------------- */
+  var counters = document.querySelectorAll("[data-count]");
+  function animateCounter(el) {
+    var target = parseFloat(el.getAttribute("data-count"));
+    var decimals = parseInt(el.getAttribute("data-decimals") || "0", 10);
+    var start = performance.now();
+    var dur = 1400;
+    function tick(now) {
+      var t = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = (target * eased).toFixed(decimals);
+      if (t < 1) requestAnimationFrame(tick);
+      else el.textContent = target.toFixed(decimals);
+    }
+    requestAnimationFrame(tick);
+  }
+  if ("IntersectionObserver" in window) {
+    var co = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          animateCounter(en.target);
+          co.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.6 });
+    counters.forEach(function (el) { co.observe(el); });
+  } else {
+    counters.forEach(function (el) {
+      el.textContent = parseFloat(el.getAttribute("data-count")).toFixed(
+        parseInt(el.getAttribute("data-decimals") || "0", 10)
+      );
+    });
+  }
+
+  /* --------------------------- copy ------------------------------- */
+  var toast = document.getElementById("toast");
+  var toastText = document.getElementById("toastText");
+  var toastTimer;
+  function showToast(msg) {
+    toastText.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 1900);
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    var text = btn.getAttribute("data-copy") || "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showToast("Copied to clipboard");
+      }).catch(function () { showToast("Copy failed"); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); showToast("Copied to clipboard"); }
+      catch (err) { showToast("Copy failed"); }
+      document.body.removeChild(ta);
+    }
+    if (btn.classList.contains("copy-btn")) {
+      btn.classList.add("copied");
+      setTimeout(function () { btn.classList.remove("copied"); }, 1300);
+    }
+    if (btn.classList.contains("code-copy")) {
+      var original = btn.innerHTML;
+      btn.innerHTML = "Copied ✓";
+      setTimeout(function () { btn.innerHTML = original; }, 1400);
+    }
+  });
+
+  /* ------------------------- framework tabs ----------------------- */
+  var fwTabs = document.getElementById("fwTabs");
+  if (fwTabs) {
+    var panels = document.querySelectorAll("[data-panel]");
+    fwTabs.addEventListener("click", function (e) {
+      var tab = e.target.closest(".code-tab");
+      if (!tab) return;
+      fwTabs.querySelectorAll(".code-tab").forEach(function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      var name = tab.getAttribute("data-tab");
+      panels.forEach(function (p) {
+        p.hidden = p.getAttribute("data-panel") !== name;
+      });
+    });
+  }
+
+  /* ------------------------ scroll spy ---------------------------- */
+  var tocLinks = Array.prototype.slice.call(document.querySelectorAll(".toc a"));
+  var sideLinks = Array.prototype.slice.call(document.querySelectorAll(".side-link"));
+  var sections = ["overview", "why", "gallery", "start", "performance", "ecosystem", "community"]
+    .map(function (id) { return document.getElementById(id); })
+    .filter(Boolean);
+
+  function setActive(id) {
+    tocLinks.forEach(function (a) {
+      a.classList.toggle("active", a.getAttribute("href") === "#" + id);
+    });
+    sideLinks.forEach(function (a) {
+      var href = a.getAttribute("href");
+      var isPrimary =
+        (id === "overview" && href === "#overview") ||
+        (id === "why" && href === "#why" && a.textContent.indexOf("Core concepts") > -1) ||
+        (id === "gallery" && href === "#gallery") ||
+        (id === "start" && a.textContent.indexOf("Installation") > -1) ||
+        (id === "performance" && a.textContent.indexOf("large data") > -1) ||
+        (id === "ecosystem" && a.textContent.indexOf("React") > -1) ||
+        (id === "community" && href === "#community");
+      a.classList.toggle("active", !!isPrimary);
+    });
+  }
+
+  if ("IntersectionObserver" in window && sections.length) {
+    var so = new IntersectionObserver(function (entries) {
+      var visible = entries
+        .filter(function (en) { return en.isIntersecting; })
+        .sort(function (a, b) { return a.boundingClientRect.top - b.boundingClientRect.top; });
+      if (visible.length) setActive(visible[0].target.id);
+    }, { threshold: 0.15, rootMargin: "-72px 0px -55% 0px" });
+    sections.forEach(function (s) { so.observe(s); });
+  }
+
+  /* ---------------------- mobile sidebar -------------------------- */
+  var sidebar = document.getElementById("sidebar");
+  var menuBtn = document.getElementById("menuBtn");
+  if (menuBtn) {
+    menuBtn.addEventListener("click", function () {
+      sidebar.classList.toggle("open");
+    });
+  }
+  document.addEventListener("click", function (e) {
+    if (window.innerWidth > 900) return;
+    if (sidebar && sidebar.classList.contains("open") &&
+        !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+      sidebar.classList.remove("open");
+    }
+  });
+  sideLinks.forEach(function (a) {
+    a.addEventListener("click", function () {
+      if (window.innerWidth <= 900) sidebar.classList.remove("open");
+    });
+  });
+
+  /* ------------------------- search modal ------------------------- */
+  var overlay = document.getElementById("searchOverlay");
+  var searchInput = document.getElementById("searchInput");
+  var resultsWrap = document.getElementById("searchResults");
+  var trigger = document.getElementById("searchTrigger");
+
+  function openSearch() {
+    overlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+    setTimeout(function () { searchInput.focus(); }, 40);
+  }
+  function closeSearch() {
+    overlay.classList.remove("open");
+    document.body.style.overflow = "";
+    searchInput.value = "";
+    filterResults("");
+  }
+  function filterResults(q) {
+    q = q.trim().toLowerCase();
+    var items = resultsWrap.querySelectorAll(".search-item");
+    items.forEach(function (item) {
+      var text = item.textContent.toLowerCase();
+      item.style.display = !q || text.indexOf(q) > -1 ? "" : "none";
+    });
+    resultsWrap.querySelectorAll(".search-group-title").forEach(function (title) {
+      var el = title.nextElementSibling;
+      var any = false;
+      while (el && el.classList.contains("search-item")) {
+        if (el.style.display !== "none") any = true;
+        el = el.nextElementSibling;
+      }
+      title.style.display = any ? "" : "none";
+    });
+  }
+
+  if (trigger) trigger.addEventListener("click", openSearch);
+  if (overlay) {
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeSearch();
+    });
+    resultsWrap.addEventListener("click", function (e) {
+      if (e.target.closest(".search-item")) closeSearch();
+    });
+  }
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      filterResults(searchInput.value);
+    });
+  }
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    var typing = tag === "input" || tag === "textarea";
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      overlay.classList.contains("open") ? closeSearch() : openSearch();
+    } else if (e.key === "/" && !typing) {
+      e.preventDefault();
+      openSearch();
+    } else if (e.key === "Escape") {
+      closeSearch();
+    }
+  });
+
+  /* --------------------- hero chart crosshair --------------------- */
+  var svg = document.getElementById("heroChart");
+  var wrap = document.getElementById("heroChartWrap");
+  var tip = document.getElementById("chartTip");
+  var crosshair = document.getElementById("crosshair");
+  var dotA = document.getElementById("dotA");
+  var dotB = document.getElementById("dotB");
+
+  if (svg && wrap && tip && crosshair) {
+    var xs = [48, 99.3, 150.5, 201.8, 253.1, 304.4, 355.6, 406.9, 458.2, 509.5, 560.7, 612];
+    var ysA = [187.7, 170.3, 177.8, 143, 150.5, 118.2, 95.9, 108.3, 78.6, 61.2, 71.1, 41.4];
+    var ysB = [217.4, 202.6, 207.5, 195.1, 167.8, 175.3, 153, 135.6, 145.5, 123.2, 103.4, 113.3];
+    var vA = [34, 41, 38, 52, 49, 62, 71, 66, 78, 85, 81, 93];
+    var vB = [22, 28, 26, 31, 42, 39, 48, 55, 51, 60, 68, 64];
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    function move(evt) {
+      var rect = svg.getBoundingClientRect();
+      var clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      var relX = (clientX - rect.left) / rect.width * 640;
+      var idx = 0;
+      var best = Infinity;
+      for (var i = 0; i < xs.length; i++) {
+        var d = Math.abs(xs[i] - relX);
+        if (d < best) { best = d; idx = i; }
+      }
+      crosshair.setAttribute("x1", xs[idx]);
+      crosshair.setAttribute("x2", xs[idx]);
+      crosshair.setAttribute("opacity", "1");
+      dotA.setAttribute("cx", xs[idx]);
+      dotA.setAttribute("cy", ysA[idx]);
+      dotA.setAttribute("opacity", "1");
+      dotB.setAttribute("cx", xs[idx]);
+      dotB.setAttribute("cy", ysB[idx]);
+      dotB.setAttribute("opacity", "1");
+
+      tip.innerHTML =
+        "<b>" + months[idx] + " 2025</b>" +
+        "<div class='row'><i style='background:#5A48E8'></i>North&nbsp;&nbsp;$" + vA[idx] + "k</div>" +
+        "<div class='row'><i style='background:#12B886'></i>South&nbsp;&nbsp;$" + vB[idx] + "k</div>";
+
+      var px = (xs[idx] / 640) * rect.width;
+      var py = (Math.min(ysA[idx], ysB[idx]) / 320) * rect.height;
+      tip.style.left = px + "px";
+      tip.style.top = py + "px";
+      tip.style.opacity = "1";
+    }
+
+    function leave() {
+      tip.style.opacity = "0";
+      crosshair.setAttribute("opacity", "0");
+      dotA.setAttribute("opacity", "0");
+      dotB.setAttribute("opacity", "0");
+    }
+
+    wrap.addEventListener("mousemove", move);
+    wrap.addEventListener("mouseleave", leave);
+    wrap.addEventListener("touchstart", move, { passive: true });
+    wrap.addEventListener("touchmove", move, { passive: true });
+    wrap.addEventListener("touchend", leave);
+  }
+})();
+</script>
+</body>
+</html>

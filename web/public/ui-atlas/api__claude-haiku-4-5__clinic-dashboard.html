@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointment Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #1a202c;
+            font-weight: 700;
+        }
+
+        .header-time {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            color: #1a202c;
+            font-weight: 600;
+        }
+
+        .card-badge {
+            background: #edf2f7;
+            color: #2d3748;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-badge.highlight {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .card-badge.active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .card-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .appointment-item {
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .appointment-item.urgent {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .appointment-item.completed {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .appointment-time {
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 14px;
+            min-width: 60px;
+        }
+
+        .appointment-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .appointment-patient {
+            font-weight: 500;
+            color: #1a202c;
+            font-size: 14px;
+        }
+
+        .appointment-provider {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .appointment-room {
+            font-size: 12px;
+            color: #4299e1;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .appointment-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+
+        .status-pending {
+            background: #fef5e7;
+            color: #d68910;
+        }
+
+        .status-checked-in {
+            background: #d5f4e6;
+            color: #0b5345;
+        }
+
+        .status-no-show {
+            background: #fadbd8;
+            color: #78281f;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .room-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .room-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .room-card.occupied {
+            background: #c6f6d5;
+            border-color: #48bb78;
+        }
+
+        .room-card.busy {
+            background: #bee3f8;
+            border-color: #4299e1;
+        }
+
+        .room-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .room-status {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .room-patient {
+            font-size: 11px;
+            color: #4299e1;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .refresh-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #3182ce;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .stat-box.blue .stat-number {
+            color: #4299e1;
+        }
+
+        .stat-box.red .stat-number {
+            color: #f56565;
+        }
+
+        .stat-box.green .stat-number {
+            color: #48bb78;
+        }
+
+        .stat-box.orange .stat-number {
+            color: #ed8936;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header h1 {
+                margin-bottom: 10px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .room-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Clinic Dashboard</h1>
+                <div class="header-time" id="currentTime"></div>
+            </div>
+            <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box blue">
+                <div class="stat-number" id="appointmentsTotal">12</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+            <div class="stat-box green">
+                <div class="stat-number" id="appointmentsCheckedIn">9</div>
+                <div class="stat-label">Checked In</div>
+            </div>
+            <div class="stat-box orange">
+                <div class="stat-number" id="appointmentsPending">2</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-box red">
+                <div class="stat-number" id="noShowsCount">1</div>
+                <div class="stat-label">No-Shows</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📅 Today's Schedule</h2>
+                    <div class="card-badge" id="scheduleCount">12</div>
+                </div>
+                <div class="card-content" id="scheduleContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Loading schedule...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>⚠️ No-Shows</h2>
+                    <div class="card-badge highlight" id="noShowCount">1</div>
+                </div>
+                <div class="card-content" id="noShowContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✓</div>
+                        <p>No no-shows today</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>🏥 Rooms in Use</h2>
+                    <div class="card-badge active" id="roomsInUseCount">3</div>
+                </div>
+                <div class="card-content" id="roomsContent">
+                    <div class="room-grid" id="roomGrid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🚪</div>
+                            <p>Loading rooms...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const todayAppointments = [
+            { id: 1, time: '08:30', patient: 'John Smith', provider: 'Dr. Johnson', room: 'A1', status: 'checked-in' },
+            { id: 2, time: '09:00', patient: 'Maria Garcia', provider: 'Dr. Smith', room: 'A2', status: 'checked-in' },
+            { id: 3, time: '09:30', patient: 'Robert Lee', provider: 'Dr. Johnson', room: 'B1', status: 'checked-in' },
+            { id: 4, time: '10:00', patient: 'Sarah Wilson', provider: 'Dr. Brown', room: 'A3', status: 'no-show' },
+            { id: 5, time: '10:30', patient: 'James Anderson', provider: 'Dr. Smith', room: 'B2', status: 'checked-in' },
+            { id: 6, time: '11:00', patient: 'Emily Davis', provider: 'Dr. Johnson', room: 'A1', status: 'checked-in' },
+            { id: 7, time: '11:30', patient: 'Michael Brown', provider: 'Dr. Brown', room: 'B3', status: 'checked-in' },
+            { id: 8, time: '13:00', patient: 'Lisa Martinez', provider: 'Dr. Smith', room: 'A2', status: 'pending' },
+            { id: 9, time: '13:30', patient: 'David Taylor', provider: 'Dr. Johnson', room: 'C1', status: 'pending' },
+            { id: 10, time: '14:00', patient: 'Jennifer White', provider: 'Dr. Brown', room: 'B1', status: 'checked-in' },
+            { id: 11, time: '14:30', patient: 'Christopher Harris', provider: 'Dr. Smith', room: 'A3', status: 'checked-in' },
+            { id: 12, time: '15:00', patient: 'Amanda Thomas', provider: 'Dr. Johnson', room: 'B2', status: 'checked-in' }
+        ];
+
+        const rooms = [
+            { id: 'A1', name: 'Room A1', status: 'occupied', patient: 'John Smith' },
+            { id: 'A2', name: 'Room A2', status: 'occupied', patient: 'Maria Garcia' },
+            { id: 'A3', name: 'Room A3', status: 'busy', patient: 'Christopher Harris' },
+            { id: 'B1', name: 'Room B1', status: 'occupied', patient: 'Jennifer White' },
+            { id: 'B2', name: 'Room B2', status: 'occupied', patient: 'Amanda Thomas' },
+            { id: 'B3', name: 'Room B3', status: 'occupied', patient: 'Michael Brown' },
+            { id: 'C1', name: 'Room C1', status: 'empty' },
+            { id: 'C2', name: 'Room C2', status: 'empty' }
+        ];
+
+        function formatTime(time24) {
+            const [hours, minutes] = time24.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:${minutes} ${ampm}`;
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'no-show':
+                    return 'urgent';
+                case 'checked-in':
+                    return 'completed';
+                default:
+                    return '';
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'checked-in':
+                    return 'status-checked-in';
+                case 'no-show':
+                    return 'status-no-show';
+                default:
+                    return 'status-pending';
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'checked-in':
+                    return 'Checked In';
+                case 'no-show':
+                    return 'No-Show';
+                default:
+                    return 'Pending';
+            }
+        }
+
+        function renderSchedule() {
+            const scheduleContent = document.getElementById('scheduleContent');
+            const html = todayAppointments.map(apt => `
+                <div class="appointment-item ${getStatusColor(apt.status)}">
+                    <div class="appointment-time">${formatTime(apt.time)}</div>
+                    <div class="appointment-info">
+                        <div class="appointment-patient">${apt.patient}</div>
+                        <div class="appointment-provider">with ${apt.provider}</div>
+                        <div class="appointment-room">${apt.room}</div>
+                    </div>
+                    <span class="appointment-status ${getStatusBadgeClass(apt.status)}">${getStatusText(apt.status)}</span>
+                </div>
+            `).join('');
+            scheduleContent.innerHTML = html;
+        }
+
+        function renderNoShows() {
+            const noShowContent = document.getElementById('noShowContent');
+            const noShows = todayAppointments.filter(apt => apt.status === 'no-show');
+            
+            if (noShows.length === 0) {
+                noShowContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✓</div>
+                        <p>No no-shows today</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = noShows.map(apt => `
+                <div class="appointment-item urgent">
+                    <div class="appointment-time">${formatTime(apt.time)}</div>
+                    <div class="appointment-info">
+                        <div class="appointment-patient">${apt.patient}</div>
+                        <div class="appointment-provider">with ${apt.provider}</div>
+                        <div class="appointment-room">${apt.room}</div>
+                    </div>
+                    <span class="appointment-status status-no-show">No-Show</span>
+                </div>
+            `).join('');
+            noShowContent.innerHTML = html;
+        }
+
+        function renderRooms() {
+            const roomGrid = document.getElementById('roomGrid');
+            const html = rooms.map(room => `
+                <div class="room-card ${room.status === 'empty' ? '' : room.status === 'occupied' ? 'occupied' : 'busy'}">
+                    <div class="room-name">${room.name}</div>
+                    <div class="room-status">${room.status === 'empty' ? 'Available' : room.status === 'occupied' ? 'In Use' : 'Busy'}</div>
+                    ${room.patient ? `<div class="room-patient">${room.patient}</div>` : ''}
+                </div>
+            `).join('');
+            roomGrid.innerHTML = html;
+        }
+
+        function updateStats() {
+            const total = todayAppointments.length;
+            const checkedIn = todayAppointments.filter(apt => apt.status === 'checked-in').length;
+            const pending = todayAppointments.filter(apt => apt.status === 'pending').length;
+            const noShows = todayAppointments.filter(apt => apt.status === 'no-show').length;
+
+            document.getElementById('appointmentsTotal').textContent = total;
+            document.getElementById('appointmentsCheckedIn').textContent = checkedIn;
+            document.getElementById('appointmentsPending').textContent = pending;
+            document.getElementById('noShowsCount').textContent = noShows;
+            document.getElementById('scheduleCount').textContent = total;
+            document.getElementById('noShowCount').textContent = noShows;
+            document.getElementById('roomsInUseCount').textContent = rooms.filter(r => r.status !== 'empty').length;
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('currentTime').textContent = now.toLocaleDateString('en-US', options);
+        }
+
+        function refreshDashboard() {
+            renderSchedule();
+            renderNoShows();
+            renderRooms();
+            updateStats();
+            updateCurrentTime();
+        }
+
+        // Initial render
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshDashboard();
+            // Auto-refresh every 30 seconds
+            setInterval(refreshDashboard, 30000);
+        });
+    </script>
+</body>
+</html>

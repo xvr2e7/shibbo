@@ -2,7 +2,7 @@
 
     uv run --with numpy --with pillow --with pyyaml python -I scripts/ui_map.py [--features F] [--out DIR] [--no-images]
       reads  measure/ui-features.json (node measure/ui-features.mjs)
-      writes data/measured/ui-map.json, web/src/data/ui-map.json, web/public/ui-atlas/{sprite.webp, <route>__<model>__<brief>.webp}
+      writes data/measured/ui-map.json, web/src/data/ui-map.json, web/public/ui-atlas/{sprite.webp, <route>__<model>__<brief>.webp and .html}
       (--out writes ui-map.json to DIR only, for trial runs)
 
 Two routes, kept apart. "api": bare API requests, the main, like-for-like set. "cli": Claude models through the
@@ -357,6 +357,10 @@ if IMAGES:
             pass
         if os.path.exists(f"{ROOT}/{p['view']}"):
             shutil.copy(f"{ROOT}/{p['view']}", f"{OUT}/{slug(p)}.webp")
+        # The page itself, for the atlas's live view (drawn in a sandboxed frame).
+        html = os.path.join(os.path.dirname(f"{ROOT}/{p['view']}"), "index.html")
+        if os.path.exists(html):
+            shutil.copy(html, f"{OUT}/{slug(p)}.html")
     sheet.save(f"{OUT}/sprite.webp", "WEBP", quality=72, method=6)
     total = sum(os.path.getsize(f) for f in glob.glob(f"{OUT}/*"))
 

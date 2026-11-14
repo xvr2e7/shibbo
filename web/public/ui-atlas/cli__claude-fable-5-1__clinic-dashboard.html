@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maple Street Clinic — Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #e3e8ee;
+    --text: #1b2430;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --accent: #0f6e6e;
+    --accent-soft: #e2f3f2;
+    --green: #15803d;  --green-soft: #dcfce7;
+    --amber: #b45309;  --amber-soft: #fef3c7;
+    --red: #b91c1c;    --red-soft: #fee2e2;
+    --blue: #1d4ed8;   --blue-soft: #dbeafe;
+    --slate-soft: #eef2f6;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-weight: 500; }
+
+  /* ---------- Layout ---------- */
+  .app { max-width: 1440px; margin: 0 auto; padding: 24px 28px 40px; }
+
+  header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--accent); color: #fff; display: grid; place-items: center;
+    font-weight: 700; font-size: 18px; letter-spacing: -.5px;
+  }
+  .brand h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
+  .brand p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .clock { text-align: right; }
+  .clock .time { font-size: 28px; font-weight: 600; letter-spacing: -.5px; line-height: 1; }
+  .clock .date { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .kpis {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .kpi .label { color: var(--muted); font-size: 12.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 30px; font-weight: 600; letter-spacing: -.8px; line-height: 1; }
+  .kpi .sub { color: var(--muted); font-size: 12.5px; }
+  .kpi .sub strong { color: var(--text); font-weight: 600; }
+  .kpi.alert .value { color: var(--red); }
+  .kpi.good .value { color: var(--green); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr); gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .card-head h2 { font-size: 15px; font-weight: 600; }
+  .card-head .meta { color: var(--muted); font-size: 12.5px; }
+  .card-body { padding: 0; }
+
+  /* ---------- Filters ---------- */
+  .chips { display: flex; gap: 6px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    border-radius: 999px; padding: 5px 11px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+    font-family: inherit;
+  }
+  .chip:hover { border-color: #cbd5e1; color: var(--text); }
+  .chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  /* ---------- Schedule table ---------- */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 11.5px; font-weight: 600; color: var(--faint);
+    text-transform: uppercase; letter-spacing: .05em; padding: 10px 18px;
+    border-bottom: 1px solid var(--border); background: #fafbfc;
+  }
+  tbody td { padding: 11px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+  tbody tr.now { background: var(--accent-soft); }
+  tbody tr.now:hover { background: #d6ecea; }
+  tbody tr.past { color: var(--muted); }
+  tbody tr.past .patient { color: var(--muted); }
+  tbody tr.hidden { display: none; }
+  td.time { white-space: nowrap; width: 90px; }
+  td.time .dur { color: var(--faint); font-size: 12px; margin-left: 4px; }
+  .patient { font-weight: 600; color: var(--text); }
+  .patient small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .prov { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0;
+  }
+  .room-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--slate-soft);
+    font-size: 12px; font-weight: 500;
+  }
+  .now-marker {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+    color: var(--accent); text-transform: uppercase; letter-spacing: .05em;
+  }
+  .now-marker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(15,110,110,.2); }
+
+  /* ---------- Status pills ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.scheduled { background: var(--slate-soft); color: var(--muted); }
+  .pill.checkedin { background: var(--blue-soft); color: var(--blue); }
+  .pill.inroom    { background: var(--accent-soft); color: var(--accent); }
+  .pill.done      { background: var(--green-soft); color: var(--green); }
+  .pill.noshow    { background: var(--red-soft); color: var(--red); }
+  .pill.late      { background: var(--amber-soft); color: var(--amber); }
+
+  /* ---------- No-shows ---------- */
+  .list { list-style: none; }
+  .list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+  }
+  .list li:last-child { border-bottom: none; }
+  .list .who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .list .who .name { font-weight: 600; }
+  .list .who .detail { color: var(--muted); font-size: 12.5px; }
+  .list .action {
+    border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+    padding: 6px 10px; font-size: 12.5px; font-weight: 500; color: var(--text); cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .list .action:hover { background: var(--slate-soft); }
+  .list .action.done { color: var(--green); border-color: var(--green-soft); background: var(--green-soft); }
+  .count-badge {
+    background: var(--red-soft); color: var(--red); font-weight: 600; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .empty { padding: 28px 18px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* ---------- Rooms ---------- */
+  .rooms { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 14px 18px; }
+  .room {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 6px; position: relative; min-height: 92px;
+  }
+  .room .rname { font-weight: 600; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; }
+  .room .rwho { font-size: 12.5px; color: var(--muted); }
+  .room .rtime { font-size: 12px; color: var(--faint); margin-top: auto; }
+  .room .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .room.busy { border-color: #b9dedb; background: #f3fafa; }
+  .room.busy .dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(15,110,110,.15); }
+  .room.ready .dot { background: var(--green); }
+  .room.cleaning { background: #fffbeb; border-color: #fde68a; }
+  .room.cleaning .dot { background: var(--amber); }
+  .room.offline { background: #fafafa; }
+  .room.offline .dot { background: #cbd5e1; }
+  .room.offline .rname, .room.offline .rwho { color: var(--faint); }
+
+  .legend { display: flex; gap: 14px; padding: 0 18px 14px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* ---------- Provider load ---------- */
+  .bars { padding: 6px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 56px; align-items: center; gap: 12px; font-size: 13px; }
+  .bar-row .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 8px; background: var(--slate-soft); border-radius: 999px; overflow: hidden; display: flex; }
+  .bar i { display: block; height: 100%; }
+  .bar .d { background: var(--green); }
+  .bar .r { background: var(--accent); }
+  .bar .s { background: #cbd5e1; }
+  .bar-row .n { text-align: right; color: var(--muted); font-size: 12px; }
+
+  footer { margin-top: 18px; color: var(--faint); font-size: 12px; display: flex; justify-content: space-between; }
+
+  @media (max-width: 1080px) {
+    .grid { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .app { padding: 16px; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
+    .rooms { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <h1>Maple Street Clinic</h1>
+        <p>Front desk · Today's schedule</p>
+      </div>
+    </div>
+    <div class="clock">
+      <div class="time mono" id="clock">10:42</div>
+      <div class="date" id="today">Monday, November 10, 2026</div>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi">
+      <div class="label">Appointments today</div>
+      <div class="value" id="kpi-total">24</div>
+      <div class="sub"><strong id="kpi-done">9</strong> completed · <strong id="kpi-remaining">13</strong> remaining</div>
+    </div>
+    <div class="kpi good">
+      <div class="label">Checked in / waiting</div>
+      <div class="value" id="kpi-waiting">3</div>
+      <div class="sub">Avg wait <strong>8 min</strong> · longest <strong>14 min</strong></div>
+    </div>
+    <div class="kpi alert">
+      <div class="label">No-shows</div>
+      <div class="value" id="kpi-noshow">2</div>
+      <div class="sub"><strong id="kpi-noshow-pct">8%</strong> of today · 1 call pending</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Rooms in use</div>
+      <div class="value"><span id="kpi-rooms">4</span><span style="color:var(--faint);font-size:18px;font-weight:500"> / 6</span></div>
+      <div class="sub">1 being cleaned · 1 free</div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- ===== Left column: schedule ===== -->
+    <div class="col">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Today's schedule</h2>
+          </div>
+          <div class="chips" id="filters">
+            <button class="chip active" data-f="all">All</button>
+            <button class="chip" data-f="upcoming">Upcoming</button>
+            <button class="chip" data-f="checkedin">Waiting</button>
+            <button class="chip" data-f="noshow">No-shows</button>
+          </div>
+        </div>
+        <div class="card-body" style="overflow-x:auto">
+          <table id="schedule">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Patient</th>
+                <th>Provider</th>
+                <th>Reason</th>
+                <th>Room</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="past" data-s="done">
+                <td class="time mono">8:00<span class="dur">20m</span></td>
+                <td><span class="patient">Harriet Nguyen<small>DOB 03/14/1961 · MRN 20417</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Follow-up, hypertension</td>
+                <td><span class="room-tag">Room 2</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">8:20<span class="dur">20m</span></td>
+                <td><span class="patient">Marcus Bell<small>DOB 11/02/1988 · MRN 31205</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Annual physical</td>
+                <td><span class="room-tag">Room 1</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="noshow">
+                <td class="time mono">8:40<span class="dur">20m</span></td>
+                <td><span class="patient">Dana Whitfield<small>DOB 07/29/1975 · MRN 18834</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Lab results review</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill noshow">No-show</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">9:00<span class="dur">40m</span></td>
+                <td><span class="patient">Theo Okafor<small>DOB 05/18/2019 · MRN 40112</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#7c3aed">SP</span>S. Patel, NP</div></td>
+                <td>Well-child visit</td>
+                <td><span class="room-tag">Room 4</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">9:00<span class="dur">20m</span></td>
+                <td><span class="patient">Grace Lindqvist<small>DOB 09/03/1952 · MRN 10982</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Diabetes check</td>
+                <td><span class="room-tag">Room 1</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">9:20<span class="dur">20m</span></td>
+                <td><span class="patient">Omar Haddad<small>DOB 12/21/1994 · MRN 33560</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Sore throat</td>
+                <td><span class="room-tag">Room 2</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">9:40<span class="dur">20m</span></td>
+                <td><span class="patient">Priya Raman<small>DOB 02/08/1983 · MRN 27741</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Medication refill</td>
+                <td><span class="room-tag">Room 1</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="noshow">
+                <td class="time mono">9:40<span class="dur">20m</span></td>
+                <td><span class="patient">Kevin Osei<small>DOB 06/30/2001 · MRN 38890</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#7c3aed">SP</span>S. Patel, NP</div></td>
+                <td>Vaccination</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill noshow">No-show</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">10:00<span class="dur">20m</span></td>
+                <td><span class="patient">Luisa Fernández<small>DOB 04/11/1969 · MRN 21033</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Knee pain</td>
+                <td><span class="room-tag">Room 2</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+              <tr class="past" data-s="done">
+                <td class="time mono">10:00<span class="dur">20m</span></td>
+                <td><span class="patient">Walter Brandt<small>DOB 10/15/1947 · MRN 09126</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Post-op check</td>
+                <td><span class="room-tag">Room 3</span></td>
+                <td><span class="pill done">Completed</span></td>
+              </tr>
+
+              <tr class="now" data-s="inroom">
+                <td class="time mono">10:20<span class="dur">20m</span></td>
+                <td><span class="patient">Aisha Mohammed<small>DOB 08/22/1990 · MRN 29874</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Prenatal visit</td>
+                <td><span class="room-tag">Room 2</span></td>
+                <td><span class="pill inroom">In room</span></td>
+              </tr>
+              <tr class="now" data-s="inroom">
+                <td class="time mono">10:20<span class="dur">40m</span></td>
+                <td><span class="patient">Samuel Kowalski<small>DOB 01/19/1958 · MRN 15502</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>New patient intake</td>
+                <td><span class="room-tag">Room 1</span></td>
+                <td><span class="pill inroom">In room</span></td>
+              </tr>
+              <tr class="now" data-s="inroom">
+                <td class="time mono">10:20<span class="dur">20m</span></td>
+                <td><span class="patient">Ella Dubois<small>DOB 03/05/2014 · MRN 41190</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#7c3aed">SP</span>S. Patel, NP</div></td>
+                <td>Asthma follow-up</td>
+                <td><span class="room-tag">Room 4</span></td>
+                <td><span class="pill inroom">In room</span></td>
+              </tr>
+              <tr class="now" data-s="inroom">
+                <td class="time mono">10:30<span class="dur">30m</span></td>
+                <td><span class="patient">Nora Castellano<small>DOB 06/12/1979 · MRN 23318</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#b45309">JM</span>J. Morales, RN</div></td>
+                <td>Blood draw</td>
+                <td><span class="room-tag">Lab</span></td>
+                <td><span class="pill inroom">In room</span></td>
+              </tr>
+
+              <tr data-s="checkedin">
+                <td class="time mono">10:40<span class="dur">20m</span></td>
+                <td><span class="patient">Daniel Park<small>DOB 09/27/1986 · MRN 30047</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Back pain</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill checkedin">Checked in · 14m</span></td>
+              </tr>
+              <tr data-s="checkedin">
+                <td class="time mono">10:40<span class="dur">20m</span></td>
+                <td><span class="patient">Fatima Al-Rashid<small>DOB 12/01/1996 · MRN 36622</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#7c3aed">SP</span>S. Patel, NP</div></td>
+                <td>Rash</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill checkedin">Checked in · 6m</span></td>
+              </tr>
+              <tr data-s="checkedin">
+                <td class="time mono">11:00<span class="dur">20m</span></td>
+                <td><span class="patient">George Papadopoulos<small>DOB 02/14/1955 · MRN 12760</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Cholesterol review</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill checkedin">Checked in · 3m</span></td>
+              </tr>
+              <tr data-s="late">
+                <td class="time mono">10:30<span class="dur">20m</span></td>
+                <td><span class="patient">Rosa Delgado<small>DOB 07/07/1972 · MRN 19945</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#b45309">JM</span>J. Morales, RN</div></td>
+                <td>Flu shot</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill late">Not arrived · 12m late</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:00<span class="dur">20m</span></td>
+                <td><span class="patient">Isabel Moreau<small>DOB 05/23/1999 · MRN 37218</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Migraine</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:00<span class="dur">30m</span></td>
+                <td><span class="patient">Benjamin Achebe<small>DOB 10/09/2021 · MRN 42007</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#7c3aed">SP</span>S. Patel, NP</div></td>
+                <td>Well-child visit</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:20<span class="dur">20m</span></td>
+                <td><span class="patient">Helen Takahashi<small>DOB 01/31/1964 · MRN 16533</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Thyroid follow-up</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:20<span class="dur">20m</span></td>
+                <td><span class="patient">Victor Ionescu<small>DOB 08/16/1980 · MRN 25401</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>Sports clearance</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:40<span class="dur">20m</span></td>
+                <td><span class="patient">Chloe Bennett<small>DOB 04/04/1992 · MRN 34876</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#1d4ed8">LC</span>Dr. L. Chen</div></td>
+                <td>Birth control consult</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+              <tr data-s="scheduled">
+                <td class="time mono">11:40<span class="dur">20m</span></td>
+                <td><span class="patient">Ahmed Yusuf<small>DOB 11/28/1949 · MRN 08811</small></span></td>
+                <td><div class="prov"><span class="avatar" style="background:#0f6e6e">RA</span>Dr. R. Adeyemi</div></td>
+                <td>COPD check</td>
+                <td><span class="room-tag">—</span></td>
+                <td><span class="pill scheduled">Scheduled</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty hidden" id="empty-msg" style="display:none">No appointments match this filter.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Right column ===== -->
+    <div class="col">
+      <div class="card">
+        <div class="card-head">
+          <h2>No-shows <span class="count-badge" id="noshow-badge">2</span></h2>
+          <span class="meta">Follow-up calls</span>
+        </div>
+        <ul class="list">
+          <li>
+            <div class="who">
+              <span class="name">Dana Whitfield</span>
+              <span class="detail">8:40 · Dr. Adeyemi · Lab results review</span>
+              <span class="detail" style="color:var(--amber)">2nd no-show this quarter</span>
+            </div>
+            <button class="action" onclick="markCalled(this)">Call to reschedule</button>
+          </li>
+          <li>
+            <div class="who">
+              <span class="name">Kevin Osei</span>
+              <span class="detail">9:40 · S. Patel, NP · Vaccination</span>
+              <span class="detail">Left voicemail at 10:05</span>
+            </div>
+            <button class="action done">Called ✓</button>
+          </li>
+          <li style="background:#fffbeb">
+            <div class="who">
+              <span class="name">Rosa Delgado</span>
+              <span class="detail">10:30 · J. Morales, RN · Flu shot</span>
+              <span class="detail" style="color:var(--amber)">12 min late — mark no-show at 10:45</span>
+            </div>
+            <button class="action" onclick="markNoShow(this)">Mark no-show</button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Rooms</h2>
+          <span class="meta"><span id="rooms-busy">4</span> of 6 in use</span>
+        </div>
+        <div class="rooms">
+          <div class="room busy">
+            <div class="rname">Room 1 <span class="dot"></span></div>
+            <div class="rwho">S. Kowalski · Dr. Chen</div>
+            <div class="rtime">Since 10:22 · ends ~11:00</div>
+          </div>
+          <div class="room busy">
+            <div class="rname">Room 2 <span class="dot"></span></div>
+            <div class="rwho">A. Mohammed · Dr. Adeyemi</div>
+            <div class="rtime">Since 10:24 · ends ~10:40</div>
+          </div>
+          <div class="room cleaning">
+            <div class="rname">Room 3 <span class="dot"></span></div>
+            <div class="rwho">Turnover in progress</div>
+            <div class="rtime">Ready in ~4 min</div>
+          </div>
+          <div class="room busy">
+            <div class="rname">Room 4 <span class="dot"></span></div>
+            <div class="rwho">E. Dubois · S. Patel, NP</div>
+            <div class="rtime">Since 10:26 · ends ~10:40</div>
+          </div>
+          <div class="room ready">
+            <div class="rname">Room 5 <span class="dot"></span></div>
+            <div class="rwho">Available</div>
+            <div class="rtime">Next: D. Park, 10:40</div>
+          </div>
+          <div class="room busy">
+            <div class="rname">Lab <span class="dot"></span></div>
+            <div class="rwho">N. Castellano · J. Morales, RN</div>
+            <div class="rtime">Since 10:33 · ends ~11:00</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>In use</span>
+          <span><i style="background:var(--green)"></i>Available</span>
+          <span><i style="background:var(--amber)"></i>Cleaning</span>
+          <span><i style="background:#cbd5e1"></i>Offline</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Provider load</h2>
+          <span class="meta">done · in room · remaining</span>
+        </div>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="name">Dr. R. Adeyemi</span>
+            <div class="bar"><i class="d" style="width:40%"></i><i class="r" style="width:10%"></i><i class="s" style="width:50%"></i></div>
+            <span class="n">4 / 10</span>
+          </div>
+          <div class="bar-row">
+            <span class="name">Dr. L. Chen</span>
+            <div class="bar"><i class="d" style="width:50%"></i><i class="r" style="width:12.5%"></i><i class="s" style="width:37.5%"></i></div>
+            <span class="n">4 / 8</span>
+          </div>
+          <div class="bar-row">
+            <span class="name">S. Patel, NP</span>
+            <div class="bar"><i class="d" style="width:25%"></i><i class="r" style="width:25%"></i><i class="s" style="width:50%"></i></div>
+            <span class="n">1 / 4</span>
+          </div>
+          <div class="bar-row">
+            <span class="name">J. Morales, RN</span>
+            <div class="bar"><i class="d" style="width:0%"></i><i class="r" style="width:50%"></i><i class="s" style="width:50%"></i></div>
+            <span class="n">0 / 2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Data refreshed <span id="refreshed">just now</span></span>
+    <span>Maple Street Clinic · Internal use only</span>
+  </footer>
+</div>
+
+<script>
+  // ---- Live clock ----
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    document.getElementById('today').textContent =
+      now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+  tick(); setInterval(tick, 15000);
+
+  // ---- Schedule filters ----
+  const filters = document.getElementById('filters');
+  const rows = Array.from(document.querySelectorAll('#schedule tbody tr'));
+  const emptyMsg = document.getElementById('empty-msg');
+  const groups = {
+    all: () => true,
+    upcoming: r => ['scheduled', 'late', 'checkedin'].includes(r.dataset.s),
+    checkedin: r => r.dataset.s === 'checkedin',
+    noshow: r => r.dataset.s === 'noshow'
+  };
+  filters.addEventListener('click', e => {
+    const btn = e.target.closest('.chip'); if (!btn) return;
+    filters.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === btn));
+    const test = groups[btn.dataset.f];
+    let visible = 0;
+    rows.forEach(r => { const show = test(r); r.classList.toggle('hidden', !show); if (show) visible++; });
+    emptyMsg.style.display = visible ? 'none' : 'block';
+  });
+
+  // ---- No-show actions ----
+  function markCalled(btn) {
+    btn.textContent = 'Called ✓';
+    btn.classList.add('done');
+    btn.onclick = null;
+    const pending = document.querySelector('#kpi-noshow').nextElementSibling;
+    pending.innerHTML = '<strong id="kpi-noshow-pct">8%</strong> of today · 0 calls pending';
+  }
+  function markNoShow(btn) {
+    const li = btn.closest('li');
+    li.style.background = '';
+    li.querySelectorAll('.detail')[1].textContent = 'Marked no-show at ' +
+      new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    li.querySelectorAll('.detail')[1].style.color = 'var(--red)';
+    btn.textContent = 'Call to reschedule';
+    btn.onclick = function () { markCalled(this); };
+
+    // update schedule row
+    const row = rows.find(r => r.querySelector('.patient') && r.querySelector('.patient').textContent.startsWith('Rosa Delgado'));
+    if (row) {
+      row.dataset.s = 'noshow';
+      row.classList.add('past');
+      row.querySelector('.pill').className = 'pill noshow';
+      row.querySelector('.pill').textContent = 'No-show';
+    }
+    // update counters
+    const n = rows.filter(r => r.dataset.s === 'noshow').length;
+    const total = rows.length;
+    document.getElementById('kpi-noshow').textContent = n;
+    document.getElementById('noshow-badge').textContent = n;
+    document.getElementById('kpi-noshow-pct').textContent = Math.round(n / total * 100) + '%';
+    document.getElementById('kpi-remaining').textContent =
+      rows.filter(r => ['scheduled', 'late', 'checkedin', 'inroom'].includes(r.dataset.s)).length;
+  }
+
+  // ---- Footer refresh stamp ----
+  let secs = 0;
+  setInterval(() => {
+    secs += 30;
+    const el = document.getElementById('refreshed');
+    el.textContent = secs < 60 ? secs + 's ago' : Math.round(secs / 60) + ' min ago';
+  }, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Analytics · Harbor &amp; Pine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f5f9;
+    --card:#ffffff;
+    --text:#161b2e;
+    --muted:#6b7190;
+    --border:#e5e7f0;
+    --grid:#eef0f6;
+    --primary:#5b5bd6;
+    --primary-soft:#ecebfb;
+    --green:#12a36f;
+    --red:#e0484f;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input{font:inherit}
+
+  /* Layout */
+  .app{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+  .sidebar{
+    background:#141829;color:#aab0cf;padding:24px 16px;
+    display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:15px;padding:0 8px}
+  .brand-mark{
+    width:32px;height:32px;border-radius:10px;
+    background:linear-gradient(135deg,#8a8af2,#5b5bd6);
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;
+  }
+  .nav{display:flex;flex-direction:column;gap:4px}
+  .nav a{
+    padding:9px 12px;border-radius:9px;color:#aab0cf;text-decoration:none;font-weight:500;
+    display:flex;align-items:center;gap:10px;transition:background .15s,color .15s;
+  }
+  .nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+  .nav a.active{background:rgba(91,91,214,.25);color:#fff}
+  .nav .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6}
+  .sidebar-foot{margin-top:auto;font-size:12px;color:#6f7598;padding:0 8px;line-height:1.5}
+
+  .main{padding:28px 32px 40px;min-width:0}
+
+  /* Top bar */
+  .topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+  h1{font-size:22px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin-top:4px}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .segmented{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px}
+  .segmented button{
+    border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;
+    color:var(--muted);font-weight:500;transition:all .15s;
+  }
+  .segmented button:hover{color:var(--text)}
+  .segmented button.on{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .btn{
+    border:1px solid var(--border);background:var(--card);color:var(--text);
+    padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:500;
+  }
+  .btn:hover{border-color:#cfd3e3}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:20px}
+  .kpi{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow);
+  }
+  .kpi .label{color:var(--muted);font-weight:500;font-size:13px}
+  .kpi .value{font-size:26px;font-weight:700;margin:8px 0 8px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .delta{font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .up{color:var(--green)}
+  .down{color:var(--red)}
+  .muted{color:var(--muted);font-weight:500}
+
+  /* Cards & grids */
+  .grid{display:grid;gap:16px;margin-bottom:20px}
+  .grid-main{grid-template-columns:2fr 1fr}
+  .grid-half{grid-template-columns:1fr 1fr}
+  .grid-bottom{grid-template-columns:1.5fr 1fr}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;box-shadow:var(--shadow);min-width:0;
+  }
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0;font-weight:600}
+  .hint{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.short{height:240px}
+
+  /* Table */
+  .search{
+    border:1px solid var(--border);border-radius:9px;padding:7px 12px;min-width:220px;
+    background:#fff;outline:none;color:var(--text);
+  }
+  .search:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{font-size:11.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;font-weight:600;cursor:pointer;user-select:none}
+  th:hover{color:var(--text)}
+  th .arrow{opacity:.5;margin-left:4px}
+  th.sorted .arrow{opacity:1;color:var(--primary)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:#fafbfe}
+  tbody tr:last-child td{border-bottom:0}
+  .product-name{font-weight:600}
+  .cat-tag{
+    display:inline-block;font-size:11.5px;color:var(--muted);background:#f1f2f8;
+    padding:2px 8px;border-radius:6px;
+  }
+  .share{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+  .bar{height:6px;width:90px;background:var(--primary-soft);border-radius:3px;overflow:hidden}
+  .bar span{display:block;height:100%;background:var(--primary);border-radius:3px;transition:width .4s}
+  .empty{text-align:center;color:var(--muted);padding:30px 0}
+
+  /* Orders */
+  .order{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .order:last-child{border-bottom:0;padding-bottom:0}
+  .order:first-child{padding-top:0}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary);
+    display:grid;place-items:center;font-weight:700;font-size:12px;flex-shrink:0;
+  }
+  .order-main{flex:1;min-width:0}
+  .order-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .order-meta{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .order-right{text-align:right;flex-shrink:0}
+  .order-total{font-weight:600;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;margin-top:4px}
+  .pill.paid{background:#e4f6ee;color:#0d7d55}
+  .pill.shipped{background:#e8eefc;color:#2f57c4}
+  .pill.pending{background:#fdf3e1;color:#9a6512}
+  .pill.refunded{background:#fde8e9;color:#b42328}
+
+  @media (max-width:1100px){
+    .grid-main,.grid-bottom{grid-template-columns:1fr}
+  }
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr}
+    .sidebar{position:static;height:auto;flex-direction:row;align-items:center;overflow-x:auto;padding:14px 16px}
+    .nav{flex-direction:row}
+    .sidebar-foot{display:none}
+    .grid-half{grid-template-columns:1fr}
+    .main{padding:20px 16px 32px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">H</div>
+      Harbor &amp; Pine
+    </div>
+    <nav class="nav">
+      <a href="#" class="active"><span class="dot"></span>Overview</a>
+      <a href="#"><span class="dot"></span>Products</a>
+      <a href="#"><span class="dot"></span>Customers</a>
+      <a href="#"><span class="dot"></span>Orders</a>
+      <a href="#"><span class="dot"></span>Marketing</a>
+      <a href="#"><span class="dot"></span>Settings</a>
+    </nav>
+    <div class="sidebar-foot">
+      Store currency: USD<br>
+      Data refreshed hourly
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <header class="topbar">
+      <div>
+        <h1>Sales overview</h1>
+        <div class="sub" id="rangeLabel"></div>
+      </div>
+      <div class="actions">
+        <div class="segmented" id="rangeSwitch">
+          <button data-range="7">7D</button>
+          <button data-range="30" class="on">30D</button>
+          <button data-range="90">90D</button>
+          <button data-range="365">1Y</button>
+        </div>
+        <button class="btn" id="exportBtn">Export CSV</button>
+      </div>
+    </header>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="grid grid-main">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Revenue trend</h2>
+            <div class="hint">Daily revenue compared with the previous period</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Sales by category</h2>
+            <div class="hint">Share of revenue</div>
+          </div>
+        </div>
+        <div class="chart-wrap short"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid grid-half">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Traffic sources</h2>
+            <div class="hint">Sessions by acquisition channel</div>
+          </div>
+        </div>
+        <div class="chart-wrap short"><canvas id="trafficChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Orders over the week</h2>
+            <div class="hint">Average orders per weekday in this period</div>
+          </div>
+        </div>
+        <div class="chart-wrap short"><canvas id="weekdayChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid grid-bottom">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Top products</h2>
+            <div class="hint">Ranked by revenue in this period. Click a column to sort.</div>
+          </div>
+          <input class="search" id="search" type="search" placeholder="Search products or categories">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr id="productHead"></tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Recent orders</h2>
+            <div class="hint">Latest activity across all channels</div>
+          </div>
+        </div>
+        <div id="orders"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(() => {
+  /* ---------- Seeded random helpers (stable data on each load) ---------- */
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(2024);
+
+  /* ---------- Formatters ---------- */
+  const fmtUSD = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+  const fmtUSD2 = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2});
+  const fmtCompact = new Intl.NumberFormat('en-US', {notation:'compact', maximumFractionDigits:1});
+  const fmtInt = new Intl.NumberFormat('en-US');
+  const fmtPct = n => (n * 100).toFixed(2) + '%';
+  const dateShort = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+
+  /* ---------- Mock data ---------- */
+  const TOTAL_DAYS = 730;          // two years, so the previous period is always available
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const daily = [];
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (TOTAL_DAYS - 1 - i));
+    const weekdayFactor = [0.82, 0.9, 0.95, 1, 1.05, 1.24, 1.16][d.getDay()];
+    const growth = 1 + (i / TOTAL_DAYS) * 0.4;
+    const season = 1 + 0.12 * Math.sin(i / 58);
+    const orders = Math.max(1, Math.round((15 + rand() * 11) * weekdayFactor * growth * season));
+    const aov = 44 + rand() * 16 + (i / TOTAL_DAYS) * 6;
+    const revenue = orders * aov;
+    const conversion = 0.017 + rand() * 0.008;
+    const sessions = Math.round(orders / conversion);
+    daily.push({ date: d, orders, revenue, sessions });
+  }
+
+  const PRODUCTS = [
+    {name:'Merino Crew Sweater',      cat:'Apparel',     price:89,  w:9},
+    {name:'Canvas Tote Bag',          cat:'Accessories', price:34,  w:12},
+    {name:'Ceramic Pour-Over Set',    cat:'Home',        price:58,  w:7},
+    {name:'Trail Running Shoes',      cat:'Footwear',    price:129, w:6},
+    {name:'Wool Beanie',              cat:'Apparel',     price:24,  w:10},
+    {name:'Insulated Water Bottle',   cat:'Outdoor',     price:32,  w:11},
+    {name:'Leather Card Wallet',      cat:'Accessories', price:46,  w:8},
+    {name:'Linen Throw Blanket',      cat:'Home',        price:72,  w:5},
+    {name:'Waterproof Day Pack',      cat:'Outdoor',     price:115, w:4},
+    {name:'Brass Desk Lamp',          cat:'Home',        price:84,  w:3},
+    {name:'Everyday Chino',           cat:'Apparel',     price:68,  w:7},
+    {name:'Polarized Sunglasses',     cat:'Accessories', price:95,  w:4},
+  ];
+  PRODUCTS.forEach(p => p.noise = 0.8 + rand() * 0.4);
+
+  const SOURCES = [
+    {label:'Organic search', share:0.38},
+    {label:'Direct',         share:0.24},
+    {label:'Paid ads',       share:0.18},
+    {label:'Social',         share:0.13},
+    {label:'Email',          share:0.07},
+  ];
+
+  const CUSTOMERS = ['Maya Chen','Liam O’Brien','Priya Nair','Tomás Ruiz','Hannah Schmidt',
+                     'Jonas Berg','Aisha Khan','Ethan Park','Sofia Rossi','Noah Williams'];
+  const STATUSES = ['paid','paid','paid','shipped','shipped','pending','refunded'];
+  const TIMES = ['2 min ago','14 min ago','38 min ago','1 hr ago','2 hr ago','3 hr ago','5 hr ago','Yesterday'];
+
+  const recentOrders = TIMES.map((t, i) => {
+    const product = PRODUCTS[Math.floor(rand() * PRODUCTS.length)];
+    const qty = 1 + Math.floor(rand() * 3);
+    const name = CUSTOMERS[Math.floor(rand() * CUSTOMERS.length)];
+    return {
+      id: '#' + (10482 - i * 7 - Math.floor(rand() * 5)),
+      name,
+      item: product.name + (qty > 1 ? ` × ${qty}` : ''),
+      total: product.price * qty + (rand() > 0.5 ? 6.5 : 0),
+      status: STATUSES[Math.floor(rand() * STATUSES.length)],
+      time: t,
+    };
+  });
+
+  /* ---------- Aggregation helpers ---------- */
+  const COLORS = ['#5b5bd6','#12a36f','#e9a23b','#e0607e','#3aa5d9','#8e6cd9'];
+
+  function sumRange(arr){
+    const s = {revenue:0, orders:0, sessions:0};
+    arr.forEach(d => { s.revenue += d.revenue; s.orders += d.orders; s.sessions += d.sessions; });
+    s.aov = s.orders ? s.revenue / s.orders : 0;
+    s.cvr = s.sessions ? s.orders / s.sessions : 0;
+    return s;
+  }
+
+  function productStats(totalOrders, totalRevenue){
+    const W = PRODUCTS.reduce((a, p) => a + p.w * p.noise, 0);
+    const rows = PRODUCTS.map(p => {
+      const units = Math.round(totalOrders * 1.6 * (p.w * p.noise) / W);
+      return {...p, units, raw: units * p.price};
+    });
+    const rawTotal = rows.reduce((a, r) => a + r.raw, 0) || 1;
+    const k = totalRevenue / rawTotal;
+    rows.forEach(r => r.revenue = r.raw * k);
+    const revTotal = rows.reduce((a, r) => a + r.revenue, 0) || 1;
+    rows.forEach(r => r.share = r.revenue / revTotal);
+    return rows;
+  }
+
+  /* ---------- State ---------- */
+  const state = { range: 30, sortKey: 'revenue', sortDir: -1, query: '' };
+
+  const COLUMNS = [
+    {key:'name',    label:'Product',  type:'text'},
+    {key:'cat',     label:'Category', type:'text'},
+    {key:'units',   label:'Units',    type:'num'},
+    {key:'revenue', label:'Revenue',  type:'num'},
+    {key:'share',   label:'Share',    type:'num'},
+  ];
+
+  /* ---------- Charts ---------- */
+  Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+  Chart.defaults.color = '#6b7190';
+  Chart.defaults.plugins.tooltip.backgroundColor = '#161b2e';
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+  const revenueChart = new Chart(document.getElementById('revenueChart'), {
+    type:'line',
+    data:{ labels:[], datasets:[
+      {label:'This period', data:[], borderColor:'#5b5bd6', backgroundColor:'rgba(91,91,214,.12)',
+       fill:true, tension:.35, pointRadius:0, pointHoverRadius:4, borderWidth:2.5},
+      {label:'Previous period', data:[], borderColor:'#c3c7d9', borderDash:[5,5],
+       fill:false, tension:.35, pointRadius:0, borderWidth:2},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{position:'top', align:'end', labels:{usePointStyle:true, boxWidth:8}},
+        tooltip:{callbacks:{label: c => ` ${c.dataset.label}: ${fmtUSD.format(c.parsed.y)}`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{maxTicksLimit:8, maxRotation:0}},
+        y:{grid:{color:'#eef0f6'}, ticks:{callback: v => '$' + fmtCompact.format(v)}, beginAtZero:true}
+      }
+    }
+  });
+
+  const categoryChart = new Chart(document.getElementById('categoryChart'), {
+    type:'doughnut',
+    data:{labels:[], datasets:[{data:[], backgroundColor:COLORS, borderWidth:0, hoverOffset:6}]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'66%',
+      plugins:{
+        legend:{position:'right', labels:{usePointStyle:true, boxWidth:8, padding:14}},
+        tooltip:{callbacks:{label: c => ` ${c.label}: ${fmtUSD.format(c.parsed)}`}}
+      }
+    }
+  });
+
+  const trafficChart = new Chart(document.getElementById('trafficChart'), {
+    type:'bar',
+    data:{labels:SOURCES.map(s => s.label), datasets:[{
+      data:[], backgroundColor:'#5b5bd6', borderRadius:6, barThickness:18
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label: c => ` ${fmtInt.format(Math.round(c.parsed.x))} sessions`}}},
+      scales:{
+        x:{grid:{color:'#eef0f6'}, ticks:{callback: v => fmtCompact.format(v)}},
+        y:{grid:{display:false}}
+      }
+    }
+  });
+
+  const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const weekdayChart = new Chart(document.getElementById('weekdayChart'), {
+    type:'bar',
+    data:{labels:WEEKDAYS, datasets:[{
+      data:[], backgroundColor:WEEKDAYS.map((_, i) => i === 0 || i === 6 ? '#b9b4f2' : '#5b5bd6'),
+      borderRadius:6, maxBarThickness:36
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label: c => ` ${c.parsed.y.toFixed(1)} avg orders`}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{grid:{color:'#eef0f6'}, beginAtZero:true}
+      }
+    }
+  });
+
+  /* ---------- Rendering ---------- */
+  function renderKPIs(s, p){
+    const items = [
+      {label:'Revenue',          value: fmtUSD.format(s.revenue), cur: s.revenue, prev: p.revenue},
+      {label:'Orders',           value: fmtInt.format(s.orders),  cur: s.orders,  prev: p.orders},
+      {label:'Avg. order value', value: fmtUSD2.format(s.aov),    cur: s.aov,     prev: p.aov},
+      {label:'Conversion rate',  value: fmtPct(s.cvr),            cur: s.cvr,     prev: p.cvr},
+    ];
+    document.getElementById('kpis').innerHTML = items.map(it => {
+      const d = (it.cur - it.prev) / it.prev;
+      const cls = d >= 0 ? 'up' : 'down';
+      const arrow = d >= 0 ? '▲' : '▼';
+      return `
+        <div class="kpi">
+          <div class="label">${it.label}</div>
+          <div class="value">${it.value}</div>
+          <div class="delta">
+            <span class="${cls}">${arrow} ${(Math.abs(d) * 100).toFixed(1)}%</span>
+            <span class="muted">vs previous period</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderRevenueChart(cur, prev){
+    revenueChart.data.labels = cur.map(d => dateShort(d.date));
+    revenueChart.data.datasets[0].data = cur.map(d => Math.round(d.revenue));
+    revenueChart.data.datasets[1].data = prev.map(d => Math.round(d.revenue));
+    revenueChart.update();
+  }
+
+  function renderCategoryChart(products){
+    const cats = {};
+    products.forEach(p => cats[p.cat] = (cats[p.cat] || 0) + p.revenue);
+    const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+    categoryChart.data.labels = entries.map(e => e[0]);
+    categoryChart.data.datasets[0].data = entries.map(e => Math.round(e[1]));
+    categoryChart.update();
+  }
+
+  function renderTraffic(s){
+    trafficChart.data.datasets[0].data = SOURCES.map(src => s.sessions * src.share);
+    trafficChart.update();
+  }
+
+  function renderWeekday(cur){
+    const sums = Array(7).fill(0), counts = Array(7).fill(0);
+    cur.forEach(d => { const w = d.date.getDay(); sums[w] += d.orders; counts[w]++; });
+    weekdayChart.data.datasets[0].data = sums.map((v, i) => counts[i] ? v / counts[i] : 0);
+    weekdayChart.update();
+  }
+
+  function visibleProducts(products){
+    const q = state.query.trim().toLowerCase();
+    let rows = products.filter(p =>
+      !q || p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+    const key = state.sortKey;
+    const col = COLUMNS.find(c => c.key === key);
+    rows.sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (col.type === 'text') return av.localeCompare(bv) * state.sortDir;
+      return (av - bv) * state.sortDir;
+    });
+    return rows;
+  }
+
+  function renderProductTable(products){
+    document.getElementById('productHead').innerHTML = COLUMNS.map(c => {
+      const sorted = state.sortKey === c.key;
+      const arrow = sorted ? (state.sortDir > 0 ? '↑' : '↓') : '↕';
+      return `<th data-key="${c.key}" class="${c.type === 'num' ? 'num' : ''} ${sorted ? 'sorted' : ''}">
+                ${c.label}<span class="arrow">${arrow}</span></th>`;
+    }).join('');
+
+    const rows = visibleProducts(products);
+    const body = document.getElementById('productBody');
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="empty">No products match “${state.query}”.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map(p => `
+      <tr>
+        <td class="product-name">${p.name}</td>
+        <td><span class="cat-tag">${p.cat}</span></td>
+        <td class="num">${fmtInt.format(p.units)}</td>
+        <td class="num">${fmtUSD.format(p.revenue)}</td>
+        <td class="num">
+          <div class="share">
+            <span>${(p.share * 100).toFixed(1)}%</span>
+            <div class="bar"><span style="width:${Math.min(100, p.share * 100 * 4)}%"></span></div>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function renderRecentOrders(){
+    document.getElementById('orders').innerHTML = recentOrders.map(o => {
+      const initials = o.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+      return `
+        <div class="order">
+          <div class="avatar">${initials}</div>
+          <div class="order-main">
+            <div class="order-name">${o.name} <span class="muted">${o.id}</span></div>
+            <div class="order-meta">${o.item} · ${o.time}</div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">${fmtUSD2.format(o.total)}</div>
+            <span class="pill ${o.status}">${o.status[0].toUpperCase() + o.status.slice(1)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  let currentProducts = [];
+
+  function render(){
+    const n = state.range;
+    const cur = daily.slice(TOTAL_DAYS - n);
+    const prev = daily.slice(TOTAL_DAYS - 2 * n, TOTAL_DAYS - n);
+    const s = sumRange(cur);
+    const p = sumRange(prev);
+
+    const start = cur[0].date, end = cur[cur.length - 1].date;
+    document.getElementById('rangeLabel').textContent =
+      `${start.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})} – ${end.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`;
+
+    document.querySelectorAll('#rangeSwitch button').forEach(b =>
+      b.classList.toggle('on', Number(b.dataset.range) === n));
+
+    currentProducts = productStats(s.orders, s.revenue);
+
+    renderKPIs(s, p);
+    renderRevenueChart(cur, prev);
+    renderCategoryChart(currentProducts);
+    renderTraffic(s);
+    renderWeekday(cur);
+    renderProductTable(currentProducts);
+  }
+
+  /* ---------- Events ---------- */
+  document.getElementById('rangeSwitch').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-range]');
+    if (!btn) return;
+    state.range = Number(btn.dataset.range);
+    render();
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    state.query = e.target.value;
+    renderProductTable(currentProducts);
+  });
+
+  document.getElementById('productHead').addEventListener('click', e => {
+    const th = e.target.closest('th');
+    if (!th) return;
+    const key = th.dataset.key;
+    if (state.sortKey === key) {
+      state.sortDir *= -1;
+    } else {
+      state.sortKey = key;
+      const col = COLUMNS.find(c => c.key === key);
+      state.sortDir = col.type === 'num' ? -1 : 1;
+    }
+    renderProductTable(currentProducts);
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const rows = visibleProducts(currentProducts);
+    const header = ['Product','Category','Units','Revenue (USD)','Share'];
+    const lines = [header.join(',')].concat(rows.map(p =>
+      [`"${p.name}"`, p.cat, p.units, p.revenue.toFixed(2), (p.share * 100).toFixed(2) + '%'].join(',')
+    ));
+    const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `top-products-${state.range}d.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  /* ---------- Init ---------- */
+  renderRecentOrders();
+  render();
+})();
+</script>
+</body>
+</html>

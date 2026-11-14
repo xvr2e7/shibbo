@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinic Dashboard · Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f8;--card:#fff;--ink:#1c2630;--muted:#6b7785;--line:#e3e8ee;
+  --brand:#0f7b8a;--brand-soft:#e0f2f4;
+  --ok:#1d8a4f;--ok-soft:#e5f5ec;
+  --warn:#b7791f;--warn-soft:#fdf3e1;
+  --bad:#c0392b;--bad-soft:#fbe9e7;
+  --info:#2b6cb0;--info-soft:#e6effa;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.4}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700}
+h1{font-size:17px;margin:0;font-weight:700}
+.sub{color:var(--muted);font-size:12.5px}
+.clock{text-align:right;font-variant-numeric:tabular-nums}
+.clock b{font-size:20px;display:block;font-weight:600}
+main{padding:20px 24px 40px;display:grid;gap:18px;max-width:1400px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .label{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.kpi .val{font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .hint{font-size:12px;color:var(--muted);margin-top:2px}
+.kpi.alert .val{color:var(--bad)}
+.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:18px;align-items:start}
+.side{display:grid;gap:18px}
+@media(max-width:980px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card-h{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-h h2{font-size:14px;margin:0;font-weight:600}
+.card-b{padding:14px 16px}
+.tabs{display:flex;gap:3px;background:var(--bg);padding:3px;border-radius:8px;flex-wrap:wrap}
+.tab{border:0;background:none;padding:5px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font:inherit;font-size:12.5px;font-weight:500}
+.tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tab .n{opacity:.6;margin-left:4px}
+select{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink)}
+.btn{font:inherit;font-size:12.5px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;cursor:pointer;color:var(--ink);font-weight:500;white-space:nowrap}
+.btn:hover{border-color:#b9c4d0;background:#fafbfc}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#0c6976}
+.btn.danger{color:var(--bad)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.active td{background:var(--brand-soft)}
+tr.dim td{color:var(--muted)}
+.time{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.pt{font-weight:600;white-space:nowrap}
+.muted{color:var(--muted);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.s-scheduled{background:var(--info-soft);color:var(--info)}
+.s-checked-in{background:var(--warn-soft);color:var(--warn)}
+.s-in-progress{background:var(--brand-soft);color:var(--brand)}
+.s-completed{background:var(--ok-soft);color:var(--ok)}
+.s-no-show{background:var(--bad-soft);color:var(--bad)}
+.s-rescheduled,.s-cancelled{background:#eceff2;color:#58636f}
+.late{display:inline-block;margin-left:6px;color:var(--bad);font-size:11px;font-weight:700;text-transform:uppercase}
+.actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.room{border:1px solid var(--line);border-radius:10px;padding:12px;border-left:4px solid #cfd6de;display:flex;flex-direction:column}
+.room.free{border-left-color:var(--ok)}
+.room.busy{border-left-color:var(--brand)}
+.room.clean{border-left-color:var(--warn)}
+.room .name{font-weight:600}
+.room .st{font-size:12px;color:var(--muted);margin:3px 0 10px;min-height:32px}
+.room .st strong{color:var(--ink);font-weight:600}
+.room .btn{margin-top:auto;align-self:flex-start}
+.noshow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.noshow:last-child{border-bottom:0}
+.rate{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.bars{display:flex;align-items:flex-end;gap:8px;height:90px;margin:14px 2px 22px}
+.bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.bar{background:#cfe6ea;border-radius:5px 5px 0 0;min-height:4px}
+.bar.today{background:var(--brand)}
+.bcol span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted)}
+.bcol em{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:11px;font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);text-align:center;padding:20px 0}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:9px;font-size:13px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;max-width:340px;z-index:20}
+.toast.show{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">R</div>
+    <div>
+      <h1>Riverside Family Clinic</h1>
+      <div class="sub" id="today"></div>
+    </div>
+  </div>
+  <div class="clock"><b id="clock">--:--:--</b><span class="sub">Local time</span></div>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <section class="layout">
+    <!-- Schedule -->
+    <div class="card">
+      <div class="card-h">
+        <h2>Today's schedule</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="tabs" id="filters"></div>
+          <select id="providerFilter" aria-label="Filter by provider">
+            <option value="all">All providers</option>
+          </select>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Patient</th>
+              <th>Provider</th>
+              <th>Visit</th>
+              <th>Room</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="schedule"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="side">
+      <!-- Rooms -->
+      <div class="card">
+        <div class="card-h">
+          <h2>Rooms</h2>
+          <div class="legend">
+            <span>● Free</span><span style="color:var(--brand)">● In use</span><span style="color:var(--warn)">● Turnover</span>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="rooms" id="rooms"></div>
+        </div>
+      </div>
+
+      <!-- No-shows -->
+      <div class="card">
+        <div class="card-h"><h2>No-shows</h2><span class="muted">Today</span></div>
+        <div class="card-b">
+          <div id="noshows"></div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+            <div class="muted">30-day no-show rate</div>
+            <div class="rate">8.4%</div>
+            <div class="muted" style="margin-bottom:4px">Weekly trend, Mon–Fri (%)</div>
+            <div class="bars" id="bars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Sample data ---------- */
+const ROOMS = ["Exam 1", "Exam 2", "Exam 3", "Procedure", "Consult"];
+const ACTIVE = ["checked-in", "in-progress"];
+const LABEL = {
+  "scheduled": "Scheduled", "checked-in": "Checked in", "in-progress": "In progress",
+  "completed": "Completed", "no-show": "No-show", "rescheduled": "Rescheduled", "cancelled": "Cancelled"
+};
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "scheduled", label: "Upcoming" },
+  { key: "checked-in", label: "Waiting" },
+  { key: "in-progress", label: "In progress" },
+  { key: "completed", label: "Done" },
+  { key: "no-show", label: "No-shows" }
+];
+
+let appts = [
+  { id: 1,  time: "08:00", patient: "Ellen Brooks",    provider: "Dr. Patel",  type: "Annual physical",     room: "Exam 1",    status: "completed" },
+  { id: 2,  time: "08:15", patient: "Marcus Reed",     provider: "Dr. Chen",   type: "Diabetes follow-up",  room: "Exam 2",    status: "completed" },
+  { id: 3,  time: "08:30", patient: "Priya Nair",      provider: "NP Morales", type: "New patient",         room: "Consult",   status: "completed" },
+  { id: 4,  time: "08:45", patient: "Tom Alvarez",     provider: "Dr. Patel",  type: "BP check",            room: "Exam 1",    status: "in-progress" },
+  { id: 5,  time: "09:00", patient: "Grace Liu",       provider: "Dr. Chen",   type: "Suture removal",      room: "Procedure", status: "checked-in" },
+  { id: 6,  time: "09:15", patient: "Owen Walsh",      provider: "Dr. Patel",  type: "Sick visit",          room: "Exam 1",    status: "no-show" },
+  { id: 7,  time: "09:30", patient: "Hannah Stein",    provider: "NP Morales", type: "Medication refill",   room: "Exam 3",    status: "scheduled" },
+  { id: 8,  time: "09:45", patient: "Ray Donnelly",    provider: "Dr. Chen",   type: "Follow-up",           room: "Exam 2",    status: "scheduled" },
+  { id: 9,  time: "10:00", patient: "Sofia Ruiz",      provider: "Dr. Patel",  type: "Annual physical",     room: "Exam 1",    status: "scheduled" },
+  { id: 10, time: "10:15", patient: "Ibrahim Yusuf",   provider: "NP Morales", type: "Vaccination",         room: "Exam 3",    status: "scheduled" },
+  { id: 11, time: "10:30", patient: "Carol Whitfield", provider: "Dr. Chen",   type: "Wound check",         room: "Procedure", status: "no-show" },
+  { id: 12, time: "10:45", patient: "Daniel Kim",      provider: "Dr. Patel",  type: "Lab review",          room: "Consult",   status: "scheduled" },
+  { id: 13, time: "11:00", patient: "June Osei",       provider: "NP Morales", type: "Asthma follow-up",    room: "Exam 3",    status: "cancelled" }
+];
+
+let roomState = { "Exam 1": "ready", "Exam 2": "clean", "Exam 3": "ready", "Procedure": "ready", "Consult": "clean" };
+let statusFilter = "all";
+let providerFilter = "all";
+
+const WEEK = [
+  { d: "Mon", v: 7.1 }, { d: "Tue", v: 9.4 }, { d: "Wed", v: 6.2 },
+  { d: "Thu", v: 10.8 }, { d: "Fri", v: 8.0 }
+];
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const fmtTime = t => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}:${String(m).padStart(2, "0")} ${ap}`; };
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const isOccupied = room => appts.some(a => a.room === room && ACTIVE.includes(a.status));
+const firstFreeRoom = () => ROOMS.find(r => !isOccupied(r) && roomState[r] !== "clean");
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ---------- Actions ---------- */
+function act(id, action) {
+  const a = appts.find(x => x.id === id);
+  if (!a) return;
+  switch (action) {
+    case "checkin": {
+      a.status = "checked-in";
+      if (!a.room || isOccupied(a.room)) {
+        const r = firstFreeRoom();
+        if (r) { a.room = r; toast(`${a.patient} checked in · ${r}`); }
+        else { toast(`${a.patient} checked in · no free room, waiting`); }
+      } else toast(`${a.patient} checked in`);
+      break;
+    }
+    case "start": {
+      a.status = "in-progress";
+      if (!a.room || (isOccupied(a.room) && appts.filter(x => x.room === a.room && ACTIVE.includes(x.status)).length > 1)) {
+        const r = firstFreeRoom();
+        if (r) a.room = r;
+      }
+      toast(`Visit started · ${a.provider}`);
+      break;
+    }
+    case "complete": {
+      a.status = "completed";
+      if (a.room) roomState[a.room] = "clean";
+      toast(`${a.patient}'s visit completed`);
+      break;
+    }
+    case "noshow": {
+      a.status = "no-show";
+      toast(`${a.patient} marked as no-show`);
+      break;
+    }
+    case "reschedule": {
+      a.status = "rescheduled";
+      toast(`${a.patient} flagged for rescheduling`);
+      break;
+    }
+    case "call": {
+      toast(`Calling ${a.patient}…`);
+      return;
+    }
+  }
+  render();
+}
+
+/* ---------- Renderers ---------- */
+function renderKPIs() {
+  const total = appts.filter(a => a.status !== "cancelled").length;
+  const waiting = appts.filter(a => a.status === "checked-in").length;
+  const inProg = appts.filter(a => a.status === "in-progress").length;
+  const done = appts.filter(a => a.status === "completed").length;
+  const noShows = appts.filter(a => a.status === "no-show" || a.status === "rescheduled").length;
+  const rate = total ? Math.round((noShows / total) * 100) : 0;
+  const openRooms = ROOMS.filter(r => !isOccupied(r) && roomState[r] !== "clean").length;
+  const remaining = appts.filter(a => a.status === "scheduled").length;
+
+  $("#kpis").innerHTML = [
+    { label: "Booked today", val: total, hint: `${remaining} still upcoming` },
+    { label: "Waiting", val: waiting, hint: "Checked in, not yet roomed" },
+    { label: "In progress", val: inProg, hint: `${done} completed` },
+    { label: "Open rooms", val: `${openRooms}/${ROOMS.length}`, hint: "Free and ready" },
+    { label: "No-shows", val: noShows, hint: `${rate}% of today's bookings`, alert: rate >= 10 }
+  ].map(k => `
+    <div class="kpi ${k.alert ? "alert" : ""}">
+      <div class="label">${k.label}</div>
+      <div class="val">${k.val}</div>
+      <div class="hint">${k.hint}</div>
+    </div>`).join("");
+}
+
+function renderFilters() {
+  $("#filters").innerHTML = FILTERS.map(f => {
+    const n = f.key === "all"
+      ? appts.length
+      : appts.filter(a => a.status === f.key).length;
+    return `<button class="tab ${statusFilter === f.key ? "on" : ""}" data-filter="${f.key}">${f.label}<span class="n">${n}</span></button>`;
+  }).join("");
+}
+
+function renderProviders() {
+  const providers = [...new Set(appts.map(a => a.provider))].sort();
+  const sel = $("#providerFilter");
+  const current = sel.value || "all";
+  sel.innerHTML = `<option value="all">All providers</option>` +
+    providers.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  sel.value = providers.includes(current) || current === "all" ? current : "all";
+  providerFilter = sel.value;
+}
+
+function renderSchedule() {
+  const now = nowMin();
+  let list = [...appts].sort((a, b) => toMin(a.time) - toMin(b.time));
+  if (statusFilter !== "all") list = list.filter(a => a.status === statusFilter);
+  if (providerFilter !== "all") list = list.filter(a => a.provider === providerFilter);
+
+  if (!list.length) {
+    $("#schedule").innerHTML = `<tr><td colspan="7" class="empty">No appointments match these filters.</td></tr>`;
+    return;
+  }
+
+  $("#schedule").innerHTML = list.map(a => {
+    const late = a.status === "scheduled" && toMin(a.time) + 10 < now;
+    const cls = ACTIVE.includes(a.status) || a.status === "in-progress" ? "active" : (["completed", "no-show", "cancelled", "rescheduled"].includes(a.status) ? "dim" : "");
+
+    let buttons = "";
+    if (a.status === "scheduled") buttons = `<button class="btn primary" data-action="checkin" data-id="${a.id}">Check in</button><button class="btn danger" data-action="noshow" data-id="${a.id}">No-show</button>`;
+    else if (a.status === "checked-in") buttons = `<button class="btn primary" data-action="start" data-id="${a.id}">Start visit</button>`;
+    else if (a.status === "in-progress") buttons = `<button class="btn primary" data-action="complete" data-id="${a.id}">Complete</button>`;
+    else if (a.status === "no-show") buttons = `<button class="btn" data-action="reschedule" data-id="${a.id}">Reschedule</button>`;
+
+    const roomSel = `<select data-room-select="${a.id}" aria-label="Room">
+        <option value="">Unassigned</option>
+        ${ROOMS.map(r => `<option ${r === a.room ? "selected" : ""}>${r}</option>`).join("")}
+      </select>`;
+
+    return `<tr class="${cls}">
+      <td class="time">${fmtTime(a.time)}${late ? `<span class="late">Late</span>` : ""}</td>
+      <td class="pt">${esc(a.patient)}</td>
+      <td class="muted">${esc(a.provider)}</td>
+      <td>${esc(a.type)}</td>
+      <td>${roomSel}</td>
+      <td><span class="pill s-${a.status}">${LABEL[a.status]}</span></td>
+      <td><div class="actions">${buttons}</div></td>
+    </tr>`;
+  }).join("");
+}
+
+function renderRooms() {
+  $("#rooms").innerHTML = ROOMS.map(r => {
+    const active = appts.find(a => a.room === r && ACTIVE.includes(a.status));
+    if (active) {
+      return `<div class="room busy">
+        <div class="name">${r}</div>
+        <div class="st"><strong>${esc(active.patient)}</strong><br>${esc(active.provider)} · ${esc(active.type)}</div>
+        <span class="pill s-in-progress" style="align-self:flex-start">${LABEL[active.status]}</span>
+      </div>`;
+    }
+    if (roomState[r] === "clean") {
+      return `<div class="room clean">
+        <div class="name">${r}</div>
+        <div class="st">Needs turnover</div>
+        <button class="btn" data-action="ready" data-room="${esc(r)}">Mark ready</button>
+      </div>`;
+    }
+    return `<div class="room free">
+      <div class="name">${r}</div>
+      <div class="st">Available</div>
+    </div>`;
+  }).join("");
+}
+
+function renderNoShows() {
+  const list = appts.filter(a => a.status === "no-show").sort((a, b) => toMin(a.time) - toMin(b.time));
+  $("#noshows").innerHTML = list.length
+    ? list.map(a => `
+      <div class="noshow">
+        <div>
+          <div class="pt">${esc(a.patient)}</div>
+          <div class="muted">${fmtTime(a.time)} · ${esc(a.provider)} · ${esc(a.type)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn" data-action="call" data-id="${a.id}">Call</button>
+          <button class="btn primary" data-action="reschedule" data-id="${a.id}">Reschedule</button>
+        </div>
+      </div>`).join("")
+    : `<div class="empty">No no-shows so far today.</div>`;
+}
+
+function renderBars() {
+  const today = new Date().getDay() - 1; // 0 = Mon
+  const max = Math.max(...WEEK.map(w => w.v));
+  $("#bars").innerHTML = WEEK.map((w, i) => `
+    <div class="bcol">
+      <em>${w.v}</em>
+      <div class="bar ${i === today ? "today" : ""}" style="height:${Math.round((w.v / max) * 100)}%"></div>
+      <span>${w.d}</span>
+    </div>`).join("");
+}
+
+function renderHeader() {
+  $("#today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  $("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function render() {
+  renderHeader();
+  renderKPIs();
+  renderFilters();
+  renderProviders();
+  renderSchedule();
+  renderRooms();
+  renderNoShows();
+  renderBars();
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const filterBtn = e.target.closest("[data-filter]");
+  if (filterBtn) { statusFilter = filterBtn.dataset.filter; render(); return; }
+
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === "ready") {
+    roomState[btn.dataset.room] = "ready";
+    toast(`${btn.dataset.room} is ready`);
+    render();
+    return;
+  }
+  act(Number(btn.dataset.id), action);
+});
+
+document.addEventListener("change", e => {
+  if (e.target.id === "providerFilter") {
+    providerFilter = e.target.value;
+    renderSchedule();
+    return;
+  }
+  if (e.target.dataset.roomSelect) {
+    const a = appts.find(x => x.id === Number(e.target.dataset.roomSelect));
+    const newRoom = e.target.value || null;
+    if (newRoom && ACTIVE.includes(a.status) && appts.some(x => x.id !== a.id && x.room === newRoom && ACTIVE.includes(x.status))) {
+      toast(`Warning: ${newRoom} is already occupied`);
+    }
+    a.room = newRoom;
+    render();
+  }
+});
+
+/* ---------- Boot ---------- */
+render();
+setInterval(() => { renderHeader(); }, 1000);
+setInterval(render, 30000);
+</script>
+</body>
+</html>

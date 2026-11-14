@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Team Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --col-bg: #ebedf0;
+    --border: #dfe1e6;
+    --text: #172b4d;
+    --muted: #6b778c;
+    --accent: #5e4db2;
+    --accent-hover: #4c3e9a;
+    --danger: #de350b;
+    --warn: #ff8b00;
+    --ok: #00875a;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(9,30,66,.12), 0 1px 1px rgba(9,30,66,.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  .spacer { flex: 1; }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type="search"], select, input, textarea {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(94,77,178,.18); }
+  input[type="search"] { width: 220px; }
+
+  .btn {
+    font: inherit;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 7px 14px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    transition: background .15s;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .btn.secondary:hover { background: #f5f6f8; }
+  .btn.danger { background: var(--danger); }
+  .btn.danger:hover { background: #bf2600; }
+  .btn.ghost { background: transparent; color: var(--muted); padding: 4px 8px; font-weight: 500; }
+  .btn.ghost:hover { background: rgba(9,30,66,.06); color: var(--text); }
+
+  /* ---------- Board ---------- */
+  main {
+    flex: 1;
+    overflow-x: auto;
+    padding: 18px 20px 24px;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 14px;
+    min-height: 100%;
+  }
+  .column {
+    background: var(--col-bg);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 130px);
+    min-width: 260px;
+  }
+  .col-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 12px 8px 14px;
+  }
+  .col-header h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 0;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .count {
+    background: rgba(9,30,66,.08);
+    color: var(--muted);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 1px 8px;
+  }
+  .count.over { background: #ffebe6; color: var(--danger); }
+  .col-header .spacer { flex: 1; }
+  .col-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 120px;
+    border-radius: 8px;
+    transition: background .12s;
+  }
+  .col-list.drag-over { background: rgba(94,77,178,.10); outline: 2px dashed rgba(94,77,178,.45); outline-offset: -4px; }
+  .empty {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 22px 10px;
+    border: 1px dashed #c1c7d0;
+    border-radius: 8px;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 10px 12px 10px;
+    box-shadow: var(--shadow);
+    cursor: grab;
+    border-left: 3px solid transparent;
+    transition: transform .1s, box-shadow .1s;
+    user-select: none;
+  }
+  .card:hover { box-shadow: 0 3px 8px rgba(9,30,66,.15); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .45; transform: rotate(1.5deg); }
+  .card.p-high { border-left-color: var(--danger); }
+  .card.p-med { border-left-color: var(--warn); }
+  .card.p-low { border-left-color: var(--ok); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    background: #eae6ff;
+    color: #403294;
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+  .card-title { font-weight: 600; line-height: 1.35; margin-bottom: 4px; word-break: break-word; }
+  .card-desc {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .card-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .card-foot .spacer { flex: 1; }
+  .due.overdue { color: var(--danger); font-weight: 600; }
+  .due.soon { color: var(--warn); font-weight: 600; }
+  .avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .avatar.none { background: #c1c7d0; }
+  .prio-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  /* ---------- Dialog ---------- */
+  dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    width: min(560px, calc(100vw - 32px));
+    box-shadow: 0 20px 50px rgba(9,30,66,.35);
+    color: var(--text);
+  }
+  dialog::backdrop { background: rgba(9,30,66,.45); }
+  dialog form { padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 14px; }
+  dialog h3 { margin: 0; font-size: 17px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .actions .spacer { flex: 1; }
+
+  footer.hint {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 0 0 12px;
+  }
+
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; }
+    input[type="search"] { width: 100%; }
+    header { gap: 10px; }
+    .toolbar { width: 100%; }
+    .toolbar input[type="search"] { flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Design Team Board</h1>
+  <div class="spacer"></div>
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search cards or tags…" aria-label="Search cards">
+    <select id="assigneeFilter" aria-label="Filter by assignee">
+      <option value="">Everyone</option>
+    </select>
+    <button class="btn" id="newCardBtn">+ New card</button>
+  </div>
+</header>
+
+<main>
+  <div class="board" id="board"></div>
+</main>
+
+<footer class="hint">Drag cards between columns · Click a card to edit · Changes save automatically in this browser</footer>
+
+<dialog id="cardDialog">
+  <form id="cardForm" autocomplete="off">
+    <h3 id="dialogTitle">New card</h3>
+
+    <div class="field">
+      <label for="fTitle">Title</label>
+      <input id="fTitle" required maxlength="140" placeholder="e.g. Refresh onboarding illustrations">
+    </div>
+
+    <div class="field">
+      <label for="fDesc">Description</label>
+      <textarea id="fDesc" placeholder="Context, links, acceptance criteria…"></textarea>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="fStatus">Column</label>
+        <select id="fStatus"></select>
+      </div>
+      <div class="field">
+        <label for="fAssignee">Assignee</label>
+        <select id="fAssignee"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="fPriority">Priority</label>
+        <select id="fPriority">
+          <option value="high">High</option>
+          <option value="med" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fDue">Due date</label>
+        <input id="fDue" type="date">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fTags">Tags (comma separated)</label>
+      <input id="fTags" placeholder="branding, mobile, research">
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn danger" id="deleteBtn" hidden>Delete</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const STORAGE_KEY = "design-team-kanban-v1";
+
+  const COLUMNS = [
+    { id: "backlog",  name: "Backlog" },
+    { id: "progress", name: "In progress" },
+    { id: "review",   name: "Review" },
+    { id: "done",     name: "Done" }
+  ];
+
+  const TEAM = [
+    { id: "ava",   name: "Ava Chen",     color: "#e76f51" },
+    { id: "marco", name: "Marco Rossi",  color: "#2a9d8f" },
+    { id: "priya", name: "Priya Nair",   color: "#8e44ad" },
+    { id: "jonas", name: "Jonas Berg",   color: "#3a86ff" },
+    { id: "lina",  name: "Lina Park",    color: "#e9a23b" }
+  ];
+
+  const PRIORITY_RANK = { high: 0, med: 1, low: 2 };
+
+  const today = new Date();
+  const iso = (offsetDays) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const SEED = [
+    { id: uid(), title: "Brand refresh moodboard", desc: "Collect references for the spring palette and type direction. Share in #design.", status: "progress", assignee: "ava", priority: "high", tags: ["branding"], due: iso(3) },
+    { id: uid(), title: "Mobile checkout flow v2", desc: "Reduce steps from 5 to 3. Validate with two rounds of usability tests.", status: "review", assignee: "marco", priority: "high", tags: ["mobile", "ux"], due: iso(1) },
+    { id: uid(), title: "Icon set audit", desc: "Find inconsistent stroke widths and naming in the shared icon library.", status: "backlog", assignee: "lina", priority: "low", tags: ["system"], due: "" },
+    { id: uid(), title: "Accessibility pass on dashboard", desc: "Check contrast ratios and focus states on all dashboard components.", status: "backlog", assignee: "priya", priority: "med", tags: ["a11y"], due: iso(-2) },
+    { id: uid(), title: "Onboarding illustrations", desc: "Final exports delivered to engineering. Waiting on sign-off.", status: "done", assignee: "jonas", priority: "med", tags: ["illustration"], due: iso(-5) }
+  ];
+
+  let state = load();
+
+  // ---------- Utilities ----------
+  function uid() {
+    return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (_) { /* ignore corrupt storage */ }
+    return SEED.map(c => ({ ...c, id: uid() }));
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+  }
+
+  const memberById = id => TEAM.find(m => m.id === id);
+  const initials = name => name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+
+  function dueInfo(due, status) {
+    if (!due) return null;
+    const d = new Date(due + "T00:00:00");
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const diff = Math.round((d - now) / 86400000);
+    const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    if (status === "done") return { label, cls: "" };
+    if (diff < 0) return { label: `${label} (overdue)`, cls: "overdue" };
+    if (diff <= 2) return { label, cls: "soon" };
+    return { label, cls: "" };
+  }
+
+  function el(tag, attrs = {}, children = []) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else if (k.startsWith("data-")) node.setAttribute(k, v);
+      else node[k] = v;
+    }
+    for (const c of children) if (c) node.append(c);
+    return node;
+  }
+
+  // ---------- Filters ----------
+  const searchEl = document.getElementById("search");
+  const assigneeFilter = document.getElementById("assigneeFilter");
+
+  TEAM.forEach(m => assigneeFilter.append(el("option", { value: m.id, text: m.name })));
+  assigneeFilter.append(el("option", { value: "none", text: "Unassigned" }));
+
+  function matchesFilters(card) {
+    const q = searchEl.value.trim().toLowerCase();
+    const who = assigneeFilter.value;
+    if (who === "none" && card.assignee) return false;
+    if (who && who !== "none" && card.assignee !== who) return false;
+    if (q) {
+      const hay = [card.title, card.desc, ...(card.tags || [])].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+
+  // ---------- Rendering ----------
+  const board = document.getElementById("board");
+
+  function buildCard(card) {
+    const member = memberById(card.assignee);
+    const due = dueInfo(card.due, card.status);
+    const prio = card.priority || "med";
+
+    const avatar = member
+      ? el("span", { class: "avatar", title: member.name, text: initials(member.name) })
+      : el("span", { class: "avatar none", title: "Unassigned", text: "?" });
+    if (member) avatar.style.background = member.color;
+
+    const tags = (card.tags || []).length
+      ? el("div", { class: "tags" }, card.tags.map(t => el("span", { class: "tag", text: t })))
+      : null;
+
+    return el("article", {
+      class: `card p-${prio}`,
+      draggable: true,
+      "data-id": card.id,
+      tabIndex: 0,
+      role: "button",
+      "aria-label": `${card.title}, ${prio} priority`
+    }, [
+      tags,
+      el("div", { class: "card-title", text: card.title }),
+      card.desc ? el("div", { class: "card-desc", text: card.desc }) : null,
+      el("div", { class: "card-foot" }, [
+        el("span", { class: "prio-label", text: prio === "med" ? "medium" : prio }),
+        el("span", { class: "spacer" }),
+        due ? el("span", { class: `due ${due.cls}`, text: "📅 " + due.label }) : null,
+        avatar
+      ])
+    ]);
+  }
+
+  function render() {
+    const cards = state.filter(matchesFilters);
+    board.replaceChildren();
+
+    for (const col of COLUMNS) {
+      const all = state.filter(c => c.status === col.id);
+      const visible = cards
+        .filter(c => c.status === col.id)
+        .sort((a, b) =>
+          (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1) ||
+          (a.due || "9999").localeCompare(b.due || "9999"));
+
+      const list = el("div", { class: "col-list", "data-status": col.id });
+      if (visible.length === 0) {
+        list.append(el("div", { class: "empty", text: all.length ? "No matches" : "Nothing here yet" }));
+      } else {
+        visible.forEach(c => list.append(buildCard(c)));
+      }
+
+      const countEl = el("span", { class: "count", text: String(visible.length) });
+      const header = el("div", { class: "col-header" }, [
+        el("h2", { text: col.name }),
+        countEl,
+        el("span", { class: "spacer" }),
+        el("button", {
+          class: "btn ghost",
+          type: "button",
+          title: `Add card to ${col.name}`,
+          "aria-label": `Add card to ${col.name}`,
+          text: "+",
+          onclick: () => openDialog(null, col.id)
+        })
+      ]);
+
+      board.append(el("section", { class: "column", "aria-label": col.name }, [header, list]));
+    }
+  }
+
+  // ---------- Dialog ---------- 
+  const dialog = document.getElementById("cardDialog");
+  const form = document.getElementById("cardForm");
+  const fields = {
+    title: document.getElementById("fTitle"),
+    desc: document.getElementById("fDesc"),
+    status: document.getElementById("fStatus"),
+    assignee: document.getElementById("fAssignee"),
+    priority: document.getElementById("fPriority"),
+    due: document.getElementById("fDue"),
+    tags: document.getElementById("fTags")
+  };
+  const deleteBtn = document.getElementById("deleteBtn");
+  let editingId = null;
+
+  COLUMNS.forEach(c => fields.status.append(el("option", { value: c.id, text: c.name })));
+  fields.assignee.append(el("option", { value: "", text: "Unassigned" }));
+  TEAM.forEach(m => fields.assignee.append(el("option", { value: m.id, text: m.name })));
+
+  function openDialog(id = null, presetStatus = "backlog") {
+    editingId = id;
+    const card = id ? state.find(c => c.id === id) : null;
+    document.getElementById("dialogTitle").textContent = card ? "Edit card" : "New card";
+    deleteBtn.hidden = !card;
+
+    fields.title.value = card?.title ?? "";
+    fields.desc.value = card?.desc ?? "";
+    fields.status.value = card?.status ?? presetStatus;
+    fields.assignee.value = card?.assignee ?? "";
+    fields.priority.value = card?.priority ?? "med";
+    fields.due.value = card?.due ?? "";
+    fields.tags.value = (card?.tags || []).join(", ");
+
+    dialog.showModal();
+    setTimeout(() => fields.title.focus(), 0);
+  }
+
+  document.getElementById("newCardBtn").addEventListener("click", () => openDialog(null, "backlog"));
+  document.getElementById("cancelBtn").addEventListener("click", () => dialog.close());
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = {
+      title: fields.title.value.trim(),
+      desc: fields.desc.value.trim(),
+      status: fields.status.value,
+      assignee: fields.assignee.value,
+      priority: fields.priority.value,
+      due: fields.due.value,
+      tags: fields.tags.value.split(",").map(t => t.trim().toLowerCase()).filter(Boolean)
+    };
+    if (!data.title) return;
+
+    if (editingId) {
+      state = state.map(c => c.id === editingId ? { ...c, ...data } : c);
+    } else {
+      state.push({ id: uid(), ...data });
+    }
+    save();
+    dialog.close();
+    render();
+  });
+
+  deleteBtn.addEventListener("click", () => {
+    const card = state.find(c => c.id === editingId);
+    if (!card) return;
+    if (!confirm(`Delete "${card.title}"? This can't be undone.`)) return;
+    state = state.filter(c => c.id !== editingId);
+    save();
+    dialog.close();
+    render();
+  });
+
+  // ---------- Board interactions ----------
+  board.addEventListener("click", (e) => {
+    const cardEl = e.target.closest(".card");
+    if (cardEl) openDialog(cardEl.dataset.id);
+  });
+
+  board.addEventListener("keydown", (e) => {
+    const cardEl = e.target.closest(".card");
+    if (cardEl && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      openDialog(cardEl.dataset.id);
+    }
+  });
+
+  let draggedId = null;
+
+  board.addEventListener("dragstart", (e) => {
+    const cardEl = e.target.closest(".card");
+    if (!cardEl) return;
+    draggedId = cardEl.dataset.id;
+    cardEl.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", draggedId);
+  });
+
+  board.addEventListener("dragend", (e) => {
+    const cardEl = e.target.closest(".card");
+    if (cardEl) cardEl.classList.remove("dragging");
+    document.querySelectorAll(".col-list.drag-over").forEach(n => n.classList.remove("drag-over"));
+    draggedId = null;
+  });
+
+  board.addEventListener("dragover", (e) => {
+    const list = e.target.closest(".col-list");
+    if (!list || !draggedId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!list.classList.contains("drag-over")) {
+      document.querySelectorAll(".col-list.drag-over").forEach(n => n.classList.remove("drag-over"));
+      list.classList.add("drag-over");
+    }
+  });
+
+  board.addEventListener("dragleave", (e) => {
+    const list = e.target.closest(".col-list");
+    if (list && !list.contains(e.relatedTarget)) list.classList.remove("drag-over");
+  });
+
+  board.addEventListener("drop", (e) => {
+    const list = e.target.closest(".col-list");
+    if (!list) return;
+    e.preventDefault();
+    list.classList.remove("drag-over");
+    const id = e.dataTransfer.getData("text/plain") || draggedId;
+    const status = list.dataset.status;
+    const card = state.find(c => c.id === id);
+    if (card && card.status !== status) {
+      card.status = status;
+      save();
+      render();
+    }
+  });
+
+  // ---------- Search / filter ----------
+  searchEl.addEventListener("input", render);
+  assigneeFilter.addEventListener("change", render);
+
+  render();
+})();
+</script>
+</body>
+</html>

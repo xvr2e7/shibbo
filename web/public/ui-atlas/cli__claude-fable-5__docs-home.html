@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plotkit — Lightweight charts for the modern web</title>
+<meta name="description" content="Plotkit is a tiny, dependency-free charting library. Declarative API, crisp SVG rendering, 9 kB gzipped.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg-soft: #11151f;
+    --panel: #151a26;
+    --panel-2: #1a2030;
+    --border: #232b3d;
+    --text: #e6eaf2;
+    --text-dim: #9aa4b8;
+    --text-faint: #6b7489;
+    --accent: #5eead4;
+    --accent-2: #818cf8;
+    --accent-3: #f472b6;
+    --code-bg: #0d1119;
+    --radius: 12px;
+    --max: 1120px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11, 14, 20, 0.82);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav {
+    max-width: var(--max); margin: 0 auto; padding: 0 24px;
+    height: 60px; display: flex; align-items: center; gap: 28px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 800; font-size: 17px; letter-spacing: -0.02em;
+  }
+  .logo svg { display: block; }
+  .logo .ver {
+    font-weight: 500; font-size: 11px; color: var(--accent);
+    background: rgba(94, 234, 212, 0.1);
+    border: 1px solid rgba(94, 234, 212, 0.25);
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .nav-links {
+    display: flex; gap: 4px; margin-left: 8px;
+    font-size: 14px; color: var(--text-dim);
+  }
+  .nav-links a { padding: 6px 12px; border-radius: 8px; transition: color .15s, background .15s; }
+  .nav-links a:hover { color: var(--text); background: var(--panel); }
+  .nav-spacer { flex: 1; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 13px; color: var(--text-faint);
+    cursor: pointer; transition: border-color .15s;
+    min-width: 200px;
+  }
+  .search:hover { border-color: #334059; }
+  .search kbd {
+    margin-left: auto; font-family: inherit; font-size: 11px;
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 5px; color: var(--text-faint); background: var(--bg-soft);
+  }
+  .gh-link { display: flex; align-items: center; color: var(--text-dim); transition: color .15s; }
+  .gh-link:hover { color: var(--text); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(600px 300px at 20% 0%, rgba(129, 140, 248, 0.14), transparent 70%),
+      radial-gradient(600px 300px at 80% 10%, rgba(94, 234, 212, 0.1), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative;
+    max-width: var(--max); margin: 0 auto; padding: 88px 24px 72px;
+    display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500; color: var(--accent);
+    background: rgba(94, 234, 212, 0.08);
+    border: 1px solid rgba(94, 234, 212, 0.2);
+    border-radius: 999px; padding: 4px 14px; margin-bottom: 22px;
+  }
+  h1 {
+    font-size: clamp(34px, 4.5vw, 52px);
+    font-weight: 800; letter-spacing: -0.035em; line-height: 1.1;
+    margin-bottom: 18px;
+  }
+  h1 .grad {
+    background: linear-gradient(100deg, var(--accent), var(--accent-2) 60%, var(--accent-3));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.lede { font-size: 18px; color: var(--text-dim); max-width: 44ch; margin-bottom: 30px; }
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 600; border-radius: 10px;
+    padding: 11px 22px; transition: transform .12s, box-shadow .12s, background .15s;
+  }
+  .btn-primary {
+    background: var(--accent); color: #06281f;
+    box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.4);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px -6px rgba(94, 234, 212, 0.45); }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); background: var(--panel); }
+  .btn-ghost:hover { background: var(--panel-2); }
+  .install {
+    margin-top: 26px; display: inline-flex; align-items: center; gap: 12px;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 16px; font-size: 14px;
+  }
+  .install code { color: var(--text-dim); }
+  .install code .cmd { color: var(--accent); }
+  .copy-btn {
+    border: none; background: none; color: var(--text-faint);
+    cursor: pointer; padding: 4px; border-radius: 6px; display: flex;
+    transition: color .15s, background .15s;
+  }
+  .copy-btn:hover { color: var(--text); background: var(--panel-2); }
+
+  /* Hero demo card */
+  .demo-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .demo-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .demo-head .title { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+  .demo-tabs { display: flex; gap: 6px; }
+  .demo-tabs button {
+    font: inherit; font-size: 12px; font-weight: 500;
+    color: var(--text-faint); background: none; border: 1px solid transparent;
+    border-radius: 6px; padding: 3px 10px; cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+  .demo-tabs button.active { color: var(--accent); background: rgba(94, 234, 212, 0.1); border-color: rgba(94, 234, 212, 0.25); }
+  .demo-tabs button:not(.active):hover { color: var(--text); }
+  .demo-body { padding: 18px 14px 10px; }
+  #chart { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 18px; padding: 4px 10px 14px; font-size: 12px; color: var(--text-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* ---------- Stats strip ---------- */
+  .stats {
+    max-width: var(--max); margin: 0 auto; padding: 0 24px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .stats > div {
+    padding: 28px 10px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stats > div:last-child { border-right: none; }
+  .stats .num { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .stats .lbl { font-size: 13px; color: var(--text-faint); margin-top: 2px; }
+
+  /* ---------- Sections ---------- */
+  section { border-top: 1px solid var(--border); }
+  .section-inner { max-width: var(--max); margin: 0 auto; padding: 80px 24px; }
+  .section-head { max-width: 60ch; margin-bottom: 44px; }
+  .kicker {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-2); margin-bottom: 10px;
+  }
+  h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 12px; }
+  .section-head p { color: var(--text-dim); font-size: 16px; }
+
+  /* Quickstart */
+  .quickstart { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 18px; padding-bottom: 28px; position: relative; }
+  .step:not(:last-child)::before {
+    content: ""; position: absolute; left: 15px; top: 36px; bottom: 0;
+    width: 1px; background: var(--border);
+  }
+  .step-n {
+    flex: none; width: 31px; height: 31px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    background: rgba(94, 234, 212, 0.08); border: 1px solid rgba(94, 234, 212, 0.3);
+  }
+  .step h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .step p { font-size: 14px; color: var(--text-dim); }
+  .step p code {
+    font-size: 12.5px; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; color: var(--accent);
+  }
+  .codeblock {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; font-size: 13.5px;
+  }
+  .codeblock .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--text-faint);
+  }
+  .codeblock pre { padding: 18px 20px; overflow-x: auto; line-height: 1.7; }
+  .tk-kw { color: #c792ea; }
+  .tk-str { color: #a5e3a1; }
+  .tk-fn { color: #82aaff; }
+  .tk-num { color: #f78c6c; }
+  .tk-cm { color: #5b647a; font-style: italic; }
+  .tk-pr { color: #7fdbca; }
+
+  /* Feature grid */
+  .features {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  }
+  .feature {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 26px 24px;
+    transition: border-color .2s, transform .2s;
+  }
+  .feature:hover { border-color: #33415e; transform: translateY(-2px); }
+  .feature .icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px; font-size: 18px;
+    background: linear-gradient(135deg, rgba(94,234,212,0.12), rgba(129,140,248,0.12));
+    border: 1px solid var(--border);
+  }
+  .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .feature p { font-size: 14px; color: var(--text-dim); }
+
+  /* Doc cards */
+  .doc-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .doc-card {
+    display: block; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    transition: border-color .2s, background .2s;
+  }
+  .doc-card:hover { border-color: var(--accent); background: var(--panel-2); }
+  .doc-card h3 {
+    font-size: 16px; font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .doc-card h3 .arrow { color: var(--text-faint); transition: transform .2s, color .2s; }
+  .doc-card:hover .arrow { transform: translateX(3px); color: var(--accent); }
+  .doc-card p { font-size: 14px; color: var(--text-dim); }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--bg-soft); }
+  .footer-inner {
+    max-width: var(--max); margin: 0 auto; padding: 48px 24px 36px;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px;
+  }
+  .footer-inner h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .footer-inner ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .footer-inner ul a { font-size: 14px; color: var(--text-dim); transition: color .15s; }
+  .footer-inner ul a:hover { color: var(--accent); }
+  .footer-brand p { font-size: 14px; color: var(--text-faint); margin-top: 12px; max-width: 32ch; }
+  .footer-bottom {
+    border-top: 1px solid var(--border);
+    max-width: var(--max); margin: 0 auto; padding: 20px 24px;
+    font-size: 13px; color: var(--text-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .hero-inner { grid-template-columns: 1fr; padding: 56px 24px; gap: 40px; }
+    .quickstart { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr 1fr; }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .nav-links, .search { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stats > div:nth-child(2) { border-right: none; }
+    .stats > div:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+  }
+  @media (max-width: 600px) {
+    .features, .doc-cards, .footer-inner { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="nav">
+    <a class="logo" href="#">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="6" fill="url(#lg)"/>
+        <path d="M6 16.5 10 11l3.2 3.2L18 7.5" stroke="#0b0e14" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#5eead4"/><stop offset="1" stop-color="#818cf8"/></linearGradient></defs>
+      </svg>
+      Plotkit <span class="ver">v3.2</span>
+    </a>
+    <div class="nav-links">
+      <a href="#quickstart">Docs</a>
+      <a href="#guides">Guides</a>
+      <a href="#guides">API</a>
+      <a href="#features">Examples</a>
+      <a href="#">Blog</a>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="search" role="button" tabindex="0" aria-label="Search documentation">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search docs… <kbd>⌘K</kbd>
+    </div>
+    <a class="gh-link" href="https://github.com/plotkit/plotkit" aria-label="GitHub repository">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    </a>
+  </nav>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="eyebrow">✦ &nbsp;Open source · MIT licensed</span>
+        <h1>Beautiful charts,<br><span class="grad">zero dependencies.</span></h1>
+        <p class="lede">Plotkit is a 9&nbsp;kB charting library with a declarative API, crisp SVG rendering, and accessibility built in. Works with vanilla JS, React, Vue, and Svelte.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#quickstart">Get started
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#guides">API reference</a>
+        </div>
+        <div class="install">
+          <code><span class="cmd">$</span> npm install plotkit</code>
+          <button class="copy-btn" onclick="copyInstall(this)" aria-label="Copy install command">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="demo-card">
+        <div class="demo-head">
+          <span class="title">Monthly active users</span>
+          <div class="demo-tabs">
+            <button class="active" onclick="setSeries(this, 0)">2025</button>
+            <button onclick="setSeries(this, 1)">2024</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="chart" viewBox="0 0 520 260" role="img" aria-label="Line chart showing monthly active users"></svg>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#5eead4"></i>Web</span>
+          <span><i class="dot" style="background:#818cf8"></i>Mobile</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div><div class="num">9 kB</div><div class="lbl">gzipped, zero deps</div></div>
+    <div><div class="num">28k</div><div class="lbl">GitHub stars</div></div>
+    <div><div class="num">24</div><div class="lbl">chart types</div></div>
+    <div><div class="num">100%</div><div class="lbl">a11y audit score</div></div>
+  </div>
+
+  <section id="quickstart">
+    <div class="section-inner">
+      <div class="section-head">
+        <div class="kicker">Quickstart</div>
+        <h2>Your first chart in under a minute</h2>
+        <p>Describe your data and marks; Plotkit handles scales, axes, tooltips, and resizing.</p>
+      </div>
+      <div class="quickstart">
+        <div class="steps">
+          <div class="step">
+            <div class="step-n">1</div>
+            <div>
+              <h3>Install the package</h3>
+              <p>Run <code>npm install plotkit</code>, or load it from a CDN with a single <code>&lt;script&gt;</code> tag — no build step required.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-n">2</div>
+            <div>
+              <h3>Add a container</h3>
+              <p>Any element works: <code>&lt;div id="app"&gt;&lt;/div&gt;</code>. Charts are responsive by default and re-render on resize.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-n">3</div>
+            <div>
+              <h3>Describe your chart</h3>
+              <p>Pass data and a list of marks. Scales, axes, and tooltips are inferred — override anything when you need to.</p>
+            </div>
+          </div>
+        </div>
+        <div class="codeblock">
+          <div class="bar"><span>chart.js</span><span>ESM</span></div>
+          <pre><code><span class="tk-kw">import</span> { <span class="tk-fn">plot</span>, <span class="tk-fn">line</span>, <span class="tk-fn">area</span> } <span class="tk-kw">from</span> <span class="tk-str">"plotkit"</span>;
+
+<span class="tk-kw">const</span> data = <span class="tk-kw">await</span> <span class="tk-fn">fetch</span>(<span class="tk-str">"/api/usage.json"</span>)
+  .<span class="tk-fn">then</span>(r =&gt; r.<span class="tk-fn">json</span>());
+
+<span class="tk-fn">plot</span>(<span class="tk-str">"#app"</span>, {
+  <span class="tk-pr">data</span>,
+  <span class="tk-pr">x</span>: <span class="tk-str">"month"</span>,
+  <span class="tk-pr">marks</span>: [
+    <span class="tk-fn">area</span>({ <span class="tk-pr">y</span>: <span class="tk-str">"web"</span>, <span class="tk-pr">opacity</span>: <span class="tk-num">0.15</span> }),
+    <span class="tk-fn">line</span>({ <span class="tk-pr">y</span>: <span class="tk-str">"web"</span>, <span class="tk-pr">stroke</span>: <span class="tk-str">"teal"</span> }),
+    <span class="tk-fn">line</span>({ <span class="tk-pr">y</span>: <span class="tk-str">"mobile"</span>, <span class="tk-pr">stroke</span>: <span class="tk-str">"indigo"</span> }),
+  ],
+  <span class="tk-pr">tooltip</span>: <span class="tk-kw">true</span>,  <span class="tk-cm">// keyboard-navigable</span>
+});</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-inner">
+      <div class="section-head">
+        <div class="kicker">Why Plotkit</div>
+        <h2>Small library, serious charts</h2>
+        <p>Everything you need for production dashboards — and nothing you don't.</p>
+      </div>
+      <div class="features">
+        <div class="feature"><div class="icon">⚡</div><h3>Tiny &amp; fast</h3><p>9 kB gzipped with zero dependencies. Renders 50k points at 60 fps with automatic canvas fallback.</p></div>
+        <div class="feature"><div class="icon">🧩</div><h3>Declarative marks</h3><p>Compose lines, areas, bars, dots, and annotations into any chart. No chart-type lock-in.</p></div>
+        <div class="feature"><div class="icon">♿</div><h3>Accessible by default</h3><p>Keyboard-navigable tooltips, ARIA descriptions, and colorblind-safe default palettes.</p></div>
+        <div class="feature"><div class="icon">🎨</div><h3>Themeable</h3><p>Style with CSS variables or design tokens. Dark mode works out of the box.</p></div>
+        <div class="feature"><div class="icon">⚛️</div><h3>Framework adapters</h3><p>First-party bindings for React, Vue, and Svelte, plus a vanilla API that works anywhere.</p></div>
+        <div class="feature"><div class="icon">📦</div><h3>SSR ready</h3><p>Render static SVG on the server, then hydrate interactivity on the client — or don't.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="guides">
+    <div class="section-inner">
+      <div class="section-head">
+        <div class="kicker">Documentation</div>
+        <h2>Explore the docs</h2>
+      </div>
+      <div class="doc-cards">
+        <a class="doc-card" href="#"><h3>Core concepts <span class="arrow">→</span></h3><p>Marks, scales, channels, and layout — the mental model behind every Plotkit chart.</p></a>
+        <a class="doc-card" href="#"><h3>API reference <span class="arrow">→</span></h3><p>Every function, option, and type signature, with live editable examples.</p></a>
+        <a class="doc-card" href="#"><h3>Example gallery <span class="arrow">→</span></h3><p>120+ copy-paste recipes: sparklines, heatmaps, candlesticks, streaming data, and more.</p></a>
+        <a class="doc-card" href="#"><h3>Migration guide <span class="arrow">→</span></h3><p>Moving from v2, Chart.js, or D3? Side-by-side comparisons to get you ported quickly.</p></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="logo" href="#">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="1" y="1" width="22" height="22" rx="6" fill="url(#lg2)"/>
+          <path d="M6 16.5 10 11l3.2 3.2L18 7.5" stroke="#0b0e14" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="lg2" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#5eead4"/><stop offset="1" stop-color="#818cf8"/></linearGradient></defs>
+        </svg>
+        Plotkit
+      </a>
+      <p>An open-source charting library maintained by the Plotkit contributors.</p>
+    </div>
+    <div>
+      <h4>Docs</h4>
+      <ul><li><a href="#quickstart">Getting started</a></li><li><a href="#guides">API reference</a></li><li><a href="#guides">Examples</a></li><li><a href="#">Changelog</a></li></ul>
+    </div>
+    <div>
+      <h4>Community</h4>
+      <ul><li><a href="#">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Discussions</a></li><li><a href="#">Contributing</a></li></ul>
+    </div>
+    <div>
+      <h4>More</h4>
+      <ul><li><a href="#">Blog</a></li><li><a href="#">Roadmap</a></li><li><a href="#">Sponsors</a></li><li><a href="#">MIT License</a></li></ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Plotkit contributors. Released under the MIT License.</span>
+    <span>Built with Plotkit v3.2.0</span>
+  </div>
+</footer>
+
+<script>
+  // Hero demo chart, hand-rendered as SVG (what better pitch for a charting library?)
+  const W = 520, H = 260, PAD = { l: 42, r: 14, t: 14, b: 30 };
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const seriesSets = [
+    { web:    [32, 38, 36, 45, 52, 61, 58, 70, 78, 85, 92, 104],
+      mobile: [18, 20, 26, 24, 31, 38, 44, 42, 55, 60, 71, 83] },
+    { web:    [20, 22, 25, 24, 28, 30, 34, 33, 38, 41, 44, 48],
+      mobile: [8, 10, 9, 13, 15, 14, 18, 21, 24, 23, 28, 31] },
+  ];
+
+  const svg = document.getElementById("chart");
+  const NS = "http://www.w3.org/2000/svg";
+
+  function el(name, attrs, parent) {
+    const n = document.createElementNS(NS, name);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(n);
+    return n;
+  }
+
+  function render(set) {
+    svg.innerHTML = "";
+    const all = set.web.concat(set.mobile);
+    const yMax = Math.ceil(Math.max(...all) / 25) * 25;
+    const x = i => PAD.l + (i / (months.length - 1)) * (W - PAD.l - PAD.r);
+    const y = v => H - PAD.b - (v / yMax) * (H - PAD.t - PAD.b);
+
+    // gridlines + y labels
+    for (let t = 0; t <= yMax; t += yMax / 4) {
+      el("line", { x1: PAD.l, x2: W - PAD.r, y1: y(t), y2: y(t), stroke: "#232b3d", "stroke-width": 1, "stroke-dasharray": t ? "3 4" : "none" });
+      const lbl = el("text", { x: PAD.l - 8, y: y(t) + 4, "text-anchor": "end", fill: "#6b7489", "font-size": 10, "font-family": "Inter, sans-serif" });
+      lbl.textContent = t + "k";
+    }
+    // x labels (every other month)
+    months.forEach((m, i) => {
+      if (i % 2) return;
+      const lbl = el("text", { x: x(i), y: H - 8, "text-anchor": "middle", fill: "#6b7489", "font-size": 10, "font-family": "Inter, sans-serif" });
+      lbl.textContent = m;
+    });
+
+    const defs = el("defs", {});
+    const grad = el("linearGradient", { id: "areaGrad", x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el("stop", { offset: "0%", "stop-color": "#5eead4", "stop-opacity": 0.22 }, grad);
+    el("stop", { offset: "100%", "stop-color": "#5eead4", "stop-opacity": 0 }, grad);
+
+    const toPath = vals => vals.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+
+    // area under "web"
+    el("path", {
+      d: toPath(set.web) + ` L${x(11).toFixed(1)} ${y(0)} L${x(0).toFixed(1)} ${y(0)} Z`,
+      fill: "url(#areaGrad)",
+    });
+
+    [["web", "#5eead4"], ["mobile", "#818cf8"]].forEach(([key, color]) => {
+      const p = el("path", { d: toPath(set[key]), fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.getBoundingClientRect(); // flush so the transition animates
+      p.style.transition = "stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)";
+      p.style.strokeDashoffset = "0";
+      // end-point dot
+      el("circle", { cx: x(11), cy: y(set[key][11]), r: 4, fill: color, stroke: "#151a26", "stroke-width": 2 });
+    });
+  }
+
+  function setSeries(btn, idx) {
+    document.querySelectorAll(".demo-tabs button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    render(seriesSets[idx]);
+  }
+
+  function copyInstall(btn) {
+    navigator.clipboard.writeText("npm install plotkit").then(() => {
+      btn.style.color = "#5eead4";
+      setTimeout(() => (btn.style.color = ""), 1200);
+    });
+  }
+
+  render(seriesSets[0]);
+</script>
+</body>
+</html>

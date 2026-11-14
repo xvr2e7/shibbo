@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Murmur — Ambient AI Note-Taking for Unfiltered Thought</title>
+  <meta name="description" content="Murmur captures raw stream-of-consciousness speech, ambient meetings, and fleeting ideas, structuring them into an interconnected web of intelligence.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:italic@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #070709;
+      --bg-surface: #0e0f14;
+      --bg-card: rgba(18, 19, 26, 0.7);
+      --bg-card-hover: rgba(26, 28, 38, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(139, 92, 246, 0.4);
+      --text-main: #f1f1f6;
+      --text-muted: #8b8d9e;
+      --text-subtle: #565869;
+      --accent-violet: #8b5cf6;
+      --accent-indigo: #6366f1;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-cyan: #06b6d4;
+      --glow-gradient: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 80%);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      selection-background-color: #8b5cf633;
+    }
+
+    ::selection {
+      background: rgba(139, 92, 246, 0.35);
+      color: #fff;
+    }
+
+    .font-serif {
+      font-family: 'Instrument Serif', Georgia, serif;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Ambient background glowing elements */
+    .ambient-mesh {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 80% 25%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-noise {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.6;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.2) 100%);
+    }
+
+    /* Content wrapper */
+    .container {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Navigation */
+    nav {
+      position: sticky;
+      top: 20px;
+      z-index: 50;
+      margin-bottom: 40px;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(14, 15, 20, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 10px 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: all 0.3s ease;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-wave {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 9px 18px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #070709;
+      box-shadow: 0 4px 18px rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-primary:hover {
+      background: #e6e6f0;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-glow {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .btn-glow:hover {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      box-shadow: 0 6px 28px rgba(124, 58, 237, 0.6), inset 0 1px 0 rgba(255,255,255,0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 70px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px 6px 12px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      border-radius: 9999px;
+      color: #c4b5fd;
+      font-size: 0.82rem;
+      font-weight: 500;
+      margin-bottom: 28px;
+      animation: floatBadge 4s ease-in-out infinite alternate;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: #a855f7;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .pulse-dot::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: #a855f7;
+      opacity: 0.6;
+      animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(2.4);
+        opacity: 0;
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 6.2vw, 5.2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 980px;
+      margin: 0 auto 24px;
+    }
+
+    .hero h1 .serif-accent {
+      font-weight: 400;
+      color: #e0e7ff;
+      font-style: italic;
+      padding: 0 6px;
+      background: linear-gradient(120deg, #ffffff 30%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 38px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      color: var(--text-subtle);
+      font-size: 0.8rem;
+    }
+
+    .hero-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Interactive Live Note Sandbox (Hero Demo) */
+    .demo-stage {
+      margin-top: 50px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%);
+      padding: 1px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 100px -30px rgba(99, 102, 241, 0.25);
+    }
+
+    .stage-container {
+      background: #0d0e14;
+      border-radius: calc(var(--radius-xl) - 1px);
+      padding: 24px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      position: relative;
+    }
+
+    @media (max-width: 860px) {
+      .stage-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-height: 380px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .panel-tag {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-tag.raw {
+      color: #94a3b8;
+    }
+
+    .panel-tag.synth {
+      color: #a78bfa;
+    }
+
+    /* Waveform visualizer */
+    .waveform-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 36px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .wave-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      transition: height 0.15s ease, background-color 0.2s ease;
+    }
+
+    .stage-active .wave-bar {
+      background: linear-gradient(to top, #6366f1, #a855f7);
+      animation: wavePulse 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes wavePulse {
+      0% { height: 4px; }
+      50% { height: 28px; }
+      100% { height: 8px; }
+    }
+
+    .stage-active .wave-bar:nth-child(2n) { animation-delay: 0.15s; }
+    .stage-active .wave-bar:nth-child(3n) { animation-delay: 0.3s; }
+    .stage-active .wave-bar:nth-child(4n) { animation-delay: 0.45s; }
+
+    .transcript-box {
+      font-size: 0.96rem;
+      color: #d1d5db;
+      line-height: 1.65;
+      font-style: italic;
+      position: relative;
+      flex-grow: 1;
+    }
+
+    .transcript-box span.highlight {
+      color: #fff;
+      font-weight: 500;
+      background: rgba(139, 92, 246, 0.2);
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .stage-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+    }
+
+    /* Structured Synthesized Note Card */
+    .synth-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .synth-title {
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-category {
+      font-size: 0.7rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .synth-summary {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      border-left: 2px solid var(--accent-violet);
+      padding-left: 12px;
+      line-height: 1.5;
+    }
+
+    .action-items-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .check-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid #a855f7;
+      display: grid;
+      place-items: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .tag-cluster {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .pill-tag {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .interactive-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      justify-content: center;
+    }
+
+    .demo-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      color: #ddd6fe;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .demo-trigger:hover {
+      background: rgba(139, 92, 246, 0.28);
+      color: #fff;
+      transform: scale(1.02);
+    }
+
+    /* Social Proof Bar */
+    .social-proof {
+      padding: 70px 0 40px;
+      text-align: center;
+    }
+
+    .proof-caption {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-subtle);
+      margin-bottom: 24px;
+      font-weight: 600;
+    }
+
+    .logo-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      opacity: 0.55;
+      filter: grayscale(1);
+      transition: opacity 0.3s;
+    }
+
+    .logo-strip:hover {
+      opacity: 0.85;
+    }
+
+    .client-logo {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    /* Bento Box Grid */
+    .bento-section {
+      padding: 90px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 56px;
+    }
+
+    .section-header .sub-badge {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--accent-violet);
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-header h2 {
+      font-size: clamp(2rem, 3.8vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+
+    .bento-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bento-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    .col-7 { grid-column: span 7; }
+    .col-5 { grid-column: span 5; }
+    .col-4 { grid-column: span 4; }
+    .col-8 { grid-column: span 8; }
+    .col-6 { grid-column: span 6; }
+    .col-12 { grid-column: span 12; }
+
+    @media (max-width: 960px) {
+      .col-7, .col-5, .col-4, .col-8, .col-6 {
+        grid-column: span 12;
+      }
+    }
+
+    .bento-card h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .bento-card p {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      place-items: center;
+      margin-bottom: 22px;
+      color: #c4b5fd;
+    }
+
+    /* Ambient Graph Visual */
+    .graph-mockup {
+      margin-top: 28px;
+      height: 180px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .node {
+      position: absolute;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transition: transform 0.3s;
+    }
+
+    .node:hover {
+      transform: scale(1.08);
+      z-index: 10;
+    }
+
+    .node-center {
+      background: rgba(139, 92, 246, 0.3);
+      border: 1px solid var(--accent-violet);
+      color: #ede9fe;
+      top: 45%;
+      left: 42%;
+    }
+
+    .node-1 {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      color: #c7d2fe;
+      top: 18%;
+      left: 14%;
+    }
+
+    .node-2 {
+      background: rgba(244, 63, 94, 0.2);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      color: #fecdd3;
+      top: 68%;
+      left: 18%;
+    }
+
+    .node-3 {
+      background: rgba(6, 182, 212, 0.2);
+      border: 1px solid rgba(6, 182, 212, 0.5);
+      color: #cffafe;
+      top: 24%;
+      right: 18%;
+    }
+
+    .node-4 {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fef3c7;
+      top: 64%;
+      right: 20%;
+    }
+
+    .graph-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Workflow Stepper */
+    .flow-section {
+      padding: 80px 0;
+      position: relative;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-top: 48px;
+    }
+
+    @media (max-width: 860px) {
+      .flow-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .flow-step-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      position: relative;
+    }
+
+    .step-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--accent-violet);
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: inline-block;
+      background: rgba(139, 92, 246, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .flow-step-card h4 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .flow-step-card p {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Comparison / Second Brain Query preview */
+    .query-preview-box {
+      margin-top: 60px;
+      background: #0f1017;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .query-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 999px;
+      padding: 12px 20px;
+      color: #fff;
+      margin-bottom: 28px;
+    }
+
+    .query-input-bar input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.98rem;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .query-result-threads {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .query-result-threads {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .thread-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+
+    .thread-date {
+      font-size: 0.72rem;
+      color: var(--accent-violet);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 6px;
+    }
+
+    .thread-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #f3f4f6;
+    }
+
+    .thread-excerpt {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Testimonials */
+    .testimonial-section {
+      padding: 90px 0;
+    }
+
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    @media (max-width: 880px) {
+      .testimonial-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .test-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .test-card blockquote {
+      font-size: 0.95rem;
+      color: #e2e8f0;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .test-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #ec4899);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fff;
+    }
+
+    .author-info h5 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .author-info p {
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+    }
+
+    /* Pricing Section */
+    .pricing-section {
+      padding: 80px 0;
+      position: relative;
+    }
+
+    .pricing-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 48px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .toggle-switch {
+      width: 48px;
+      height: 26px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .toggle-knob {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 2px;
+      left: 3px;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-switch.yearly .toggle-knob {
+      transform: translateX(22px);
+    }
+
+    .save-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 900px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px 30px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .price-card.featured {
+      border-color: var(--accent-violet);
+      background: linear-gradient(180deg, rgba(139, 92, 246, 0.1) 0%, rgba(18, 19, 26, 0.8) 100%);
+      box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
+    }
+
+    .card-popular-pill {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .plan-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .plan-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      min-height: 40px;
+    }
+
+    .price-amount {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .price-period {
+      font-size: 0.9rem;
+      color: var(--text-subtle);
+      font-weight: 400;
+    }
+
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-grow: 1;
+    }
+
+    .plan-features li {
+      font-size: 0.86rem;
+      color: #d1d5db;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .plan-features svg {
+      color: var(--accent-violet);
+      flex-shrink: 0;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      padding: 80px 0;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .faq-trigger {
+      width: 100%;
+      padding: 20px 24px;
+      text-align: left;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .faq-trigger svg {
+      transition: transform 0.25s ease;
+      color: var(--text-muted);
+    }
+
+    .faq-item.open .faq-trigger svg {
+      transform: rotate(180deg);
+    }
+
+    .faq-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+      padding: 0 24px;
+    }
+
+    .faq-item.open .faq-content {
+      max-height: 250px;
+      padding-bottom: 20px;
+      transition: max-height 0.3s cubic-bezier(1, 0, 1, 0);
+    }
+
+    .faq-content p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Bottom CTA Banner */
+    .cta-banner {
+      margin: 90px 0 100px;
+      padding: 70px 40px;
+      border-radius: var(--radius-xl);
+      background: radial-gradient(100% 120% at 50% 0%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 16, 24, 0.95) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 80px rgba(99, 102, 241, 0.15);
+    }
+
+    .cta-banner h2 {
+      font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 18px;
+    }
+
+    .cta-banner p {
+      font-size: 1.1rem;
+      color: #c7d2fe;
+      max-width: 580px;
+      margin: 0 auto 34px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 36px;
+      color: var(--text-subtle);
+      font-size: 0.85rem;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+
+    @media (max-width: 768px) {
+      .footer-content {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .footer-col h6 {
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: #fff;
+    }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .system-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #34d399;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #34d399;
+    }
+
+    /* Floating micro animations */
+    @keyframes floatBadge {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-4px); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient lighting backgrounds -->
+  <div class="ambient-mesh"></div>
+  <div class="grid-noise"></div>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Top Navigation -->
+    <nav>
+      <div class="nav-inner">
+        <a href="#" class="brand">
+          <div class="logo-wave">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5v14M7 8v8M22 10v4M2 10v4"/>
+            </svg>
+          </div>
+          <span>Murmur</span>
+        </a>
+
+        <ul class="nav-links">
+          <li><a href="#features">Capabilities</a></li>
+          <li><a href="#workflow">How It Thinks</a></li>
+          <li><a href="#query">Intelligence</a></li>
+          <li><a href="#pricing">Plans</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="#" class="btn btn-secondary">Sign In</a>
+          <a href="#pricing" class="btn btn-primary">Start Free</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+      <div class="hero-pill">
+        <span class="pulse-dot"></span>
+        <span>Murmur 2.4 is live: Zero-latency voice-to-graph synthesis</span>
+      </div>
+
+      <h1>
+        Turn the murmur of thoughts into <span class="serif-accent">structured brilliance</span>.
+      </h1>
+
+      <p>
+        Speak freely, ramble without shame, or let it passively listen in your meetings. Murmur crystallizes chaotic speech into action lists, atomic markdown, and an interconnected second brain.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#pricing" class="btn btn-glow" style="padding: 13px 28px; font-size: 0.98rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+          Capture Your First Thought Free
+        </a>
+        <button id="listenSampleBtn" class="btn btn-secondary" style="padding: 13px 22px; font-size: 0.98rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Simulate Live Audio Note
+        </button>
+      </div>
+
+      <div class="hero-meta">
+        <span>✓ No credit card required</span>
+        <span>•</span>
+        <span>✓ End-to-end encrypted</span>
+        <span>•</span>
+        <span>✓ Syncs with Obsidian, Notion & Slack</span>
+      </div>
+
+      <!-- Live Interactive Stage Demo -->
+      <div class="demo-stage">
+        <div class="stage-container" id="stageContainer">
+          
+          <!-- Left Panel: Raw Input Stream -->
+          <div class="stage-panel">
+            <div class="panel-header">
+              <span class="panel-tag raw">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                Incoming Voice Feed • 0:42
+              </span>
+              <span class="font-mono" style="font-size: 0.72rem; color: #a3e635;">99.8% Whisper V3 Acc.</span>
+            </div>
+
+            <div class="waveform-bar-wrap" id="waveform">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+
+            <div class="transcript-box" id="transcriptText">
+              "Hey, so quick thought on the Q3 pricing refresh... umm, I think we should kill the per-seat model for small teams and just give them unlimited audio transcription up to 50 hours. Also, need Sarah to check with legal on the EU local retention rules by Thursday before we announce."
+            </div>
+
+            <div class="stage-footer">
+              <span>Auto-detected: 2 speakers &bull; Ambient noise filtered</span>
+              <span class="font-mono">132 words captured</span>
+            </div>
+          </div>
+
+          <!-- Right Panel: AI Synthesized Output -->
+          <div class="stage-panel" style="background: rgba(17, 19, 29, 0.95);">
+            <div class="panel-header">
+              <span class="panel-tag synth">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Murmur Synthesis
+              </span>
+              <span class="badge-category">Strategy &bull; Pricing</span>
+            </div>
+
+            <div class="synth-card" id="synthCard">
+              <div class="synth-title">
+                <span>Q3 Pricing Model Shift</span>
+                <span class="font-mono" style="font-size: 0.72rem; color: #a78bfa; font-weight: 400;">Extracted in 410ms</span>
+              </div>
+
+              <div class="synth-summary">
+                Proposal to pivot small team tier from seat-based pricing to usage caps (50 hrs transcription ceiling) to boost onboarding velocity.
+              </div>
+
+              <div style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">
+                Extracted Action Items
+              </div>
+
+              <div class="action-items-list">
+                <div class="action-item">
+                  <div class="check-circle"></div>
+                  <div>
+                    <strong>Sarah</strong>: Verify EU local storage & data residency guidelines with legal council.
+                    <span style="display:block; font-size:0.72rem; color:#f43f5e; margin-top:2px;">Due: Thursday</span>
+                  </div>
+                </div>
+                <div class="action-item">
+                  <div class="check-circle"></div>
+                  <div>Model revenue sensitivity for 50-hour cap vs. 5-seat bundle.</div>
+                </div>
+              </div>
+
+              <div class="tag-cluster">
+                <span class="pill-tag">#monetization</span>
+                <span class="pill-tag">#gdpr-compliance</span>
+                <span class="pill-tag">#roadmap-q3</span>
+              </div>
+            </div>
+
+            <div class="stage-footer">
+              <span style="color: #a78bfa;">Synced to Notion &bull; Linear ticket created</span>
+              <span>Reversible edits</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="interactive-controls">
+          <button class="demo-trigger" id="sample1Btn">Scenario 1: Product Strategy</button>
+          <button class="demo-trigger" id="sample2Btn">Scenario 2: Midnight Epiphany</button>
+          <button class="demo-trigger" id="sample3Btn">Scenario 3: 4-Person Sprint Retrospective</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Social Proof Logos -->
+    <section class="social-proof">
+      <div class="proof-caption">Engineered for asynchronous founders, deep researchers, and nonlinear thinkers</div>
+      <div class="logo-strip">
+        <div class="client-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          ARCANE RESEARCH
+        </div>
+        <div class="client-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          CHRONOS LABS
+        </div>
+        <div class="client-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          MONOLITH VENTURES
+        </div>
+        <div class="client-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 2 22 22 22"/></svg>
+          PRISM DESIGN
+        </div>
+        <div class="client-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg>
+          SYNAPSE OS
+        </div>
+      </div>
+    </section>
+
+    <!-- Bento Grid Features Section -->
+    <section class="bento-section" id="features">
+      <div class="section-header">
+        <span class="sub-badge">Architected for messy minds</span>
+        <h2>Your brain doesn't think in nested folders. Neither does Murmur.</h2>
+        <p>Traditional note apps require you to organize before you think. Murmur reverses the paradigm: pour everything in raw, and let neural graph synthesis surface the structure.</p>
+      </div>
+
+      <div class="bento-grid">
+        
+        <!-- Bento 1: Ambient Whisper Audio -->
+        <div class="bento-card col-7">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </div>
+            <h3>Ambient Stream-of-Consciousness Capture</h3>
+            <p>Don't worry about punctuation, filler words, stuttering, or switching between German and English mid-sentence. Murmur parses non-linear babble into pristine, publication-grade markdown.</p>
+          </div>
+          <div style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; color: #a1a1aa;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span class="font-mono" style="color:#c084fc;">Audio Cleanup Engine</span>
+              <span style="color:#4ade80;">Active</span>
+            </div>
+            <p style="margin: 0; color: #94a3b8; font-size: 0.82rem;">Filters coughs, keyboard clatter, coffee shop chatter, and recursive self-corrections ("Wait, no, scrap that, let's actually...").</p>
+          </div>
+        </div>
+
+        <!-- Bento 2: Semantic Synapses (Graph) -->
+        <div class="bento-card col-5">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </div>
+            <h3>Automatic Synapse Linking</h3>
+            <p>Every note automatically discovers links to thoughts you had 3 weeks or 8 months ago without manual wikilinking.</p>
+          </div>
+          <div class="graph-mockup">
+            <svg class="graph-svg">
+              <line x1="50%" y1="50%" x2="25%" y2="28%" stroke="rgba(139,92,246,0.3)" stroke-width="1.5" stroke-dasharray="4"/>
+              <line x1="50%" y1="50%" x2="25%" y2="75%" stroke="rgba(244,63,94,0.3)" stroke-width="1.5" stroke-dasharray="4"/>
+              <line x1="50%" y1="50%" x2="78%" y2="30%" stroke="rgba(6,182,212,0.3)" stroke-width="1.5"/>
+              <line x1="50%" y1="50%" x2="75%" y2="72%" stroke="rgba(245,158,11,0.3)" stroke-width="1.5"/>
+            </svg>
+            <div class="node node-1">Vector DB</div>
+            <div class="node node-2">Brand Identity</div>
+            <div class="node node-center">Current Idea</div>
+            <div class="node node-3">Retention Spec</div>
+            <div class="node node-4">Fundraising Memo</div>
+          </div>
+        </div>
+
+        <!-- Bento 3: Local-First Privacy -->
+        <div class="bento-card col-4">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Zero Data Mining</h3>
+            <p>Your innermost reflections are never used to train frontier models. Optional local-device processing guarantees complete air-gapped security.</p>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #6ee7b7; margin-top: 16px;">
+            $ AES-256-GCM + On-Device ML Core
+          </div>
+        </div>
+
+        <!-- Bento 4: Meeting Copilot that isn't obnoxious -->
+        <div class="bento-card col-4">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3>Discreet Meeting Companion</h3>
+            <p>No clunky bot entering your Google Meet or Zoom. Murmur hooks directly into system audio, identifying speakers without alerting the whole company.</p>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #a5b4fc; margin-top: 16px;">
+            Native macOS Loopback Driver
+          </div>
+        </div>
+
+        <!-- Bento 5: Bi-directional Export -->
+        <div class="bento-card col-4">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <h3>Instant Multi-Tool Sync</h3>
+            <p>Broadcast extracted tasks directly into Linear or Todoist. Push daily notes straight into your Obsidian vault or Notion databases.</p>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #f472b6; margin-top: 16px;">
+            Webhooks &bull; Raycast &bull; REST API
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3-Step Workflow -->
+    <section class="flow-section" id="workflow">
+      <div class="section-header">
+        <span class="sub-badge">Frictionless pipeline</span>
+        <h2>From fleeting murmur to enduring knowledge in three beats</h2>
+      </div>
+
+      <div class="flow-grid">
+        <div class="flow-step-card">
+          <span class="step-number">STEP 01</span>
+          <h4>One-key Whisper Capture</h4>
+          <p>Hold <kbd style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-family:monospace;">Option + Space</kbd> anywhere in macOS or tap your Apple Watch. Speak as disjointedly as you want while strolling, driving, or in the shower.</p>
+        </div>
+
+        <div class="flow-step-card">
+          <span class="step-number">STEP 02</span>
+          <h4>Cognitive Synthesis</h4>
+          <p>Murmur distills the stream. It isolates key theses, pulls out explicit commitments, drafts follow-up messages, and generates tags without prompting.</p>
+        </div>
+
+        <div class="flow-step-card">
+          <span class="step-number">STEP 03</span>
+          <h4>Autonomous Associative Recall</h4>
+          <p>Weeks later, when you write a proposal or prep for a client catch-up, Murmur discreetly resurfaces relevant context you completely forgot you recorded.</p>
+        </div>
+      </div>
+
+      <!-- Natural Language Query Demo Section -->
+      <div class="query-preview-box" id="query">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h3 style="font-size: 1.45rem; font-weight: 700;">Ask your accumulated consciousness</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">No keywords or exact tags needed. Search by vibe, consequence, or vague memory.</p>
+        </div>
+
+        <div class="query-input-bar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="mindSearchInput" value="What did I promise Marcus about the seed round dilution when we were walking in Lisbon?" readonly>
+          <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.78rem;">Semantic Query</button>
+        </div>
+
+        <div class="query-result-threads">
+          <div class="thread-card">
+            <div class="thread-date">MAY 14 &bull; 8:43 PM &bull; LISBON RECORDING #3</div>
+            <div class="thread-title">Founder Equity & Seed Dilution Thresholds</div>
+            <div class="thread-excerpt">
+              "Told Marcus we will not accept any terms with dilution exceeding 18% for the lead investor, and guaranteed him we would reserve 10% unallocated for early engineering hires."
+            </div>
+            <span class="pill-tag" style="margin-top: 10px; display:inline-block;">Confidence: 98.4%</span>
+          </div>
+
+          <div class="thread-card">
+            <div class="thread-date">AUG 02 &bull; 11:15 AM &bull; STRATEGY HUDDLE</div>
+            <div class="thread-title">Cap Table Reconciliation</div>
+            <div class="thread-excerpt">
+              "Referencing the Lisbon discussion: confirm whether Marcus signed the updated SAFE note reflectant of the 10% options pool expansion."
+            </div>
+            <span class="pill-tag" style="margin-top: 10px; display:inline-block;">Cross-linked Reference</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonial-section">
+      <div class="section-header">
+        <span class="sub-badge">Real testimonies</span>
+        <h2>Loved by thinkers who move faster than their keyboards</h2>
+      </div>
+
+      <div class="testimonial-grid">
+        <div class="test-card">
+          <blockquote>
+            "I pace around my office while debating product architecture. Typing stops my train of thought. Murmur captures 45 minutes of circular talking and spits out an impeccable Linear PRD."
+          </blockquote>
+          <div class="test-author">
+            <div class="author-avatar" style="background: linear-gradient(135deg, #6366f1, #a855f7);">DK</div>
+            <div class="author-info">
+              <h5>Devon Kavanaugh</h5>
+              <p>CTO, Hyperplane Systems</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="test-card">
+          <blockquote>
+            "Other AI transcription apps give you a wall of text that nobody wants to read. Murmur actually understands editorial hierarchy. It categorizes my raw reflections with shocking taste."
+          </blockquote>
+          <div class="test-author">
+            <div class="author-avatar" style="background: linear-gradient(135deg, #ec4899, #f43f5e);">ER</div>
+            <div class="author-info">
+              <h5>Elena Rostova</h5>
+              <p>Author & Behavioral Researcher</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="test-card">
+          <blockquote>
+            "The semantic search across 600+ audio memos feels like having an omniscient twin. It retrieved a business thesis I muttered while running 4 months ago that became our flagship pivot."
+          </blockquote>
+          <div class="test-author">
+            <div class="author-avatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">MA</div>
+            <div class="author-info">
+              <h5>Marcus Aurelius Chen</h5>
+              <p>General Partner, SOMA Alpha</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section" id="pricing">
+      <div class="section-header">
+        <span class="sub-badge">Straightforward Value</span>
+        <h2>Invest in your externalized cognitive memory</h2>
+        <p>No limits on your clarity. Start free, graduate to unlimited mental augmentation.</p>
+      </div>
+
+      <div class="pricing-toggle">
+        <span id="monthlyLabel" style="color: #fff; font-weight:600;">Monthly Billing</span>
+        <div class="toggle-switch" id="pricingToggle">
+          <div class="toggle-knob"></div>
+        </div>
+        <span id="yearlyLabel">Annual Billing</span>
+        <span class="save-badge">SAVE 20%</span>
+      </div>
+
+      <div class="pricing-grid">
+        
+        <!-- Tier 1: Free -->
+        <div class="price-card">
+          <div class="plan-name">Whisper</div>
+          <div class="plan-desc">For individual wanderers and spontaneous idea catchers.</div>
+          <div class="price-amount">$0<span class="price-period">/mo</span></div>
+          <ul class="plan-features">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Up to 3 hours audio capture / mo
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Standard markdown synthesis
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Mobile app (iOS & Watch)
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              30-day note memory history
+            </li>
+          </ul>
+          <a href="#" class="btn btn-secondary" style="width: 100%;">Get Started Free</a>
+        </div>
+
+        <!-- Tier 2: Pro (Featured) -->
+        <div class="price-card featured">
+          <div class="card-popular-pill">Most Chosen</div>
+          <div class="plan-name">Mind Stream Pro</div>
+          <div class="plan-desc">For builders, thinkers, and operators operating in high-bandwidth mode.</div>
+          <div class="price-amount" id="proPrice">$16<span class="price-period">/mo</span></div>
+          <ul class="plan-features">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <strong>Unlimited audio capture</strong>
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Full Neural Graph associative links
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              System audio meeting recorder
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Obsidian, Notion, Linear direct sync
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Lifetime infinite memory archive
+            </li>
+          </ul>
+          <a href="#" class="btn btn-glow" style="width: 100%;">Start 14-Day Free Trial</a>
+        </div>
+
+        <!-- Tier 3: Studio / Teams -->
+        <div class="price-card">
+          <div class="plan-name">Studio Collective</div>
+          <div class="plan-desc">For research labs, executive teams, and creative agencies.</div>
+          <div class="price-amount" id="teamPrice">$39<span class="price-period">/seat/mo</span></div>
+          <ul class="plan-features">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Shared team knowledge graph
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Multi-speaker diarization badges
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Dedicated SOC2 Type II compliance
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Custom LLM fine-tuning on team lexicon
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Priority enterprise SLA & support
+            </li>
+          </ul>
+          <a href="#" class="btn btn-secondary" style="width: 100%;">Contact Enterprise</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAQ Accordion -->
+    <section class="faq-section" id="faq">
+      <div class="section-header" style="margin-bottom: 40px;">
+        <span class="sub-badge">Clarifications</span>
+        <h2>Frequently pondered questions</h2>
+      </div>
+
+      <div class="faq-list">
+        
+        <div class="faq-item open">
+          <button class="faq-trigger">
+            <span>How does Murmur differ from standard voice memos or Otter?</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-content">
+            <p>Traditional tools give you bloated 10,000-word transcripts that nobody ever reads. Murmur is an active editorial filter: it strips filler repetitions, maps core arguments, connects past references via vector similarity, and outputs clean Markdown ready for your actual workflow.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-trigger">
+            <span>Will my private thoughts or conversations train third-party AI?</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-content">
+            <p>Never. We use dedicated zero-retention enterprise inference endpoints. Once your text is embedded and synthesized, the raw input is discarded from inference logs. On macOS and iOS, you can also toggle our 100% on-device Whisper model.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-trigger">
+            <span>Can I speak in multiple languages during the same note?</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-content">
+            <p>Yes. Murmur seamlessly detects and parses code-switching across 50+ languages—including Spanish, French, Mandarin, German, and Hindi—even when interleaved in the same sentence.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-trigger">
+            <span>Can I export my notes if I ever leave?</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-content">
+            <p>Completely. You can export your entire graph into plain Markdown folders with frontmatter YAML at any moment. Zero proprietary lock-in. Your thoughts belong exclusively to you.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Bottom CTA Banner -->
+    <div class="cta-banner">
+      <h2>Never lose a brilliant spark to the ether again.</h2>
+      <p>Join over 35,000 founders, authors, engineers, and creators who think out loud with Murmur.</p>
+      <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+        <a href="#pricing" class="btn btn-primary" style="padding: 14px 32px; font-size: 1rem; font-weight:700;">
+          Download Murmur for macOS & iOS
+        </a>
+        <a href="#demo" class="btn btn-secondary" style="padding: 14px 24px; font-size: 1rem;">
+          Explore Live Playground
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <div>
+          <a href="#" class="brand" style="margin-bottom: 16px; display:inline-flex;">
+            <div class="logo-wave">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5v14M7 8v8M22 10v4M2 10v4"/></svg>
+            </div>
+            <span>Murmur</span>
+          </a>
+          <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 280px; line-height:1.6;">
+            The intelligent audio capture engine designed to preserve the nuance of unfiltered human thought.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h6>Product</h6>
+          <ul>
+            <li><a href="#features">Voice Stream</a></li>
+            <li><a href="#workflow">Graph Memory</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#">macOS Native App</a></li>
+            <li><a href="#">Raycast Extension</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h6>Integrations</h6>
+          <ul>
+            <li><a href="#">Obsidian Sync</a></li>
+            <li><a href="#">Notion Database</a></li>
+            <li><a href="#">Linear Workflow</a></li>
+            <li><a href="#">Apple Shortcuts</a></li>
+            <li><a href="#">Developer API</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h6>Principles</h6>
+          <ul>
+            <li><a href="#">Security Manifesto</a></li>
+            <li><a href="#">Zero Training Policy</a></li>
+            <li><a href="#">Local-first Storage</a></li>
+            <li><a href="#">System Status</a></li>
+            <li><a href="#">Changelog</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; <span id="yearSpan"></span> Murmur Intelligence Corp. All rights reserved.</div>
+        <div class="system-status">
+          <span class="status-dot"></span>
+          <span>All Neural Audio Systems Operational (22ms Latency)</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Interactive Demo & Functional Logic -->
+  <script>
+    // Dynamic Year
+    document.getElementById('yearSpan').textContent = new Date().getFullYear();
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        const item = trigger.parentElement;
+        const isOpen = item.classList.contains('open');
+        
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+        if (!isOpen) {
+          item.classList.add('open');
+        }
+      });
+    });
+
+    // Pricing Billing Toggle
+    const toggle = document.getElementById('pricingToggle');
+    const proPrice = document.getElementById('proPrice');
+    const teamPrice = document.getElementById('teamPrice');
+    const monthlyLabel = document.getElementById('monthlyLabel');
+    const yearlyLabel = document.getElementById('yearlyLabel');
+    let isYearly = false;
+
+    toggle.addEventListener('click', () => {
+      isYearly = !isYearly;
+      toggle.classList.toggle('yearly', isYearly);
+
+      if (isYearly) {
+        proPrice.innerHTML = '$12<span class="price-period">/mo</span>';
+        teamPrice.innerHTML = '$31<span class="price-period">/seat/mo</span>';
+        yearlyLabel.style.color = '#fff';
+        yearlyLabel.style.fontWeight = '600';
+        monthlyLabel.style.color = 'var(--text-muted)';
+        monthlyLabel.style.fontWeight = '400';
+      } else {
+        proPrice.innerHTML = '$16<span class="price-period">/mo</span>';
+        teamPrice.innerHTML = '$39<span class="price-period">/seat/mo</span>';
+        monthlyLabel.style.color = '#fff';
+        monthlyLabel.style.fontWeight = '600';
+        yearlyLabel.style.color = 'var(--text-muted)';
+        yearlyLabel.style.fontWeight = '400';
+      }
+    });
+
+    // Interactive Demo Simulation Data
+    const demoSamples = [
+      {
+        raw: `"Hey, so quick thought on the Q3 pricing refresh... umm, I think we should kill the per-seat model for small teams and just give them unlimited audio transcription up to 50 hours. Also, need Sarah to check with legal on the EU local retention rules by Thursday before we announce."`,
+        title: "Q3 Pricing Model Shift",
+        badge: "Strategy • Pricing",
+        summary: "Proposal to pivot small team tier from seat-based pricing to usage caps (50 hrs transcription ceiling) to boost onboarding velocity.",
+        action1: "Sarah: Verify EU local storage & data residency guidelines with legal council (Due: Thursday)",
+        action2: "Model revenue sensitivity for 50-hour cap vs. 5-seat bundle.",
+        tags: ["#monetization", "#gdpr-compliance", "#roadmap-q3"]
+      },
+      {
+        raw: `"Wait, I just woke up and had this realization: what if our graph visualization doesn't use static nodes, but vibrates based on recency of thought? Like, ideas you discussed yesterday pulse brightly, while memories from last year drift like faint constellations in the background."`,
+        title: "Dynamic Gravitational Graph UI",
+        badge: "Design • Epiphany",
+        summary: "Transform static note relationship map into a living, temporal solar system where node brightness and proximity decay proportionally with mental interaction frequency.",
+        action1: "Build interactive Canvas prototype with D3 friction velocity.",
+        action2: "Test color decay curves with dark-mode contrast standards.",
+        tags: ["#physics-ui", "#design-exploration", "#graph-canvas"]
+      },
+      {
+        raw: `"In the retro today: team was aligned that PR reviews took way too long this sprint—like 48 hours average. Marcus mentioned we need automated preview environments for frontend pull requests. Let's make that a P0 blocker for sprint 24."`,
+        title: "Sprint Retrospective: Review Velocity",
+        badge: "Engineering • Process",
+        summary: "Identified PR turnaround bottlenecks (48hr avg). Unanimous consensus to deploy automated ephemeral preview environments to unblock reviewers.",
+        action1: "Deploy Vercel/Cloudflare preview pipeline for staging branches.",
+        action2: "Set Slack alert ping for PRs open longer than 12 hours.",
+        tags: ["#dev-velocity", "#sprint-retro", "#infra-p0"]
+      }
+    ];
+
+    const stageContainer = document.getElementById('stageContainer');
+    const transcriptEl = document.getElementById('transcriptText');
+    const synthCardEl = document.getElementById('synthCard');
+    const listenSampleBtn = document.getElementById('listenSampleBtn');
+
+    function applySample(index) {
+      const data = demoSamples[index];
+      stageContainer.classList.add('stage-active');
+
+      // Typing simulation
+      transcriptEl.innerHTML = `<span style="opacity:0.6;">Transcribing audio stream...</span>`;
+      synthCardEl.style.opacity = '0.3';
+
+      setTimeout(() => {
+        transcriptEl.innerHTML = data.raw;
+        synthCardEl.style.opacity = '1';
+
+        synthCardEl.innerHTML = `
+          <div class="synth-title">
+            <span>${data.title}</span>
+            <span class="font-mono" style="font-size: 0.72rem; color: #a78bfa; font-weight: 400;">Synthesized live</span>
+          </div>
+
+          <div class="synth-summary">
+            ${data.summary}
+          </div>
+
+          <div style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">
+            Extracted Action Items
+          </div>
+
+          <div class="action-items-list">
+            <div class="action-item">
+              <div class="check-circle"></div>
+              <div>${data.action1}</div>
+            </div>
+            <div class="action-item">
+              <div class="check-circle"></div>
+              <div>${data.action2}</div>
+            </div>
+          </div>
+
+          <div class="tag-cluster">
+            ${data.tags.map(t => `<span class="pill-tag">${t}</span>`).join('')}
+          </div>
+        `;
+      }, 450);
+
+      setTimeout(() => {
+        stageContainer.classList.remove('stage-active');
+      }, 2500);
+    }
+
+    document.getElementById('sample1Btn').addEventListener('click', () => applySample(0));
+    document.getElementById('sample2Btn').addEventListener('click', () => applySample(1));
+    document.getElementById('sample3Btn').addEventListener('click', () => applySample(2));
+
+    listenSampleBtn.addEventListener('click', () => {
+      stageContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      applySample(Math.floor(Math.random() * demoSamples.length));
+    });
+  </script>
+
+</body>
+</html>

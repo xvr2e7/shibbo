@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmur — the notebook that listens</title>
+<meta name="description" content="Murmur is an AI notebook for half-formed thoughts. Dictate, type, toss fragments — it listens, distills quietly on-device, and hands them back when you ask.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0D12'/%3E%3Cg fill='%23B7A8F5'%3E%3Crect x='6' y='12' width='3' height='8' rx='1.5'/%3E%3Crect x='11' y='7' width='3' height='18' rx='1.5'/%3E%3Crect x='16' y='10' width='3' height='12' rx='1.5'/%3E%3Crect x='21' y='13' width='3' height='6' rx='1.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ tokens ============ */
+:root{
+  --ink:#0E0D12; --ink2:#15141B; --ink3:#1B1A23;
+  --cream:#F1ECE2; --paper:#F4F0E6; --paper2:#ECE6D7; --card:#FCFAF3;
+  --lilac:#B7A8F5; --lilac-d:rgba(183,168,245,.34); --lilac-ink:#5D4FC4;
+  --amber:#E8BE8A; --amber-ink:#8A5A22;
+  --line:rgba(241,236,226,.13); --line-d:rgba(20,18,26,.14);
+  --ease:cubic-bezier(.19,1,.22,1);
+  --f-disp:'Fraunces',Georgia,serif;
+  --f-body:'Instrument Sans',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--cream);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--lilac);color:var(--ink)}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#33313d;border-radius:6px}
+::-webkit-scrollbar-track{background:transparent}
+:focus-visible{outline:2px solid var(--lilac);outline-offset:3px;border-radius:4px}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.sec{padding:128px 0}
+.mono{font-family:var(--f-mono)}
+.kick{font-family:var(--f-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--lilac);display:inline-flex;align-items:center;gap:10px}
+.kick::before{content:"";width:26px;height:1px;background:currentColor;opacity:.6}
+.paper .kick{color:var(--lilac-ink)}
+.shead{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:56px;flex-wrap:wrap}
+.shead h2{font-family:var(--f-disp);font-weight:340;font-size:clamp(32px,4.4vw,56px);line-height:1.04;letter-spacing:-.01em;max-width:16ch}
+.shead h2 em{font-style:italic;color:var(--lilac)}
+.paper .shead h2 em{color:var(--lilac-ink)}
+.shead .aside{font-family:var(--f-mono);font-size:12px;opacity:.62;max-width:34ch;line-height:1.8}
+
+/* grain + progress */
+.grain{position:fixed;inset:0;z-index:2000;pointer-events:none;opacity:.055;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+#progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--lilac);z-index:1200}
+
+/* ============ header ============ */
+header.site{position:fixed;top:0;left:0;right:0;z-index:1100;display:flex;align-items:center;justify-content:space-between;padding:16px 28px;transition:background .4s,border-color .4s,backdrop-filter .4s;border-bottom:1px solid transparent}
+header.site.scrolled{background:rgba(14,13,18,.78);backdrop-filter:blur(10px);border-bottom-color:var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--f-disp);font-weight:520;font-size:21px;letter-spacing:.01em}
+.logo svg{display:block}
+.logo .lb{animation:lb 1.6s ease-in-out infinite alternate}
+.logo .lb:nth-child(2){animation-delay:.25s}.logo .lb:nth-child(3){animation-delay:.5s}.logo .lb:nth-child(4){animation-delay:.75s}
+@keyframes lb{from{transform:scaleY(.5)}to{transform:scaleY(1.15)}}
+nav.main{display:flex;gap:28px;font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+nav.main a{position:relative;opacity:.75;padding:4px 0;transition:opacity .3s,color .3s}
+nav.main a::after{content:"";position:absolute;left:0;bottom:0;height:1px;width:0;background:var(--lilac);transition:width .35s var(--ease)}
+nav.main a:hover{opacity:1;color:var(--lilac)}
+nav.main a:hover::after{width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;padding:11px 20px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--cream);transition:transform .3s var(--ease),box-shadow .3s,background .3s,border-color .3s,color .3s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn.solid{background:var(--lilac);border-color:var(--lilac);color:var(--ink)}
+.btn.solid:hover{box-shadow:0 10px 30px rgba(183,168,245,.35)}
+.btn.ghost:hover{border-color:var(--lilac);color:var(--lilac)}
+.btn.sm{padding:8px 15px;font-size:13px}
+
+/* ============ hero ============ */
+.hero{padding:168px 0 90px;position:relative}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 480px at 78% 12%,rgba(183,168,245,.10),transparent 65%),radial-gradient(700px 420px at 8% 90%,rgba(232,190,138,.05),transparent 60%);pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:64px;align-items:start;position:relative}
+.h-kick{margin-bottom:26px}
+h1{font-family:var(--f-disp);font-weight:320;font-size:clamp(46px,6.6vw,92px);line-height:.99;letter-spacing:-.015em}
+h1 em{font-style:italic;font-weight:380;color:var(--lilac)}
+.h-line{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
+.h-line>span{display:inline-block;transform:translateY(115%);transition:transform 1.1s var(--ease);transition-delay:var(--d,0s)}
+body.loaded .h-line>span{transform:none}
+.hero-sub{margin-top:28px;max-width:46ch;font-size:17px;color:rgba(241,236,226,.74)}
+[data-load]{opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:var(--d,0s)}
+body.loaded [data-load]{opacity:1;transform:none}
+.hero-cta{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.hero-meta{display:flex;gap:22px;margin-top:38px;font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(241,236,226,.5);flex-wrap:wrap}
+.hero-meta span{display:flex;align-items:center;gap:8px}
+.hero-meta i{font-style:normal;color:var(--lilac)}
+
+/* capture deck */
+.deck-col{display:flex;flex-direction:column;gap:18px}
+.deck{position:relative;background:linear-gradient(160deg,var(--ink2),#121118);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.deck::before{content:"";position:absolute;inset:-1px;border-radius:19px;background:radial-gradient(400px 200px at 80% 0%,rgba(183,168,245,.16),transparent 70%);pointer-events:none}
+.deck-top{display:flex;align-items:center;justify-content:space-between;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,236,226,.55)}
+.rec{display:flex;align-items:center;gap:8px;color:var(--lilac)}
+.rec i{width:8px;height:8px;border-radius:50%;background:var(--lilac);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(183,168,245,.5)}55%{box-shadow:0 0 0 7px rgba(183,168,245,0)}}
+.wave{display:flex;align-items:center;justify-content:flex-start;gap:3px;height:52px;margin:18px 0 6px}
+.wave span{width:3px;border-radius:2px;background:var(--lilac-d);transform-origin:center}
+.wave.live span{animation-name:wob;animation-iteration-count:infinite;animation-direction:alternate;animation-timing-function:ease-in-out;background:var(--lilac)}
+@keyframes wob{from{transform:scaleY(.3)}to{transform:scaleY(1.2)}}
+.dict{font-family:var(--f-disp);font-style:italic;font-weight:340;font-size:clamp(17px,1.6vw,20px);line-height:1.55;min-height:118px;color:rgba(241,236,226,.92)}
+.caret{display:inline-block;width:2px;height:1em;background:var(--lilac);margin-left:2px;vertical-align:-.12em;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.deck-sep{display:flex;align-items:center;gap:14px;margin:18px 0 14px;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(241,236,226,.45)}
+.deck-sep::before,.deck-sep::after{content:"";flex:1;height:1px;background:var(--line)}
+.ai-chips{display:flex;flex-direction:column;gap:9px}
+.chip{display:flex;gap:12px;align-items:flex-start;background:rgba(241,236,226,.045);border:1px solid var(--line);border-radius:11px;padding:11px 14px;opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.chip.show{opacity:1;transform:none}
+.c-k{flex:0 0 64px;font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--lilac);padding-top:3px}
+.chip p{font-size:14px;color:rgba(241,236,226,.85);line-height:1.5}
+.chip.c-sum{border-left:2px solid var(--lilac)}
+.chip.c-act{border-left:2px solid var(--amber)}
+.chip.c-act .c-k{color:var(--amber)}
+.chip .pills{display:flex;gap:7px;flex-wrap:wrap;padding-top:1px}
+.chip .pills i{font-style:normal;font-family:var(--f-mono);font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--lilac-d);color:var(--lilac)}
+.chip.c-thr .c-k{color:rgba(241,236,226,.5)}
+.chip.c-thr p{font-family:var(--f-mono);font-size:12px;color:rgba(241,236,226,.6)}
+.c-foot{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,236,226,.38);margin-top:4px;text-align:right}
+.deck-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.mini{background:none;border:none;color:rgba(241,236,226,.5);font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;transition:color .3s;padding:4px 0}
+.mini:hover{color:var(--lilac)}
+
+/* try console */
+.trycard{background:var(--ink2);border:1px solid var(--line);border-radius:18px;padding:22px 24px}
+.try-top{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(241,236,226,.45);margin-bottom:12px}
+.try-top .on{color:var(--amber)}
+#tryIn{width:100%;background:transparent;border:none;resize:none;color:var(--cream);font-family:var(--f-disp);font-style:italic;font-weight:340;font-size:18px;line-height:1.55;min-height:74px}
+#tryIn::placeholder{color:rgba(241,236,226,.3)}
+#tryIn:focus{outline:none}
+.trycard.shake{animation:shake .45s}
+@keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.try-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid var(--line);margin-top:12px;padding-top:14px}
+.try-hint{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;color:rgba(241,236,226,.4)}
+.try-busy{display:none;align-items:center;gap:10px;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--lilac)}
+.try-busy.on{display:flex}
+.try-busy i{width:5px;height:5px;border-radius:50%;background:var(--lilac);animation:hop .9s ease-in-out infinite}
+.try-busy i:nth-child(2){animation-delay:.15s}.try-busy i:nth-child(3){animation-delay:.3s}
+@keyframes hop{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-5px);opacity:1}}
+#tryOut{margin-top:14px}
+#tryOut .c-tone .c-k{color:var(--amber)}
+
+/* ============ marquee ============ */
+.mq{background:var(--lilac);color:var(--ink);overflow:hidden;transform:rotate(-1.1deg) scale(1.03);margin:34px -2% 0;border-top:1px solid rgba(14,13,18,.2);border-bottom:1px solid rgba(14,13,18,.2)}
+.mq-track{display:flex;width:max-content;animation:mq 36s linear infinite}
+.mq:hover .mq-track{animation-play-state:paused}
+.mq-set{display:flex;align-items:center;padding:12px 0;font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.mq-set b{font-weight:500;padding:0 26px;position:relative}
+.mq-set b::after{content:"◦";position:absolute;right:-5px;opacity:.5}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ============ paper sections ============ */
+.paper{background:var(--paper);color:#171520}
+.paper .shead .aside{color:#171520}
+.paper ::selection{background:var(--lilac-ink);color:var(--paper)}
+
+/* method — sticky two column */
+.method-grid{display:grid;grid-template-columns:360px 1fr;gap:72px;align-items:start}
+.method-left{position:sticky;top:120px}
+.method-left h2{font-family:var(--f-disp);font-weight:340;font-size:clamp(32px,3.6vw,48px);line-height:1.05;margin:18px 0 20px}
+.method-left p{color:rgba(23,21,32,.68);max-width:34ch}
+.meter{display:flex;align-items:flex-end;gap:22px;margin-top:44px}
+.m-idx{font-family:var(--f-disp);font-style:italic;font-size:66px;line-height:1;color:var(--lilac-ink)}
+.m-bar{width:2px;height:118px;background:rgba(23,21,32,.14);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.m-bar i{display:block;width:100%;height:25%;background:var(--lilac-ink);transition:height .7s var(--ease)}
+.m-lab{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(23,21,32,.45);writing-mode:vertical-rl;margin-bottom:8px}
+.m-panel{padding:58px 0;border-top:1px solid var(--line-d);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:44px;align-items:center}
+.m-panel:last-child{border-bottom:1px solid var(--line-d)}
+.m-panel .num{font-family:var(--f-mono);font-size:11px;letter-spacing:.24em;color:var(--lilac-ink);display:block;margin-bottom:14px}
+.m-panel h3{font-family:var(--f-disp);font-weight:380;font-size:clamp(24px,2.6vw,34px);line-height:1.12;margin-bottom:16px}
+.m-panel h3 em{font-style:italic;color:var(--lilac-ink)}
+.m-panel p{color:rgba(23,21,32,.7);max-width:44ch}
+.mock{background:var(--card);border:1px solid var(--line-d);border-radius:14px;padding:18px;box-shadow:0 18px 44px rgba(23,21,32,.1);font-size:13px}
+.mock-bar{display:flex;align-items:center;gap:9px;font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(23,21,32,.55);margin-bottom:6px}
+.rdot{width:7px;height:7px;border-radius:50%;background:#D66E6E;animation:pulse 1.4s infinite}
+.mock .mt{margin-left:auto}
+.wave.sm{height:34px;margin:10px 0}
+.wave.sm span{background:rgba(93,79,196,.35)}
+.src-row{display:flex;gap:8px;flex-wrap:wrap}
+.src{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;padding:4px 10px;border:1px solid var(--line-d);border-radius:999px;color:rgba(23,21,32,.6)}
+.mock .raw{font-family:var(--f-disp);font-style:italic;color:rgba(23,21,32,.6);margin-bottom:14px;line-height:1.5}
+.d-row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line-d);align-items:baseline}
+.d-k{flex:0 0 62px;font-family:var(--f-mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--lilac-ink)}
+.d-v{font-size:13px;color:rgba(23,21,32,.8)}
+.d-v.pills i{font-style:normal;font-family:var(--f-mono);font-size:10px;padding:2px 9px;border-radius:999px;background:rgba(93,79,196,.12);color:var(--lilac-ink);margin-right:6px;display:inline-block;margin-top:2px}
+.d-v.act{color:var(--amber-ink);font-weight:600}
+.d-foot{margin-top:12px;text-align:right;font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(23,21,32,.4)}
+.s-bar{border:1px solid var(--line-d);border-radius:10px;padding:10px 14px;font-family:var(--f-mono);font-size:12px;color:var(--lilac-ink);margin-bottom:12px;background:#fff}
+.s-res{padding:10px 2px;border-top:1px dashed var(--line-d)}
+.s-res b{font-family:var(--f-disp);font-weight:520;font-size:15px;margin-right:10px}
+.s-res span{font-family:var(--f-mono);font-size:10px;color:rgba(23,21,32,.45);letter-spacing:.1em;text-transform:uppercase}
+.s-res p{font-size:12.5px;color:rgba(23,21,32,.65);margin-top:3px}
+.c-title{font-family:var(--f-disp);font-weight:520;font-size:15px;margin-bottom:10px}
+.c-line{font-family:var(--f-mono);font-size:11px;color:var(--lilac-ink);padding:3px 0}
+.c-line i{font-style:normal;color:rgba(23,21,32,.4);margin-left:6px}
+.c-body{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-d);font-family:var(--f-disp);font-style:italic;font-size:14px;color:rgba(23,21,32,.75);line-height:1.6}
+.caret2{display:inline-block;width:2px;height:.95em;background:var(--lilac-ink);vertical-align:-.1em;animation:blink 1s steps(2) infinite}
+
+/* ============ wall ============ */
+.wall-hint{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:rgba(23,21,32,.5)}
+.board{position:relative;height:700px;border:1px dashed rgba(23,21,32,.3);border-radius:22px;background-image:radial-gradient(rgba(23,21,32,.13) 1px,transparent 1.5px);background-size:24px 24px}
+.p-card{position:absolute;width:246px;background:var(--card);border:1px solid var(--line-d);border-radius:12px;padding:14px;box-shadow:0 14px 34px rgba(23,21,32,.14);transform:rotate(var(--r));cursor:grab;transition:transform .45s var(--ease),box-shadow .45s var(--ease);touch-action:none;user-select:none}
+.p-card:hover{transform:rotate(0deg) translateY(-9px) scale(1.03);box-shadow:0 28px 60px rgba(23,21,32,.22);z-index:20}
+.p-card.drag{transition:none;cursor:grabbing;transform:rotate(var(--r)) scale(1.05);z-index:30;box-shadow:0 34px 70px rgba(23,21,32,.3)}
+.pin{position:absolute;top:-8px;left:50%;width:15px;height:15px;border-radius:50%;background:var(--lilac-ink);box-shadow:0 3px 6px rgba(23,21,32,.3),inset -2px -2px 3px rgba(0,0,0,.25);transform:translateX(-50%)}
+.p-card .kb{overflow:hidden;border-radius:8px;height:140px;margin-bottom:11px}
+.p-card .kb img{width:100%;height:100%;object-fit:cover;animation:kb 16s ease-in-out infinite alternate;pointer-events:none}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.12) translate(2%,-2%)}}
+.p-card p{font-size:13.5px;line-height:1.5;color:rgba(23,21,32,.82)}
+.p-card p.it{font-family:var(--f-disp);font-style:italic;font-size:17px;line-height:1.4}
+.p-meta{display:block;margin-top:10px;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(23,21,32,.42)}
+.p-card.tint-l{background:#E4DFF7}
+.p-card.tint-a{background:#F6E8D2}
+
+/* ============ recall ============ */
+.recall{background:var(--ink)}
+.recall-bar{display:flex;align-items:center;gap:14px;max-width:760px;background:var(--ink2);border:1px solid var(--line);border-radius:14px;padding:15px 20px;transition:border-color .3s,box-shadow .3s}
+.recall-bar:focus-within{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(183,168,245,.12)}
+.r-ico{color:var(--lilac);font-size:19px}
+#recallQ{flex:1;background:transparent;border:none;color:var(--cream);font-family:var(--f-mono);font-size:15px}
+#recallQ::placeholder{color:rgba(241,236,226,.32)}
+#recallQ:focus{outline:none}
+.recall-bar kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 9px;color:rgba(241,236,226,.5)}
+.ask{max-width:760px;margin-top:22px;border-left:2px solid var(--lilac);padding:6px 0 6px 20px;opacity:0;transform:translateY(8px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.ask.on{opacity:1;transform:none}
+.ask-k{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--lilac)}
+.ask p{font-family:var(--f-disp);font-style:italic;font-weight:340;font-size:20px;line-height:1.5;margin-top:6px;color:rgba(241,236,226,.9)}
+.r-count{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(241,236,226,.4);margin:34px 0 18px}
+.r-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.n-card{background:var(--ink2);border:1px solid var(--line);border-radius:14px;padding:20px;transition:transform .4s var(--ease),border-color .4s,box-shadow .4s;animation:cardin .6s var(--ease) both}
+.n-card:hover{transform:translateY(-5px);border-color:var(--lilac-d);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+@keyframes cardin{from{opacity:0;transform:translateY(16px)}}
+.n-meta{display:flex;gap:8px;align-items:center;font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(241,236,226,.45);margin-bottom:12px}
+.n-meta i{font-style:normal;color:var(--lilac)}
+.n-card h4{font-family:var(--f-disp);font-weight:460;font-size:20px;margin-bottom:8px}
+.n-card p{font-size:13.5px;color:rgba(241,236,226,.68);line-height:1.6}
+.n-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.n-tags i{font-style:normal;font-family:var(--f-mono);font-size:10px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:rgba(241,236,226,.55)}
+mark{background:rgba(183,168,245,.32);color:inherit;border-radius:3px;padding:0 2px}
+.r-empty{grid-column:1/-1;text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:16px;font-family:var(--f-disp);font-style:italic;font-size:20px;color:rgba(241,236,226,.55)}
+
+/* ============ murmuration band ============ */
+.band{position:relative;height:560px;overflow:hidden;background:#111018;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+#flockCanvas{position:absolute;inset:0;width:100%;height:100%}
+.band-in{position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;max-width:1180px;margin:0 auto;padding:0 28px}
+.band-h{font-family:var(--f-disp);font-weight:330;font-size:clamp(30px,4.2vw,54px);line-height:1.12;max-width:20ch;margin:20px 0 18px}
+.band-h em{font-style:italic;color:var(--lilac)}
+.band-sub{max-width:52ch;color:rgba(241,236,226,.65)}
+.band-count{margin-top:30px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:rgba(241,236,226,.5)}
+.band-count i{font-style:normal;color:var(--lilac);font-weight:500}
+
+/* ============ voices ============ */
+.v-track{display:flex;gap:26px;overflow-x:auto;scroll-snap-type:x mandatory;padding:20px 4px 30px;cursor:grab}
+.v-track::-webkit-scrollbar{height:6px}
+.v-track:active{cursor:grabbing}
+.v-card{flex:0 0 380px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line-d);border-radius:16px;padding:30px;box-shadow:0 16px 40px rgba(23,21,32,.1);transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+.v-card:nth-child(odd){transform:rotate(-1.4deg)}
+.v-card:nth-child(even){transform:rotate(1.2deg) translateY(10px)}
+.v-card:hover{transform:rotate(0) translateY(-6px);box-shadow:0 30px 64px rgba(23,21,32,.18)}
+.v-card q{font-family:var(--f-disp);font-style:italic;font-weight:360;font-size:19px;line-height:1.5;display:block;quotes:"“" "”"}
+.v-card q::before,.v-card q::after{color:var(--lilac-ink)}
+.v-who{margin-top:22px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(23,21,32,.55);display:flex;justify-content:space-between}
+.v-who b{color:var(--lilac-ink);font-weight:500}
+
+/* ============ pricing ============ */
+.price-sec{background:var(--paper2)}
+.price-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:stretch}
+.plan{border-radius:20px;padding:38px;display:flex;flex-direction:column}
+.plan.free{background:var(--card);border:1px solid var(--line-d)}
+.plan.plus{background:var(--ink);color:var(--cream);position:relative;box-shadow:0 34px 80px rgba(20,18,26,.35)}
+.plan.plus::before{content:"";position:absolute;inset:0;border-radius:20px;background:radial-gradient(420px 220px at 85% 0%,rgba(183,168,245,.2),transparent 70%);pointer-events:none}
+.plan .badge{position:absolute;top:-13px;right:30px;background:var(--lilac);color:var(--ink);font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:6px 14px;border-radius:999px}
+.plan h3{font-family:var(--f-disp);font-weight:420;font-size:30px}
+.plan .tag{font-family:var(--f-disp);font-style:italic;color:rgba(23,21,32,.55);margin-top:4px}
+.plan.plus .tag{color:rgba(241,236,226,.6)}
+.plan .price{font-family:var(--f-disp);font-weight:330;font-size:58px;margin:22px 0 4px;line-height:1}
+.plan .price small{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(23,21,32,.5);margin-left:10px}
+.plan.plus .price small{color:var(--lilac)}
+.plan ul{list-style:none;margin:24px 0 30px;display:flex;flex-direction:column;gap:11px}
+.plan li{font-size:14.5px;padding-left:24px;position:relative;color:rgba(23,21,32,.78)}
+.plan.plus li{color:rgba(241,236,226,.82)}
+.plan li::before{content:"+";position:absolute;left:2px;color:var(--lilac-ink);font-weight:700}
+.plan.plus li::before{color:var(--lilac)}
+.plan .foot-note{margin-top:auto;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;color:rgba(23,21,32,.5);line-height:1.7}
+.plan.plus .foot-note{color:rgba(241,236,226,.5)}
+.plan .btn{align-self:flex-start}
+.price-note{margin-top:26px;font-family:var(--f-mono);font-size:11px;letter-spacing:.04em;line-height:1.9;color:rgba(23,21,32,.55);border-top:1px dashed rgba(23,21,32,.25);padding-top:18px;max-width:74ch}
+
+/* ============ access ============ */
+.access{position:relative;background:var(--ink);overflow:hidden}
+.access::before{content:"";position:absolute;inset:0;background:radial-gradient(640px 380px at 50% 30%,rgba(183,168,245,.13),transparent 70%);pointer-events:none}
+.access .wrap{position:relative;max-width:720px;text-align:left}
+.access h2{font-family:var(--f-disp);font-weight:320;font-size:clamp(44px,6vw,84px);line-height:1;margin:20px 0 22px}
+.access h2 em{font-style:italic;color:var(--lilac)}
+.access .sub{color:rgba(241,236,226,.7);max-width:52ch;margin-bottom:38px}
+#waitForm{display:flex;gap:12px;flex-wrap:wrap}
+#waitMail{flex:1;min-width:240px;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;color:var(--cream);font-family:var(--f-mono);font-size:14px;transition:border-color .3s,box-shadow .3s}
+#waitMail:focus{outline:none;border-color:var(--lilac);box-shadow:0 0 0 4px rgba(183,168,245,.14)}
+#waitMail.err{border-color:#D66E6E;animation:shake .45s}
+.wait-err{font-size:11px;letter-spacing:.08em;color:#E89B9B;min-height:20px;margin-top:10px}
+.wait-note{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(241,236,226,.38);margin-top:8px}
+.wait-done{display:none;border:1px solid var(--lilac-d);border-radius:16px;padding:28px;background:rgba(183,168,245,.06)}
+.wait-done.on{display:block;animation:cardin .7s var(--ease)}
+.wd-big{font-family:var(--f-disp);font-style:italic;font-size:24px;line-height:1.4}
+.wd-big b{color:var(--lilac);font-weight:500}
+.wait-done .mono{display:block;margin-top:12px;font-size:11px;letter-spacing:.1em;color:rgba(241,236,226,.5)}
+
+/* ============ footer ============ */
+footer.site-foot{background:#0B0A0F;border-top:1px solid var(--line);padding:72px 0 0;color:rgba(241,236,226,.7)}
+.f-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:44px}
+.f-brand p{font-size:13.5px;max-width:30ch;margin:16px 0 22px;color:rgba(241,236,226,.55)}
+.status{display:inline-flex;align-items:center;gap:9px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--lilac)}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--lilac);animation:pulse 2s infinite}
+.f-col h5{font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(241,236,226,.4);margin-bottom:18px}
+.f-col a,.f-col p{display:block;font-size:13.5px;padding:4px 0;color:rgba(241,236,226,.62);transition:color .3s}
+.f-col a:hover{color:var(--lilac)}
+.f-col .mono{font-size:11.5px;letter-spacing:.06em;line-height:2.1}
+.f-col .mono b{color:var(--lilac);font-weight:500}
+.f-bottom{margin-top:64px;border-top:1px solid var(--line);padding:22px 0;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,236,226,.35)}
+
+/* ============ reveal util ============ */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:var(--d,0s)}
+.rv.in{opacity:1;transform:none}
+
+/* ============ responsive ============ */
+@media (max-width:1020px){
+  .hero-grid{grid-template-columns:1fr;gap:48px}
+  .method-grid{grid-template-columns:1fr;gap:24px}
+  .method-left{position:static}
+  .meter{display:none}
+  .m-panel{grid-template-columns:1fr;gap:26px}
+  .price-grid{grid-template-columns:1fr}
+  .f-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:760px){
+  nav.main{display:none}
+  .sec{padding:88px 0}
+  .board{height:auto;display:flex;flex-direction:column;gap:20px;padding:22px;background-image:none}
+  .p-card{position:static !important;width:100%;cursor:default}
+  .v-card{flex-basis:82vw}
+  .shead{margin-bottom:36px}
+  .f-grid{grid-template-columns:1fr}
+}
+/* ============ reduced motion ============ */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+  .mq-track{animation:none;transform:none}
+  .h-line>span,[data-load],.rv,.chip,.ask{opacity:1 !important;transform:none !important}
+  .caret,.caret2{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+
+<header class="site" id="siteHeader">
+  <a class="logo" href="#top" aria-label="Murmur home">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><g fill="#B7A8F5"><rect class="lb" x="1" y="8" width="3" height="7" rx="1.5" style="transform-origin:2.5px 11.5px"/><rect class="lb" x="6" y="4" width="3" height="14" rx="1.5" style="transform-origin:7.5px 11px"/><rect class="lb" x="11" y="6" width="3" height="10" rx="1.5" style="transform-origin:12.5px 11px"/><rect class="lb" x="16" y="9" width="3" height="5" rx="1.5" style="transform-origin:17.5px 11.5px"/></g></svg>
+    Murmur
+  </a>
+  <nav class="main" aria-label="Primary">
+    <a href="#method">Method</a>
+    <a href="#wall">Wall</a>
+    <a href="#recall">Recall</a>
+    <a href="#voices">Voices</a>
+    <a href="#pricing">Pricing</a>
+  </nav>
+  <a class="btn solid sm" href="#access">early access</a>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO — live capture ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="kick h-kick scr" data-text="◦ /ˈmɜː.mə/ · a notebook that listens">◦ /ˈmɜː.mə/ · a notebook that listens</p>
+        <h1>
+          <span class="h-line"><span style="--d:.05s">Think out loud.</span></span>
+          <span class="h-line"><span style="--d:.16s"><em>Murmur</em> keeps</span></span>
+          <span class="h-line"><span style="--d:.27s">the thread.</span></span>
+        </h1>
+        <p class="hero-sub" data-load style="--d:.42s">An AI notebook for half-formed thoughts. Dictate, type, or toss fragments at it — Murmur listens, distills them quietly on your device, and hands them back exactly when you ask.</p>
+        <div class="hero-cta" data-load style="--d:.55s">
+          <a class="btn solid" href="#access">Get early access</a>
+          <button class="btn ghost" id="hearBtn" type="button">▸ hear it listen</button>
+        </div>
+        <div class="hero-meta" data-load style="--d:.68s">
+          <span><i>●</i> distilled on-device</span>
+          <span><i>◉</i> voice · text · photo</span>
+          <span><i>∞</i> recall, forever</span>
+        </div>
+      </div>
+
+      <div class="deck-col" data-load style="--d:.35s" id="deckCol">
+        <div class="deck" id="deck">
+          <div class="deck-top">
+            <span class="rec"><i></i>recording</span>
+            <span>voice · kitchen table</span>
+            <span id="recTimer">00:00</span>
+          </div>
+          <div class="wave" id="waveHero" aria-hidden="true"></div>
+          <p class="dict" lang="en"><span id="dictText">Okay so — the onboarding flow. What if it felt less like a form…</span><span class="caret" aria-hidden="true"></span></p>
+          <div class="deck-sep"><span>distilled · on-device · 0.4s</span></div>
+          <div class="ai-chips" id="aiChips" aria-live="polite"></div>
+          <div class="deck-foot">
+            <button class="mini" id="replayBtn" type="button">⟳ replay</button>
+            <a class="mini" href="#try">or murmur your own ↓</a>
+          </div>
+        </div>
+
+        <div class="trycard" id="try">
+          <div class="try-top"><span class="on">your turn</span><span id="tryCount">0 words</span></div>
+          <label for="tryIn" class="mono" style="position:absolute;opacity:0">Type a thought to distill</label>
+          <textarea id="tryIn" rows="3" placeholder="type a scattered thought… e.g. “remind me to email Sam about the venue — also the name still feels too loud, murmur maybe”"></textarea>
+          <div class="try-foot">
+            <span class="try-hint">⌘/ctrl + ↵ to distill</span>
+            <div class="try-busy" id="tryBusy" aria-hidden="true"><i></i><i></i><i></i><span>listening…</span></div>
+            <button class="btn solid sm" id="tryBtn" type="button">distill ↵</button>
+          </div>
+          <div class="ai-chips" id="tryOut" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MARQUEE ============ -->
+  <div class="mq" aria-hidden="true">
+    <div class="mq-track" id="mqTrack">
+      <div class="mq-set"><b>09:12 — idea: onboarding as a conversation</b><b>11:03 — email priya re: retention</b><b>12:47 — “silence is the new luxury”</b><b>14:20 — garden: water less than i think</b><b>16:05 — name things by the sound they make</b><b>19:58 — dreamt of a glass library</b><b>21:15 — congee wants day-old rice</b><b>23:41 — quiet hours: no pings after ten</b></div>
+      <div class="mq-set"><b>09:12 — idea: onboarding as a conversation</b><b>11:03 — email priya re: retention</b><b>12:47 — “silence is the new luxury”</b><b>14:20 — garden: water less than i think</b><b>16:05 — name things by the sound they make</b><b>19:58 — dreamt of a glass library</b><b>21:15 — congee wants day-old rice</b><b>23:41 — quiet hours: no pings after ten</b></div>
+    </div>
+  </div>
+
+  <!-- ============ METHOD ============ -->
+  <section class="sec paper" id="method">
+    <div class="wrap method-grid">
+      <div class="method-left">
+        <p class="kick scr" data-text="◦ the method">◦ the method</p>
+        <h2>Four quiet moves.</h2>
+        <p>Murmur does what a good friend with a perfect memory would do: listen first, tidy later, and never interrupt while you're still thinking.</p>
+        <div class="meter" aria-hidden="true">
+          <span class="m-idx" id="mIdx">01</span>
+          <div class="m-bar"><i id="mFill"></i></div>
+          <span class="m-lab">capture → compose</span>
+        </div>
+      </div>
+      <div class="method-right">
+
+        <article class="m-panel rv" data-i="01">
+          <div>
+            <span class="num">01 — capture</span>
+            <h3>Everything lands <em>softly.</em></h3>
+            <p>Voice memos mumbled on the walk home. Sentences typed one-handed. Screenshots, scraps, half-lyrics. Murmur takes them as they come — timestamped, unjudged, never lost in the couch cushions.</p>
+          </div>
+          <div class="mock rv" style="--d:.12s">
+            <div class="mock-bar"><span class="rdot"></span> recording — kitchen table <span class="mt">00:14</span></div>
+            <div class="wave sm" id="waveMock" aria-hidden="true"></div>
+            <div class="src-row"><span class="src">◉ voice</span><span class="src">✎ text</span><span class="src">▣ photo</span><span class="src">⇪ share-sheet</span></div>
+          </div>
+        </article>
+
+        <article class="m-panel rv" data-i="02">
+          <div>
+            <span class="num">02 — distill</span>
+            <h3>The <em>quiet</em> edit.</h3>
+            <p>While you move on, Murmur works softly: a two-line summary, honest tags, action items pulled from your “remind-me-tos.” All on-device. Your raw thoughts stay yours — they never leave, never train.</p>
+          </div>
+          <div class="mock rv" style="--d:.12s">
+            <p class="raw">“…onboarding as a conversation, one question at a time, email Priya the numbers before Friday…”</p>
+            <div class="d-row"><span class="d-k">summary</span><span class="d-v">Reimagine first-run as a one-question conversation.</span></div>
+            <div class="d-row"><span class="d-k">tags</span><span class="d-v pills"><i>#product</i><i>#onboarding</i><i>#idea</i></span></div>
+            <div class="d-row"><span class="d-k">action</span><span class="d-v act">Email Priya · retention numbers — Fri</span></div>
+            <div class="d-foot">distilled on-device · 0.4s · nothing left the phone</div>
+          </div>
+        </article>
+
+        <article class="m-panel rv" data-i="03">
+          <div>
+            <span class="num">03 — recall</span>
+            <h3>Ask like you'd ask <em>a friend.</em></h3>
+            <p>No folders. No filing. Just “what did I think about pricing in March?” or “that book June recommended.” Semantic recall finds the note — and the notes it was flying with.</p>
+          </div>
+          <div class="mock rv" style="--d:.12s">
+            <div class="s-bar">⌕ “what did i think about pricing in march”</div>
+            <div class="s-res"><b>Pricing hush</b><span>mar 14 · voice</span><p>Depth is the product — thirty days free, forever…</p></div>
+            <div class="s-res"><b>Quiet hours</b><span>feb 11 · text</span><p>…captures but never notifies after ten at night.</p></div>
+          </div>
+        </article>
+
+        <article class="m-panel rv" data-i="04">
+          <div>
+            <span class="num">04 — compose</span>
+            <h3>From murmur to <em>manuscript.</em></h3>
+            <p>When a draft needs to exist, Murmur gathers the threads — three murmurs, one meeting, one dream — and lays them out in order. You write the last mile. It walked the other ninety.</p>
+          </div>
+          <div class="mock rv" style="--d:.12s">
+            <div class="c-title">Draft — “Why we named it Murmur”</div>
+            <div class="c-line">↳ from: Run along the harbor <i>mar 06</i></div>
+            <div class="c-line">↳ from: Podcast on silence <i>feb 18</i></div>
+            <div class="c-line">↳ from: Naming tests thread <i>4 notes</i></div>
+            <div class="c-body">We wanted a tool that sounds the way thinking feels — half-formed, forgiving, alive<span class="caret2"></span></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WALL ============ -->
+  <section class="sec paper" id="wall" style="padding-top:20px">
+    <div class="wrap">
+      <div class="shead">
+        <div>
+          <p class="kick scr" data-text="◦ the wall">◦ the wall</p>
+          <h2 style="margin-top:14px">Notes, <em>in the wild.</em></h2>
+        </div>
+        <p class="aside wall-hint">— drag them around.<br>they won't mind.</p>
+      </div>
+      <div class="board" id="board">
+        <article class="p-card" data-r="-5" style="--r:-5deg; left:3%; top:5%;">
+          <span class="pin"></span>
+          <div class="kb"><img src="https://picsum.photos/seed/fog-pines-dawn/460/300" alt="Pines in morning fog" loading="lazy" draggable="false"></div>
+          <p>field recording — pines at 6am. kept the wind, cut the traffic.</p>
+          <span class="p-meta">◉ 00:42 · mar 02</span>
+        </article>
+        <article class="p-card" data-r="3" style="--r:3deg; left:26%; top:15%;">
+          <span class="pin"></span>
+          <p class="it">buy more index cards.<br>analogue is a feature.</p>
+          <span class="p-meta">✎ feb 28 · 21:14</span>
+        </article>
+        <article class="p-card" data-r="-2" style="--r:-2deg; left:49%; top:3%;">
+          <span class="pin"></span>
+          <div class="kb"><img src="https://picsum.photos/seed/harbor-dawn-run/460/300" alt="Harbor at dawn" loading="lazy" draggable="false"></div>
+          <p>HARBOR 06:12 — the naming epiphany, slightly out of breath.</p>
+          <span class="p-meta">◉ 01:08 · mar 06</span>
+        </article>
+        <article class="p-card tint-l" data-r="5" style="--r:5deg; left:74%; top:16%;">
+          <span class="pin"></span>
+          <p class="it">“the app should hush, not horn.”</p>
+          <span class="p-meta">— from the naming memo</span>
+        </article>
+        <article class="p-card" data-r="4" style="--r:4deg; left:9%; top:56%;">
+          <span class="pin"></span>
+          <div class="kb"><img src="https://picsum.photos/seed/city-rain-buswindow/460/300" alt="Rain on a bus window" loading="lazy" draggable="false"></div>
+          <p>rain on the 43 bus — saved the audio, kept the feeling.</p>
+          <span class="p-meta">◉ 03:17 · feb 19</span>
+        </article>
+        <article class="p-card tint-a" data-r="-6" style="--r:-6deg; left:37%; top:61%;">
+          <span class="pin"></span>
+          <p>gift for noor → leather strap → ask theo → done?</p>
+          <span class="p-meta">✎ mar 08 · action pending</span>
+        </article>
+        <article class="p-card" data-r="2" style="--r:2deg; left:64%; top:58%; width:216px;">
+          <span class="pin"></span>
+          <p class="it">№ 0007 · the wall remembers everything pinned to it.</p>
+          <span class="p-meta">✎ kept, always</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RECALL ============ -->
+  <section class="sec recall" id="recall">
+    <div class="wrap">
+      <div class="shead">
+        <div>
+          <p class="kick scr" data-text="◦ semantic recall">◦ semantic recall</p>
+          <h2 style="margin-top:14px">Ask your notes <em>anything.</em></h2>
+        </div>
+        <p class="aside">live demo — this is Murmur's own notebook, twelve sample notes deep.<br>try “pricing”, “dream”, or “garden”.</p>
+      </div>
+
+      <div class="recall-bar rv">
+        <span class="r-ico" aria-hidden="true">⌕</span>
+        <input id="recallQ" type="text" placeholder="ask — “what did i think about pricing in march?”" autocomplete="off" spellcheck="false" aria-label="Search the notebook">
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="ask on" id="askBox">
+        <span class="ask-k">murmur answers</span>
+        <p id="askText">I'm listening. Ask about anything in the notebook below.</p>
+      </div>
+      <p class="r-count" id="resCount"></p>
+      <div class="r-grid" id="resGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ MURMURATION ============ -->
+  <section class="band" id="flockBand">
+    <canvas id="flockCanvas" aria-hidden="true"></canvas>
+    <div class="band-in">
+      <p class="kick scr" data-text="◦ threads">◦ threads</p>
+      <h2 class="band-h rv">One thought is a whisper.<br><em>Together, they're a murmuration.</em></h2>
+      <p class="band-sub rv" style="--d:.12s">Every Sunday, Murmur shows you the flock patterns — ideas that keep circling back, loops still open, notes that rhyme with each other across months.</p>
+      <p class="band-count mono rv" style="--d:.24s"><i id="flockCount">3,214</i>&nbsp; threads observed this week</p>
+    </div>
+  </section>
+
+  <!-- ============ VOICES ============ -->
+  <section class="sec paper" id="voices">
+    <div class="wrap">
+      <div class="shead">
+        <div>
+          <p class="kick scr" data-text="◦ field reports">◦ field reports</p>
+          <h2 style="margin-top:14px">People, thinking <em>out loud.</em></h2>
+        </div>
+        <p class="aside">drag the pile sideways —<br>each card is a real habit.</p>
+      </div>
+      <div class="v-track" id="vTrack">
+        <figure class="v-card">
+          <q>I stopped transcribing my life and started living it. Murmur does the remembering for me now.</q>
+          <figcaption class="v-who"><b>Ada Loren</b><span>field researcher · oslo</span></figcaption>
+        </figure>
+        <figure class="v-card">
+          <q>It caught a thought I had in the shower and tied it to a client brief from October. Honestly? Witchcraft.</q>
+          <figcaption class="v-who"><b>Tomi Okafor</b><span>brand strategist · lagos</span></figcaption>
+        </figure>
+        <figure class="v-card">
+          <q>I recorded a voice note at 3am, half asleep. Morning: a summary, two tags, and a reminder I don't recall setting. Kind of spooky. Completely kind.</q>
+          <figcaption class="v-who"><b>Ruth Ellman</b><span>hospice nurse · leeds</span></figcaption>
+        </figure>
+        <figure class="v-card">
+          <q>My therapy notes, my garden log, my startup — one quiet place for all of it. Nothing shouts.</q>
+          <figcaption class="v-who"><b>June H.</b><span>doctor · toronto</span></figcaption>
+        </figure>
+        <figure class="v-card">
+          <q>The first tool that respects a half-formed idea. Search feels like asking a very patient friend.</q>
+          <figcaption class="v-who"><b>K. Sato</b><span>composer · kyoto</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section class="sec price-sec" id="pricing">
+    <div class="wrap">
+      <div class="shead">
+        <div>
+          <p class="kick scr" data-text="◦ the deal">◦ the deal</p>
+          <h2 style="margin-top:14px">Quiet <em>pricing.</em></h2>
+        </div>
+        <p class="aside">no tiers pretending to be tiers.<br>one free, one complete.</p>
+      </div>
+      <div class="price-grid">
+        <div class="plan free rv">
+          <h3>Whisper</h3>
+          <p class="tag">for thinking out loud, casually.</p>
+          <div class="price">$0<small>forever</small></div>
+          <ul>
+            <li>300 murmurs a month</li>
+            <li>on-device distillation — summaries, tags, actions</li>
+            <li>recall back 30 days</li>
+            <li>two devices, kept in step</li>
+            <li>quiet hours, always on</li>
+          </ul>
+          <a class="btn ghost" style="color:#171520;border-color:var(--line-d)" href="#access">start whispering</a>
+          <p class="foot-note">free forever. a month of memory is a human right, not a trial.</p>
+        </div>
+        <div class="plan plus rv" style="--d:.14s">
+          <span class="badge">most chosen</span>
+          <h3>Murmur+</h3>
+          <p class="tag">for people whose thoughts refuse to queue.</p>
+          <div class="price">$8<small>/ month · or $72 / year</small></div>
+          <ul>
+            <li>everything, unlimited — and archived forever</li>
+            <li>recall back to day one · “the long ear”</li>
+            <li>Sunday flock-pattern digests</li>
+            <li>voice personas &amp; whisper-speed playback</li>
+            <li>export anywhere — markdown · obsidian · plain text</li>
+            <li>first into every new quiet feature</li>
+          </ul>
+          <a class="btn solid" href="#access">go deeper</a>
+          <p class="foot-note">your notes are never ads, never training data. cancel anytime — they leave with you, in full.</p>
+        </div>
+      </div>
+      <p class="price-note">students, educators &amp; librarians pay half — no questions, no forms. institutional licensing for research groups is free; write to us and we'll just say yes.</p>
+    </div>
+  </section>
+
+  <!-- ============ ACCESS ============ -->
+  <section class="sec access" id="access">
+    <div class="wrap">
+      <p class="kick scr" data-text="◦ early access">◦ early access</p>
+      <h2>Be early.<br><em>Be quiet.</em></h2>
+      <p class="sub">We're letting people in slowly — a few hundred murmurs a week, so the servers can keep their voice down. Leave an address; we'll whisper when it's your turn.</p>
+      <form id="waitForm" novalidate>
+        <input id="waitMail" type="email" placeholder="you@somewhere.quiet" aria-label="Email address" autocomplete="email">
+        <button class="btn solid" type="submit">request invite</button>
+      </form>
+      <p class="wait-err mono" id="waitErr" role="alert"></p>
+      <p class="wait-note mono" id="waitNote">one email, ever — no launch-day confetti</p>
+      <div class="wait-done" id="waitDone">
+        <p class="wd-big">You're on the list — invite <b id="inviteNo">№ 4,327</b>.</p>
+        <span class="mono">we'll whisper when it's your turn. check spam sometimes — whispers land there.</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="f-grid">
+      <div class="f-brand">
+        <a class="logo" href="#top">
+          <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><g fill="#B7A8F5"><rect x="1" y="8" width="3" height="7" rx="1.5"/><rect x="6" y="4" width="3" height="14" rx="1.5"/><rect x="11" y="6" width="3" height="10" rx="1.5"/><rect x="16" y="9" width="3" height="5" rx="1.5"/></g></svg>
+          Murmur
+        </a>
+        <p>A notebook that listens first — built by a small team who believe software should lower its voice.</p>
+        <span class="status"><i></i>all systems listening</span>
+      </div>
+      <div class="f-col">
+        <h5>Explore</h5>
+        <a href="#method">The method</a>
+        <a href="#wall">The wall</a>
+        <a href="#recall">Recall demo</a>
+        <a href="#voices">Voices</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#access">Early access</a>
+      </div>
+      <div class="f-col">
+        <h5>Listening</h5>
+        <p>what's a murmur? — a soft, half-formed sound. like your best ideas.</p>
+        <a href="#top">field notes ↗</a>
+        <a href="#top">the quiet handbook ↗</a>
+        <a href="#top">@murmur ↗</a>
+      </div>
+      <div class="f-col mono">
+        <h5>Signal</h5>
+        <p class="mono">LOCAL TIME — <b id="clock">--:--</b><br>BUILD — v0.9.3 “hush”<br>TYPE — fraunces / instrument sans<br>LAT — 51.5286° N, quietly</p>
+      </div>
+    </div>
+    <div class="f-bottom">
+      <span>© 2025 Murmur Labs — made softly</span>
+      <span>no noise since 2024 · privacy · imprint</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var $ = function(id){ return document.getElementById(id); };
+
+/* ---------- header, progress, load ---------- */
+var header = $('siteHeader'), prog = $('progress');
+function onScroll(){
+  var y = window.scrollY;
+  header.classList.toggle('scrolled', y > 12);
+  var h = document.documentElement.scrollHeight - window.innerHeight;
+  prog.style.width = (h > 0 ? (y / h * 100) : 0) + '%';
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+setTimeout(function(){ document.body.classList.add('loaded'); }, 80);
+
+/* ---------- generic reveals ---------- */
+var io = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+},{threshold:.18});
+document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+
+/* ---------- scramble-decode kickers ---------- */
+var GLYPHS = '·˙∙~µm…*ə';
+function scramble(el){
+  var fin = el.dataset.text || el.textContent;
+  if(RM){ el.textContent = fin; return; }
+  var frame = 0, total = Math.max(16, Math.round(fin.length * 1.1));
+  var iv = setInterval(function(){
+    frame++;
+    var out = '';
+    for(var i=0;i<fin.length;i++){
+      if(fin[i] === ' '){ out += ' '; continue; }
+      out += (frame > (i / fin.length) * total * .72) ? fin[i] : GLYPHS[(Math.random()*GLYPHS.length)|0];
+    }
+    el.textContent = out;
+    if(frame >= total){ clearInterval(iv); el.textContent = fin; }
+  }, 28);
+}
+var sio = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ scramble(e.target); sio.unobserve(e.target); } });
+},{threshold:.6});
+document.querySelectorAll('.scr').forEach(function(el){ sio.observe(el); });
+
+/* ---------- waveform builders ---------- */
+function buildWave(el, n){
+  if(!el) return;
+  for(var i=0;i<n;i++){
+    var s = document.createElement('span');
+    s.style.height = (18 + Math.random()*72) + '%';
+    s.style.animationDuration = (.45 + Math.random()*.55) + 's';
+    s.style.animationDelay = (Math.random()*.7) + 's';
+    el.appendChild(s);
+  }
+}
+var waveHero = $('waveHero');
+buildWave(waveHero, 42);
+buildWave($('waveMock'), 30);
+
+/* ---------- hero dictation engine ---------- */
+var SCRIPTS = [
+  { text: "Okay so — the onboarding flow. What if first-run felt less like a form and more like a conversation? One question at a time. Oh, and remember to email Priya the retention numbers before Friday.",
+    sum: "Reimagine first-run as a one-question-at-a-time conversation — warm, unhurried.",
+    tags: ["#product","#onboarding","#idea"],
+    act: "Email Priya — retention numbers · due Fri",
+    thr: "Linked thread: “Q3 activation review” · 6 notes" },
+  { text: "Right — dinner with Sam on Thursday. He’s deep into natural wine now, so somewhere with a good list, low light. Also the naming test: does “Murmur” survive being whispered? It should.",
+    sum: "Plan Thursday dinner with Sam — natural wine bar, low light. Test the name at whisper volume.",
+    tags: ["#plans","#sam","#naming"],
+    act: "Book a table · natural wine, quiet room",
+    thr: "Linked thread: “Naming tests” · 4 notes" }
+];
+var dictText = $('dictText'), aiChips = $('aiChips'), recTimer = $('recTimer');
+var runTok = 0, tInt = null;
+
+function chipHTML(d){
+  var h = '<div class="chip c-sum"><span class="c-k">summary</span><p></p></div>';
+  return h;
+}
+function renderChips(container, d){
+  var html = '';
+  html += '<div class="chip c-sum"><span class="c-k">summary</span><p>' + esc(d.sum) + '</p></div>';
+  html += '<div class="chip c-tags"><span class="c-k">tags</span><div class="pills">' + d.tags.map(function(t){ return '<i>' + esc(t) + '</i>'; }).join('') + '</div></div>';
+  if(d.act) html += '<div class="chip c-act"><span class="c-k">action</span><p>' + esc(d.act) + '</p></div>';
+  if(d.thr) html += '<div class="chip c-thr"><span class="c-k">thread</span><p>' + esc(d.thr) + '</p></div>';
+  if(d.tone) html += '<div class="chip c-tone"><span class="c-k">tone</span><p>' + esc(d.tone) + '</p></div>';
+  html += '<div class="c-foot">' + esc(d.meta || 'distilled on-device · 0.4s · nothing left this page') + '</div>';
+  container.innerHTML = html;
+  var chips = container.querySelectorAll('.chip');
+  if(RM){ chips.forEach(function(c){ c.classList.add('show'); }); return; }
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    chips.forEach(function(c, j){ setTimeout(function(){ c.classList.add('show'); }, 160 + j*170); });
+  });});
+}
+function startTimer(){
+  clearInterval(tInt);
+  var s = 0; recTimer.textContent = '00:00';
+  tInt = setInterval(function(){
+    s++;
+    recTimer.textContent = '0' + Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }, 1000);
+}
+function playScript(i){
+  var tok = ++runTok, s = SCRIPTS[i];
+  aiChips.innerHTML = '';
+  dictText.textContent = '';
+  waveHero.classList.add('live');
+  startTimer();
+  if(RM){
+    dictText.textContent = s.text;
+    renderChips(aiChips, s);
+    return;
+  }
+  var idx = 0;
+  (function step(){
+    if(tok !== runTok) return;
+    if(idx >= s.text.length){ finish(); return; }
+    var ch = s.text[idx++];
+    dictText.textContent += ch;
+    var d = /[.,—?]/.test(ch) ? 150 : 20 + Math.random()*30;
+    setTimeout(step, d);
+  })();
+  function finish(){
+    if(tok !== runTok) return;
+    waveHero.classList.remove('live');
+    renderChips(aiChips, s);
+    setTimeout(function(){ if(tok === runTok) playScript((i+1) % SCRIPTS.length); }, 7200);
+  }
+}
+setTimeout(function(){ playScript(0); }, 900);
+$('replayBtn').addEventListener('click', function(){ playScript(runTok % SCRIPTS.length || 0); });
+$('hearBtn').addEventListener('click', function(){
+  playScript(0);
+  $('deck').scrollIntoView({behavior: RM ? 'auto' : 'smooth', block:'center'});
+});
+
+/* ---------- your-turn distiller ---------- */
+var STOP = new Set(("a an and are as at be but by for from has have i if in into is it its just me my of on or so that the then this to too was we were what when where which who will with you your our us am been do does doing very really maybe also about some thing things like um uh okay ok right need wants want got going go it's dont don't").split(" "));
+function distill(text){
+  var words = text.trim().split(/\s+/).filter(Boolean);
+  var sents = text.split(/[.!?\n]+/).map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 2; });
+  var sum = sents.slice(0,2).join('. ').replace(/\.+$/,'');
+  if(sum.length > 160) sum = sum.slice(0,157) + '…';
+  if(!sum) sum = words.slice(0,14).join(' ') + '…';
+  sum = sum.charAt(0).toUpperCase() + sum.slice(1);
+  var freq = {};
+  text.toLowerCase().replace(/[^a-z\s'-]/g,' ').split(/\s+/).forEach(function(w){
+    w = w.replace(/^'+|'+$/g,'');
+    if(w.length > 3 && !STOP.has(w)) freq[w] = (freq[w]||0) + 1;
+  });
+  var tags = Object.keys(freq).sort(function(a,b){ return freq[b]-freq[a] || b.length-a.length; }).slice(0,4).map(function(w){ return '#'+w; });
+  if(!tags.length) tags = ['#unfiled','#half-formed'];
+  var ACT = /\b(email|e-mail|call|book|send|finish|buy|ask|pay|schedule|write|fix|plan|remind|check|ship|draft|reserve|reply|cancel)\b/i;
+  var act = null;
+  for(var i=0;i<sents.length;i++){
+    if(ACT.test(sents[i])){
+      act = sents[i].charAt(0).toUpperCase() + sents[i].slice(1);
+      if(act.length > 76) act = act.slice(0,73) + '…';
+      break;
+    }
+  }
+  var p = (text.match(/(love|great|good|excited|calm|happy|hope|win|warm|quiet|soft)/gi)||[]).length;
+  var n = (text.match(/(hate|bad|stress|worry|worried|tired|angry|blocked|loud|awful|late)/gi)||[]).length;
+  var tone = p > n+1 ? 'reads warm ☼' : n > p+1 ? 'reads heavy — breathe' : (p||n) ? 'reads even' : 'reads quiet';
+  return { sum:sum, tags:tags, act:act, thr:null, tone:tone, meta: words.length + ' words in · distilled on-device · 0.4s' };
+}
+var tryIn = $('tryIn'), tryOut = $('tryOut'), tryBusy = $('tryBusy'), tryBtn = $('tryBtn'), tryCard = document.querySelector('.trycard');
+tryIn.addEventListener('input', function(){
+  var w = tryIn.value.trim().split(/\s+/).filter(Boolean).length;
+  $('tryCount').textContent = w + ' word' + (w===1?'':'s');
+});
+function runDistill(){
+  var text = tryIn.value.trim();
+  if(!text){
+    tryCard.classList.remove('shake'); void tryCard.offsetWidth; tryCard.classList.add('shake');
+    $('tryCount').textContent = 'murmur needs a little sound first';
+    return;
+  }
+  tryOut.innerHTML = '';
+  tryBusy.classList.add('on');
+  tryBtn.disabled = true;
+  setTimeout(function(){
+    tryBusy.classList.remove('on');
+    tryBtn.disabled = false;
+    renderChips(tryOut, distill(text));
+  }, RM ? 120 : 950);
+}
+tryBtn.addEventListener('click', runDistill);
+tryIn.addEventListener('keydown', function(e){
+  if((e.metaKey || e.ctrlKey) && e.key === 'Enter') runDistill();
+});
+
+/* ---------- recall playground ---------- */
+var NOTES = [
+  {d:"Mar 14",t:"09:12",k:"voice",title:"Pricing hush",body:"What if the free tier kept everything except recall depth? Thirty days of memory, free forever. Depth is the product — charge for the long ear.",tags:["pricing","strategy"]},
+  {d:"Mar 12",t:"22:47",k:"text",title:"Dream — the glass library",body:"A library where every book was a conversation I'd forgotten. The librarian kept shushing me, but kindly, like she was in on the joke.",tags:["dream","journal"]},
+  {d:"Mar 10",t:"08:03",k:"voice",title:"Standup, quick",body:"Blocked on the sync engine retry logic. Priya reviews Thursday. Demo the recall flow on Friday — keep it slow, let it feel calm.",tags:["work","standup"]},
+  {d:"Mar 08",t:"19:30",k:"text",title:"Gift for Noor",body:"She keeps circling that film camera — the Contax T2 — but it's too rich for us. A handmade leather strap instead? Ask Theo who does his.",tags:["gift","noor"]},
+  {d:"Mar 06",t:"07:41",k:"voice",title:"Run along the harbor",body:"Idea mid-run: name things by the sound they make. Murmur. Susurrus. The app should feel like a hush, not a horn. Breathe when it opens.",tags:["naming","idea"]},
+  {d:"Mar 04",t:"13:15",k:"text",title:"Book — How Buildings Learn",body:"Stewart Brand: we shape buildings, then they shape us. Same for tools. Notes should be lowland — adaptable, floodplain, patient.",tags:["reading","brand"]},
+  {d:"Feb 27",t:"21:09",k:"voice",title:"After the session",body:"Noticed I narrate instead of feel. Practice: name the feeling first — one word — before the story gets its say.",tags:["self","practice"]},
+  {d:"Feb 24",t:"12:02",k:"photo",title:"Garden log — week 8",body:"Tomatoes finally through. Basil leggy, chili moved to the east sill. Reminder stitched to the photo: water less than I think.",tags:["garden"]},
+  {d:"Feb 21",t:"16:44",k:"text",title:"Lyric, overheard",body:"Every map is a love letter to somewhere. Songwriter unknown, café on Berwick Street. Steal this someday, carefully.",tags:["lyric","someday"]},
+  {d:"Feb 18",t:"10:20",k:"voice",title:"Podcast — on silence",body:"Kagge: silence is a resource we stopped budgeting for. Silence is the new luxury. Might be the whole pitch in one line.",tags:["podcast","quote","naming"]},
+  {d:"Feb 14",t:"23:58",k:"text",title:"Midnight congee",body:"Ginger, rice, four hours of patience. The trick is day-old rice and a heavy pot. Egg at the end, always at the end.",tags:["recipe"]},
+  {d:"Feb 11",t:"15:33",k:"text",title:"Feature — quiet hours",body:"Between ten at night and seven in the morning, Murmur captures but never notifies. Notes shouldn't tap your shoulder at 1 a.m.",tags:["feature","calm"]}
+];
+var KG = {voice:"◉", text:"✎", photo:"▣"};
+var resGrid = $('resGrid'), recallQ = $('recallQ'), askBox = $('askBox'), askText = $('askText'), resCount = $('resCount');
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function hl(s, q){
+  var e = esc(s);
+  if(!q) return e;
+  try { return e.replace(new RegExp(escRe(esc(q)),'ig'), function(m){ return '<mark>'+m+'</mark>'; }); }
+  catch(err){ return e; }
+}
+function score(n, q){
+  var hay = (n.title+' '+n.body+' '+n.tags.join(' ')).toLowerCase();
+  var occ = hay.split(q).length - 1;
+  if(!occ) return 0;
+  return occ * (n.title.toLowerCase().indexOf(q) > -1 ? 3 : 1);
+}
+function cardHTML(n, q){
+  return '<article class="n-card">' +
+    '<div class="n-meta"><i>' + KG[n.k] + '</i><span>' + n.k + '</span> · <span>' + n.d + '</span> · <span>' + n.t + '</span></div>' +
+    '<h4>' + hl(n.title,q) + '</h4><p>' + hl(n.body,q) + '</p>' +
+    '<div class="n-tags">' + n.tags.map(function(t){ return '<i>#' + hl(t,q) + '</i>'; }).join('') + '</div></article>';
+}
+function runRecall(){
+  var q = recallQ.value.trim().toLowerCase();
+  var list;
+  if(!q){ list = NOTES.slice(); }
+  else {
+    list = NOTES.map(function(n){ return {n:n, s:score(n,q)}; })
+      .filter(function(x){ return x.s > 0; })
+      .sort(function(a,b){ return b.s - a.s; })
+      .map(function(x){ return x.n; });
+  }
+  if(!q){
+    resGrid.innerHTML = list.map(function(n){ return cardHTML(n,''); }).join('');
+    askText.textContent = "I'm listening. Ask about anything in the notebook below.";
+  } else if(!list.length){
+    resGrid.innerHTML = '<div class="r-empty">I don\u2019t have that yet — murmur it once, and I\u2019ll remember it forever.</div>';
+    askText.textContent = 'Nothing yet for “' + q + '”. The notebook only grows when you speak to it.';
+  } else {
+    resGrid.innerHTML = list.map(function(n){ return cardHTML(n,q); }).join('');
+    var top = list[0], first = top.body.split(/[.!?]+/)[0];
+    var a = 'I hear ' + list.length + ' note' + (list.length>1?'s':'') + ' near “' + q + '”. The loudest is “' + top.title + '” (' + top.d + '): “' + first + '.”';
+    if(list.length > 1) a += ' Flying nearby: ' + list.slice(1,3).map(function(x){ return '“'+x.title+'”'; }).join(', ') + '.';
+    askText.textContent = a;
+  }
+  askBox.classList.remove('on'); void askBox.offsetWidth; askBox.classList.add('on');
+  resCount.textContent = list.length + ' of ' + NOTES.length + ' notes · ' + (q ? 'matching “' + q + '”' : 'everything, at rest');
+}
+var deb;
+recallQ.addEventListener('input', function(){ clearTimeout(deb); deb = setTimeout(runRecall, 160); });
+runRecall();
+document.addEventListener('keydown', function(e){
+  var tag = (document.activeElement && document.activeElement.tagName) || '';
+  if(e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA'){
+    e.preventDefault();
+    recallQ.focus();
+    $('recall').scrollIntoView({behavior: RM ? 'auto' : 'smooth', block:'start'});
+  }
+});
+
+/* ---------- method progress ---------- */
+var panels = Array.prototype.slice.call(document.querySelectorAll('.m-panel'));
+var mio = new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){
+      $('mIdx').textContent = e.target.dataset.i;
+      $('mFill').style.height = (parseInt(e.target.dataset.i,10) / panels.length * 100) + '%';
+    }
+  });
+},{rootMargin:'-42% 0px -52% 0px'});
+panels.forEach(function(p){ mio.observe(p); });
+
+/* ---------- wall drag ---------- */
+if(window.matchMedia('(pointer:fine)').matches){
+  document.querySelectorAll('.p-card').forEach(function(c){
+    var sx, sy, ox = 0, oy = 0;
+    c.addEventListener('pointerdown', function(e){
+      if(window.innerWidth < 760) return;
+      c.setPointerCapture(e.pointerId);
+      c.classList.add('drag');
+      sx = e.clientX; sy = e.clientY;
+      e.preventDefault();
+    });
+    c.addEventListener('pointermove', function(e){
+      if(!c.classList.contains('drag')) return;
+      var dx = ox + (e.clientX - sx), dy = oy + (e.clientY - sy);
+      c.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + c.dataset.r + 'deg)';
+      c._dx = dx; c._dy = dy;
+    });
+    function up(){
+      if(!c.classList.contains('drag')) return;
+      c.classList.remove('drag');
+      ox = c._dx || 0; oy = c._dy || 0;
+      c.style.transform = 'translate(' + ox + 'px,' + oy + 'px) rotate(' + c.dataset.r + 'deg)';
+    }
+    c.addEventListener('pointerup', up);
+    c.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------- voices drag-scroll ---------- */
+(function(){
+  var t = $('vTrack'), down = false, x0 = 0, sl0 = 0;
+  t.addEventListener('pointerdown', function(e){ down = true; x0 = e.clientX; sl0 = t.scrollLeft; });
+  window.addEventListener('pointermove', function(e){ if(down) t.scrollLeft = sl0 - (e.clientX - x0); });
+  window.addEventListener('pointerup', function(){ down = false; });
+})();
+
+/* ---------- murmuration canvas ---------- */
+(function(){
+  var band = $('flockBand'), cv = $('flockCanvas'), ctx = cv.getContext('2d');
+  var w = 0, h = 0, pts = [], mx = null, my = null, t = 0, running = false, raf = null;
+  function size(){
+    var r = band.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio||1, 2);
+    w = r.width; h = r.height;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    var n = Math.max(60, Math.min(160, Math.round(w*h/9000)));
+    pts = [];
+    for(var i=0;i<n;i++) pts.push({x:Math.random()*w, y:Math.random()*h, vx:(Math.random()-.5), vy:(Math.random()-.5)});
+  }
+  function paintFrame(){
+    ctx.clearRect(0,0,w,h);
+    ctx.lineWidth = .6;
+    for(var i=0;i<pts.length;i++){
+      for(var j=i+1;j<pts.length;j++){
+        var dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y, d2 = dx*dx+dy*dy;
+        if(d2 < 2900){
+          ctx.strokeStyle = 'rgba(183,168,245,' + (0.10*(1-d2/2900)).toFixed(3) + ')';
+          ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
+        }
+      }
+    }
+    for(var k=0;k<pts.length;k++){
+      ctx.fillStyle = k%5 ? 'rgba(241,236,226,.75)' : 'rgba(183,168,245,.9)';
+      ctx.beginPath(); ctx.arc(pts[k].x, pts[k].y, 1.3, 0, 7); ctx.fill();
+    }
+  }
+  function step(){
+    if(!running) return;
+    t += .006;
+    for(var i=0;i<pts.length;i++){
+      var p = pts[i];
+      var ang = Math.sin(p.x*.004 + t) + Math.cos(p.y*.005 - t*1.4);
+      p.vx += Math.cos(ang)*.02 + (w/2 - p.x)*.00002;
+      p.vy += Math.sin(ang)*.02 + (h/2 - p.y)*.00002;
+      if(mx !== null){
+        var dx = p.x - mx, dy = p.y - my, d = Math.sqrt(dx*dx+dy*dy) || 1;
+        if(d < 110){ var f = (110-d)/110*.55; p.vx += dx/d*f; p.vy += dy/d*f; }
+      }
+      p.vx *= .985; p.vy *= .985;
+      var sp = Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+      if(sp > 1.5){ p.vx *= 1.5/sp; p.vy *= 1.5/sp; }
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < -16) p.x = w+16; if(p.x > w+16) p.x = -16;
+      if(p.y < -16) p.y = h+16; if(p.y > h+16) p.y = -16;
+    }
+    paintFrame();
+    raf = requestAnimationFrame(step);
+  }
+  size();
+  if(RM){ paintFrame(); }
+  else {
+    band.addEventListener('pointermove', function(e){
+      var r = cv.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top;
+    });
+    band.addEventListener('pointerleave', function(){ mx = my = null; });
+    new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting && !running){ running = true; raf = requestAnimationFrame(step); }
+        else if(!e.isIntersecting && running){ running = false; cancelAnimationFrame(raf); }
+      });
+    },{threshold:.05}).observe(band);
+  }
+  window.addEventListener('resize', function(){ size(); if(RM) paintFrame(); });
+})();
+
+/* ---------- ticking counter ---------- */
+if(!RM){
+  var fc = $('flockCount'), base = 3214;
+  setInterval(function(){
+    base += 1 + ((Math.random()*3)|0);
+    fc.textContent = base.toLocaleString('en-US');
+  }, 2600);
+}
+
+/* ---------- clock ---------- */
+function tickClock(){
+  var d = new Date();
+  $('clock').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+tickClock(); setInterval(tickClock, 15000);
+
+/* ---------- waitlist ---------- */
+var form = $('waitForm'), mail = $('waitMail'), err = $('waitErr');
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  var v = mail.value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(v)){
+    err.textContent = 'that address sounds off — one more try?';
+    mail.classList.remove('err'); void mail.offsetWidth; mail.classList.add('err');
+    return;
+  }
+  err.textContent = '';
+  form.style.display = 'none';
+  $('waitNote').style.display = 'none';
+  $('inviteNo').textContent = '№ ' + (4200 + ((Math.random()*400)|0)).toLocaleString('en-US');
+  $('waitDone').classList.add('on');
+});
+
+/* ---------- gentle deck parallax ---------- */
+if(!RM && window.matchMedia('(pointer:fine)').matches){
+  var hero = document.querySelector('.hero'), deckCol = $('deckCol');
+  hero.addEventListener('pointermove', function(e){
+    var r = hero.getBoundingClientRect();
+    var x = (e.clientX - r.left)/r.width - .5, y = (e.clientY - r.top)/r.height - .5;
+    deckCol.style.transform = 'translate(' + (x*8).toFixed(1) + 'px,' + (y*6).toFixed(1) + 'px)';
+  });
+  hero.addEventListener('pointerleave', function(){ deckCol.style.transform = ''; });
+}
+})();
+</script>
+</body>
+</html>

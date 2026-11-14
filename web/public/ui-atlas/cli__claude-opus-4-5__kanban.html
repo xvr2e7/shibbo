@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+        }
+
+        .header {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo span {
+            color: #a1a1aa;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .team-avatars {
+            display: flex;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #1a1a2e;
+            margin-left: -8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            object-fit: cover;
+        }
+
+        .avatar:first-child {
+            margin-left: 0;
+        }
+
+        .avatar:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .board {
+            display: flex;
+            gap: 24px;
+            padding: 32px;
+            overflow-x: auto;
+            min-height: calc(100vh - 89px);
+        }
+
+        .column {
+            min-width: 320px;
+            max-width: 320px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 8px;
+        }
+
+        .column-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .column-title h2 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .column-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-backlog { background: #a1a1aa; }
+        .dot-progress { background: #3b82f6; }
+        .dot-review { background: #f59e0b; }
+        .dot-done { background: #10b981; }
+
+        .add-card-btn {
+            background: transparent;
+            border: 2px dashed rgba(255,255,255,0.2);
+            color: #a1a1aa;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-card-btn:hover {
+            border-color: rgba(255,255,255,0.4);
+            color: #e4e4e7;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            min-height: 100px;
+        }
+
+        .cards.drag-over {
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 12px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: grab;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .card:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .tag-ui { background: rgba(139, 92, 246, 0.3); color: #c4b5fd; }
+        .tag-ux { background: rgba(236, 72, 153, 0.3); color: #f9a8d4; }
+        .tag-brand { background: rgba(245, 158, 11, 0.3); color: #fcd34d; }
+        .tag-icon { background: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+        .tag-motion { background: rgba(59, 130, 246, 0.3); color: #93c5fd; }
+        .tag-research { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-assignee {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #a1a1aa;
+        }
+
+        .card-info span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-priority {
+            display: flex;
+            gap: 2px;
+        }
+
+        .priority-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #a1a1aa;
+        }
+
+        .priority-high .priority-dot { background: #ef4444; }
+        .priority-medium .priority-dot:nth-child(-n+2) { background: #f59e0b; }
+        .priority-low .priority-dot:first-child { background: #10b981; }
+
+        .card-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1e1e2e;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #a1a1aa;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #e4e4e7;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e4e4e7;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+            
+            .board {
+                padding: 16px;
+            }
+            
+            .column {
+                min-width: 280px;
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">D</div>
+            <div>
+                <h1>DesignFlow</h1>
+                <span>Sprint 14 • Nov 4-17</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="team-avatars">
+                <img src="https://i.pravatar.cc/100?img=1" alt="Team member" class="avatar">
+                <img src="https://i.pravatar.cc/100?img=5" alt="Team member" class="avatar">
+                <img src="https://i.pravatar.cc/100?img=3" alt="Team member" class="avatar">
+                <img src="https://i.pravatar.cc/100?img=8" alt="Team member" class="avatar">
+            </div>
+            <button class="btn btn-primary" onclick="openModal()">+ New Task</button>
+        </div>
+    </header>
+
+    <main class="board">
+        <div class="column" data-status="backlog">
+            <div class="column-header">
+                <div class="column-title">
+                    <span class="column-dot dot-backlog"></span>
+                    <h2>Backlog</h2>
+                    <span class="column-count">3</span>
+                </div>
+            </div>
+            <div class="cards">
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-research">Research</span>
+                    </div>
+                    <h3 class="card-title">Competitor analysis for dashboard redesign</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=5" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>📎 2</span>
+                            <div class="card-priority priority-medium">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-icon">Icons</span>
+                    </div>
+                    <h3 class="card-title">Design new notification icon set</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=3" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>💬 4</span>
+                            <div class="card-priority priority-low">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-ux">UX</span>
+                    </div>
+                    <h3 class="card-title">User flow mapping for onboarding v2</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=8" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>📎 1</span>
+                            <div class="card-priority priority-high">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="add-card-btn" onclick="openModal('backlog')">+ Add Card</button>
+        </div>
+
+        <div class="column" data-status="progress">
+            <div class="column-header">
+                <div class="column-title">
+                    <span class="column-dot dot-progress"></span>
+                    <h2>In Progress</h2>
+                    <span class="column-count">2</span>
+                </div>
+            </div>
+            <div class="cards">
+                <div class="card" draggable="true">
+                    <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=200&fit=crop" alt="Design preview" class="card-image">
+                    <div class="card-tags">
+                        <span class="tag tag-ui">UI</span>
+                        <span class="tag tag-brand">Brand</span>
+                    </div>
+                    <h3 class="card-title">Homepage hero section redesign</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=1" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>💬 12</span>
+                            <div class="card-priority priority-high">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-motion">Motion</span>
+                    </div>
+                    <h3 class="card-title">Loading state animations for checkout</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=5" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>📎 3</span>
+                            <div class="card-priority priority-medium">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="add-card-btn" onclick="openModal('progress')">+ Add Card</button>
+        </div>
+
+        <div class="column" data-status="review">
+            <div class="column-header">
+                <div class="column-title">
+                    <span class="column-dot dot-review"></span>
+                    <h2>Review</h2>
+                    <span class="column-count">2</span>
+                </div>
+            </div>
+            <div class="cards">
+                <div class="card" draggable="true">
+                    <img src="https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=400&h=200&fit=crop" alt="Design preview" class="card-image">
+                    <div class="card-tags">
+                        <span class="tag tag-ui">UI</span>
+                    </div>
+                    <h3 class="card-title">Settings page component library</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=3" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>💬 8</span>
+                            <div class="card-priority priority-medium">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-ux">UX</span>
+                        <span class="tag tag-research">Research</span>
+                    </div>
+                    <h3 class="card-title">Mobile navigation prototype testing</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=8" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>📎 5</span>
+                            <div class="card-priority priority-high">
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                                <span class="priority-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="add-card-btn" onclick="openModal('review')">+ Add Card</button>
+        </div>
+
+        <div class="column" data-status="done">
+            <div class="column-header">
+                <div class="column-title">
+                    <span class="column-dot dot-done"></span>
+                    <h2>Done</h2>
+                    <span class="column-count">3</span>
+                </div>
+            </div>
+            <div class="cards">
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-brand">Brand</span>
+                    </div>
+                    <h3 class="card-title">Updated color palette documentation</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=1" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>✓ Complete</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-icon">Icons</span>
+                    </div>
+                    <h3 class="card-title">Export icons for developer handoff</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=5" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>✓ Complete</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" draggable="true">
+                    <div class="card-tags">
+                        <span class="tag tag-ui">UI</span>
+                    </div>
+                    <h3 class="card-title">Button component variants</h3>
+                    <div class="card-meta">
+                        <img src="https://i.pravatar.cc/100?img=3" alt="Assignee" class="card-assignee">
+                        <div class="card-info">
+                            <span>✓ Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="add-card-btn" onclick="openModal('done')">+ Add Card</button>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3>Create New Task</h3>
+            <form onsubmit="addCard(event)">
+                <div class="form-group">
+                    <label for="title">Task Title</label>
+                    <input type="text" id="title" placeholder="Enter task title..." required>
+                </div>
+                <div class="form-group">
+                    <label for="tag">Category</label>
+                    <select id="tag">
+                        <option value="ui">UI</option>
+                        <option value="ux">UX</option>
+                        <option value="brand">Brand</option>
+                        <option value="icon">Icons</option>
+                        <option value="motion">Motion</option>
+                        <option value="research">Research</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="priority">Priority</label>
+                    <select id="priority">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <input type="hidden" id="column-target" value="backlog">
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let draggedCard = null;
+
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+
+        document.querySelectorAll('.cards').forEach(column => {
+            column.addEventListener('dragover', handleDragOver);
+            column.addEventListener('dragleave', handleDragLeave);
+            column.addEventListener('drop', handleDrop);
+        });
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.cards').forEach(col => col.classList.remove('drag-over'));
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave() {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if (draggedCard) {
+                this.insertBefore(draggedCard, this.querySelector('.add-card-btn'));
+                updateCounts();
+            }
+        }
+
+        function updateCounts() {
+            document.querySelectorAll('.column').forEach(column => {
+                const count = column.querySelectorAll('.card').length;
+                column.querySelector('.column-count').textContent = count;
+            });
+        }
+
+        function openModal(columnId = 'backlog') {
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('column-target').value = columnId;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('title').value = '';
+        }
+
+        function addCard(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const tag = document.getElementById('tag').value;
+            const priority = document.getElementById('priority').value;
+            const columnId = document.getElementById('column-target').value;
+            
+            const avatars = ['1', '3', '5', '8'];
+            const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+            
+            const tagLabels = {
+                ui: 'UI',
+                ux: 'UX',
+                brand: 'Brand',
+                icon: 'Icons',
+                motion: 'Motion',
+                research: 'Research'
+            };
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.draggable = true;
+            card.innerHTML = `
+                <div class="card-tags">
+                    <span class="tag tag-${tag}">${tagLabels[tag]}</span>
+                </div>
+                <h3 class="card-title">${title}</h3>
+                <div class="card-meta">
+                    <img src="https://i.pravatar.cc/100?img=${randomAvatar}" alt="Assignee" class="card-assignee">
+                    <div class="card-info">
+                        <span>💬 0</span>
+                        <div class="card-priority priority-${priority}">
+                            <span class="priority-dot"></span>
+                            <span class="priority-dot"></span>
+                            <span class="priority-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+
+            const column = document.querySelector(`.column[data-status="${columnId}"] .cards`);
+            column.insertBefore(card, column.querySelector('.add-card-btn'));
+            
+            updateCounts();
+            closeModal();
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>

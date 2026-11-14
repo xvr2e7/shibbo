@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storefront Analytics — Sales Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --surface: #171e2e;
+    --surface-2: #1d2639;
+    --border: #273046;
+    --text: #e8ecf4;
+    --text-dim: #8b94a9;
+    --accent: #6366f1;
+    --accent-soft: rgba(99, 102, 241, 0.14);
+    --green: #34d399;
+    --green-soft: rgba(52, 211, 153, 0.12);
+    --red: #f87171;
+    --red-soft: rgba(248, 113, 113, 0.12);
+    --amber: #fbbf24;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ---------- Sidebar ---------- */
+  aside {
+    width: 232px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-shrink: 0;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 24px;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.3px;
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .nav-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    padding: 14px 12px 6px;
+    font-weight: 600;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: #a5b4fc; font-weight: 600; }
+  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f472b6, #fb923c);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+    color: #1a1a2e;
+  }
+  .user-meta { line-height: 1.3; }
+  .user-meta strong { font-size: 13px; display: block; }
+  .user-meta span { font-size: 11.5px; color: var(--text-dim); }
+
+  /* ---------- Main ---------- */
+  main {
+    flex: 1;
+    padding: 28px 32px 48px;
+    max-width: 1280px;
+    margin: 0 auto;
+    min-width: 0;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+  header h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.4px; }
+  header p { color: var(--text-dim); font-size: 13.5px; margin-top: 4px; }
+  .header-actions { display: flex; gap: 10px; }
+  .range-picker {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .range-picker button {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .range-picker button.active { background: var(--accent); color: #fff; }
+  .btn-export {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: border-color 0.15s;
+  }
+  .btn-export:hover { border-color: var(--accent); }
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20px; right: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--kpi-color, var(--accent));
+    opacity: 0.8;
+  }
+  .kpi-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .kpi-label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
+  .kpi-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: grid; place-items: center;
+    background: var(--surface-2);
+  }
+  .kpi-icon svg { width: 17px; height: 17px; }
+  .kpi-value { font-size: 27px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 8px; }
+  .kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+  }
+  .kpi-delta.up { color: var(--green); background: var(--green-soft); }
+  .kpi-delta.down { color: var(--red); background: var(--red-soft); }
+  .kpi-delta + span { font-size: 11.5px; color: var(--text-dim); margin-left: 7px; }
+
+  /* ---------- Panels & layout ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+  .panel h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+  .panel-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+
+  .grid-main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-secondary {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-wrap.sm { height: 230px; }
+
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-dim); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 3px; }
+
+  /* ---------- Donut center ---------- */
+  .donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .donut-center strong { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .donut-center span { font-size: 11.5px; color: var(--text-dim); }
+
+  /* ---------- Tables ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 0 12px 11px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td { padding: 12px; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .product-cell { display: flex; align-items: center; gap: 11px; }
+  .product-thumb {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: grid; place-items: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .product-cell strong { display: block; font-size: 13px; font-weight: 600; }
+  .product-cell span { font-size: 11.5px; color: var(--text-dim); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 99px;
+  }
+  .badge.delivered { color: var(--green); background: var(--green-soft); }
+  .badge.shipped { color: var(--cyan); background: rgba(34, 211, 238, 0.12); }
+  .badge.processing { color: var(--amber); background: rgba(251, 191, 36, 0.12); }
+  .badge.refunded { color: var(--red); background: var(--red-soft); }
+
+  .spark-bar-bg {
+    height: 5px;
+    background: var(--surface-2);
+    border-radius: 99px;
+    overflow: hidden;
+    width: 100%;
+    min-width: 70px;
+  }
+  .spark-bar { height: 100%; border-radius: 99px; background: var(--accent); }
+
+  .orders-panel { margin-top: 16px; }
+  .view-all {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #a5b4fc;
+    text-decoration: none;
+  }
+  .view-all:hover { text-decoration: underline; }
+
+  /* ---------- Channel list ---------- */
+  .channel-list { display: flex; flex-direction: column; gap: 16px; margin-top: 4px; }
+  .channel-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+  .channel-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+  .channel-val { font-size: 12.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .channel-bar-bg { grid-column: 1 / -1; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .channel-bar { height: 100%; border-radius: 99px; }
+
+  @media (max-width: 1000px) {
+    .grid-main, .grid-secondary { grid-template-columns: 1fr; }
+    aside { display: none; }
+    main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="logo"><div class="logo-mark">◈</div>Lumen&nbsp;Shop</div>
+  <div class="nav-label">Analytics</div>
+  <a class="nav-item active" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Overview
+  </a>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 7-8"/><path d="M15 8h4v4"/></svg>
+    Revenue
+  </a>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M6 6L5 3H2"/></svg>
+    Orders
+  </a>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>
+    Products
+  </a>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18.5 15.3c1.7.7 2.8 2.2 3.2 4.2"/></svg>
+    Customers
+  </a>
+  <div class="nav-label">Manage</div>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a1 1 0 00-1 1v11a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/><path d="M8 7V5a4 4 0 018 0v2"/></svg>
+    Inventory
+  </a>
+  <a class="nav-item" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+    Settings
+  </a>
+  <div class="sidebar-footer">
+    <div class="avatar">MR</div>
+    <div class="user-meta"><strong>Morgan Reyes</strong><span>Store admin</span></div>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <div>
+      <h1>Sales overview</h1>
+      <p>Performance for Oct 11 – Nov 10, 2026 · compared with previous 30 days</p>
+    </div>
+    <div class="header-actions">
+      <div class="range-picker">
+        <button>7D</button>
+        <button class="active">30D</button>
+        <button>90D</button>
+        <button>1Y</button>
+      </div>
+      <button class="btn-export">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v3h16v-3"/></svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <section class="kpi-grid">
+    <div class="kpi" style="--kpi-color:#6366f1">
+      <div class="kpi-top">
+        <span class="kpi-label">Total revenue</span>
+        <div class="kpi-icon"><svg fill="none" stroke="#818cf8" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 6.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2 2.7 5 3.5 5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/></svg></div>
+      </div>
+      <div class="kpi-value">$184,290</div>
+      <span class="kpi-delta up">▲ 12.4%</span><span>vs prior period</span>
+    </div>
+    <div class="kpi" style="--kpi-color:#22d3ee">
+      <div class="kpi-top">
+        <span class="kpi-label">Orders</span>
+        <div class="kpi-icon"><svg fill="none" stroke="#22d3ee" stroke-width="2" viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M6 6L5 3H2"/></svg></div>
+      </div>
+      <div class="kpi-value">2,847</div>
+      <span class="kpi-delta up">▲ 8.1%</span><span>vs prior period</span>
+    </div>
+    <div class="kpi" style="--kpi-color:#34d399">
+      <div class="kpi-top">
+        <span class="kpi-label">Avg. order value</span>
+        <div class="kpi-icon"><svg fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 7-8"/><path d="M15 8h4v4"/></svg></div>
+      </div>
+      <div class="kpi-value">$64.73</div>
+      <span class="kpi-delta up">▲ 3.9%</span><span>vs prior period</span>
+    </div>
+    <div class="kpi" style="--kpi-color:#f472b6">
+      <div class="kpi-top">
+        <span class="kpi-label">Conversion rate</span>
+        <div class="kpi-icon"><svg fill="none" stroke="#f472b6" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/></svg></div>
+      </div>
+      <div class="kpi-value">3.42%</div>
+      <span class="kpi-delta down">▼ 0.3pt</span><span>vs prior period</span>
+    </div>
+  </section>
+
+  <section class="grid-main">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Revenue &amp; orders</h2>
+          <div class="panel-sub">Daily totals over the last 30 days</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Sales by category</h2>
+          <div class="panel-sub">Share of revenue</div>
+        </div>
+      </div>
+      <div class="chart-wrap sm">
+        <canvas id="categoryChart"></canvas>
+        <div class="donut-center"><strong>$184.3k</strong><span>total</span></div>
+      </div>
+      <div class="legend-row" id="categoryLegend"></div>
+    </div>
+  </section>
+
+  <section class="grid-secondary">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Top products</h2>
+          <div class="panel-sub">By revenue, last 30 days</div>
+        </div>
+        <a class="view-all" href="#">View all</a>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Product</th><th class="num">Units</th><th class="num">Revenue</th><th style="width:28%">Trend</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="product-cell"><div class="product-thumb" style="background:rgba(99,102,241,.15)">🎧</div><div><strong>Aura Wireless Headphones</strong><span>Electronics</span></div></div></td>
+            <td class="num">412</td><td class="num"><strong>$32,960</strong></td>
+            <td><div class="spark-bar-bg"><div class="spark-bar" style="width:100%"></div></div></td>
+          </tr>
+          <tr>
+            <td><div class="product-cell"><div class="product-thumb" style="background:rgba(34,211,238,.13)">⌚</div><div><strong>Pulse Fitness Watch</strong><span>Electronics</span></div></div></td>
+            <td class="num">287</td><td class="num"><strong>$25,830</strong></td>
+            <td><div class="spark-bar-bg"><div class="spark-bar" style="width:78%;background:#22d3ee"></div></div></td>
+          </tr>
+          <tr>
+            <td><div class="product-cell"><div class="product-thumb" style="background:rgba(52,211,153,.13)">🧥</div><div><strong>Summit Fleece Jacket</strong><span>Apparel</span></div></div></td>
+            <td class="num">356</td><td class="num"><strong>$21,360</strong></td>
+            <td><div class="spark-bar-bg"><div class="spark-bar" style="width:65%;background:#34d399"></div></div></td>
+          </tr>
+          <tr>
+            <td><div class="product-cell"><div class="product-thumb" style="background:rgba(251,191,36,.13)">☕</div><div><strong>Ember Travel Mug</strong><span>Home &amp; Kitchen</span></div></div></td>
+            <td class="num">603</td><td class="num"><strong>$18,090</strong></td>
+            <td><div class="spark-bar-bg"><div class="spark-bar" style="width:55%;background:#fbbf24"></div></div></td>
+          </tr>
+          <tr>
+            <td><div class="product-cell"><div class="product-thumb" style="background:rgba(244,114,182,.13)">👟</div><div><strong>Stride Running Shoes</strong><span>Footwear</span></div></div></td>
+            <td class="num">198</td><td class="num"><strong>$15,840</strong></td>
+            <td><div class="spark-bar-bg"><div class="spark-bar" style="width:48%;background:#f472b6"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Traffic &amp; conversion by channel</h2>
+          <div class="panel-sub">Sessions · conversion rate</div>
+        </div>
+      </div>
+      <div class="channel-list">
+        <div class="channel-row">
+          <span class="channel-name"><span class="legend-dot" style="background:#6366f1"></span>Organic search</span>
+          <span class="channel-val">38,410 · 4.1%</span>
+          <div class="channel-bar-bg"><div class="channel-bar" style="width:86%;background:#6366f1"></div></div>
+        </div>
+        <div class="channel-row">
+          <span class="channel-name"><span class="legend-dot" style="background:#22d3ee"></span>Paid social</span>
+          <span class="channel-val">24,180 · 2.8%</span>
+          <div class="channel-bar-bg"><div class="channel-bar" style="width:54%;background:#22d3ee"></div></div>
+        </div>
+        <div class="channel-row">
+          <span class="channel-name"><span class="legend-dot" style="background:#34d399"></span>Email</span>
+          <span class="channel-val">12,940 · 6.3%</span>
+          <div class="channel-bar-bg"><div class="channel-bar" style="width:29%;background:#34d399"></div></div>
+        </div>
+        <div class="channel-row">
+          <span class="channel-name"><span class="legend-dot" style="background:#fbbf24"></span>Direct</span>
+          <span class="channel-val">10,870 · 3.6%</span>
+          <div class="channel-bar-bg"><div class="channel-bar" style="width:24%;background:#fbbf24"></div></div>
+        </div>
+        <div class="channel-row">
+          <span class="channel-name"><span class="legend-dot" style="background:#f472b6"></span>Referral</span>
+          <span class="channel-val">6,230 · 2.2%</span>
+          <div class="channel-bar-bg"><div class="channel-bar" style="width:14%;background:#f472b6"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel orders-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Recent orders</h2>
+        <div class="panel-sub">Latest activity across all channels</div>
+      </div>
+      <a class="view-all" href="#">View all orders</a>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Status</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>#10482</strong></td><td>Priya Natarajan</td><td>Nov 10, 2026</td><td>Aura Headphones +1</td><td><span class="badge processing">Processing</span></td><td class="num"><strong>$112.98</strong></td></tr>
+        <tr><td><strong>#10481</strong></td><td>Daniel Okafor</td><td>Nov 10, 2026</td><td>Ember Travel Mug ×2</td><td><span class="badge shipped">Shipped</span></td><td class="num"><strong>$59.98</strong></td></tr>
+        <tr><td><strong>#10480</strong></td><td>Sofia Lindqvist</td><td>Nov 9, 2026</td><td>Pulse Fitness Watch</td><td><span class="badge shipped">Shipped</span></td><td class="num"><strong>$89.99</strong></td></tr>
+        <tr><td><strong>#10479</strong></td><td>Marcus Chen</td><td>Nov 9, 2026</td><td>Summit Fleece Jacket</td><td><span class="badge delivered">Delivered</span></td><td class="num"><strong>$60.00</strong></td></tr>
+        <tr><td><strong>#10478</strong></td><td>Elena Vasquez</td><td>Nov 8, 2026</td><td>Stride Running Shoes</td><td><span class="badge refunded">Refunded</span></td><td class="num"><strong>$80.00</strong></td></tr>
+        <tr><td><strong>#10477</strong></td><td>Tomasz Kowalski</td><td>Nov 8, 2026</td><td>Aura Headphones +2</td><td><span class="badge delivered">Delivered</span></td><td class="num"><strong>$147.50</strong></td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.color = css('--text-dim');
+  Chart.defaults.borderColor = css('--border');
+
+  // --- Revenue & orders combo chart ---
+  const days = [];
+  const d = new Date(2026, 9, 12); // Oct 12
+  for (let i = 0; i < 30; i++) {
+    days.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    d.setDate(d.getDate() + 1);
+  }
+  const revenue = [4820,5110,4650,5890,6240,5470,4980,5620,6010,6830,5940,5510,6420,7150,6680,5890,6310,6940,7520,6870,6230,6710,7390,8120,7480,6950,7210,7840,8460,7610];
+  const orders  = [74,81,70,92,98,85,77,88,94,107,91,86,99,111,104,92,97,108,117,106,96,103,114,126,116,108,112,121,131,118];
+
+  const revCtx = document.getElementById('revenueChart').getContext('2d');
+  const grad = revCtx.createLinearGradient(0, 0, 0, 300);
+  grad.addColorStop(0, 'rgba(99,102,241,0.32)');
+  grad.addColorStop(1, 'rgba(99,102,241,0)');
+
+  new Chart(revCtx, {
+    data: {
+      labels: days,
+      datasets: [
+        {
+          type: 'line', label: 'Revenue', data: revenue, yAxisID: 'y',
+          borderColor: '#818cf8', backgroundColor: grad, fill: true,
+          borderWidth: 2.5, tension: 0.4, pointRadius: 0, pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#818cf8', pointHoverBorderColor: '#0f1420', pointHoverBorderWidth: 2
+        },
+        {
+          type: 'bar', label: 'Orders', data: orders, yAxisID: 'y1',
+          backgroundColor: 'rgba(34,211,238,0.22)', hoverBackgroundColor: 'rgba(34,211,238,0.5)',
+          borderRadius: 3, barPercentage: 0.6
+        }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { boxWidth: 10, boxHeight: 10, borderRadius: 3, useBorderRadius: true, padding: 18, font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1d2639', borderColor: css('--border'), borderWidth: 1,
+          titleFont: { weight: '700' }, padding: 12, cornerRadius: 10,
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Revenue'
+              ? ` Revenue: $${ctx.parsed.y.toLocaleString()}`
+              : ` Orders: ${ctx.parsed.y}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+        y: {
+          position: 'left', grid: { color: 'rgba(39,48,70,0.6)' },
+          ticks: { callback: v => '$' + (v / 1000) + 'k', font: { size: 11 } },
+          border: { display: false }
+        },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 11 } }, border: { display: false } }
+      }
+    }
+  });
+
+  // --- Category donut ---
+  const categories = [
+    { name: 'Electronics',     value: 68190, color: '#6366f1' },
+    { name: 'Apparel',         value: 44230, color: '#22d3ee' },
+    { name: 'Home & Kitchen',  value: 33170, color: '#34d399' },
+    { name: 'Footwear',        value: 23960, color: '#fbbf24' },
+    { name: 'Accessories',     value: 14740, color: '#f472b6' }
+  ];
+
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: categories.map(c => c.name),
+      datasets: [{
+        data: categories.map(c => c.value),
+        backgroundColor: categories.map(c => c.color),
+        borderColor: css('--surface'), borderWidth: 3, hoverOffset: 8
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1d2639', borderColor: css('--border'), borderWidth: 1,
+          padding: 12, cornerRadius: 10,
+          callbacks: {
+            label: ctx => {
+              const total = categories.reduce((s, c) => s + c.value, 0);
+              return ` $${ctx.parsed.toLocaleString()} (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  document.getElementById('categoryLegend').innerHTML = categories.map(c =>
+    `<div class="legend-item"><span class="legend-dot" style="background:${c.color}"></span>${c.name}</div>`
+  ).join('');
+
+  // Range picker toggle (visual only — demo data)
+  document.querySelectorAll('.range-picker button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelector('.range-picker .active').classList.remove('active');
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

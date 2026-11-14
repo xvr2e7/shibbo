@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Team Kanban Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .column {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        .column-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-count {
+            font-size: 12px;
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .column-divider {
+            height: 2px;
+            background: #e2e8f0;
+            margin-bottom: 15px;
+        }
+
+        .cards-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 300px;
+            padding: 5px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 6px;
+            padding: 14px;
+            cursor: grab;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            border-left: 4px solid #667eea;
+            user-select: none;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #2d3748;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .card-priority {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .priority-medium {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .priority-low {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .card-delete {
+            background: none;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        .card-delete:hover {
+            color: #e53e3e;
+        }
+
+        .add-card-btn {
+            background: #edf2f7;
+            border: 1px dashed #cbd5e0;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .add-card-btn:hover {
+            background: #e2e8f0;
+            border-color: #a0aec0;
+        }
+
+        .add-card-form {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-card-form input,
+        .add-card-form select {
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+        }
+
+        .add-card-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .add-card-actions button {
+            flex: 1;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #5568d3;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-cancel:hover {
+            background: #cbd5e0;
+        }
+
+        .empty-state {
+            color: #a0aec0;
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .assignee {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .assignee-1 { background: #667eea; }
+        .assignee-2 { background: #f093fb; }
+        .assignee-3 { background: #4facfe; }
+        .assignee-4 { background: #43e97b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Design Team Kanban</h1>
+            <p>Track design projects and tasks</p>
+        </div>
+        <div class="board" id="board"></div>
+    </div>
+
+    <script>
+        const boardData = {
+            columns: [
+                {
+                    id: 'backlog',
+                    title: 'Backlog',
+                    cards: [
+                        { id: '1', title: 'Design new landing page', priority: 'high', assignee: 'SM' },
+                        { id: '2', title: 'Update UI components library', priority: 'medium', assignee: 'JD' },
+                    ]
+                },
+                {
+                    id: 'in-progress',
+                    title: 'In Progress',
+                    cards: [
+                        { id: '3', title: 'Mobile app wireframes', priority: 'high', assignee: 'SK' },
+                        { id: '4', title: 'Brand guidelines update', priority: 'medium', assignee: 'LM' },
+                    ]
+                },
+                {
+                    id: 'review',
+                    title: 'Review',
+                    cards: [
+                        { id: '5', title: 'Dashboard mockups', priority: 'medium', assignee: 'JD' },
+                    ]
+                },
+                {
+                    id: 'done',
+                    title: 'Done',
+                    cards: [
+                        { id: '6', title: 'Website redesign', priority: 'high', assignee: 'SM' },
+                        { id: '7', title: 'Icon set creation', priority: 'low', assignee: 'SK' },
+                    ]
+                }
+            ]
+        };
+
+        let draggedCard = null;
+        let sourceColumn = null;
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            boardData.columns.forEach(column => {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'column';
+                columnEl.dataset.columnId = column.id;
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'column-title';
+                titleDiv.innerHTML = `<span>${column.title}</span><span class="card-count">${column.cards.length}</span>`;
+
+                const divider = document.createElement('div');
+                divider.className = 'column-divider';
+
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'cards-container';
+                cardsContainer.dataset.columnId = column.id;
+                cardsContainer.addEventListener('dragover', e => e.preventDefault());
+                cardsContainer.addEventListener('drop', handleDrop);
+
+                if (column.cards.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'empty-state';
+                    emptyState.textContent = 'No tasks yet';
+                    cardsContainer.appendChild(emptyState);
+                } else {
+                    column.cards.forEach(card => {
+                        const cardEl = createCardElement(card);
+                        cardsContainer.appendChild(cardEl);
+                    });
+                }
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'add-card-btn';
+                addBtn.textContent = '+ Add task';
+                addBtn.onclick = () => showAddCardForm(column.id, addBtn);
+
+                columnEl.appendChild(titleDiv);
+                columnEl.appendChild(divider);
+                columnEl.appendChild(cardsContainer);
+                columnEl.appendChild(addBtn);
+                board.appendChild(columnEl);
+            });
+        }
+
+        function createCardElement(card) {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card';
+            cardEl.draggable = true;
+            cardEl.dataset.cardId = card.id;
+
+            const title = document.createElement('div');
+            title.className = 'card-title';
+            title.textContent = card.title;
+
+            const meta = document.createElement('div');
+            meta.className = 'card-meta';
+
+            const priorityEl = document.createElement('span');
+            priorityEl.className = `card-priority priority-${card.priority}`;
+            priorityEl.textContent = card.priority;
+
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            actions.style.alignItems = 'center';
+
+            const assigneeEl = document.createElement('span');
+            const assigneeMap = { 'SM': 1, 'JD': 2, 'SK': 3, 'LM': 4 };
+            assigneeEl.className = `assignee assignee-${assigneeMap[card.assignee] || 1}`;
+            assigneeEl.textContent = card.assignee;
+            assigneeEl.title = card.assignee;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'card-delete';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = () => deleteCard(card.id);
+
+            actions.appendChild(assigneeEl);
+            actions.appendChild(deleteBtn);
+            meta.appendChild(priorityEl);
+            meta.appendChild(actions);
+            cardEl.appendChild(title);
+            cardEl.appendChild(meta);
+
+            cardEl.addEventListener('dragstart', handleDragStart);
+            cardEl.addEventListener('dragend', handleDragEnd);
+
+            return cardEl;
+        }
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            sourceColumn = this.closest('.cards-container').dataset.columnId;
+            this.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedCard) return;
+
+            const targetColumn = this.dataset.columnId;
+            const cardId = draggedCard.dataset.cardId;
+
+            if (sourceColumn !== targetColumn) {
+                const sourceCol = boardData.columns.find(c => c.id === sourceColumn);
+                const targetCol = boardData.columns.find(c => c.id === targetColumn);
+                const cardIndex = sourceCol.cards.findIndex(c => c.id === cardId);
+                if (cardIndex > -1) {
+                    const card = sourceCol.cards.splice(cardIndex, 1)[0];
+                    targetCol.cards.push(card);
+                }
+            }
+
+            renderBoard();
+            draggedCard = null;
+            sourceColumn = null;
+        }
+
+        function showAddCardForm(columnId, button) {
+            const form = document.createElement('div');
+            form.className = 'add-card-form';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Task title...';
+
+            const select = document.createElement('select');
+            ['high', 'medium', 'low'].forEach(priority => {
+                const option = document.createElement('option');
+                option.value = priority;
+                option.textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
+                select.appendChild(option);
+            });
+
+            const actions = document.createElement('div');
+            actions.className = 'add-card-actions';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn-save';
+            saveBtn.textContent = 'Add';
+            saveBtn.onclick = () => addCard(columnId, input.value, select.value);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn-cancel';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = () => renderBoard();
+
+            actions.appendChild(saveBtn);
+            actions.appendChild(cancelBtn);
+            form.appendChild(input);
+            form.appendChild(select);
+            form.appendChild(actions);
+
+            button.replaceWith(form);
+            input.focus();
+        }
+
+        function addCard(columnId, title, priority) {
+            if (!title.trim()) return;
+
+            const column = boardData.columns.find(c => c.id === columnId);
+            const assignees = ['SM', 'JD', 'SK', 'LM'];
+            column.cards.push({
+                id: Date.now().toString(),
+                title: title.trim(),
+                priority: priority,
+                assignee: assignees[Math.floor(Math.random() * assignees.length)]
+            });
+            renderBoard();
+        }
+
+        function deleteCard(cardId) {
+            boardData.columns.forEach(column => {
+                column.cards = column.cards.filter(c => c.id !== cardId);
+            });
+            renderBoard();
+        }
+
+        renderBoard();
+    </script>
+</body>
+</html>

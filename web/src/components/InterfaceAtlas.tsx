@@ -283,19 +283,47 @@ function ModelDetail({ i, onBack, onPage, onToken, onModel, tok }: { i: number; 
   );
 }
 
+/** The page a model built, live in a large window. The frame is sandboxed: its scripts run, but it can't reach this site. */
+function LivePage({ src, title, by, onClose }: { src: string; title: string; by: string; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [phone, setPhone] = useState(false);
+  useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal(); }, []);
+  return (
+    <dialog ref={ref} className="ui-live" aria-label={`The page ${by} built for: ${title}`} onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
+      <header>
+        <p><b>{by}</b> {title}</p>
+        <div className="ui-live-size" role="group" aria-label="Window width">
+          <button type="button" aria-pressed={!phone} onClick={() => setPhone(false)}>Desktop</button>
+          <button type="button" aria-pressed={phone} onClick={() => setPhone(true)}>Phone</button>
+        </div>
+        <button type="button" className="ui-live-close" onClick={() => ref.current?.close()}>Close</button>
+      </header>
+      <div className="ui-live-stage" data-phone={phone || undefined}>
+        <iframe src={src} title={`${by}: ${title}`} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="eager" />
+      </div>
+    </dialog>
+  );
+}
+
 function PageDetail({ i, onClose, onModel, onToken, tok }: { i: number; onClose: () => void; onModel: (i: number) => void; onToken: (i: number) => void; tok: number | null }) {
   const p = pages[i];
   const m = models[p.model];
   const brief = D.briefs[p.brief];
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, [i]);
+  const [live, setLive] = useState(false);
+  useEffect(() => setLive(false), [i]);
   const byGroup = [...GROUPS, ["mobile", "Phone"] as [string, string]].map(([g, n]) => ({ g, n, ts: p.t.map((k) => ({ k, t: tokens[k] })).filter((e) => e.t.group === g) })).filter((e) => e.ts.length);
   return (
     <>
       <button ref={closeRef} type="button" className="ui-link ui-back" onClick={onClose}>Close page</button>
       <figure className="ui-shot">
-        <img src={BASE + p.view} width={720} height={450} alt={`First screen of the page ${m.name} built for: ${brief?.brief ?? p.brief}`} />
+        <button type="button" className="ui-shot-open" onClick={() => setLive(true)} aria-label="Open the live page">
+          <img src={BASE + p.view} width={720} height={450} alt={`First screen of the page ${m.name} built for: ${brief?.brief ?? p.brief}`} />
+        </button>
+        <figcaption><button type="button" className="ui-link" onClick={() => setLive(true)}>Open the live page</button></figcaption>
       </figure>
+      {live && <LivePage src={BASE + p.view.replace(/\.webp$/, ".html")} title={brief?.brief ?? p.brief} by={m.name} onClose={() => setLive(false)} />}
       <h2 className="ui-page-h">{brief?.brief ?? p.brief}</h2>
       <p className="ui-meta">
         Built by <button type="button" className="ui-link" onClick={() => onModel(p.model)}>{m.name}</button>{m.route === "cli" ? " through Claude Code" : " through the API"}, one try, no style hints.

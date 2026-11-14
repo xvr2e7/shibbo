@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tern — Find slow database queries</title>
+<meta name="description" content="Tern is a command-line tool that finds slow database queries and ranks them by the time they actually cost.">
+<meta name="theme-color" content="#efeae0">
+<meta name="format-detection" content="telephone=no">
+<meta property="og:title" content="Tern — Find slow database queries">
+<meta property="og:description" content="A command-line tool that finds slow database queries and ranks them by total time.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231c1915'/%3E%3Cpath d='M16 5L27 16L16 27L5 16Z' fill='%23e23b12'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,500&amp;family=JetBrains+Mono:wght@400;500&amp;family=Source+Sans+3:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #efeae0;
+    --paper-deep: #e4dccb;
+    --ink: #1c1915;
+    --ink-soft: #3a342c;
+    --muted: #5e584e;
+    --line: #d3ccbe;
+    --hot: #e23b12;
+    --hot-ink: #c4320f;
+    --teal: #134e4a;
+    --term: #171512;
+    --sand: #f6f1e7;
+    --dim: #c4bdb2;
+    --peach: #ffb088;
+    --glass: #b7e0d2;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { color-scheme: light; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    border-top: 4px solid var(--hot);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  ::selection { background: var(--ink); color: var(--paper); }
+
+  :focus-visible {
+    outline: 2px solid var(--hot-ink);
+    outline-offset: 3px;
+  }
+
+  p, h1, h2, h3, figure, blockquote, dl, dd { margin: 0; }
+  ul, ol { margin: 0; padding: 0; list-style: none; }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .skip {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.5rem 0.75rem;
+    z-index: 5;
+    text-decoration: none;
+  }
+  .skip:focus { top: 1rem; }
+
+  .wrap { width: min(1120px, calc(100% - 3rem)); margin-inline: auto; }
+
+  .kicker {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0 0 0.85rem;
+  }
+
+  h1, h2, .word, .pct, .quote blockquote, .notes strong, .rank strong, h3 {
+    font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  }
+
+  h1 {
+    font-weight: 500;
+    font-size: clamp(2.9rem, 7.4vw, 6.1rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 0 0 1.6rem;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 em { font-style: italic; font-weight: 500; color: var(--hot-ink); }
+
+  h2 {
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3.05rem);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-weight: 500;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin: 0 0 0.4rem;
+  }
+
+  .top { border-bottom: 1px solid var(--line); }
+  .top-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.95rem 0;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--ink);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .beak {
+    width: 0.58rem;
+    height: 0.58rem;
+    background: var(--hot);
+    transform: rotate(45deg);
+    flex: none;
+  }
+  .word {
+    font-weight: 500;
+    font-size: 1.45rem;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .reg {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    position: relative;
+    top: -0.65rem;
+  }
+  .nav-links { display: flex; gap: 1.35rem; margin-left: auto; }
+  .nav-links a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.98rem;
+  }
+  .nav-links a:hover { color: var(--hot-ink); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    padding: 0.82rem 1.05rem;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 140ms ease, color 140ms ease;
+  }
+  .btn:hover { background: var(--hot-ink); color: #fff; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
+  }
+  .btn-ghost:hover { background: var(--ink); color: var(--paper); }
+  .top-cta { padding: 0.62rem 0.8rem; font-size: 0.92rem; }
+
+  .hero { padding: 2.6rem 0 4.5rem; }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+  .lede p { max-width: 38rem; color: var(--ink-soft); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.35rem; }
+  .promises { margin-top: 1.7rem; }
+  .promises li {
+    display: grid;
+    grid-template-columns: 7.2rem 1fr;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--line);
+    font-size: 0.98rem;
+  }
+  .promises strong {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--teal);
+    padding-top: 0.28rem;
+  }
+
+  .shot { min-width: 0; }
+  .term {
+    background: var(--term);
+    color: var(--sand);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    box-shadow: 8px 8px 0 var(--hot);
+    padding: 0.95rem 0 0.85rem;
+    overflow-x: auto;
+  }
+  .tui-top, .tui-detail, .tui-help { padding-left: 1rem; padding-right: 1rem; }
+  .tui-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgba(239, 234, 224, 0.14);
+    color: var(--dim);
+    font-size: 0.75rem;
+  }
+  .tui-top span:first-child { color: var(--sand); }
+  .tui-list { margin: 0.7rem 0 0; }
+  .tui-list li {
+    display: grid;
+    grid-template-columns: 0.9rem 2rem 3rem 8.5rem minmax(0, 1fr) auto;
+    gap: 0.35rem 0.6rem;
+    align-items: baseline;
+    padding: 0.32rem 1rem;
+    color: var(--dim);
+  }
+  .tui-list li.sel {
+    color: var(--sand);
+    background: rgba(226, 59, 18, 0.16);
+  }
+  .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat, .share, .rk, .tflag, .chev { white-space: nowrap; }
+  .share { color: var(--sand); }
+  .sel .share, .chev, .lbl { color: var(--peach); }
+  .tflag { color: #a39c90; }
+  .sel .tflag { color: var(--glass); }
+  .tui-detail {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(239, 234, 224, 0.14);
+  }
+  .lbl {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    margin: 0 0 0.45rem;
+  }
+  .q { color: var(--sand); }
+  .cause { color: var(--glass); margin: 0.55rem 0 0; }
+  .tui-help {
+    margin: 0.85rem 0 0;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(239, 234, 224, 0.14);
+    color: var(--dim);
+    font-size: 0.72rem;
+  }
+  .shot figcaption {
+    margin-top: 0.95rem;
+    max-width: 42rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .block { padding: 4.25rem 0; border-top: 1px solid var(--line); }
+  .section-head {
+    display: grid;
+    grid-template-columns: 1.35fr 0.9fr;
+    gap: 2rem;
+    align-items: end;
+    margin-bottom: 2.4rem;
+  }
+  .aside { color: var(--muted); max-width: 32rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+  .num {
+    display: block;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--hot-ink);
+    margin-bottom: 0.55rem;
+  }
+  .step p { color: var(--ink-soft); }
+  .mini {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--ink);
+    background: var(--paper-deep);
+    padding: 0.5rem 0.65rem;
+    margin: 0.7rem 0 0;
+  }
+  .mini + .mini { margin-top: 0.4rem; }
+
+  .rank li {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr auto;
+    gap: 0.75rem 1rem;
+    align-items: start;
+    padding: 1.15rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .rank li:last-child { border-bottom: 1px solid var(--line); }
+  .n {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    padding-top: 0.45rem;
+  }
+  .rank-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.6rem;
+  }
+  .rank strong { font-weight: 500; font-size: 1.35rem; letter-spacing: -0.02em; }
+  .flag {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--line);
+    padding: 0.12rem 0.35rem;
+    color: var(--ink-soft);
+  }
+  .rank li:first-child .flag { border-color: var(--hot-ink); color: var(--hot-ink); }
+  .statline { display: block; color: var(--muted); font-size: 0.95rem; margin-top: 0.2rem; }
+  .bar {
+    display: block;
+    height: 5px;
+    background: rgba(28, 25, 21, 0.08);
+    margin-top: 0.65rem;
+    max-width: 36rem;
+  }
+  .bar i { display: block; height: 100%; background: var(--teal); }
+  .rank li:first-child .bar i { background: var(--hot); }
+  .rank li.is-quiet .bar i { background: #c4bdb2; }
+  .pct {
+    font-weight: 500;
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    padding-top: 0.3rem;
+  }
+  .rank li:first-child .pct { color: var(--hot-ink); }
+  .rank li.is-quiet .pct,
+  .rank li.is-quiet .flag { color: var(--muted); }
+  .tail { margin-top: 1rem; max-width: 38rem; color: var(--muted); }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+  .finding-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0 0 0.8rem;
+  }
+  .sql {
+    background: var(--term);
+    color: var(--sand);
+    padding: 1.1rem 1.15rem;
+    border: 1px solid var(--ink);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    overflow-x: auto;
+  }
+  .cause-line { margin-top: 0.85rem; color: var(--ink-soft); }
+  code {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.86em;
+    background: rgba(19, 78, 74, 0.08);
+    padding: 0.05em 0.32em;
+  }
+  .notes { counter-reset: note; }
+  .notes li {
+    counter-increment: note;
+    border-top: 1px solid var(--line);
+    padding: 0.95rem 0;
+    color: var(--ink-soft);
+  }
+  .notes li:last-child { border-bottom: 1px solid var(--line); }
+  .notes strong {
+    display: block;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+  .notes strong::before {
+    content: counter(note, decimal-leading-zero);
+    display: block;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--hot-ink);
+    margin-bottom: 0.3rem;
+  }
+
+  .quote { background: var(--paper-deep); padding: 3.6rem 0; }
+  .quote blockquote {
+    font-weight: 500;
+    font-size: clamp(2rem, 4.2vw, 3.15rem);
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+  }
+  .quote .bill { color: var(--hot-ink); font-style: italic; }
+
+  .spec div {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .spec div:last-child { border-bottom: 1px solid var(--line); }
+  .spec dt {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0;
+    padding-top: 0.25rem;
+  }
+  .limit {
+    border-left: 3px solid var(--hot);
+    padding: 0.15rem 0 0.15rem 1rem;
+    margin-top: 1.5rem;
+    max-width: 40rem;
+    color: var(--ink-soft);
+  }
+
+  .install { background: var(--ink); color: var(--paper); padding: 4.5rem 0; }
+  .install .kicker { color: var(--sand); }
+  .install .aside, .fine, .cmd-label { color: #d4cdc0; }
+  .install-grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+  .cmd-label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 1.1rem 0 0.4rem;
+  }
+  .install-grid .cmd-label:first-child { margin-top: 0; }
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(239, 234, 224, 0.28);
+    padding: 0.7rem 0.75rem;
+  }
+  .cmd code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    background: none;
+    padding: 0;
+    font-size: 0.92rem;
+    color: var(--sand);
+    white-space: nowrap;
+  }
+  .prompt { color: var(--peach); margin-right: 0.35rem; }
+  .cmd button {
+    flex: none;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 0.45rem 0.6rem;
+    min-width: 5.6rem;
+    transition: background 140ms ease, color 140ms ease;
+  }
+  .cmd button:hover { background: var(--hot-ink); color: #fff; }
+  .fine { margin-top: 1.1rem; font-size: 0.95rem; }
+
+  .footer { color: var(--muted); padding: 1.6rem 0 2.2rem; font-size: 0.95rem; }
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .foot p:first-child { max-width: 36rem; }
+  .foot-links { display: flex; gap: 1.1rem; }
+  .foot-links a { color: inherit; text-decoration: none; }
+  .foot-links a:hover { color: var(--ink); }
+
+  @media (max-width: 920px) {
+    .nav-links { display: none; }
+    .top-cta { margin-left: auto; }
+    .hero-grid,
+    .section-head,
+    .steps,
+    .detail-grid,
+    .install-grid { grid-template-columns: 1fr; }
+    .section-head { gap: 0.75rem; margin-bottom: 1.75rem; }
+    .steps { gap: 0; }
+    .step + .step {
+      border-top: 1px solid var(--line);
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+    }
+    .promises li,
+    .spec div { grid-template-columns: 1fr; gap: 0.25rem; }
+    .actions .btn { flex: 1 1 auto; }
+  }
+
+  @media (max-width: 640px) {
+    .tui-list li {
+      grid-template-columns: 0.9rem 2rem 2.8rem minmax(0, 1fr);
+      grid-template-areas:
+        "chev rk share name"
+        "chev stat stat flag";
+    }
+    .chev { grid-area: chev; }
+    .rk { grid-area: rk; }
+    .share { grid-area: share; }
+    .name { grid-area: name; white-space: normal; }
+    .stat { grid-area: stat; }
+    .tflag { grid-area: flag; justify-self: end; }
+    .rank li { grid-template-columns: 2rem 1fr auto; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#top">Skip to content</a>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#top">
+      <span class="beak" aria-hidden="true"></span>
+      <span class="word">Tern</span><span class="reg">cli</span>
+    </a>
+    <nav class="nav-links" aria-label="Page">
+      <a href="#method">Method</a>
+      <a href="#findings">Findings</a>
+      <a href="#install">Install</a>
+    </nav>
+    <a class="btn top-cta" href="#install">Get Tern</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <p class="kicker">Command-line profiler</p>
+      <h1>Find the<br>query that<br><em>stalls.</em></h1>
+      <div class="hero-grid">
+        <div class="lede">
+          <p>Tern finds slow queries in Postgres, MySQL, and SQLite. It groups what your application ran, ranks each statement by total time, and names the scan, lock, or N+1 underneath.</p>
+          <div class="actions">
+            <a class="btn" href="#install">Install Tern</a>
+            <a class="btn btn-ghost" href="#method">How it works</a>
+          </div>
+          <ul class="promises">
+            <li><strong>Total time</strong><span>Calls × duration, not the single worst spike.</span></li>
+            <li><strong>On the box</strong><span>A log file or a database URL. Query text is not uploaded.</span></li>
+            <li><strong>No dashboard</strong><span>A ranking, a statement, a cause. Then it gets out of the way.</span></li>
+          </ul>
+        </div>
+        <figure class="shot">
+          <div class="term" tabindex="0">
+            <div class="tui-top">
+              <span>tern scan</span>
+              <span>pg_stat_statements · 15m</span>
+            </div>
+            <ul class="tui-list">
+              <li class="sel" aria-current="true">
+                <span class="chev" aria-hidden="true">&gt;</span>
+                <span class="rk">#1</span>
+                <span class="share">41%</span>
+                <span class="stat">2.00s × 205</span>
+                <span class="name">orders × line_items</span>
+                <span class="tflag">seq scan</span>
+              </li>
+              <li>
+                <span class="chev" aria-hidden="true"></span>
+                <span class="rk">#2</span>
+                <span class="share">22%</span>
+                <span class="stat">2.50s × 88</span>
+                <span class="name">inventory update</span>
+                <span class="tflag">lock wait</span>
+              </li>
+              <li>
+                <span class="chev" aria-hidden="true"></span>
+                <span class="rk">#3</span>
+                <span class="share">19%</span>
+                <span class="stat">10ms × 19,000</span>
+                <span class="name">products by id</span>
+                <span class="tflag">n+1</span>
+              </li>
+              <li>
+                <span class="chev" aria-hidden="true"></span>
+                <span class="rk">#4</span>
+                <span class="share">6%</span>
+                <span class="stat">40ms × 1,500</span>
+                <span class="name">sessions by token</span>
+                <span class="tflag">leave it</span>
+              </li>
+            </ul>
+            <div class="tui-detail">
+              <p class="lbl">Open · #1</p>
+              <div class="q">
+                <div>SELECT o.id, o.total, li.sku, li.qty</div>
+                <div>FROM orders o</div>
+                <div>JOIN line_items li ON li.order_id = o.id</div>
+                <div>WHERE o.created_at &gt; $1</div>
+                <div>ORDER BY o.created_at DESC</div>
+              </div>
+              <p class="cause">→ seq scan on line_items — no index on order_id</p>
+            </div>
+            <p class="tui-help">j/k move · q quit · Σ 16m 40s statement time</p>
+          </div>
+          <figcaption>Sample scan of a 15-minute window. Statement time sums to 16m 40s — queries overlap, so the sum can pass the clock.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="method">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Method</p>
+          <h2>Three steps. No dashboard.</h2>
+        </div>
+        <p class="aside">Point Tern at what your database already records. It reads, ranks, and exits.</p>
+      </div>
+      <div class="steps">
+        <article class="step">
+          <span class="num">01</span>
+          <h3>Point it at a source</h3>
+          <p>A database URL, a slow-query log, or a file you already exported. A scan does not need an agent living in production.</p>
+          <p class="mini">tern scan --log ./slow.log</p>
+          <p class="mini">tern watch postgres://localhost/shop</p>
+        </article>
+        <article class="step">
+          <span class="num">02</span>
+          <h3>Group the statements</h3>
+          <p>Literals fold into placeholders, so a thousand near-identical calls become one line. The score is total time — calls × mean duration — not the single worst spike.</p>
+        </article>
+        <article class="step">
+          <span class="num">03</span>
+          <h3>Read the cause</h3>
+          <p>Each finding names what Tern saw: a sequential scan, a lock wait, or a burst that looks like N+1. You choose the fix. Tern does not rewrite SQL.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="findings">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Findings</p>
+          <h2>Most of the list is noise.</h2>
+        </div>
+        <p class="aside">Same window as the scan above. A sequential scan, a lock, an N+1 at 10ms × 19,000 calls, and one indexed lookup to leave alone.</p>
+      </div>
+      <ol class="rank">
+        <li>
+          <span class="n">01</span>
+          <div>
+            <div class="rank-title">
+              <strong>orders × line_items</strong>
+              <span class="flag">seq scan</span>
+            </div>
+            <span class="statline">2.00s mean · 205 calls · 410s total</span>
+            <span class="bar" aria-hidden="true"><i style="width:41%"></i></span>
+          </div>
+          <span class="pct">41%</span>
+        </li>
+        <li>
+          <span class="n">02</span>
+          <div>
+            <div class="rank-title">
+              <strong>inventory update</strong>
+              <span class="flag">lock wait</span>
+            </div>
+            <span class="statline">2.50s mean · 88 calls · 2.1s of each call waited · 220s total</span>
+            <span class="bar" aria-hidden="true"><i style="width:22%"></i></span>
+          </div>
+          <span class="pct">22%</span>
+        </li>
+        <li>
+          <span class="n">03</span>
+          <div>
+            <div class="rank-title">
+              <strong>products by id</strong>
+              <span class="flag">n+1</span>
+            </div>
+            <span class="statline">10ms mean · 19,000 calls · one id at a time · 190s total</span>
+            <span class="bar" aria-hidden="true"><i style="width:19%"></i></span>
+          </div>
+          <span class="pct">19%</span>
+        </li>
+        <li class="is-quiet">
+          <span class="n">04</span>
+          <div>
+            <div class="rank-title">
+              <strong>sessions by token</strong>
+              <span class="flag">leave it</span>
+            </div>
+            <span class="statline">40ms mean · 1,500 calls · index scan · 60s total</span>
+            <span class="bar" aria-hidden="true"><i style="width:6%"></i></span>
+          </div>
+          <span class="pct">6%</span>
+        </li>
+      </ol>
+      <p class="tail">The other 12% is a long tail of cheap statements. Tern keeps them out of the way.</p>
+    </div>
+  </section>
+
+  <section class="block" id="detail">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Finding 01</p>
+          <h2>A sequential scan, wearing a join.</h2>
+        </div>
+        <p class="aside">The selected row, opened. Why it ranked first, and where Tern stops talking.</p>
+      </div>
+      <div class="detail-grid">
+        <div>
+          <p class="finding-meta">
+            <span>2.00s mean</span>
+            <span>205 calls</span>
+            <span>410s total</span>
+            <span>41% of db time</span>
+          </p>
+          <div class="sql" role="group" aria-label="Normalized statement">
+            <div>SELECT o.id, o.total, li.sku, li.qty</div>
+            <div>FROM orders o</div>
+            <div>JOIN line_items li ON li.order_id = o.id</div>
+            <div>WHERE o.created_at &gt; $1</div>
+            <div>ORDER BY o.created_at DESC</div>
+          </div>
+          <p class="cause-line">Sequential scan on <code>line_items</code>. No index on <code>order_id</code>.</p>
+        </div>
+        <ol class="notes">
+          <li><strong>Grouped.</strong> 205 calls, one shape. Literals were folded to <code>$1</code>, so a different timestamp on each call did not split the ranking.</li>
+          <li><strong>Weighted.</strong> 2.00 seconds × 205 calls = 410 seconds. That is 41% of the 1,000 seconds of statement time in the window. A 4-second query run twice costs 8 seconds and would not surface.</li>
+          <li><strong>Named.</strong> Tern stops at the cause. It will not hand you a <code>CREATE INDEX</code> and pretend that is always the fix.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote">
+    <div class="wrap">
+      <p class="kicker">Rule of thumb</p>
+      <blockquote>
+        <p>Average latency is a polite lie.</p>
+        <p class="bill">Total time is the bill.</p>
+      </blockquote>
+    </div>
+  </section>
+
+  <section class="block" id="spec">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Spec</p>
+          <h2>A small tool, on purpose.</h2>
+        </div>
+        <p class="aside">What Tern will commit to, and what it refuses to pretend.</p>
+      </div>
+      <dl class="spec">
+        <div>
+          <dt>Input</dt>
+          <dd>pg_stat_statements, the MySQL slow log, Postgres logs, or a text file you already have.</dd>
+        </div>
+        <div>
+          <dt>Engines</dt>
+          <dd>Postgres and MySQL from a URL or a slow log. SQLite from the database file.</dd>
+        </div>
+        <div>
+          <dt>Grouping</dt>
+          <dd>Normalized SQL. Literal values fold to <code>$1</code> so repeated calls count as one statement.</dd>
+        </div>
+        <div>
+          <dt>Score</dt>
+          <dd>Total time: calls × mean duration. Lock wait is shown apart from execution, so a blocked update is not mistaken for a slow plan.</dd>
+        </div>
+        <div>
+          <dt>Output</dt>
+          <dd>A terminal ranking. Pass <code>--json</code> if a script should read the same findings.</dd>
+        </div>
+        <div>
+          <dt>Privacy</dt>
+          <dd>A local binary. Query text stays on the machine that ran the scan.</dd>
+        </div>
+      </dl>
+      <p class="limit">Tern only ranks statements it saw, with the timings the server recorded. It will not invent an index, and it will not explain a query that never ran.</p>
+    </div>
+  </section>
+
+  <section class="install" id="install">
+    <div class="wrap install-grid">
+      <div>
+        <p class="kicker">Install</p>
+        <h2>Run it where the logs are.</h2>
+        <p class="aside" style="margin-top:1rem">A static binary for macOS, Linux, and Windows, or Homebrew. No account.</p>
+      </div>
+      <div>
+        <p class="cmd-label">Install</p>
+        <div class="cmd">
+          <code><span class="prompt">$</span>brew install tern</code>
+          <button type="button" data-copy="brew install tern" aria-label="Copy install command">Copy</button>
+        </div>
+        <p class="cmd-label">Scan a log</p>
+        <div class="cmd">
+          <code><span class="prompt">$</span>tern scan --log ./slow.log</code>
+          <button type="button" data-copy="tern scan --log ./slow.log" aria-label="Copy scan command">Copy</button>
+        </div>
+        <p class="cmd-label">Watch a database</p>
+        <div class="cmd">
+          <code><span class="prompt">$</span>tern watch postgres://localhost/shop</code>
+          <button type="button" data-copy="tern watch postgres://localhost/shop" aria-label="Copy watch command">Copy</button>
+        </div>
+        <p class="fine">A scan reads and exits. Nothing has to stay running.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap foot">
+    <p>Tern is named for the bird that dives on one fish, not the school.</p>
+    <p class="foot-links">
+      <a href="#method">Method</a>
+      <a href="#findings">Findings</a>
+      <a href="#install">Install</a>
+    </p>
+  </div>
+</footer>
+<script>
+(function () {
+  function fallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = btn.getAttribute("data-copy") || "";
+      var label = btn.textContent;
+      var write = (navigator.clipboard && window.isSecureContext)
+        ? navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return fallback(text); })
+        : Promise.resolve(fallback(text));
+      write.then(function (ok) {
+        if (!ok) return;
+        btn.textContent = "Copied";
+        window.setTimeout(function () { btn.textContent = label; }, 1400);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

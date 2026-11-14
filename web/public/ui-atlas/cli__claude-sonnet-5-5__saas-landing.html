@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay — Turn support tickets into a weekly product report</title>
+<meta name="description" content="Relay reads your customer support tickets and delivers a weekly product report: what's breaking, what's requested, and what's costing you customers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#faf8f4;
+    --ink:#16181d;
+    --muted:#5d6370;
+    --line:#e7e2d8;
+    --card:#ffffff;
+    --accent:#e4572e;
+    --accent-ink:#b73a16;
+    --green:#2f7d5b;
+    --amber:#c98a12;
+    --dark:#14161b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;letter-spacing:-0.02em;line-height:1.1}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* Nav */
+  nav{position:sticky;top:0;z-index:10;background:rgba(250,248,244,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:600;font-size:22px}
+  .logo-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+  .logo-mark svg{width:14px;height:14px}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:10px;font-weight:500;font-size:15px;border:1px solid transparent;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-primary:hover{background:#000;transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{background:#fff;border-color:#d4cebf}
+  .btn-sm{padding:8px 16px;font-size:14px}
+
+  /* Hero */
+  .hero{padding:88px 0 56px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--accent-ink);background:#fbe9e2;padding:6px 14px;border-radius:999px;font-weight:500;margin-bottom:28px}
+  .eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:block}
+  .hero h1{font-size:clamp(40px,6.4vw,76px);max-width:880px;margin:0 auto 24px}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero p.lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:620px;margin:0 auto 36px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .fine{font-size:13px;color:var(--muted);margin-top:18px}
+
+  /* Report mock */
+  .mock{margin:64px auto 0;max-width:880px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 60px -20px rgba(40,30,10,.18),0 2px 0 rgba(255,255,255,.8) inset;text-align:left;overflow:hidden}
+  .mock-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid var(--line);background:#fcfbf8}
+  .dot{width:10px;height:10px;border-radius:50%;background:#e2ddd0}
+  .mock-bar .title{margin-left:10px;font-size:12px;color:var(--muted)}
+  .mock-body{padding:32px 36px}
+  .mock-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+  .mock-head h3{font-size:26px}
+  .mock-head span{font-size:12px;color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+  .stat{border:1px solid var(--line);border-radius:12px;padding:16px}
+  .stat b{display:block;font-family:'Fraunces',serif;font-size:32px;font-weight:600;line-height:1}
+  .stat small{color:var(--muted);font-size:12px}
+  .stat .up{color:var(--accent-ink)}
+  .stat .down{color:var(--green)}
+  .theme{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:16px 0;border-top:1px solid var(--line)}
+  .rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+  .theme h4{font-size:15px;font-weight:600;margin-bottom:2px}
+  .theme p{font-size:13px;color:var(--muted)}
+  .tag{font-size:11px;font-weight:500;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .tag.bug{background:#fbe9e2;color:var(--accent-ink)}
+  .tag.req{background:#e5f2ec;color:var(--green)}
+  .tag.churn{background:#fbf1d9;color:#8a5d06}
+
+  /* Logos */
+  .logos{padding:40px 0 16px;text-align:center}
+  .logos p{font-size:13px;color:var(--muted);margin-bottom:20px}
+  .logo-row{display:flex;justify-content:center;gap:44px;flex-wrap:wrap;font-family:'Fraunces',serif;font-size:21px;color:#9a9486;font-weight:500}
+
+  /* Sections */
+  section{padding:96px 0}
+  .sec-head{max-width:640px;margin-bottom:56px}
+  .sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
+  .kicker{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:14px}
+  .sec-head h2{font-size:clamp(30px,4vw,46px);margin-bottom:16px}
+  .sec-head p{color:var(--muted);font-size:18px}
+
+  /* Steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px}
+  .step .n{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent-ink);margin-bottom:40px;display:block}
+  .step h3{font-size:22px;margin-bottom:10px}
+  .step p{color:var(--muted);font-size:15px}
+
+  /* Features */
+  .features{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  .feat{padding:28px;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+  .feat .ic{width:40px;height:40px;border-radius:10px;background:#f3efe6;display:grid;place-items:center;margin-bottom:18px}
+  .feat .ic svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .feat h3{font-size:20px;margin-bottom:8px}
+  .feat p{color:var(--muted);font-size:15px}
+
+  /* Quote */
+  .quote{background:var(--dark);color:#f3efe6;border-radius:24px;padding:64px 56px;text-align:center}
+  .quote blockquote{font-family:'Fraunces',serif;font-size:clamp(24px,3.4vw,38px);line-height:1.25;letter-spacing:-0.01em;max-width:780px;margin:0 auto 28px;font-weight:500}
+  .quote cite{font-style:normal;font-size:14px;color:#a9a597}
+  .quote cite b{color:#fff;font-weight:500}
+
+  /* Pricing */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px;display:flex;flex-direction:column}
+  .plan.pop{border:2px solid var(--ink);position:relative}
+  .plan.pop::before{content:"Most popular";position:absolute;top:-12px;left:28px;background:var(--ink);color:#fff;font-size:11px;padding:3px 12px;border-radius:999px;font-weight:500}
+  .plan h3{font-size:22px;margin-bottom:6px}
+  .plan .desc{font-size:14px;color:var(--muted);margin-bottom:20px}
+  .price{font-family:'Fraunces',serif;font-size:46px;font-weight:600;letter-spacing:-0.03em;line-height:1}
+  .price small{font-family:'Inter',sans-serif;font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+  .plan ul{list-style:none;margin:24px 0 28px;display:grid;gap:11px;font-size:14.5px;flex:1}
+  .plan li{display:flex;gap:10px;align-items:flex-start}
+  .plan li::before{content:"";flex:none;width:16px;height:16px;margin-top:3px;border-radius:50%;background:#e5f2ec url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.5l2.2 2.2 4.8-5' fill='none' stroke='%232f7d5b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+  .plan .btn{justify-content:center}
+
+  /* FAQ */
+  .faq{max-width:760px;margin:0 auto}
+  details{border-top:1px solid var(--line);padding:22px 0}
+  details:last-child{border-bottom:1px solid var(--line)}
+  summary{cursor:pointer;font-weight:500;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:20px;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-size:22px;color:var(--muted);transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details p{color:var(--muted);margin-top:12px;font-size:15.5px;max-width:640px}
+
+  /* Final CTA */
+  .final{text-align:center;padding:96px 0 110px}
+  .final h2{font-size:clamp(34px,5vw,58px);max-width:720px;margin:0 auto 20px}
+  .final p{color:var(--muted);font-size:18px;margin-bottom:32px}
+  .signup{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:460px;margin:0 auto}
+  .signup input{flex:1;min-width:220px;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;font:inherit;font-size:15px}
+  .signup input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+
+  footer{border-top:1px solid var(--line);padding:32px 0;font-size:13px;color:var(--muted)}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  footer nav{all:unset}
+  .foot-links{display:flex;gap:22px}
+  .foot-links a:hover{color:var(--ink)}
+
+  @media(max-width:860px){
+    .nav-links{display:none}
+    .steps,.features,.plans{grid-template-columns:1fr}
+    .stats{grid-template-columns:1fr}
+    .mock-body{padding:22px 20px}
+    .quote{padding:44px 24px}
+    section{padding:64px 0}
+    .theme{grid-template-columns:auto 1fr}
+    .theme .tag{grid-column:2;justify-self:start}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#" class="logo">
+      <span class="logo-mark"><svg viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h8M7 3l4 4-4 4"/></svg></span>
+      Relay
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a href="#start" class="btn btn-primary btn-sm">Start free</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow"><i></i> Now reading Zendesk, Intercom, Help Scout &amp; Front</div>
+    <h1>Your support inbox knows what to build <em>next.</em></h1>
+    <p class="lead">Relay reads every customer ticket and delivers a weekly product report: what's breaking, what people are asking for, and what's quietly costing you customers.</p>
+    <div class="cta">
+      <a href="#start" class="btn btn-primary">Get your first report free</a>
+      <a href="#how" class="btn btn-ghost">See how it works</a>
+    </div>
+    <p class="fine">14-day free trial · No credit card · Setup in 5 minutes</p>
+
+    <div class="mock" aria-label="Example Relay weekly report">
+      <div class="mock-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="title mono">relay · weekly report · sample data</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-head">
+          <h3>Week of March 3 – 9</h3>
+          <span class="mono">1,482 tickets analyzed</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>7</b><small>New themes this week</small></div>
+          <div class="stat"><b class="up">+38%</b><small>CSV export failures vs. last week</small></div>
+          <div class="stat"><b class="down">−21%</b><small>Onboarding confusion after the new checklist</small></div>
+        </div>
+        <div class="theme">
+          <span class="rank">01</span>
+          <div><h4>CSV export times out on large workspaces</h4><p>112 tickets · 41 accounts · 9 on annual plans</p></div>
+          <span class="tag bug">Bug</span>
+        </div>
+        <div class="theme">
+          <span class="rank">02</span>
+          <div><h4>Request: Slack alerts for assigned reviews</h4><p>86 tickets · mentioned in 6 churn-risk threads</p></div>
+          <span class="tag req">Feature request</span>
+        </div>
+        <div class="theme">
+          <span class="rank">03</span>
+          <div><h4>Confusion about seat billing after downgrade</h4><p>54 tickets · $18.4k ARR touched</p></div>
+          <span class="tag churn">Churn risk</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="logos">
+  <div class="wrap">
+    <p>Product and support teams use Relay to close the loop</p>
+    <div class="logo-row">
+      <span>Northwind</span><span>Lumen&nbsp;&amp;&nbsp;Co</span><span>Parcelly</span><span>Fieldnote</span><span>Brightpath</span>
+    </div>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">How it works</div>
+      <h2>From a thousand tickets to one page.</h2>
+      <p>No tagging rules to maintain. No spreadsheets. Relay does the reading so your team can do the deciding.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="n">01</span>
+        <h3>Connect your helpdesk</h3>
+        <p>One-click OAuth with Zendesk, Intercom, Help Scout, or Front. Relay starts with your last 90 days of history.</p>
+      </div>
+      <div class="step">
+        <span class="n">02</span>
+        <h3>Relay clusters the noise</h3>
+        <p>Tickets are grouped by underlying problem, not keywords, then ranked by volume, revenue at risk, and momentum.</p>
+      </div>
+      <div class="step">
+        <span class="n">03</span>
+        <h3>Get Monday's report</h3>
+        <p>A clear brief lands in email and Slack with evidence, quotes, and links back to the original tickets.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Features</div>
+      <h2>Built for the people who decide what ships.</h2>
+    </div>
+    <div class="features">
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-7"/></svg></div>
+        <h3>Trend detection</h3>
+        <p>See which issues are accelerating before they become a fire. Week-over-week movement is baked into every theme.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Revenue-weighted ranking</h3>
+        <p>Sync with your billing data so a theme affecting ten enterprise accounts outranks one affecting a hundred free users.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></div>
+        <h3>Verbatim evidence</h3>
+        <p>Every insight links to real customer quotes and tickets, so nobody has to take a summary on faith.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></div>
+        <h3>Ship-and-verify</h3>
+        <p>Mark a theme as fixed and Relay tracks whether tickets actually drop, so you know the release worked.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="quote">
+      <blockquote>“We used to argue about priorities from gut feel. Now Monday's Relay report is the first thing on our planning agenda.”</blockquote>
+      <cite><b>Priya Raman</b> · Head of Product, Parcelly</cite>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head center">
+      <div class="kicker">Pricing</div>
+      <h2>Simple plans that scale with your inbox.</h2>
+      <p>Every plan starts with a 14-day free trial.</p>
+    </div>
+    <div class="plans">
+      <div class="plan">
+        <h3>Starter</h3>
+        <p class="desc">For small teams getting their first signal.</p>
+        <div class="price">$79<small> / month</small></div>
+        <ul>
+          <li>Up to 2,000 tickets / month</li>
+          <li>1 helpdesk connection</li>
+          <li>Weekly email report</li>
+          <li>90-day history</li>
+        </ul>
+        <a href="#start" class="btn btn-ghost">Start free trial</a>
+      </div>
+      <div class="plan pop">
+        <h3>Team</h3>
+        <p class="desc">For product orgs that plan from customer data.</p>
+        <div class="price">$249<small> / month</small></div>
+        <ul>
+          <li>Up to 15,000 tickets / month</li>
+          <li>3 helpdesk connections</li>
+          <li>Slack delivery &amp; custom schedules</li>
+          <li>Revenue-weighted ranking</li>
+          <li>Ship-and-verify tracking</li>
+        </ul>
+        <a href="#start" class="btn btn-primary">Start free trial</a>
+      </div>
+      <div class="plan">
+        <h3>Scale</h3>
+        <p class="desc">For high-volume support and security needs.</p>
+        <div class="price">Custom</div>
+        <ul>
+          <li>Unlimited tickets</li>
+          <li>SSO &amp; audit logs</li>
+          <li>Data residency options</li>
+          <li>Dedicated success manager</li>
+        </ul>
+        <a href="#start" class="btn btn-ghost">Talk to us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head center">
+      <div class="kicker">FAQ</div>
+      <h2>Questions, answered.</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Which helpdesks does Relay support?</summary>
+        <p>Zendesk, Intercom, Help Scout, and Front today. Others can be connected through our CSV and webhook import.</p>
+      </details>
+      <details>
+        <summary>How is customer data handled?</summary>
+        <p>Personal details like names, emails, and phone numbers are redacted before analysis. Your tickets are never used to train models, and you can delete all synced data at any time.</p>
+      </details>
+      <details>
+        <summary>Do I need to set up tags or categories?</summary>
+        <p>No. Relay discovers themes on its own and adapts as your product changes. If you do have tags, it can use them as extra context.</p>
+      </details>
+      <details>
+        <summary>Can I change when the report arrives?</summary>
+        <p>Yes. Pick any day and time, send it to email or a Slack channel, and add teammates from product, support, or leadership.</p>
+      </details>
+      <details>
+        <summary>What happens after the trial?</summary>
+        <p>You choose a plan or your account pauses. Nothing is charged automatically, and your reports stay available.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="start" class="final" style="padding-top:40px">
+  <div class="wrap">
+    <h2>Hear your customers before they leave.</h2>
+    <p>Connect your helpdesk and get your first Relay report today.</p>
+    <form class="signup" onsubmit="event.preventDefault();this.querySelector('button').textContent='You\u2019re on the list ✓';">
+      <input type="email" placeholder="you@company.com" aria-label="Work email" required>
+      <button class="btn btn-primary" type="submit">Start free</button>
+    </form>
+    <p class="fine">14-day free trial · No credit card required</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Relay, Inc.</div>
+    <div class="foot-links">
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a><a href="#">Contact</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

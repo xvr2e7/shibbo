@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relay | Turn support tickets into your weekly product report</title>
+  <meta name="description" content="Relay reads your customer support tickets and turns them into a clear weekly product report: top issues, feature requests, and what's changing for customers.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #15171c;
+      --ink-soft: #4a4f5c;
+      --muted: #8a8f9c;
+      --line: #e6e6df;
+      --accent: #2f6bff;
+      --accent-ink: #1e4fd6;
+      --accent-soft: #e8efff;
+      --warm: #ff7a45;
+      --green: #1f9d6b;
+      --radius: 14px;
+      --shadow: 0 1px 2px rgba(20,22,28,.04), 0 8px 24px rgba(20,22,28,.06);
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img, svg { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 15px;
+      border: 1px solid transparent; cursor: pointer; transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--ink); color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.1) inset, 0 4px 14px rgba(21,23,28,.2); }
+    .btn-primary:hover { background: #2a2e38; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+    .btn-ghost:hover { background: #fff; border-color: #d5d5cc; }
+    .btn-lg { padding: 15px 26px; font-size: 16px; }
+
+    /* Nav */
+    header.nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250,250,247,.85); backdrop-filter: saturate(1.4) blur(10px);
+      border-bottom: 1px solid transparent;
+    }
+    header.nav.scrolled { border-bottom-color: var(--line); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
+    .logo-mark {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #7aa2ff);
+      display: grid; place-items: center;
+    }
+    .nav-links { display: flex; align-items: center; gap: 28px; font-size: 14.5px; color: var(--ink-soft); }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta { display: flex; gap: 10px; align-items: center; }
+    .menu-toggle {
+      display: none; background: none; border: 1px solid var(--line); border-radius: 8px;
+      width: 40px; height: 40px; cursor: pointer; align-items: center; justify-content: center;
+    }
+
+    /* Hero */
+    .hero { padding: 88px 0 72px; position: relative; overflow: hidden; }
+    .hero::before {
+      content: ""; position: absolute; inset: -200px -10% auto -10%; height: 700px; z-index: -1;
+      background: radial-gradient(60% 60% at 50% 0%, rgba(47,107,255,.14), transparent 70%),
+                  radial-gradient(40% 40% at 85% 20%, rgba(255,122,69,.10), transparent 70%);
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--line); font-size: 13px; color: var(--ink-soft); box-shadow: var(--shadow);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(31,157,107,.15); }
+    h1 {
+      font-size: clamp(40px, 5.4vw, 64px); line-height: 1.04; letter-spacing: -.035em; font-weight: 800;
+      margin: 22px 0 20px;
+    }
+    h1 .hl { background: linear-gradient(120deg, var(--accent), #5b8cff 60%, #8fb0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead { font-size: 19px; color: var(--ink-soft); max-width: 36ch; }
+    .hero-actions { display: flex; gap: 12px; margin-top: 34px; flex-wrap: wrap; }
+    .hero-note { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+
+    /* Hero visual: ticket stream -> report */
+    .visual {
+      position: relative; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 18px; box-shadow: 0 30px 60px -20px rgba(20,22,28,.18), var(--shadow);
+      padding: 20px; overflow: hidden;
+    }
+    .visual-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+    .visual-head h3 { font-size: 15px; font-weight: 700; }
+    .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+    .stat small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+    .stat strong { font-size: 22px; letter-spacing: -.02em; }
+    .stat .delta { font-size: 12px; color: var(--green); font-weight: 600; }
+    .stat .delta.down { color: var(--warm); }
+    .issue { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-top: 1px dashed var(--line); font-size: 14px; }
+    .issue:first-of-type { border-top: none; }
+    .issue .count { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-soft); background: var(--bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); }
+    .tag { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+    .tag.bug { background: #fde7e1; color: #c4451d; }
+    .tag.req { background: var(--accent-soft); color: var(--accent-ink); }
+    .tag.ux { background: #e3f6ee; color: #137a52; }
+    .floating {
+      position: absolute; right: -14px; bottom: -18px; background: var(--ink); color: #fff; border-radius: 12px;
+      padding: 12px 14px; font-size: 13px; box-shadow: 0 16px 30px rgba(0,0,0,.2); max-width: 230px;
+    }
+    .floating b { color: #9cc0ff; }
+
+    /* Logos strip */
+    .trusted { padding: 28px 0; border-block: 1px solid var(--line); background: var(--surface); }
+    .trusted-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .trusted p { font-size: 14px; color: var(--muted); }
+    .trusted-logos { display: flex; gap: 36px; flex-wrap: wrap; color: #9a9ea9; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+
+    /* Sections */
+    section { padding: 104px 0; }
+    .section-head { text-align: center; max-width: 680px; margin: 0 auto 56px; }
+    .kicker { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; }
+    h2 { font-size: clamp(32px, 3.8vw, 44px); letter-spacing: -.03em; line-height: 1.1; margin: 14px 0 16px; font-weight: 800; }
+    .section-head p { color: var(--ink-soft); font-size: 18px; }
+
+    /* Problem */
+    .problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+    }
+    .card h3 { font-size: 19px; letter-spacing: -.01em; margin-bottom: 8px; }
+    .card p { color: var(--ink-soft); font-size: 15.5px; }
+    .icon {
+      width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 18px;
+      background: var(--accent-soft); color: var(--accent-ink);
+    }
+    .icon.warm { background: #ffece4; color: #c4451d; }
+    .icon.green { background: #e3f6ee; color: #137a52; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+    .step { padding: 8px 28px; position: relative; }
+    .step + .step { border-left: 1px dashed #d6d6cd; }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center;
+      font-weight: 700; font-size: 15px; margin-bottom: 20px;
+    }
+    .step h3 { font-size: 20px; margin-bottom: 8px; letter-spacing: -.01em; }
+    .step p { color: var(--ink-soft); font-size: 15.5px; }
+    .code-chip {
+      margin-top: 16px; font-size: 12.5px; background: #15171c; color: #c9d1e0; border-radius: 10px; padding: 12px 14px; line-height: 1.7;
+    }
+    .code-chip .k { color: #7fb1ff; }
+    .code-chip .s { color: #8fe0b5; }
+
+    /* Report preview */
+    .report-section { background: #0f1116; color: #e9ecf3; }
+    .report-section .kicker { color: #7fb1ff; }
+    .report-section h2 { color: #fff; }
+    .report-section .section-head p { color: #9aa1b2; }
+    .report {
+      background: #171a22; border: 1px solid #262a36; border-radius: 18px; overflow: hidden;
+      max-width: 880px; margin: 0 auto; box-shadow: 0 40px 80px -30px rgba(0,0,0,.6);
+    }
+    .report-top { padding: 20px 28px; border-bottom: 1px solid #262a36; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .report-top h3 { font-size: 17px; }
+    .report-top span { color: #8a92a6; font-size: 13.5px; }
+    .report-body { display: grid; grid-template-columns: 1.3fr 1fr; gap: 0; }
+    .report-col { padding: 26px 28px; }
+    .report-col + .report-col { border-left: 1px solid #262a36; }
+    .report-col h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: #6f778b; margin-bottom: 14px; font-weight: 700; }
+    .rp-item { padding: 12px 0; border-bottom: 1px solid #22262f; }
+    .rp-item:last-child { border-bottom: none; }
+    .rp-item .title { font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 10px; }
+    .rp-item .meta { font-size: 13px; color: #8a92a6; margin-top: 4px; }
+    .bar { height: 6px; background: #22262f; border-radius: 99px; margin-top: 10px; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: linear-gradient(90deg, #4d86ff, #8fb0ff); border-radius: 99px; }
+    .bar.warm i { background: linear-gradient(90deg, #ff7a45, #ffb089); }
+    .quote {
+      border-left: 2px solid #4d86ff; padding: 4px 0 4px 14px; color: #c3c9d7; font-size: 14px; font-style: italic; margin-top: 8px;
+    }
+    .quote cite { display: block; font-style: normal; color: #6f778b; font-size: 12.5px; margin-top: 4px; }
+    .shipped { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #c3c9d7; padding: 10px 0; }
+    .shipped svg { flex-shrink: 0; margin-top: 3px; }
+    .report-foot { padding: 16px 28px; border-top: 1px solid #262a36; color: #6f778b; font-size: 13px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .feature { display: flex; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+    .feature h3 { font-size: 18px; margin-bottom: 6px; letter-spacing: -.01em; }
+    .feature p { color: var(--ink-soft); font-size: 15px; }
+
+    /* Pricing */
+    .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+    .plan { display: flex; flex-direction: column; }
+    .plan h3 { font-size: 18px; }
+    .plan .price { font-size: 44px; font-weight: 800; letter-spacing: -.03em; margin: 14px 0 4px; }
+    .plan .price span { font-size: 15px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+    .plan .desc { color: var(--ink-soft); font-size: 14.5px; margin-bottom: 22px; min-height: 44px; }
+    .plan ul { list-style: none; margin-bottom: 26px; flex: 1; }
+    .plan li { padding: 8px 0; font-size: 14.5px; color: var(--ink-soft); display: flex; gap: 10px; }
+    .plan li::before { content: "✓"; color: var(--green); font-weight: 700; }
+    .plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 20px 40px -20px rgba(47,107,255,.35); position: relative; }
+    .badge {
+      position: absolute; top: -12px; left: 28px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700;
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .plan .btn { width: 100%; }
+
+    /* FAQ */
+    .faq { max-width: 760px; margin: 0 auto; }
+    details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    summary {
+      list-style: none; cursor: pointer; padding: 20px 24px; font-weight: 600; font-size: 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; font-size: 22px; color: var(--muted); transition: transform .2s; }
+    details[open] summary::after { transform: rotate(45deg); }
+    details p { padding: 0 24px 20px; color: var(--ink-soft); font-size: 15.5px; }
+
+    /* Final CTA */
+    .cta {
+      background: linear-gradient(135deg, #2f6bff, #1e4fd6); color: #fff; border-radius: 24px; padding: 72px 48px; text-align: center;
+      position: relative; overflow: hidden; box-shadow: 0 30px 60px -25px rgba(47,107,255,.6);
+    }
+    .cta::after {
+      content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; background: rgba(255,255,255,.08);
+      right: -140px; top: -180px;
+    }
+    .cta h2 { color: #fff; margin-top: 0; }
+    .cta p { color: #d7e3ff; font-size: 18px; max-width: 52ch; margin: 0 auto 32px; }
+    .cta form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+    .cta input {
+      font: inherit; padding: 14px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,.3); min-width: 280px;
+      background: rgba(255,255,255,.12); color: #fff;
+    }
+    .cta input::placeholder { color: #bcd0ff; }
+    .cta input:focus { outline: 2px solid #fff; outline-offset: 2px; }
+    .cta .btn-primary { background: #fff; color: var(--accent-ink); box-shadow: none; }
+    .cta .btn-primary:hover { background: #f1f5ff; }
+    .cta .fine { margin-top: 16px; font-size: 13.5px; color: #bcd0ff; }
+
+    /* Footer */
+    footer { padding: 56px 0 40px; border-top: 1px solid var(--line); margin-top: 104px; }
+    .foot-grid { display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+    .foot-grid p { color: var(--muted); font-size: 14px; max-width: 30ch; margin-top: 12px; }
+    .foot-links { display: flex; gap: 56px; flex-wrap: wrap; }
+    .foot-links h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+    .foot-links a { display: block; color: var(--ink-soft); font-size: 14.5px; padding: 4px 0; }
+    .foot-links a:hover { color: var(--ink); }
+    .copy { margin-top: 48px; color: var(--muted); font-size: 13px; }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .lead { max-width: none; }
+      .problem-grid, .pricing { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .step { padding: 24px 0; }
+      .step + .step { border-left: none; border-top: 1px dashed #d6d6cd; }
+      .features { grid-template-columns: 1fr; }
+      .report-body { grid-template-columns: 1fr; }
+      .report-col + .report-col { border-left: none; border-top: 1px solid #262a36; }
+      .nav-links { display: none; }
+      .menu-toggle { display: inline-flex; }
+      .nav-links.open {
+        display: flex; flex-direction: column; position: absolute; top: 68px; left: 0; right: 0;
+        background: var(--bg); padding: 20px 24px; border-bottom: 1px solid var(--line); gap: 18px;
+      }
+      .nav-cta .btn-ghost { display: none; }
+      .floating { right: 12px; bottom: -14px; }
+    }
+    @media (max-width: 600px) {
+      section { padding: 72px 0; }
+      .hero { padding-top: 56px; }
+      .cta { padding: 48px 24px; }
+      .cta input { min-width: 0; width: 100%; }
+      .cta form { flex-direction: column; }
+      .cta form .btn { width: 100%; }
+      .stat-row { grid-template-columns: 1fr 1fr; }
+      .stat-row .stat:last-child { grid-column: span 2; }
+      .hero-actions .btn { width: 100%; }
+      .floating { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a href="#" class="logo" aria-label="Relay home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"/><path d="M4 12h16"/><path d="M4 17h7"/></svg>
+        </span>
+        Relay
+      </a>
+      <nav>
+        <div class="nav-links" id="navLinks">
+          <a href="#problem">Why Relay</a>
+          <a href="#how">How it works</a>
+          <a href="#sample">Sample report</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+        </div>
+      </nav>
+      <div class="nav-cta">
+        <a href="#" class="btn btn-ghost">Log in</a>
+        <a href="#get-started" class="btn btn-primary">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero" style="padding-bottom:72px;">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow"><span class="dot"></span> Now connects to Zendesk, Intercom, and Help Scout</span>
+          <h1>Your support queue, <span class="hl">turned into a product roadmap.</span></h1>
+          <p class="lead">Relay reads every customer ticket and sends you one clear report each Monday: what's breaking, what people keep asking for, and what's getting better.</p>
+          <div class="hero-actions">
+            <a href="#get-started" class="btn btn-primary btn-lg">Get your first report free
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#sample" class="btn btn-ghost btn-lg">See a sample report</a>
+          </div>
+          <p class="hero-note">Works with your existing helpdesk. Setup takes about 6 minutes.</p>
+        </div>
+
+        <div class="visual" aria-label="Preview of a Relay weekly summary">
+          <div class="visual-head">
+            <h3>Week of Mar 3 · Support → Product</h3>
+            <span class="pill">Auto-generated</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><small>Tickets read</small><strong>1,284</strong><div class="delta">+12%</div></div>
+            <div class="stat"><small>Bug reports</small><strong>63</strong><div class="delta down">+38%</div></div>
+            <div class="stat"><small>Feature asks</small><strong>91</strong><div class="delta">Top: Export</div></div>
+          </div>
+          <div class="issue"><span class="tag bug">Bug</span> Checkout fails on Safari 17 <span class="count">41 tickets</span></div>
+          <div class="issue"><span class="tag req">Request</span> Bulk CSV export for reports <span class="count">27 tickets</span></div>
+          <div class="issue"><span class="tag ux">UX</span> Confusing team invite flow <span class="count">18 tickets</span></div>
+          <div class="issue"><span class="tag req">Request</span> SSO for Google Workspace <span class="count">14 tickets</span></div>
+          <div class="floating">
+            <b>Relay insight:</b> 80% of Safari checkout failures started after Tuesday's release.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logos -->
+    <div class="trusted">
+      <div class="wrap trusted-inner">
+        <p>Used by support and product teams at fast-growing software companies</p>
+        <div class="trusted-logos" aria-label="Customer logos">
+          <span>Northwind</span><span>Lumen&nbsp;Labs</span><span>Parcelly</span><span>Brightdesk</span><span>Kestrel</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Problem -->
+    <section id="problem">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">The problem</span>
+          <h2>Your best product feedback is buried in your inbox.</h2>
+          <p>Support hears everything first. But turning hundreds of tickets into something product can act on takes hours nobody has.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="card">
+            <div class="icon warm">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <h3>Patterns hide in plain sight</h3>
+            <p>Forty people hit the same bug in different words. Nobody connects the dots until a churned customer mentions it on a call.</p>
+          </article>
+          <article class="card">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H7l-3 3z"/></svg>
+            </div>
+            <h3>Product guesses instead of listening</h3>
+            <p>Roadmaps get built from the loudest sales call instead of the most common frustration across your whole customer base.</p>
+          </article>
+          <article class="card">
+            <div class="icon green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h3>Fixes ship without a loop back</h3>
+            <p>Customers who reported the problem never hear it's solved. Support gets asked the same questions all over again.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" style="padding-top:0;">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">How it works</span>
+          <h2>Connect, sit back, and read on Monday.</h2>
+          <p>Relay does the reading, grouping, and writing so your team only has to decide what to do next.</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3>Connect your helpdesk</h3>
+            <p>Authorize Zendesk, Intercom, Help Scout, or a CSV export. Relay starts with the last 90 days of history.</p>
+            <div class="code-chip mono">
+              <span class="k">source</span>: "zendesk"<br>
+              <span class="k">range</span>: <span class="s">"last_90_days"</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3>Relay groups the signal</h3>
+            <p>Tickets are clustered by root cause, not keywords. Bugs, requests, and UX friction are scored by volume, severity, and revenue at risk.</p>
+            <div class="code-chip mono">
+              <span class="k">cluster</span>: "safari_checkout_fail"<br>
+              <span class="k">tickets</span>: 41 · <span class="k">accounts</span>: 33
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3>A report lands every Monday</h3>
+            <p>A short, skimmable brief goes to Slack or email, with links back to every source ticket so you can verify it yourself.</p>
+            <div class="code-chip mono">
+              <span class="k">deliver</span>: "#product-weekly"<br>
+              <span class="k">schedule</span>: <span class="s">"Mon 09:00"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sample report -->
+    <section id="sample" class="report-section">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Sample report</span>
+          <h2>Everything product needs, in one page.</h2>
+          <p>Here's what your Monday looks like. Every claim links back to the tickets behind it.</p>
+        </div>
+
+        <div class="report">
+          <div class="report-top">
+            <h3>Weekly Product Report · Mar 3 – Mar 9</h3>
+            <span>1,284 tickets analyzed across 412 accounts</span>
+          </div>
+          <div class="report-body">
+            <div class="report-col">
+              <h4>Top issues this week</h4>
+              <div class="rp-item">
+                <div class="title"><span>Checkout fails on Safari 17</span><span>41</span></div>
+                <div class="meta">Bug · Severity high · Started after Mar 5 release</div>
+                <div class="bar warm"><i style="width:92%"></i></div>
+                <div class="quote">"I've tried three times and my cart just spins forever."<cite>Enterprise customer, via Intercom</cite></div>
+              </div>
+              <div class="rp-item">
+                <div class="title"><span>Team invite emails land in spam</span><span>18</span></div>
+                <div class="meta">Deliverability · Severity medium</div>
+                <div class="bar warm"><i style="width:55%"></i></div>
+              </div>
+              <div class="rp-item">
+                <div class="title"><span>Unclear billing proration</span><span>12</span></div>
+                <div class="meta">UX · Severity low · Mostly from new accounts</div>
+                <div class="bar"><i style="width:38%"></i></div>
+              </div>
+            </div>
+            <div class="report-col">
+              <h4>Most requested</h4>
+              <div class="rp-item">
+                <div class="title"><span>Bulk CSV export</span><span>27</span></div>
+                <div class="meta">Revenue at risk: $94k ARR across 9 accounts</div>
+                <div class="bar"><i style="width:80%"></i></div>
+              </div>
+              <div class="rp-item">
+                <div class="title"><span>Google Workspace SSO</span><span>14</span></div>
+                <div class="meta">Blocks 3 open deals</div>
+                <div class="bar"><i style="width:44%"></i></div>
+              </div>
+              <h4 style="margin-top:22px;">Shipped & closing the loop</h4>
+              <div class="shipped">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8fe0b5" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Dark mode bug fixed in 4.12. 22 customers notified automatically.
+              </div>
+            </div>
+          </div>
+          <div class="report-foot">
+            <span>Delivered to #product-weekly · Monday 09:00</span>
+            <span>Every item links to source tickets</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Features</span>
+          <h2>Built for the people between support and product.</h2>
+          <p>Relay is opinionated about one thing: making customer feedback easy to act on.</p>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg></div>
+            <div>
+              <h3>Root-cause clustering</h3>
+              <p>Groups tickets that describe the same underlying problem, even when customers use completely different words.</p>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+            <div>
+              <h3>Trend detection</h3>
+              <p>Flags spikes within hours of a release or incident, so you know whether something just broke or has been quietly building.</p>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="icon warm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M3 12h18"/></svg></div>
+            <div>
+              <h3>Revenue-weighted priority</h3>
+              <p>Pulls ARR and plan data from your CRM so each issue shows how much money is attached, not just how many people mentioned it.</p>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v11H8l-4 4z"/></svg></div>
+            <div>
+              <h3>Close the loop automatically</h3>
+              <p>When a linked Jira or Linear issue ships, Relay drafts a note to every customer who reported it, for your team to approve.</p>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+            <div>
+              <h3>Verifiable claims</h3>
+              <p>Every number in a report links to the underlying tickets. No black boxes, and no PM has to take the summary on faith.</p>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="icon warm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg></div>
+            <div>
+              <h3>PII redaction by default</h3>
+              <p>Emails, card numbers, and addresses are stripped before analysis. Relay is SOC 2 Type II and never trains models on your data.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" style="padding-top:0;">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Pricing</span>
+          <h2>Simple plans that grow with your queue.</h2>
+          <p>Start free with one helpdesk. Upgrade when you need more sources and integrations.</p>
+        </div>
+        <div class="pricing">
+          <div class="card plan">
+            <h3>Starter</h3>
+            <div class="price">$0<span> / month</span></div>
+            <p class="desc">For small teams trying Relay on one helpdesk.</p>
+            <ul>
+              <li>Up to 500 tickets per month</li>
+              <li>1 helpdesk connection</li>
+              <li>Weekly report to email</li>
+              <li>7-day report history</li>
+            </ul>
+            <a href="#get-started" class="btn btn-ghost">Start free</a>
+          </div>
+          <div class="card plan featured">
+            <span class="badge">Most popular</span>
+            <h3>Team</h3>
+            <div class="price">$149<span> / month</span></div>
+            <p class="desc">For product and support teams who live in the report.</p>
+            <ul>
+              <li>Up to 10,000 tickets per month</li>
+              <li>Unlimited helpdesk connections</li>
+              <li>Slack delivery and daily digests</li>
+              <li>Jira and Linear close-the-loop</li>
+              <li>CRM revenue weighting</li>
+            </ul>
+            <a href="#get-started" class="btn btn-primary">Start 14-day trial</a>
+          </div>
+          <div class="card plan">
+            <h3>Enterprise</h3>
+            <div class="price">Custom</div>
+            <p class="desc">For large organizations with compliance and volume needs.</p>
+            <ul>
+              <li>Unlimited tickets</li>
+              <li>SSO and audit logs</li>
+              <li>Custom data retention</li>
+              <li>Dedicated success manager</li>
+            </ul>
+            <a href="#get-started" class="btn btn-ghost">Talk to sales</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" style="padding-top:0;">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">FAQ</span>
+          <h2>Questions, answered.</h2>
+        </div>
+        <div class="faq">
+          <details open>
+            <summary>Do I need to change how my support team works?</summary>
+            <p>No. Relay reads tickets where they already live. Your agents keep using the same helpdesk, macros, and workflows.</p>
+          </details>
+          <details>
+            <summary>How accurate is the grouping?</summary>
+            <p>Relay typically places more than 90% of tickets in the correct cluster in our internal evaluations. Every cluster links to its source tickets, so you can correct mistakes in seconds and Relay learns from the change.</p>
+          </details>
+          <details>
+            <summary>What happens to customer personal data?</summary>
+            <p>Names, emails, phone numbers, payment details, and addresses are redacted before any analysis. Data is encrypted in transit and at rest, and we never use your tickets to train shared models.</p>
+          </details>
+          <details>
+            <summary>Can I send the report somewhere other than email?</summary>
+            <p>Yes. Team plans deliver to Slack channels, Notion, or any webhook. You can set different schedules for different audiences, like a daily digest for support leads and a weekly brief for product.</p>
+          </details>
+          <details>
+            <summary>How long does the first report take?</summary>
+            <p>Connecting takes a few minutes. Relay backfills up to 90 days of history, so your first report is usually ready within the hour.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section id="get-started" style="padding-top:0;">
+      <div class="wrap">
+        <div class="cta">
+          <h2>Get your first report this Monday.</h2>
+          <p>Connect your helpdesk in minutes and see what your customers have been trying to tell you.</p>
+          <form onsubmit="event.preventDefault(); this.querySelector('button').textContent='You\'re on the list ✓';">
+            <label for="email" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Work email</label>
+            <input id="email" type="email" placeholder="you@company.com" required>
+            <button class="btn btn-primary btn-lg" type="submit">Start free</button>
+          </form>
+          <p class="fine">Free for up to 500 tickets a month. No credit card required.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <a href="#" class="logo">
+            <span class="logo-mark" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"/><path d="M4 12h16"/><path d="M4 17h7"/></svg>
+            </span>
+            Relay
+          </a>
+          <p>Turn customer support conversations into product decisions, every week.</p>
+        </div>
+        <div class="foot-links">
+          <div>
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#sample">Sample report</a>
+            <a href="#">Integrations</a>
+          </div>
+          <div>
+            <h4>Company</h4>
+            <a href="#">About</a>
+            <a href="#">Careers</a>
+            <a href="#">Blog</a>
+          </div>
+          <div>
+            <h4>Resources</h4>
+            <a href="#faq">FAQ</a>
+            <a href="#">Docs</a>
+            <a href="#">Security</a>
+            <a href="#">Status</a>
+          </div>
+        </div>
+      </div>
+      <p class="copy">© 2025 Relay Labs, Inc. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Sticky nav border on scroll
+    const nav = document.getElementById('nav');
+    const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Mobile menu toggle
+    const toggle = document.getElementById('menuToggle');
+    const links = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }));
+  </script>
+</body>
+</html>

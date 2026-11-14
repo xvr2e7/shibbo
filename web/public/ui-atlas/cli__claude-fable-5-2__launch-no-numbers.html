@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Hall: bookkeeping for freelancers</title>
+<meta name="description" content="Tally Hall is bookkeeping for people who work for themselves. Send invoices, log expenses, and set tax aside as you earn.">
+<!--
+  Before publishing:
+  1. Set data-endpoint on both sign-up forms to the URL that should receive { email } as JSON.
+     Until then, the forms say they are not connected instead of pretending to succeed.
+  2. The feature and FAQ copy describes a typical freelancer bookkeeping app. Check each line against what Tally Hall really does.
+  3. The ledger in the hero uses made-up figures and is labelled as such.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3eee3;
+    --card: #fbf8f1;
+    --ink: #1c2321;
+    --ink-soft: #4d5754;
+    --green: #1f4d3a;
+    --green-deep: #153628;
+    --red: #b83a26;
+    --rule: #cfd8d3;
+    --line: #d9d1c0;
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Instrument Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 500; line-height: 1.08; margin: 0; text-wrap: balance; letter-spacing: -0.015em; }
+  p { margin: 0; text-wrap: pretty; }
+  a { color: inherit; }
+  .wrap { width: min(1120px, 100% - 48px); margin-inline: auto; }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 2px; }
+
+  /* Tally marks */
+  .tally { display: inline-flex; gap: 5px; position: relative; height: 22px; align-items: stretch; }
+  .tally i { width: 2.5px; background: currentColor; border-radius: 2px; transform: rotate(4deg); }
+  .tally i:nth-child(even) { transform: rotate(-3deg); }
+  .tally.five::after {
+    content: ""; position: absolute; left: -5px; right: -5px; top: 50%;
+    height: 2.5px; background: currentColor; border-radius: 2px; transform: rotate(-24deg);
+  }
+
+  /* Header */
+  header { padding: 22px 0; }
+  .nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-family: var(--serif); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand .tally { color: var(--red); height: 18px; }
+  .nav-links { display: flex; align-items: center; gap: 28px; font-size: 0.95rem; }
+  .nav-links a { text-decoration: none; white-space: nowrap; }
+  .nav-links a:not(.btn):hover { text-decoration: underline; text-underline-offset: 4px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    font: 600 0.98rem var(--sans); white-space: nowrap;
+    padding: 12px 20px; border-radius: 6px; border: 1.5px solid var(--green);
+    background: var(--green); color: #fbf8f1; text-decoration: none; cursor: pointer;
+    transition: background .15s, transform .15s;
+  }
+  .btn:hover { background: var(--green-deep); }
+  .btn:active { transform: translateY(1px); }
+  .btn.small { padding: 8px 14px; font-size: 0.9rem; }
+
+  /* Hero */
+  .hero { padding: clamp(40px, 7vw, 88px) 0 clamp(56px, 8vw, 104px); }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+  .eyebrow { font: 500 0.8rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
+  h1 { font-size: clamp(2.7rem, 6.4vw, 5rem); }
+  h1 em { font-style: italic; font-weight: 400; color: var(--green); }
+  .lede { font-size: clamp(1.08rem, 1.5vw, 1.25rem); color: var(--ink-soft); max-width: 34em; margin-top: 24px; }
+
+  .signup { margin-top: 32px; max-width: 480px; }
+  .signup label { display: block; font-size: 0.88rem; font-weight: 500; margin-bottom: 8px; }
+  .signup .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .signup input {
+    flex: 1 1 220px; min-width: 0; font: 400 1rem var(--sans); color: var(--ink);
+    padding: 12px 14px; background: var(--card); border: 1.5px solid var(--ink); border-radius: 6px;
+  }
+  .signup input::placeholder { color: #8a918e; }
+  .form-note { font-size: 0.88rem; color: var(--ink-soft); margin-top: 10px; min-height: 1.4em; }
+  .form-note.ok { color: var(--green); font-weight: 500; }
+  .form-note.err { color: var(--red); font-weight: 500; }
+
+  /* Ledger card */
+  .ledger {
+    background: var(--card); border: 1px solid var(--line); border-radius: 4px;
+    box-shadow: 0 1px 0 #fff inset, 0 18px 40px -22px rgba(28,35,33,.35), 6px 6px 0 var(--line);
+    position: relative; overflow: hidden;
+  }
+  .ledger::before { content: ""; position: absolute; top: 0; bottom: 0; left: 62px; width: 1px; background: var(--red); opacity: .45; }
+  .ledger-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 20px 14px; border-bottom: 2px solid var(--ink); }
+  .ledger-head strong { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; }
+  .ledger-head span { font: 400 0.72rem var(--mono); color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; text-align: right; }
+  .ledger ul { list-style: none; margin: 0; padding: 0; }
+  .ledger li {
+    display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 20px; align-items: baseline;
+    padding: 11px 20px; border-bottom: 1px solid var(--rule); font-size: 0.93rem;
+  }
+  .ledger .d { font: 400 0.78rem var(--mono); color: var(--ink-soft); }
+  .ledger .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ledger .a { font: 500 0.9rem var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ledger .in { color: var(--green); }
+  .ledger .tax .t, .ledger .tax .a { color: var(--red); }
+  .ledger-total {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding: 16px 20px 18px 82px; border-top: 1px solid var(--ink); margin-top: 3px; box-shadow: 0 -4px 0 var(--card), 0 -5px 0 var(--ink);
+  }
+  .ledger-total span { font-size: 0.9rem; font-weight: 600; }
+  .ledger-total b { font: 500 clamp(1.5rem, 3vw, 2rem) var(--serif); font-variant-numeric: tabular-nums; color: var(--green); white-space: nowrap; }
+
+  /* Sections */
+  section { padding: clamp(56px, 8vw, 104px) 0; }
+  .band { border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(2rem, 4vw, 3.1rem); max-width: 16em; }
+  .sub { color: var(--ink-soft); max-width: 36em; margin-top: 16px; font-size: 1.08rem; }
+
+  .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 clamp(32px, 6vw, 88px); margin-top: clamp(32px, 5vw, 56px); }
+  .feature { padding: 28px 0; border-top: 1px solid var(--ink); }
+  .feature .tally { color: var(--red); margin-bottom: 18px; }
+  .feature h3 { font-size: 1.5rem; margin-bottom: 10px; }
+  .feature p { color: var(--ink-soft); max-width: 30em; }
+
+  /* Calculator */
+  .calc-band { background: var(--green); color: #f3eee3; }
+  .calc-band .sub { color: #c5d3cb; }
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 80px); align-items: center; }
+  .calc { background: var(--card); color: var(--ink); border-radius: 6px; padding: clamp(22px, 3vw, 34px); }
+  .field + .field { margin-top: 22px; }
+  .field label { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+  .field label output { font-family: var(--mono); font-weight: 500; }
+  .money { display: flex; align-items: center; border: 1.5px solid var(--ink); border-radius: 6px; background: #fff; }
+  .money span { padding-left: 14px; font: 500 1.1rem var(--mono); color: var(--ink-soft); }
+  .money input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 14px 12px 6px; font: 500 1.1rem var(--mono); color: var(--ink); }
+  .money input:focus { outline: none; }
+  .money:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--green); height: 28px; margin: 0; }
+  .split { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 26px 0 18px; background: var(--red); }
+  .split div { background: var(--green); transition: width .2s; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .results dt { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .results dd { margin: 4px 0 0; font: 500 clamp(1.35rem, 2.6vw, 1.8rem) var(--serif); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .results .keep { color: var(--green); }
+  .results .aside { color: var(--red); }
+  .fine { font-size: 0.82rem; color: var(--ink-soft); margin-top: 18px; }
+
+  /* Week one */
+  .weekone { display: grid; grid-template-columns: auto 1fr; gap: clamp(24px, 5vw, 64px); align-items: start; }
+  .weekone > .tally { color: var(--red); height: 64px; gap: 13px; margin-top: 8px; }
+  .weekone > .tally i { width: 5px; }
+  .weekone > .tally.five::after { height: 5px; left: -12px; right: -12px; }
+  .weekone p + p { margin-top: 16px; }
+  .weekone .body { max-width: 40em; }
+  .weekone .body p { color: var(--ink-soft); font-size: 1.08rem; }
+  .weekone h2 { margin-bottom: 22px; }
+
+  /* FAQ */
+  .faq { margin-top: 36px; max-width: 780px; border-bottom: 1px solid var(--ink); }
+  details { border-top: 1px solid var(--ink); }
+  summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 0; font: 500 1.25rem var(--serif); }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font: 400 1.5rem var(--mono); color: var(--red); line-height: 1; flex: none; }
+  details[open] summary::after { content: "−"; }
+  details p { color: var(--ink-soft); padding: 0 40px 22px 0; max-width: 40em; }
+
+  /* Closing */
+  .closing { text-align: center; }
+  .closing h2 { margin-inline: auto; }
+  .closing .signup { margin-inline: auto; text-align: left; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 0.88rem; color: var(--ink-soft); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 860px) {
+    .hero-grid, .calc-grid { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+  }
+  @media (max-width: 520px) {
+    .wrap { width: calc(100% - 36px); }
+    .weekone { grid-template-columns: 1fr; }
+    .weekone > .tally { height: 44px; margin-left: 12px; }
+    .ledger li { gap: 14px; padding-inline: 14px; }
+    .ledger::before { left: 50px; }
+    .ledger-head { padding-inline: 14px; }
+    .ledger-total { padding: 14px 14px 16px 14px; }
+    .signup .btn { flex: 1 1 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top" aria-label="Tally Hall home">
+      <span class="tally five" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      Tally Hall
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#features">What it does</a>
+      <a href="#set-aside">Set-aside</a>
+      <a href="#questions">Questions</a>
+      <a class="btn small" href="#start">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Bookkeeping for freelancers · Opened November 2026</p>
+        <h1>Know what's <em>actually</em> yours.</h1>
+        <p class="lede">Tally Hall keeps the books for people who work for themselves. Send invoices, log expenses, and set tax aside as you earn, so the number you see is the number you can spend.</p>
+
+        <form class="signup" data-endpoint="" novalidate>
+          <label for="email-hero">Your email</label>
+          <div class="row">
+            <input id="email-hero" name="email" type="email" autocomplete="email" placeholder="you@yourstudio.com" required>
+            <button class="btn" type="submit">Get started</button>
+          </div>
+          <p class="form-note" role="status">We'll send you a link to set up your books.</p>
+        </form>
+      </div>
+
+      <div class="ledger" role="img" aria-label="Example ledger with made-up figures: two invoices in, two expenses out, a quarter of income set aside for tax, leaving 2,362.00 to spend.">
+        <div class="ledger-head">
+          <strong>November</strong>
+          <span>Example · made-up figures</span>
+        </div>
+        <ul>
+          <li><span class="d">03</span><span class="t">Invoice 014, brand refresh</span><span class="a in">+2,400.00</span></li>
+          <li><span class="d">04</span><span class="t">Design software</span><span class="a">−29.00</span></li>
+          <li><span class="d">05</span><span class="t">Train to client site</span><span class="a">−46.50</span></li>
+          <li><span class="d">07</span><span class="t">Invoice 015, illustration</span><span class="a in">+850.00</span></li>
+          <li class="tax"><span class="d">07</span><span class="t">Set aside for tax, 25%</span><span class="a">−812.50</span></li>
+        </ul>
+        <div class="ledger-total">
+          <span>Yours to spend</span>
+          <b>2,362.00</b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features" class="band">
+    <div class="wrap">
+      <h2>Four jobs, done as you go.</h2>
+      <p class="sub">Most freelance bookkeeping is the same handful of tasks, usually left until the night before a deadline. Tally Hall turns them into a few minutes a week.</p>
+
+      <div class="features">
+        <div class="feature">
+          <span class="tally" aria-hidden="true"><i></i></span>
+          <h3>Send the invoice</h3>
+          <p>Write an invoice, send it, and see at a glance which ones are paid, due, or late.</p>
+        </div>
+        <div class="feature">
+          <span class="tally" aria-hidden="true"><i></i><i></i></span>
+          <h3>Log the expense</h3>
+          <p>Add what you spent and attach the receipt. Each expense gets a category, so nothing needs sorting later.</p>
+        </div>
+        <div class="feature">
+          <span class="tally" aria-hidden="true"><i></i><i></i><i></i></span>
+          <h3>Set tax aside</h3>
+          <p>Pick a rate once. Every payment that lands is split into what to hold back and what you can use.</p>
+        </div>
+        <div class="feature">
+          <span class="tally" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <h3>Hand it over</h3>
+          <p>At year end, export income and expenses in a tidy file your accountant can work from.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="set-aside" class="calc-band">
+    <div class="wrap calc-grid">
+      <div>
+        <h2>A payment is not all yours. Try it.</h2>
+        <p class="sub">Type in a payment and choose a rate. This is the split Tally Hall makes each time a client pays you.</p>
+      </div>
+
+      <div class="calc">
+        <div class="field">
+          <label for="amount">A client pays you</label>
+          <div class="money">
+            <span aria-hidden="true">$</span>
+            <input id="amount" type="number" inputmode="decimal" min="0" step="50" value="2400">
+          </div>
+        </div>
+        <div class="field">
+          <label for="rate">Your set-aside rate <output id="rate-out" for="rate">25%</output></label>
+          <input id="rate" type="range" min="0" max="50" step="1" value="25">
+        </div>
+
+        <div class="split" aria-hidden="true"><div id="split-keep" style="width:75%"></div></div>
+
+        <dl class="results" aria-live="polite">
+          <div>
+            <dt>Yours to spend</dt>
+            <dd class="keep" id="keep">$1,800.00</dd>
+          </div>
+          <div>
+            <dt>Hold for tax</dt>
+            <dd class="aside" id="aside">$600.00</dd>
+          </div>
+        </dl>
+        <p class="fine">This is arithmetic, not tax advice. Use the rate your accountant or tax office suggests.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="new">
+    <div class="wrap weekone">
+      <span class="tally five" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <div class="body">
+        <h2>We opened last week. There are no reviews yet.</h2>
+        <p>You won't find star ratings, customer logos, or a wall of quotes on this page, because nobody has had time to write one. We would rather show you an empty space than fill it with something invented.</p>
+        <p>What we can show you is the product. Sign up, enter a month of your own work, and judge it on whether your books make more sense afterwards.</p>
+        <p>If something is missing or broken, tell us. This early, what you say shapes what gets built next.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="questions" class="band">
+    <div class="wrap">
+      <h2>Fair questions</h2>
+      <div class="faq">
+        <details>
+          <summary>Do I need to know any accounting?</summary>
+          <p>No. Tally Hall asks for things you already know: who paid you, what you spent, and roughly how much tax to hold back. It does the adding up.</p>
+        </details>
+        <details>
+          <summary>Does it replace my accountant?</summary>
+          <p>No. It keeps your records in order through the year, so your accountant gets clean figures instead of a folder of receipts.</p>
+        </details>
+        <details>
+          <summary>Can I get my data out?</summary>
+          <p>Yes. Your books are yours, and you can export your income and expenses whenever you like.</p>
+        </details>
+        <details>
+          <summary>How new is it, really?</summary>
+          <p>Very. Tally Hall opened in November 2026. Expect a small, focused product with some rough edges, and expect it to change as early users tell us what they need.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="start" class="band closing">
+    <div class="wrap">
+      <h2>Start with this month's work.</h2>
+      <p class="sub" style="margin-inline:auto">Enter the invoices and expenses you already have, and see what's yours.</p>
+      <form class="signup" data-endpoint="" novalidate>
+        <label for="email-end">Your email</label>
+        <div class="row">
+          <input id="email-end" name="email" type="email" autocomplete="email" placeholder="you@yourstudio.com" required>
+          <button class="btn" type="submit">Get started</button>
+        </div>
+        <p class="form-note" role="status">We'll send you a link to set up your books.</p>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Tally Hall</span>
+    <span>Bookkeeping for people who work for themselves.</span>
+  </div>
+</footer>
+
+<script>
+  // Set-aside calculator
+  (function () {
+    var amount = document.getElementById('amount');
+    var rate = document.getElementById('rate');
+    var rateOut = document.getElementById('rate-out');
+    var keep = document.getElementById('keep');
+    var aside = document.getElementById('aside');
+    var bar = document.getElementById('split-keep');
+    var fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+    function update() {
+      var a = Math.max(0, parseFloat(amount.value) || 0);
+      var r = parseInt(rate.value, 10) || 0;
+      var held = Math.round(a * r) / 100;
+      rateOut.textContent = r + '%';
+      aside.textContent = fmt.format(held);
+      keep.textContent = fmt.format(a - held);
+      bar.style.width = (100 - r) + '%';
+    }
+    amount.addEventListener('input', update);
+    rate.addEventListener('input', update);
+    update();
+  })();
+
+  // Sign-up forms: post to data-endpoint, and never claim success that did not happen
+  document.querySelectorAll('form.signup').forEach(function (form) {
+    var note = form.querySelector('.form-note');
+    var input = form.querySelector('input[type=email]');
+    var button = form.querySelector('button');
+
+    function say(text, cls) {
+      note.textContent = text;
+      note.className = 'form-note' + (cls ? ' ' + cls : '');
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!input.checkValidity()) {
+        say('Please enter a valid email address.', 'err');
+        input.focus();
+        return;
+      }
+      var endpoint = form.dataset.endpoint;
+      if (!endpoint) {
+        say('Sign-up is not connected yet, so nothing was sent.', 'err');
+        return;
+      }
+      button.disabled = true;
+      say('Sending…');
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: input.value })
+      }).then(function (res) {
+        if (!res.ok) throw new Error(res.status);
+        form.reset();
+        say('Thanks. Check your inbox for a set-up link.', 'ok');
+      }).catch(function () {
+        say('That did not go through. Please try again in a moment.', 'err');
+      }).finally(function () {
+        button.disabled = false;
+      });
+    });
+  });
+</script>
+</body>
+</html>

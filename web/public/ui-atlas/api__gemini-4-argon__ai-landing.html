@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murmur — Your Quiet Second Brain</title>
+    <meta name="description" content="Ambient AI note-taking that captures your thoughts, whispers connections, and organizes your life without getting in the way.">
+    
+    <!-- Google Fonts: Newsreader (Editorial Serif), Plus Jakarta Sans (Clean UI), JetBrains Mono (Technical) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           CSS VARIABLES & THEME TOKENS (Warm Obsidian & Editorial Ivory)
+           ========================================================================== */
+        :root {
+            --bg-base: #0B0A0E;
+            --bg-surface: #131218;
+            --bg-elevated: #1C1A24;
+            --bg-glass: rgba(19, 18, 24, 0.72);
+            --bg-glass-heavy: rgba(28, 26, 36, 0.85);
+            
+            --text-primary: #F4F1EA;
+            --text-secondary: #A39E93;
+            --text-muted: #68645D;
+            
+            --accent-amber: #E5A93C;
+            --accent-amber-glow: rgba(229, 169, 60, 0.15);
+            --accent-violet: #9D8DF1;
+            --accent-violet-glow: rgba(157, 141, 241, 0.14);
+            --accent-emerald: #52B788;
+            
+            --border-subtle: rgba(244, 241, 234, 0.07);
+            --border-highlight: rgba(244, 241, 234, 0.15);
+            --border-amber: rgba(229, 169, 60, 0.35);
+            --border-violet: rgba(157, 141, 241, 0.35);
+
+            --font-serif: 'Newsreader', Georgia, serif;
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* ==========================================================================
+           RESET & BASE STYLES
+           ========================================================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 16px;
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            selection-background-color: var(--accent-violet);
+            selection-color: var(--bg-base);
+        }
+
+        ::selection {
+            background: rgba(157, 141, 241, 0.25);
+            color: var(--text-primary);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+
+        button {
+            font-family: inherit;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: inherit;
+        }
+
+        ul { list-style: none; }
+
+        /* Subtle Film Grain Overlay */
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.032;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Ambient Background Glows */
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(110px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .glow-hero-1 {
+            top: -10%;
+            left: 15%;
+            width: 550px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(157, 141, 241, 0.14) 0%, rgba(11, 10, 14, 0) 70%);
+        }
+        .glow-hero-2 {
+            top: 5%;
+            right: 12%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(229, 169, 60, 0.11) 0%, rgba(11, 10, 14, 0) 70%);
+        }
+
+        /* Layout Containers */
+        .container {
+            width: 100%;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ==========================================================================
+           TYPOGRAPHY & UTILITY CLASSES
+           ========================================================================== */
+        .serif-display {
+            font-family: var(--font-serif);
+            font-weight: 300;
+            letter-spacing: -0.025em;
+            line-height: 1.08;
+        }
+        .serif-italic {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-weight: 400;
+        }
+        .mono-tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-amber);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(229, 169, 60, 0.08);
+            border: 1px solid rgba(229, 169, 60, 0.2);
+        }
+        .mono-tag .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--accent-amber);
+            box-shadow: 0 0 8px var(--accent-amber);
+            animation: pulseDot 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .kbd {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 5px;
+            background: rgba(244, 241, 234, 0.07);
+            border: 1px solid rgba(244, 241, 234, 0.14);
+            color: var(--text-secondary);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+        }
+
+        /* ==========================================================================
+           NAVIGATION
+           ========================================================================== */
+        .navbar-wrapper {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            padding: 0 20px;
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 980px;
+            padding: 10px 14px 10px 22px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .navbar:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-family: var(--font-serif);
+            font-size: 1.45rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(229, 169, 60, 0.2), rgba(157, 141, 241, 0.2));
+            border: 1px solid rgba(244, 241, 234, 0.18);
+            position: relative;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-cmd {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .btn-cmd:hover {
+            color: var(--text-primary);
+            border-color: var(--border-highlight);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 999px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: var(--bg-base);
+            background: var(--text-primary);
+            box-shadow: 0 2px 15px rgba(244, 241, 234, 0.2);
+            transition: all 0.25s var(--ease-out-expo);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            background: #FFFFFF;
+            box-shadow: 0 6px 24px rgba(244, 241, 234, 0.35);
+        }
+
+        /* ==========================================================================
+           HERO SECTION
+           ========================================================================== */
+        .hero {
+            padding-top: 155px;
+            padding-bottom: 90px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero-header {
+            max-width: 820px;
+            margin: 0 auto 56px;
+        }
+
+        .hero-title {
+            font-size: clamp(2.85rem, 6vw, 5.1rem);
+            margin-top: 22px;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .hero-title .gradient-serif {
+            background: linear-gradient(125deg, #F4F1EA 10%, #E5A93C 55%, #9D8DF1 95%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding-right: 4px;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 36px;
+            font-weight: 400;
+            line-height: 1.65;
+        }
+
+        .hero-ctas {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .btn-hero-main {
+            padding: 15px 30px;
+            font-size: 0.98rem;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #FAF8F5 0%, #E6E0D4 100%);
+            color: var(--bg-base);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px -5px rgba(229, 169, 60, 0.28), inset 0 1px 0 #FFFFFF;
+            transition: all 0.25s var(--ease-out-expo);
+        }
+
+        .btn-hero-main:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 16px 40px -5px rgba(229, 169, 60, 0.4), inset 0 1px 0 #FFFFFF;
+        }
+
+        .btn-hero-secondary {
+            padding: 15px 26px;
+            font-size: 0.96rem;
+            border-radius: 999px;
+            background: rgba(244, 241, 234, 0.04);
+            color: var(--text-primary);
+            font-weight: 500;
+            border: 1px solid var(--border-highlight);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(244, 241, 234, 0.09);
+            border-color: rgba(244, 241, 234, 0.28);
+        }
+
+        .hero-meta {
+            margin-top: 18px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        /* ==========================================================================
+           INTERACTIVE WORKSPACE SANDBOX (HERO CENTERPIECE)
+           ========================================================================== */
+        .workspace-shell {
+            max-width: 1120px;
+            margin: 0 auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-highlight);
+            border-radius: 20px;
+            box-shadow: 
+                0 30px 90px -20px rgba(0, 0, 0, 0.85),
+                0 0 0 1px rgba(255, 255, 255, 0.03),
+                0 0 70px -15px rgba(157, 141, 241, 0.12);
+            overflow: hidden;
+            text-align: left;
+            position: relative;
+        }
+
+        /* Top Window Bar */
+        .workspace-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 20px;
+            background: rgba(11, 10, 14, 0.65);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .window-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .win-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: rgba(244, 241, 234, 0.14);
+        }
+        .win-dot:nth-child(1) { background: #FF5F56; opacity: 0.75; }
+        .win-dot:nth-child(2) { background: #FFBD2E; opacity: 0.75; }
+        .win-dot:nth-child(3) { background: #27C93F; opacity: 0.75; }
+
+        .scenario-tabs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .scenario-tab {
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .scenario-tab.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .scenario-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .workspace-status {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+        }
+
+        /* 2-Column Interactive Body */
+        .workspace-body {
+            display: grid;
+            grid-template-columns: 1.35fr 0.85fr;
+            min-height: 470px;
+        }
+
+        /* Left Pane: Live Note Editor */
+        .editor-pane {
+            padding: 36px 42px;
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            background: radial-gradient(circle at top left, rgba(229, 169, 60, 0.03), transparent 55%);
+        }
+
+        .note-meta-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .note-tags {
+            display: flex;
+            gap: 8px;
+        }
+
+        .note-tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(244, 241, 234, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .note-title-input {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.2;
+            outline: none;
+        }
+
+        .note-editor-area {
+            font-family: var(--font-serif);
+            font-size: 1.22rem;
+            line-height: 1.75;
+            color: #DFDBD2;
+            min-height: 220px;
+            outline: none;
+            white-space: pre-wrap;
+        }
+
+        .note-editor-area .highlight-entity {
+            color: var(--accent-amber);
+            border-bottom: 1px dashed rgba(229, 169, 60, 0.5);
+            padding-bottom: 1px;
+        }
+
+        .note-editor-area .highlight-link {
+            color: var(--accent-violet);
+            background: rgba(157, 141, 241, 0.1);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+        }
+
+        /* Interactive Voice & Distill Controls Bar */
+        .editor-Controls {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .voice-murmur-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 16px;
+            border-radius: 999px;
+            background: rgba(229, 169, 60, 0.1);
+            border: 1px solid var(--border-amber);
+            color: var(--accent-amber);
+            font-size: 0.83rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .voice-murmur-btn:hover {
+            background: rgba(229, 169, 60, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .voice-murmur-btn.recording {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #F87171;
+        }
+
+        /* Animated Waveform Bars */
+        .waveform {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 14px;
+        }
+
+        .waveform span {
+            display: block;
+            width: 2.5px;
+            height: 5px;
+            background: currentColor;
+            border-radius: 2px;
+            transition: height 0.15s ease;
+        }
+
+        .voice-murmur-btn.recording .waveform span {
+            animation: waveBounce 0.7s infinite ease-in-out alternate;
+        }
+        .voice-murmur-btn.recording .waveform span:nth-child(2) { animation-delay: 0.15s; }
+        .voice-murmur-btn.recording .waveform span:nth-child(3) { animation-delay: 0.3s; }
+        .voice-murmur-btn.recording .waveform span:nth-child(4) { animation-delay: 0.1s; }
+        .voice-murmur-btn.recording .waveform span:nth-child(5) { animation-delay: 0.25s; }
+
+        @keyframes waveBounce {
+            0% { height: 4px; }
+            100% { height: 14px; }
+        }
+
+        .distill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(157, 141, 241, 0.1);
+            border: 1px solid var(--border-violet);
+            color: var(--accent-violet);
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .distill-btn:hover {
+            background: rgba(157, 141, 241, 0.2);
+        }
+
+        /* Right Pane: Ambient Murmur Margin */
+        .murmur-margin {
+            padding: 28px;
+            background: rgba(11, 10, 14, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .margin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .whisper-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .whisper-card {
+            padding: 15px 16px;
+            border-radius: 13px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            transition: all 0.3s var(--ease-out-expo);
+            position: relative;
+            overflow: hidden;
+            animation: cardSlideIn 0.4s var(--ease-out-expo) backwards;
+        }
+
+        @keyframes cardSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .whisper-card:hover {
+            border-color: var(--border-highlight);
+            transform: translateY(-2px);
+        }
+
+        .whisper-card.type-recall {
+            border-left: 3px solid var(--accent-violet);
+        }
+        .whisper-card.type-action {
+            border-left: 3px solid var(--accent-amber);
+        }
+        .whisper-card.type-synthesis {
+            border-left: 3px solid var(--accent-emerald);
+        }
+
+        .whisper-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            margin-bottom: 6px;
+        }
+
+        .whisper-label span.badge {
+            color: var(--accent-violet);
+            font-weight: 500;
+        }
+        .whisper-card.type-action .whisper-label span.badge { color: var(--accent-amber); }
+        .whisper-card.type-synthesis .whisper-label span.badge { color: var(--accent-emerald); }
+
+        .whisper-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .whisper-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ==========================================================================
+           TRUST / PHILOSOPHY TICKER
+           ========================================================================== */
+        .philosophy-strip {
+            padding: 40px 0 80px;
+            border-bottom: 1px solid var(--border-subtle);
+            text-align: center;
+        }
+
+        .philosophy-quote {
+            font-family: var(--font-serif);
+            font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+            color: var(--text-secondary);
+            max-width: 780px;
+            margin: 0 auto 36px;
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        .philosophy-quote strong {
+            color: var(--text-primary);
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        .metrics-row {
+            display: flex;
+            justify-content: center;
+            gap: 56px;
+            flex-wrap: wrap;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .metric-val {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .metric-label {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 4px;
+        }
+
+        /* ==========================================================================
+           BENTO GRID FEATURES SECTION
+           ========================================================================== */
+        .section-padding {
+            padding: 120px 0;
+            position: relative;
+        }
+
+        .section-header {
+            max-width: 680px;
+            margin-bottom: 64px;
+        }
+
+        .section-title {
+            font-size: clamp(2.2rem, 4vw, 3.35rem);
+            margin-top: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-desc {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 22px;
+        }
+
+        .bento-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 22px;
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: border-color 0.35s ease, transform 0.35s var(--ease-out-expo);
+        }
+
+        .bento-card:hover {
+            border-color: var(--border-highlight);
+            transform: translateY(-3px);
+        }
+
+        .bento-span-7 { grid-column: span 7; }
+        .bento-span-5 { grid-column: span 5; }
+        .bento-span-4 { grid-column: span 4; }
+        .bento-span-8 { grid-column: span 8; }
+
+        .bento-visual {
+            height: 220px;
+            margin-bottom: 28px;
+            border-radius: 14px;
+            background: rgba(11, 10, 14, 0.65);
+            border: 1px solid var(--border-subtle);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .bento-tag {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent-amber);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .bento-card h3 {
+            font-family: var(--font-serif);
+            font-size: 1.75rem;
+            font-weight: 400;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .bento-card p {
+            color: var(--text-secondary);
+            font-size: 0.96rem;
+            line-height: 1.6;
+        }
+
+        /* Bento Visual 1: Voice Stream Transformation */
+        .stream-demo {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .raw-ramble {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            padding: 10px 14px;
+            border-left: 2px solid var(--border-highlight);
+            background: rgba(255,255,255,0.02);
+        }
+        .clean-structured {
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-amber);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Bento Visual 2: Margin Whisper Animation */
+        .margin-preview-box {
+            width: 100%;
+            display: flex;
+             flex-direction: column;
+            gap: 10px;
+        }
+        .mini-whisper {
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-violet);
+            font-size: 0.82rem;
+        }
+
+        /* ==========================================================================
+           INTERACTIVE NEURAL CONSTELLATION (CANVAS GRAPH)
+           ========================================================================== */
+        .constellation-section {
+            padding: 90px 0 120px;
+            position: relative;
+        }
+
+        .constellation-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 32px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-highlight);
+            border-radius: 24px;
+            overflow: hidden;
+            min-height: 520px;
+        }
+
+        .constellation-info {
+            padding: 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border-subtle);
+        }
+
+        .node-inspector {
+            margin-top: 32px;
+            padding: 22px;
+            border-radius: 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-highlight);
+            transition: all 0.25s ease;
+        }
+
+        .inspector-date {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent-amber);
+            margin-bottom: 6px;
+        }
+
+        .inspector-title {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .inspector-snippet {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 14px;
+        }
+
+        .inspector-connections {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .conn-pill {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(157, 141, 241, 0.12);
+            color: var(--accent-violet);
+            border: 1px solid rgba(157, 141, 241, 0.25);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 460px;
+            background: radial-gradient(circle at center, #171520 0%, #0D0C11 100%);
+            cursor: crosshair;
+        }
+
+        #constellationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .canvas-hint {
+            position: absolute;
+            bottom: 18px;
+            right: 22px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            background: rgba(11, 10, 14, 0.75);
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            pointer-events: none;
+        }
+
+        /* ==========================================================================
+           COMPARISON: LOUD AI VS QUIET AI
+           ========================================================================== */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin-top: 48px;
+        }
+
+        .comp-card {
+            padding: 40px;
+            border-radius: 22px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
+        }
+
+        .comp-card.murmur-way {
+            background: linear-gradient(160deg, rgba(28, 26, 36, 0.9) 0%, rgba(19, 18, 24, 0.95) 100%);
+            border-color: var(--border-amber);
+            box-shadow: 0 20px 60px -20px rgba(229, 169, 60, 0.12);
+        }
+
+        .comp-header {
+            font-family: var(--font-serif);
+            font-size: 1.65rem;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .comp-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .comp-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.96rem;
+            color: var(--text-secondary);
+        }
+
+        .comp-card.murmur-way .comp-list li {
+            color: var(--text-primary);
+        }
+
+        /* ==========================================================================
+           PRICING SECTION
+           ========================================================================== */
+        .pricing-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 52px;
+        }
+
+        .billing-toggle {
+            display: flex;
+            background: var(--bg-surface);
+            padding: 5px;
+            border-radius: 999px;
+            border: 1px solid var(--border-highlight);
+        }
+
+        .billing-btn {
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .billing-btn.active {
+            background: var(--text-primary);
+            color: var(--bg-base);
+            font-weight: 600;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .price-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 38px 34px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .price-card:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .price-card.featured {
+            background: linear-gradient(180deg, #1B1924 0%, #121117 100%);
+            border-color: var(--border-violet);
+            box-shadow: 0 24px 70px -15px rgba(157, 141, 241, 0.16);
+            transform: translateY(-6px);
+        }
+
+        .popular-ribbon {
+            position: absolute;
+            top: 18px;
+            right: 22px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(157, 141, 241, 0.16);
+            color: var(--accent-violet);
+            border: 1px solid var(--border-violet);
+        }
+
+        .tier-name {
+            font-family: var(--font-serif);
+            font-size: 1.65rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .tier-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 26px;
+            min-height: 42px;
+        }
+
+        .price-figure {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 28px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .price-amount {
+            font-family: var(--font-serif);
+            font-size: 3.1rem;
+            font-weight: 300;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .price-period {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .feature-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+            margin-bottom: 34px;
+        }
+
+        .feature-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .feature-checklist li svg {
+            color: var(--accent-amber);
+            flex-shrink: 0;
+        }
+
+        /* ==========================================================================
+           COMMAND PALETTE MODAL (⌘K)
+           ========================================================================== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.78);
+            backdrop-filter: blur(8px);
+            z-index: 999;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 13vh;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .cmd-modal {
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-highlight);
+            border-radius: 18px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);
+            overflow: hidden;
+            transform: scale(0.96) translateY(-10px);
+            transition: transform 0.25s var(--ease-out-expo);
+        }
+
+        .modal-backdrop.open .cmd-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .cmd-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .cmd-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            font-family: var(--font-sans);
+        }
+
+        .cmd-results {
+            padding: 12px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .cmd-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .cmd-item:hover {
+            background: rgba(244, 241, 234, 0.06);
+        }
+
+        .cmd-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.92rem;
+            color: var(--text-primary);
+        }
+
+        .cmd-item-tag {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        /* ==========================================================================
+           FOOTER CTA & FOOTER
+           ========================================================================== */
+        .final-cta {
+            padding: 110px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .footer {
+            padding: 60px 0 40px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* ==========================================================================
+           RESPONSIVE BREAKPOINTS
+           ========================================================================== */
+        @media (max-width: 992px) {
+            .workspace-body {
+                grid-template-columns: 1fr;
+            }
+            .editor-pane {
+                border-right: none;
+                border-bottom: 1px solid var(--border-subtle);
+            }
+            .bento-span-7, .bento-span-5, .bento-span-4, .bento-span-8 {
+                grid-column: span 12;
+            }
+            .constellation-wrapper {
+                grid-template-columns: 1fr;
+            }
+            .constellation-info {
+                border-right: none;
+                border-bottom: 1px solid var(--border-subtle);
+            }
+            .comparison-grid, .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            .price-card.featured {
+                transform: none;
+            }
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .editor-pane { padding: 24px 20px; }
+            .murmur-margin { padding: 20px; }
+            .hero { padding-top: 130px; }
+            .scenario-tabs { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Subtle analog texture overlay -->
+    <div class="noise-overlay"></div>
+
+    <!-- Ambient background radial glows -->
+    <div class="ambient-glow glow-hero-1"></div>
+    <div class="ambient-glow glow-hero-2"></div>
+
+    <!-- ========================================================================
+         FLOATING GLASS NAVIGATION
+         ======================================================================== -->
+    <header class="navbar-wrapper">
+        <nav class="navbar" aria-label="Main Navigation">
+            <a href="#" class="brand">
+                <span class="brand-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5A93C" stroke-width="2" stroke-linecap="round">
+                        <path d="M4 12v.01M8 8v8M12 4v16M16 7v10M20 11v2"/>
+                    </svg>
+                </span>
+                Murmur
+            </a>
+
+            <div class="nav-links">
+                <a href="#sandbox">Live Sandbox</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#constellation">Memory Graph</a>
+                <a href="#philosophy">Manifesto</a>
+                <a href="#pricing">Pricing</a>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn-cmd" id="openCmdBtn" title="Quick Recall">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    <span>Recall</span>
+                    <span class="kbd">⌘K</span>
+                </button>
+                <a href="#pricing" class="btn-primary">Start Quietly</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ========================================================================
+         HERO SECTION & LIVE INTERACTIVE SANDBOX
+         ======================================================================== -->
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-header">
+                    <div class="mono-tag">
+                        <span class="dot"></span>
+                        <span>Murmur Engine 2.4 — Local-First Ambient Intelligence</span>
+                    </div>
+                    <h1 class="hero-title serif-display">
+                        Capture the fleeting.<br>
+                        <span class="serif-italic gradient-serif">We’ll weave the rest.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Most note apps become graveyards of forgotten folders. Murmur listens in the margins—quietly connecting your half-baked voice memos, meeting fragments, and late-night thoughts without interrupting your flow.
+                    </p>
+                    <div class="hero-ctas">
+                        <a href="#pricing" class="btn-hero-main">
+                            <span>Download for macOS & iOS</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                        <button class="btn-hero-secondary" id="heroTryVoiceBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5A93C" stroke-width="2">
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
+                            </svg>
+                            <span>Simulate a Voice Murmur</span>
+                        </button>
+                    </div>
+                    <div class="hero-meta">
+                        <span>✓ Zero-Folder Taxonomy</span>
+                        <span>✓ On-Device Whisper v3</span>
+                        <span>✓ Plaintext Markdown Vault</span>
+                    </div>
+                </div>
+
+                <!-- INTERACTIVE WORKSPACE SANDBOX -->
+                <div id="sandbox" class="workspace-shell">
+                    <div class="workspace-topbar">
+                        <div class="window-controls">
+                            <span class="win-dot"></span>
+                            <span class="win-dot"></span>
+                            <span class="win-dot"></span>
+                            <span style="margin-left: 10px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">
+                                ~/vault/fleeting/today.md
+                            </span>
+                        </div>
+
+                        <div class="scenario-tabs" role="tablist">
+                            <button class="scenario-tab active" data-scenario="product">Product Strategy</button>
+                            <button class="scenario-tab" data-scenario="research">Literature Notes</button>
+                            <button class="scenario-tab" data-scenario="journal">Late-Night Walk</button>
+                        </div>
+
+                        <div class="workspace-status">
+                            <span class="status-indicator"></span>
+                            <span id="ambientStatusText">Ambient index synced (0.4ms)</span>
+                        </div>
+                    </div>
+
+                    <div class="workspace-body">
+                        <!-- Left: Editable Canvas -->
+                        <div class="editor-pane">
+                            <div>
+                                <div class="note-meta-bar">
+                                    <span id="noteTimestamp">OCT 24 · 22:14 PM · SAN FRANCISCO</span>
+                                    <div class="note-tags" id="noteTagsContainer">
+                                        <span class="note-tag">#onboarding</span>
+                                        <span class="note-tag">#q4-architecture</span>
+                                    </div>
+                                </div>
+
+                                <h2 class="note-title-input" id="noteTitle" contenteditable="true" spellcheck="false">
+                                    Rethinking the first-time user experience
+                                </h2>
+
+                                <div class="note-editor-area" id="noteEditor" contenteditable="true" spellcheck="false">We're asking too much upfront during onboarding. When <span class="highlight-entity">@Elena</span> showed me the session replays this morning, 60% of people stalled on workspace setup.
+
+What if there is no setup at all? You open the app and immediately start typing or speaking—just like <span class="highlight-link">[[Calm Technology Principles]]</span> suggests. Let the taxonomy emerge organically after they've captured at least 15 notes.</div>
+                            </div>
+
+                            <div class="editor-Controls">
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <button class="voice-murmur-btn" id="voiceRecordBtn">
+                                        <div class="waveform">
+                                            <span></span><span></span><span></span><span></span><span></span>
+                                        </div>
+                                        <span id="voiceBtnText">Dictate a thought</span>
+                                    </button>
+
+                                    <button class="distill-btn" id="distillNoteBtn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/>
+                                        </svg>
+                                        <span>Distill into Action Items</span>
+                                    </button>
+                                </div>
+
+                                <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);">
+                                    Tip: Click anywhere in the note to edit live
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Ambient AI Margin -->
+                        <aside class="murmur-margin">
+                            <div class="margin-header">
+                                <span>Margin Whispers</span>
+                                <span id="whisperCount">3 Connections</span>
+                            </div>
+
+                            <div class="whisper-list" id="whisperList">
+                                <!-- Populated dynamically via JS -->
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             PHILOSOPHY & METRICS STRIP
+             ======================================================================== -->
+        <section class="philosophy-strip">
+            <div class="container">
+                <p class="philosophy-quote">
+                    “The best assistant doesn’t demand prompts or folders. It sits quietly beside you and says, <strong>‘You wrote something remarkably similar to this last November.’</strong>”
+                </p>
+                <div class="metrics-row">
+                    <div class="metric-item">
+                        <span class="metric-val">0 folders</span>
+                        <span class="metric-label">Required to stay organized</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-val">&lt; 12ms</span>
+                        <span class="metric-label">Local semantic recall speed</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-val">100%</span>
+                        <span class="metric-label">Offline-capable & encrypted</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-val">48,000+</span>
+                        <span class="metric-label">Writers, founders & researchers</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             BENTO ARCHITECTURE SECTION
+             ======================================================================== -->
+        <section id="architecture" class="section-padding">
+            <div class="container">
+                <div class="section-header">
+                    <div class="mono-tag"><span>Calm Architecture</span></div>
+                    <h2 class="section-title serif-display">
+                        Designed for how memory <span class="serif-italic">actually</span> works.
+                    </h2>
+                    <p class="section-desc">
+                        Human thoughts arrive in messy fragments—on a walk, mid-conversation, or right before sleep. Murmur turns stream-of-consciousness into crystal-clear recall.
+                    </p>
+                </div>
+
+                <div class="bento-grid">
+                    <!-- Card 1: Stream-of-Consciousness Voice -->
+                    <div class="bento-card bento-span-7">
+                        <div class="bento-visual">
+                            <div class="stream-demo">
+                                <div class="raw-ramble">
+                                    "Uh okay walking out of the coffee shop with Marcus, he mentioned we should delay the Tokyo launch until April because of localization bottlenecks..."
+                                </div>
+                                <div class="clean-structured">
+                                    <div style="display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-amber); margin-bottom:4px;">
+                                        <span>AUTO-DISTILLED VOICE MEMO</span>
+                                        <span>LINKED TO: @Marcus · #Tokyo</span>
+                                    </div>
+                                    <strong>Decision:</strong> Push Tokyo launch window to April to resolve localization bottlenecks.
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="bento-tag">01 · Acoustic Distillation</div>
+                            <h3>Ramble freely. Read coherently.</h3>
+                            <p>
+                                Speak naturally with pauses, tangents, and "ums." Murmur preserves your original audio and verbatim transcript while surfacing a clean, structured synthesis right beside it.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Ambient Margin Whispers -->
+                    <div class="bento-card bento-span-5">
+                        <div class="bento-visual">
+                            <div class="margin-preview-box">
+                                <div class="mini-whisper">
+                                    <div style="font-family:var(--font-mono); font-size:0.68rem; color:var(--accent-violet); margin-bottom:4px;">
+                                        ECHO FROM 8 MONTHS AGO · 94% MATCH
+                                    </div>
+                                    <div style="font-family:var(--font-serif); font-size:0.95rem; color:var(--text-primary);">
+                                        “We tried a similar pricing tier in 2023 and churned power users...”
+                                    </div>
+                                </div>
+                                <div class="mini-whisper" style="border-color: var(--border-subtle); opacity: 0.65;">
+                                    <div style="font-family:var(--font-mono); font-size:0.68rem; color:var(--accent-emerald);">
+                                        BOOK HIGHLIGHT · PG. 142
+                                    </div>
+                                    <div style="font-size:0.82rem; color:var(--text-secondary);">
+                                        Annie Dillard on the discipline of daily notebooks.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="bento-tag">02 · Serendipity Engine</div>
+                            <h3>Whispers in the margin.</h3>
+                            <p>
+                                No chatboxes to prompt. As you write a sentence, Murmur’s margin quietly surfaces past notes, Kindle highlights, and conversations that share the same underlying thesis.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Temporal Natural Recall -->
+                    <div class="bento-card bento-span-4">
+                        <div class="bento-visual" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                            <div style="padding: 10px 14px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border-highlight); font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-primary);">
+                                ⌘K "article about brutalist clocks from a rainy Tuesday"
+                            </div>
+                            <div style="padding: 12px; border-radius: 10px; background: rgba(82, 183, 136, 0.08); border: 1px solid rgba(82, 183, 136, 0.3); font-size: 0.8rem;">
+                                <span style="color: var(--accent-emerald); font-family: var(--font-mono); font-size: 0.68rem;">FOUND · NOV 14 (RAIN · LONDON)</span>
+                                <div style="margin-top: 3px; color: var(--text-primary); font-weight: 500;">Chrono-Architecture & Dieter Rams</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="bento-tag">03 · Episodic Search</div>
+                            <h3>Search by feeling & time.</h3>
+                            <p>
+                                Forget exact keywords. Search the way humans remember: by season, city, who you met with, or a vague metaphor you used.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Sovereign Local Vault -->
+                    <div class="bento-card bento-span-8">
+                        <div class="bento-visual" style="justify-content: space-around; gap: 16px;">
+                            <div style="text-align: center;">
+                                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-amber); margin-bottom: 6px;">YOUR DEVICE</div>
+                                <div style="padding: 14px 20px; border-radius: 12px; background: var(--bg-elevated); border: 1px solid var(--border-highlight); font-family: var(--font-mono); font-size: 0.8rem;">
+                                    /Plaintext .md<br>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted);">Local Vector Index</span>
+                                </div>
+                            </div>
+                            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-emerald); display: flex; flex-direction: column; align-items: center;">
+                                <span>AES-256-GCM</span>
+                                <span style="letter-spacing: 3px; margin: 4px 0;">••••••••••••►</span>
+                                <span style="color: var(--text-muted); font-size: 0.68rem;">Zero-Knowledge Sync</span>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">CLOUD RELAY</div>
+                                <div style="padding: 14px 20px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-highlight); font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+                                    Opaque Ciphertext<br>
+                                    <span style="font-size: 0.7rem;">Never Trains Models</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="bento-tag">04 · Sanctuary Privacy</div>
+                            <h3>Your private thoughts never train anyone’s model.</h3>
+                            <p>
+                                A diary is only honest if you know nobody is watching. Murmur runs embeddings locally on Apple Silicon and stores your notes as portable, future-proof Markdown files on your drive.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             INTERACTIVE NEURAL CONSTELLATION (CANVAS)
+             ======================================================================== -->
+        <section id="constellation" class="constellation-section">
+            <div class="container">
+                <div class="constellation-wrapper">
+                    <div class="constellation-info">
+                        <div>
+                            <div class="mono-tag"><span>Self-Assembling Graph</span></div>
+                            <h2 class="serif-display" style="font-size: 2.35rem; margin: 16px 0 14px;">
+                                Watch your ideas form constellations.
+                            </h2>
+                            <p style="color: var(--text-secondary); font-size: 0.96rem;">
+                                Every note you capture automatically gravitates toward related themes. Click any node in the live graph to inspect how Murmur bridges months of separate thoughts.
+                            </p>
+                        </div>
+
+                        <div class="node-inspector" id="nodeInspector">
+                            <div class="inspector-date" id="inspDate">SELECTED NODE · NOV 12, 2024</div>
+                            <div class="inspector-title" id="inspTitle">Calm Technology Principles</div>
+                            <p class="inspector-snippet" id="inspSnippet">
+                                "Technology should require the smallest possible amount of attention, communicating on the periphery unless urgent."
+                            </p>
+                            <div class="inspector-connections" id="inspConnections">
+                                <span class="conn-pill">↔ Onboarding Friction</span>
+                                <span class="conn-pill">↔ Ambient Audio UI</span>
+                                <span class="conn-pill">↔ Mark Weiser 1995</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="canvas-container">
+                        <canvas id="constellationCanvas"></canvas>
+                        <div class="canvas-hint">Interactive Canvas · Hover or click any memory node</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             MANIFESTO: LOUD AI VS QUIET AI
+             ======================================================================== -->
+        <section id="philosophy" class="section-padding" style="padding-top: 40px;">
+            <div class="container">
+                <div class="section-header" style="margin: 0 auto 48px; text-align: center;">
+                    <div class="mono-tag"><span>Our Philosophy</span></div>
+                    <h2 class="section-title serif-display">
+                        Why we reject <span class="serif-italic">“Loud AI.”</span>
+                    </h2>
+                    <p class="section-desc">
+                        We believe AI shouldn't write your thoughts for you—it should help you remember and synthesize what you already lived.
+                    </p>
+                </div>
+
+                <div class="comparison-grid">
+                    <div class="comp-card">
+                        <div class="comp-header" style="color: var(--text-muted);">
+                            <span>Typical “AI” Workspaces</span>
+                            <span style="font-family: var(--font-mono); font-size: 0.75rem;">NOISY</span>
+                        </div>
+                        <ul class="comp-list">
+                            <li>
+                                <span style="color: #F87171;">✕</span>
+                                <span>Intrusive "Write with AI" popups that replace your personal voice with generic corporate prose.</span>
+                            </li>
+                            <li>
+                                <span style="color: #F87171;">✕</span>
+                                <span>Rigid databases, properties, and nested folders that turn note-taking into unpaid admin work.</span>
+                            </li>
+                            <li>
+                                <span style="color: #F87171;">✕</span>
+                                <span>Cloud-locked proprietary formats that hold your life’s archive hostage behind a subscription.</span>
+                            </li>
+                            <li>
+                                <span style="color: #F87171;">✕</span>
+                                <span>Requires you to remember what to ask a chatbot to find past context.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="comp-card murmur-way">
+                        <div class="comp-header">
+                            <span>The Murmur Sanctuary</span>
+                            <span class="mono-tag" style="padding: 3px 10px;">AMBIENT</span>
+                        </div>
+                        <ul class="comp-list">
+                            <li>
+                                <span style="color: var(--accent-amber);">✦</span>
+                                <span>Never overwrites your prose—only distills, links, and surfaces your own authentic ideas.</span>
+                            </li>
+                            <li>
+                                <span style="color: var(--accent-amber);">✦</span>
+                                <span>One chronological stream. Drop voice notes, links, or essays; taxonomy emerges automatically.</span>
+                            </li>
+                            <li>
+                                <span style="color: var(--accent-amber);">✦</span>
+                                <span>Backed by local `.md` files on your disk. Leave anytime with 100% of your backlinks intact.</span>
+                            </li>
+                            <li>
+                                <span style="color: var(--accent-amber);">✦</span>
+                                <span>Proactive margin whispers bring forgotten notes back to you at the exact moment they matter.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             PRICING SECTION
+             ======================================================================== -->
+        <section id="pricing" class="section-padding">
+            <div class="container">
+                <div class="section-header" style="margin: 0 auto 36px; text-align: center;">
+                    <div class="mono-tag"><span>Simple Patronage</span></div>
+                    <h2 class="section-title serif-display">
+                        Invest in a calmer mind.
+                    </h2>
+                    <p class="section-desc">
+                        Because we sell software—not your private thoughts—our business model is crystal clear.
+                    </p>
+                </div>
+
+                <div class="pricing-controls">
+                    <div class="billing-toggle">
+                        <button class="billing-btn active" id="billAnnual">Annual <span style="color: var(--accent-emerald); font-size: 0.75rem; margin-left: 4px;">-20%</span></button>
+                        <button class="billing-btn" id="billMonthly">Monthly</button>
+                    </div>
+                </div>
+
+                <div class="pricing-grid">
+                    <!-- Tier 1: Wanderer -->
+                    <div class="price-card">
+                        <div>
+                            <h3 class="tier-name">Wanderer</h3>
+                            <p class="tier-desc">For local journaling, markdown purists, and testing the waters.</p>
+                            <div class="price-figure">
+                                <span class="price-amount">$0</span>
+                                <span class="price-period">forever</span>
+                            </div>
+                            <ul class="feature-checklist">
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Unlimited local Markdown notes</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>On-device semantic Margin Whispers</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>30 voice murmurs / month</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Interactive Constellation Graph</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <a href="#sandbox" class="btn-hero-secondary" style="justify-content: center; width: 100%;">Download Free</a>
+                    </div>
+
+                    <!-- Tier 2: Solitude (Featured) -->
+                    <div class="price-card featured">
+                        <span class="popular-ribbon">Most Chosen</span>
+                        <div>
+                            <h3 class="tier-name">Solitude</h3>
+                            <p class="tier-desc">Full ambient intelligence synced seamlessly across Mac, iPhone & iPad.</p>
+                            <div class="price-figure">
+                                <span class="price-amount" id="proPrice">$10</span>
+                                <span class="price-period" id="proPeriod">/ month, billed yearly</span>
+                            </div>
+                            <ul class="feature-checklist">
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Everything in Wanderer</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Unlimited long-form voice murmurs</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>End-to-end encrypted multi-device sync</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Kindle, Readwise & Apple Notes import</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Weekly Sunday Synthesis digest</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <a href="#sandbox" class="btn-hero-main" style="justify-content: center; width: 100%;">Start 14-Day Free Trial</a>
+                    </div>
+
+                    <!-- Tier 3: Believer (Lifetime) -->
+                    <div class="price-card">
+                        <div>
+                            <h3 class="tier-name">Believer</h3>
+                            <p class="tier-desc">Pay once, own your sanctuary forever. Includes all future v2 & v3 updates.</p>
+                            <div class="price-figure">
+                                <span class="price-amount">$240</span>
+                                <span class="price-period">one-time license</span>
+                            </div>
+                            <ul class="feature-checklist">
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Lifetime access to Solitude features</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Bring-your-own API key or local Ollama</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>50 GB encrypted audio archive</span>
+                                </li>
+                                <li>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Direct access to founder Discord</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <a href="#sandbox" class="btn-hero-secondary" style="justify-content: center; width: 100%;">Claim Believer License</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================
+             FINAL CALL TO ACTION
+             ======================================================================== -->
+        <section class="final-cta">
+            <div class="ambient-glow" style="bottom: -30%; left: 50%; transform: translateX(-50%); width: 700px; height: 400px; background: radial-gradient(circle, rgba(229, 169, 60, 0.14) 0%, transparent 70%);"></div>
+            <div class="container">
+                <h2 class="serif-display" style="font-size: clamp(2.4rem, 5vw, 4rem); max-width: 680px; margin: 0 auto 20px;">
+                    Never lose a quiet thought to the noise again.
+                </h2>
+                <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 36px; font-size: 1.1rem;">
+                    Takes 20 seconds to install. Point Murmur at an existing Markdown folder or start fresh tonight.
+                </p>
+                <div class="hero-ctas">
+                    <a href="#sandbox" class="btn-hero-main">
+                        <span>Download Murmur for macOS</span>
+                    </a>
+                    <button class="btn-hero-secondary" id="footerCmdBtn">
+                        <span>Press</span>
+                        <span class="kbd">⌘K</span>
+                        <span>to test Instant Recall</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================================================
+         FOOTER
+         ======================================================================== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="brand" style="font-size: 1.2rem;">
+                    <span class="brand-icon" style="width: 22px; height: 22px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E5A93C" stroke-width="2" stroke-linecap="round">
+                            <path d="M4 12v.01M8 8v8M12 4v16M16 7v10M20 11v2"/>
+                        </svg>
+                    </span>
+                    Murmur Labs, Inc.
+                </div>
+
+                <div style="display: flex; gap: 28px; flex-wrap: wrap;">
+                    <a href="#sandbox">Interactive Demo</a>
+                    <a href="#architecture">Security Whitepaper</a>
+                    <a href="#constellation">Changelog</a>
+                    <a href="#pricing">Manifesto</a>
+                </div>
+
+                <div style="font-family: var(--font-mono); font-size: 0.75rem;">
+                    Crafted for quiet minds · © 2025
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========================================================================
+         COMMAND PALETTE MODAL (⌘K)
+         ======================================================================== -->
+    <div class="modal-backdrop" id="cmdBackdrop" aria-hidden="true">
+        <div class="cmd-modal" role="dialog" aria-label="Quick Recall Palette">
+            <div class="cmd-input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5A93C" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" class="cmd-input" id="cmdSearchInput" placeholder="Ask your memory anything, or jump to a scenario..." autocomplete="off">
+                <span class="kbd" style="cursor: pointer;" id="closeCmdBtn">ESC</span>
+            </div>
+            <div class="cmd-results" id="cmdResultsList">
+                <div class="cmd-item" data-action="scenario-product">
+                    <div class="cmd-item-left">
+                        <span style="color: var(--accent-amber);">✦</span>
+                        <span>Load Sandbox: Product Strategy & Onboarding</span>
+                    </div>
+                    <span class="cmd-item-tag">Jump to Note</span>
+                </div>
+                <div class="cmd-item" data-action="scenario-research">
+                    <div class="cmd-item-left">
+                        <span style="color: var(--accent-violet);">✦</span>
+                        <span>Load Sandbox: Literature Notes on Calm Tech</span>
+                    </div>
+                    <span class="cmd-item-tag">Jump to Note</span>
+                </div>
+                <div class="cmd-item" data-action="scenario-journal">
+                    <div class="cmd-item-left">
+                        <span style="color: var(--accent-emerald);">✦</span>
+                        <span>Load Sandbox: Late-Night Walk Audio Memo</span>
+                    </div>
+                    <span class="cmd-item-tag">Jump to Note</span>
+                </div>
+                <div class="cmd-item" data-action="voice-simulate">
+                    <div class="cmd-item-left">
+                        <span>🎙️</span>
+                        <span>Simulate Live Voice Murmur Dictation</span>
+                    </div>
+                    <span class="cmd-item-tag">Action</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         INTERACTIVE JAVASCRIPT (SANDBOX, VOICE STREAM, CANVAS GRAPH, ⌘K)
+         ======================================================================== -->
+    <script>
+        /* ----------------------------------------------------------------------
+           1. SANDBOX SCENARIOS & AMBIENT MARGIN WHISPERS
+           ---------------------------------------------------------------------- */
+        const scenarios = {
+            product: {
+                timestamp: "OCT 24 · 22:14 PM · SAN FRANCISCO",
+                tags: ["#onboarding", "#q4-architecture"],
+                title: "Rethinking the first-time user experience",
+                content: `We're asking too much upfront during onboarding. When <span class="highlight-entity">@Elena</span> showed me the session replays this morning, 60% of people stalled on workspace setup.\n\nWhat if there is no setup at all? You open the app and immediately start typing or speaking—just like <span class="highlight-link">[[Calm Technology Principles]]</span> suggests. Let the taxonomy emerge organically after they've captured at least 15 notes.`,
+                whispers: [
+                    {
+                        type: "type-recall",
+                        badge: "PAST NOTE · 4 MONTHS AGO",
+                        sim: "94% match",
+                        title: "Calm Technology Principles",
+                        desc: "“Tools should inform without overburdening. Never ask a user to categorize a thought before they’ve finished having it.”"
+                    },
+                    {
+                        type: "type-action",
+                        badge: "DETECTED COMMITMENT",
+                        sim: "@Elena",
+                        title: "Follow up on Session Replays",
+                        desc: "You met with Elena on Oct 19 where she promised the Q3 funnel drop-off cohort analysis."
+                    },
+                    {
+                        type: "type-synthesis",
+                        badge: "EMERGING THEME",
+                        sim: "6 notes linked",
+                        title: "Cluster: Zero-Config Interfaces",
+                        desc: "You've written 6 fragments this month circling around removing setup wizards."
+                    }
+                ]
+            },
+            research: {
+                timestamp: "NOV 02 · 09:40 AM · LONDON TRAIN",
+                tags: ["#epistemology", "#memex", "#books"],
+                title: "Why hierarchical trees fail creative synthesis",
+                content: `Vannevar Bush’s 1945 essay <span class="highlight-link">[[As We May Think]]</span> nailed the core failure of libraries: information is filed alphabetically or numerically, whereas the human mind operates purely by association.\n\nWhen I force a note into a single folder, I sever its peripheral tendrils to <span class="highlight-entity">architecture</span> and <span class="highlight-entity">music theory</span>.`,
+                whispers: [
+                    {
+                        type: "type-recall",
+                        badge: "BOOK HIGHLIGHT · KINDLE",
+                        sim: "97% match",
+                        title: "Christopher Alexander · A City is Not a Tree",
+                        desc: "“Whenever we trade the overlapping semi-lattice of real life for a neat tree hierarchy, we trade vitality for sterility.”"
+                    },
+                    {
+                        type: "type-synthesis",
+                        badge: "SERENDIPITY BRIDGE",
+                        sim: "Cross-Domain",
+                        title: "Polyphonic Voice Leading (2023)",
+                        desc: "Connects to your note on how Bach weaves independent melodies without a dominant folder."
+                    }
+                ]
+            },
+            journal: {
+                timestamp: "NOV 11 · 23:52 PM · VOICE WALK",
+                tags: ["#reflection", "#kyoto-trip", "#audio-memo"],
+                title: "Rain on the philosopher’s path",
+                content: `Walking back from Nanzen-ji in the drizzle. I realized why my mornings have felt so fractured lately: I check messages before I’ve even heard my own thoughts.\n\nStarting Monday, the first 45 minutes of the day belong strictly to <span class="highlight-link">[[Morning Pages]]</span> and espresso—no incoming feeds.`,
+                whispers: [
+                    {
+                        type: "type-recall",
+                        badge: "ECHO FROM LAST WINTER",
+                        sim: "91% match",
+                        title: "Digital Sabbath Experiment",
+                        desc: "In January you ran a 14-day phone-free morning streak and noted your highest creative output of the year."
+                    },
+                    {
+                        type: "type-action",
+                        badge: "HABIT INTENTION",
+                        sim: "Starts Monday",
+                        title: "45m Morning Sanctuary Block",
+                        desc: "Would you like Murmur to open a blank daily page automatically at 7:30 AM?"
+                    }
+                ]
+            }
+        };
+
+        const noteTimestamp = document.getElementById('noteTimestamp');
+        const noteTagsContainer = document.getElementById('noteTagsContainer');
+        const noteTitle = document.getElementById('noteTitle');
+        const noteEditor = document.getElementById('noteEditor');
+        const whisperList = document.getElementById('whisperList');
+        const whisperCount = document.getElementById('whisperCount');
+        const ambientStatusText = document.getElementById('ambientStatusText');
+
+        function renderWhispers(whispers) {
+            whisperList.innerHTML = '';
+            whisperCount.textContent = `${whispers.length} Connections`;
+            whispers.forEach((w, idx) => {
+                const card = document.createElement('div');
+                card.className = `whisper-card ${w.type}`;
+                card.style.animationDelay = `${idx * 0.08}s`;
+                card.innerHTML = `
+                    <div class="whisper-label">
+                        <span class="badge">${w.badge}</span>
+                        <span style="color: var(--text-muted);">${w.sim}</span>
+                    </div>
+                    <div class="whisper-title">${w.title}</div>
+                    <div class="whisper-desc">${w.desc}</div>
+                `;
+                whisperList.appendChild(card);
+            });
+        }
+
+        function loadScenario(key) {
+            const data = scenarios[key];
+            if (!data) return;
+
+            document.querySelectorAll('.scenario-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scenario === key);
+            });
+
+            noteTimestamp.textContent = data.timestamp;
+            noteTagsContainer.innerHTML = data.tags.map(t => `<span class="note-tag">${t}</span>`).join('');
+            noteTitle.textContent = data.title;
+            noteEditor.innerHTML = data.content;
+            renderWhispers(data.whispers);
+        }
+
+        document.querySelectorAll('.scenario-tab').forEach(tab => {
+            tab.addEventListener('click', () => loadScenario(tab.dataset.scenario));
+        });
+
+        // Initial load
+        loadScenario('product');
+
+        /* Live Typing Keyword Listener in Editor */
+        let typingTimer;
+        noteEditor.addEventListener('input', () => {
+            ambientStatusText.textContent = "Listening to context...";
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                ambientStatusText.textContent = "Ambient index synced (0.3ms)";
+                const text = noteEditor.innerText.toLowerCase();
+                if (text.includes('pricing') || text.includes('revenue') || text.includes('cost')) {
+                    const dynamicCard = {
+                        type: "type-recall",
+                        badge: "LIVE RECALL · JUST SURFACED",
+                        sim: "96% match",
+                        title: "Q2 Pricing Sensitivity Notes",
+                        desc: "Found a note from May: 'Believer lifetime tiers convert 3.4x better among indie researchers.'"
+                    };
+                    renderWhispers([dynamicCard, ...scenarios.product.whispers.slice(0, 2)]);
+                }
+            }, 450);
+        });
+
+        /* ----------------------------------------------------------------------
+           2. SIMULATED VOICE MURMUR & DISTILL BUTTONS
+           ---------------------------------------------------------------------- */
+        const voiceRecordBtn = document.getElementById('voiceRecordBtn');
+        const voiceBtnText = document.getElementById('voiceBtnText');
+        const heroTryVoiceBtn = document.getElementById('heroTryVoiceBtn');
+        const distillNoteBtn = document.getElementById('distillNoteBtn');
+
+        let isSimulatingVoice = false;
+
+        function triggerVoiceSimulation() {
+            if (isSimulatingVoice) return;
+            isSimulatingVoice = true;
+
+            document.getElementById('sandbox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            voiceRecordBtn.classList.add('recording');
+            voiceBtnText.textContent = "Listening (Whisper v3 Local)...";
+            ambientStatusText.textContent = "Transcribing acoustic stream...";
+
+            const spokenSentence = "\n\n[Voice Murmur · 0:08] Also, remind me to ask @Marcus if we can ship the offline local embeddings before the Tokyo flight on Thursday.";
+            let i = 0;
+
+            setTimeout(() => {
+                const interval = setInterval(() => {
+                    noteEditor.innerHTML += spokenSentence.charAt(i);
+                    i++;
+                    if (i >= spokenSentence.length) {
+                        clearInterval(interval);
+                        voiceRecordBtn.classList.remove('recording');
+                        voiceBtnText.textContent = "Dictate a thought";
+                        ambientStatusText.textContent = "Voice distilled & linked (0.5ms)";
+                        isSimulatingVoice = false;
+
+                        // Surface a fresh whisper from the dictated sentence
+                        const newWhisper = {
+                            type: "type-action",
+                            badge: "VOICE ENTITY EXTRACTED",
+                            sim: "Thursday Flight",
+                            title: "Ping @Marcus re: Local Embeddings",
+                            desc: "Auto-linked to your 'Tokyo Launch' thread and queued in your Thursday pre-flight checklist."
+                        };
+                        renderWhispers([newWhisper, ...scenarios.product.whispers.slice(0, 2)]);
+                    }
+                }, 22);
+            }, 400);
+        }
+
+        voiceRecordBtn.addEventListener('click', triggerVoiceSimulation);
+        heroTryVoiceBtn.addEventListener('click', triggerVoiceSimulation);
+
+        distillNoteBtn.addEventListener('click', () => {
+            ambientStatusText.textContent = "Synthesizing takeaways...";
+            const synthesisWhisper = {
+                type: "type-synthesis",
+                badge: "INSTANT DISTILLATION",
+                sim: "3 Takeaways",
+                title: "Core Thesis & Next Steps",
+                desc: "1. Remove workspace setup wizard.\n2. Drop users straight into blank editor.\n3. Delay folder taxonomy until 15+ notes."
+            };
+            renderWhispers([synthesisWhisper, ...scenarios.product.whispers.slice(0, 2)]);
+        });
+
+        /* ----------------------------------------------------------------------
+           3. INTERACTIVE NEURAL CONSTELLATION GRAPH (HTML5 CANVAS)
+           ---------------------------------------------------------------------- */
+        const canvas = document.getElementById('constellationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const graphNodes = [
+            { id: 0, label: "Calm Technology Principles", date: "NOV 12, 2024", snippet: "Technology should require the smallest possible amount of attention, communicating on the periphery unless urgent.", conns: ["Onboarding Friction", "Ambient Audio UI", "Mark Weiser 1995"], x: 0.5, y: 0.48, r: 8, color: "#E5A93C", active: true },
+            { id: 1, label: "Onboarding Friction", date: "OCT 24, 2024", snippet: "60% of people stalled on workspace setup. What if there is no setup at all?", conns: ["Calm Technology Principles", "Zero-Folder Taxonomy"], x: 0.28, y: 0.3, r: 6, color: "#9D8DF1", active: false },
+            { id: 2, label: "As We May Think (Memex)", date: "NOV 02, 2024", snippet: "The human mind operates by association, jumping from one item to another via an intricate web of trails.", conns: ["Zero-Folder Taxonomy", "Polyphonic Voice Leading"], x: 0.72, y: 0.28, r: 6.5, color: "#9D8DF1", active: false },
+            { id: 3, label: "Zero-Folder Taxonomy", date: "OCT 18, 2024", snippet: "Folders force premature categorization. Let clusters emerge via vector similarity.", conns: ["Onboarding Friction", "As We May Think (Memex)"], x: 0.48, y: 0.2, r: 5.5, color: "#52B788", active: false },
+            { id: 4, label: "Morning Pages Ritual", date: "NOV 11, 2024", snippet: "The first 45 minutes of the day belong strictly to longhand thoughts and espresso—no incoming feeds.", conns: ["Kyoto Rain Walk", "Calm Technology Principles"], x: 0.25, y: 0.68, r: 6, color: "#E5A93C", active: false },
+            { id: 5, label: "Polyphonic Voice Leading", date: "AUG 14, 2024", snippet: "How Bach weaves four independent melodies that remain distinct yet harmonically locked.", conns: ["As We May Think (Memex)", "Ambient Audio UI"], x: 0.76, y: 0.66, r: 5.5, color: "#9D8DF1", active: false },
+            { id: 6, label: "Ambient Audio UI", date: "SEP 29, 2024", snippet: "Using subtle acoustic cues and waveform cadence instead of modal alerts.", conns: ["Calm Technology Principles", "Polyphonic Voice Leading"], x: 0.55, y: 0.76, r: 6, color: "#52B788", active: false }
+        ];
+
+        const graphEdges = [
+            [0, 1], [0, 2], [0, 3], [0, 4], [0, 6],
+            [1, 3], [2, 3], [2, 5], [5, 6], [4, 6]
+        ];
+
+        let canvasWidth = 0, canvasHeight = 0;
+        let hoveredNode = null;
+        let timeTick = 0;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvasWidth = rect.width;
+            canvasHeight = rect.height;
+            canvas.width = canvasWidth * window.devicePixelRatio;
+            canvas.height = canvasHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawConstellation() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            timeTick += 0.012;
+
+            // Compute animated screen coordinates
+            const coords = graphNodes.map((n, idx) => {
+                const floatX = Math.sin(timeTick + idx * 1.4) * 9;
+                const floatY = Math.cos(timeTick * 0.8 + idx * 1.1) * 9;
+                return {
+                    ...n,
+                    sx: n.x * canvasWidth + floatX,
+                    sy: n.y * canvasHeight + floatY
+                };
+            });
+
+            // Draw edges
+            graphEdges.forEach(([a, b]) => {
+                const nA = coords[a];
+                const nB = coords[b];
+                const isHighlighted = nA.active || nB.active || (hoveredNode && (hoveredNode.id === a || hoveredNode.id === b));
+
+                ctx.beginPath();
+                ctx.moveTo(nA.sx, nA.sy);
+                ctx.lineTo(nB.sx, nB.sy);
+                ctx.strokeStyle = isHighlighted ? "rgba(229, 169, 60, 0.45)" : "rgba(244, 241, 234, 0.08)";
+                ctx.lineWidth = isHighlighted ? 1.5 : 1;
+                ctx.stroke();
+            });
+
+            // Draw nodes & labels
+            coords.forEach(n => {
+                const isSelected = n.active;
+                const isHover = hoveredNode && hoveredNode.id === n.id;
+
+                // Outer glow
+                if (isSelected || isHover) {
+                    ctx.beginPath();
+                    ctx.arc(n.sx, n.sy, n.r + 12, 0, Math.PI * 2);
+                    ctx.fillStyle = isSelected ? "rgba(229, 169, 60, 0.16)" : "rgba(157, 141, 241, 0.16)";
+                    ctx.fill();
+                }
+
+                // Core circle
+                ctx.beginPath();
+                ctx.arc(n.sx, n.sy, isSelected ? n.r + 2 : n.r, 0, Math.PI * 2);
+                ctx.fillStyle = isSelected ? "#E5A93C" : n.color;
+                ctx.fill();
+
+                // Label
+                ctx.font = `${isSelected ? '600' : '400'} 12px "Plus Jakarta Sans", sans-serif`;
+                ctx.fillStyle = isSelected || isHover ? "#F4F1EA" : "#A39E93";
+                ctx.fillText(n.label, n.sx + 14, n.sy + 4);
+            });
+
+            requestAnimationFrame(drawConstellation);
+        }
+        drawConstellation();
+
+        // Canvas click & hover interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            hoveredNode = null;
+            graphNodes.forEach((n, idx) => {
+                const sx = n.x * canvasWidth + Math.sin(timeTick + idx * 1.4) * 9;
+                const sy = n.y * canvasHeight + Math.cos(timeTick * 0.8 + idx * 1.1) * 9;
+                const dist = Math.hypot(mx - sx, my - sy);
+                if (dist < 28) hoveredNode = n;
+            });
+            canvas.style.cursor = hoveredNode ? 'pointer' : 'crosshair';
+        });
+
+        canvas.addEventListener('click', () => {
+            if (!hoveredNode) return;
+            graphNodes.forEach(n => n.active = (n.id === hoveredNode.id));
+
+            document.getElementById('inspDate').textContent = `SELECTED NODE · ${hoveredNode.date}`;
+            document.getElementById('inspTitle').textContent = hoveredNode.label;
+            document.getElementById('inspSnippet').textContent = `“${hoveredNode.snippet}”`;
+            document.getElementById('inspConnections').innerHTML = hoveredNode.conns
+                .map(c => `<span class="conn-pill">↔ ${c}</span>`).join('');
+        });
+
+        /* ----------------------------------------------------------------------
+           4. PRICING BILLING TOGGLE
+           ---------------------------------------------------------------------- */
+        const billAnnual = document.getElementById('billAnnual');
+        const billMonthly = document.getElementById('billMonthly');
+        const proPrice = document.getElementById('proPrice');
+        const proPeriod = document.getElementById('proPeriod');
+
+        billAnnual.addEventListener('click', () => {
+            billAnnual.classList.add('active');
+            billMonthly.classList.remove('active');
+            proPrice.textContent = "$10";
+            proPeriod.textContent = "/ month, billed yearly";
+        });
+
+        billMonthly.addEventListener('click', () => {
+            billMonthly.classList.add('active');
+            billAnnual.classList.remove('active');
+            proPrice.textContent = "$13";
+            proPeriod.textContent = "/ month, billed monthly";
+        });
+
+        /* ----------------------------------------------------------------------
+           5. COMMAND PALETTE MODAL (⌘K / CTRL+K)
+           ---------------------------------------------------------------------- */
+        const cmdBackdrop = document.getElementById('cmdBackdrop');
+        const openCmdBtn = document.getElementById('openCmdBtn');
+        const footerCmdBtn = document.getElementById('footerCmdBtn');
+        const closeCmdBtn = document.getElementById('closeCmdBtn');
+        const cmdSearchInput = document.getElementById('cmdSearchInput');
+
+        function toggleCmdModal(show) {
+            cmdBackdrop.classList.toggle('open', show);
+            if (show) {
+                setTimeout(() => cmdSearchInput.focus(), 50);
+            }
+        }
+
+        openCmdBtn.addEventListener('click', () => toggleCmdModal(true));
+        footerCmdBtn.addEventListener('click', () => toggleCmdModal(true));
+        closeCmdBtn.addEventListener('click', () => toggleCmdModal(false));
+
+        cmdBackdrop.addEventListener('click', (e) => {
+            if (e.target === cmdBackdrop) toggleCmdModal(false);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                toggleCmdModal(!cmdBackdrop.classList.contains('open'));
+            }
+            if (e.key === 'Escape' && cmdBackdrop.classList.contains('open')) {
+                toggleCmdModal(false);
+            }
+        });
+
+        document.querySelectorAll('.cmd-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                toggleCmdModal(false);
+                if (action.startsWith('scenario-')) {
+                    const key = action.replace('scenario-', '');
+                    loadScenario(key);
+                    document.getElementById('sandbox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else if (action === 'voice-simulate') {
+                    triggerVoiceSimulation();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

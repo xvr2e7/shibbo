@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account Settings · Tasklane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --border:#e4e7ec;
+    --border-strong:#d0d5dd;
+    --text:#101828;
+    --text-2:#475467;
+    --text-3:#667085;
+    --brand:#5b5bd6;
+    --brand-600:#4f4fc4;
+    --brand-50:#efeffd;
+    --danger:#d92d20;
+    --danger-50:#fef3f2;
+    --success:#079455;
+    --success-50:#ecfdf3;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(16,24,40,.05);
+    --shadow-lg:0 12px 24px -6px rgba(16,24,40,.12),0 4px 8px -4px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  /* App sidebar */
+  .sidebar{background:#111322;color:#c8cad6;display:flex;flex-direction:column;padding:16px 12px;position:sticky;top:0;height:100vh}
+  .logo{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;color:#fff;font-weight:700;font-size:16px}
+  .logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7a7af0,#5b5bd6);display:grid;place-items:center}
+  .workspace{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,.05);margin-bottom:16px;cursor:pointer}
+  .workspace .ws-av{width:26px;height:26px;border-radius:6px;background:#f79009;color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center}
+  .workspace .ws-name{font-weight:600;color:#fff;font-size:13px}
+  .workspace .ws-plan{font-size:11px;color:#8b8fa3}
+  .nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b6f85;padding:12px 10px 6px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;color:#c8cad6;font-weight:500;margin-bottom:2px}
+  .nav a:hover{background:rgba(255,255,255,.06);text-decoration:none;color:#fff}
+  .nav a.active{background:rgba(122,122,240,.18);color:#fff}
+  .nav svg{width:18px;height:18px;flex-shrink:0;opacity:.85}
+  .nav .count{margin-left:auto;font-size:11px;background:rgba(255,255,255,.1);padding:1px 7px;border-radius:999px}
+  .proj-dot{width:8px;height:8px;border-radius:3px;margin:0 5px}
+  .sidebar-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)}
+  .sidebar-foot .av{width:32px;height:32px}
+  .sidebar-foot .n{color:#fff;font-weight:600;font-size:13px}
+  .sidebar-foot .e{font-size:12px;color:#8b8fa3}
+
+  /* Main */
+  main{min-width:0}
+  .topbar{height:60px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;gap:16px;position:sticky;top:0;z-index:10}
+  .crumbs{color:var(--text-3);display:flex;gap:8px;align-items:center}
+  .crumbs b{color:var(--text);font-weight:600}
+  .search{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;width:260px;color:var(--text-3);background:var(--bg)}
+  .search input{border:0;outline:0;background:transparent;flex:1}
+  .kbd{font-size:11px;border:1px solid var(--border-strong);border-radius:4px;padding:0 5px;background:#fff}
+  .icon-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--text-2);position:relative}
+  .icon-btn:hover{background:var(--bg)}
+  .icon-btn .pip{position:absolute;top:7px;right:8px;width:7px;height:7px;background:var(--danger);border-radius:50%;border:2px solid #fff}
+
+  .page{max-width:1080px;margin:0 auto;padding:32px 32px 120px}
+  .page-head h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+  .page-head p{color:var(--text-3);margin-top:4px}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:24px 0 28px;overflow-x:auto}
+  .tab{padding:10px 14px;border:0;background:none;color:var(--text-3);font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .section{display:grid;grid-template-columns:280px 1fr;gap:32px;padding:24px 0;border-bottom:1px solid var(--border)}
+  .section:first-child{padding-top:0}
+  .section:last-child{border-bottom:0}
+  .section-info h2{font-size:15px;font-weight:600}
+  .section-info p{color:var(--text-3);margin-top:4px;font-size:13px}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-body{padding:20px 24px}
+  .card-foot{padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:#fcfcfd;border-radius:0 0 var(--radius) var(--radius)}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .field:last-child{margin-bottom:0}
+  .grid-2 .field{margin-bottom:0}
+  .grid-2 + .field,.field + .grid-2{margin-top:16px}
+  label,.label{font-weight:500;font-size:13px;color:var(--text-2)}
+  .hint{font-size:12px;color:var(--text-3)}
+  .input,select.input,textarea.input{width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+  .input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-50)}
+  textarea.input{resize:vertical;min-height:88px}
+  .input-group{display:flex}
+  .input-group .prefix{padding:9px 12px;border:1px solid var(--border-strong);border-right:0;border-radius:8px 0 0 8px;background:var(--bg);color:var(--text-3);white-space:nowrap}
+  .input-group .input{border-radius:0 8px 8px 0}
+  .input-icon{position:relative}
+  .input-icon svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+  .input-icon .input{padding-left:36px}
+  select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23667085' stroke-width='1.8'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:36px}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--border-strong);background:#fff;color:var(--text-2);box-shadow:var(--shadow);transition:background .15s,border-color .15s}
+  .btn:hover{background:var(--bg)}
+  .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn-primary:hover{background:var(--brand-600)}
+  .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  .btn-danger:hover{background:#b42318}
+  .btn-ghost-danger{color:var(--danger);border-color:#fecdca}
+  .btn-ghost-danger:hover{background:var(--danger-50)}
+  .btn-sm{padding:6px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .av{border-radius:50%;background:linear-gradient(135deg,#a5a6f6,#5b5bd6);color:#fff;font-weight:600;display:grid;place-items:center;flex-shrink:0}
+  .avatar-row{display:flex;align-items:center;gap:20px}
+  .avatar-row .av{width:72px;height:72px;font-size:24px;box-shadow:0 0 0 4px #fff,0 0 0 5px var(--border)}
+  .avatar-row .actions{display:flex;gap:8px;margin-bottom:6px}
+
+  .toggle-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border)}
+  .toggle-row:first-child{padding-top:0}
+  .toggle-row:last-child{border-bottom:0;padding-bottom:0}
+  .toggle-row .t{font-weight:500}
+  .toggle-row .d{font-size:13px;color:var(--text-3)}
+  .switch{position:relative;width:38px;height:22px;flex-shrink:0;margin-top:2px}
+  .switch input{opacity:0;width:0;height:0;position:absolute}
+  .switch span{position:absolute;inset:0;background:#e4e7ec;border-radius:999px;cursor:pointer;transition:background .2s}
+  .switch span::after{content:"";position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,24,40,.2);transition:transform .2s}
+  .switch input:checked + span{background:var(--brand)}
+  .switch input:checked + span::after{transform:translateX(16px)}
+  .switch input:focus-visible + span{box-shadow:0 0 0 4px var(--brand-50)}
+
+  .notif-table{width:100%;border-collapse:collapse}
+  .notif-table th{text-align:center;font-size:12px;font-weight:600;color:var(--text-3);padding:0 8px 12px;width:80px}
+  .notif-table th:first-child{text-align:left;width:auto}
+  .notif-table td{padding:12px 8px;border-top:1px solid var(--border);text-align:center}
+  .notif-table td:first-child{text-align:left}
+  .notif-table td .t{font-weight:500}
+  .notif-table td .d{font-size:12px;color:var(--text-3)}
+  .check{width:18px;height:18px;accent-color:var(--brand);cursor:pointer}
+
+  .radio-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .radio-card{border:1px solid var(--border-strong);border-radius:10px;padding:10px;cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s}
+  .radio-card input{position:absolute;opacity:0}
+  .radio-card:has(input:checked){border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-50)}
+  .radio-card .preview{height:64px;border-radius:6px;margin-bottom:8px;display:flex;gap:4px;padding:6px;overflow:hidden}
+  .radio-card .preview i{display:block;border-radius:3px}
+  .radio-card .name{font-weight:500;font-size:13px}
+  .pv-light{background:#f2f4f7}.pv-light i{background:#fff;border:1px solid #e4e7ec}
+  .pv-dark{background:#1d2033}.pv-dark i{background:#2b2f47}
+  .pv-system{background:linear-gradient(90deg,#f2f4f7 50%,#1d2033 50%)}.pv-system i{background:rgba(127,127,160,.35)}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px}
+  .badge-success{background:var(--success-50);color:var(--success)}
+  .badge-gray{background:#f2f4f7;color:var(--text-2)}
+  .badge-brand{background:var(--brand-50);color:var(--brand)}
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  .list-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+  .list-item:first-child{padding-top:0}
+  .list-item:last-child{border-bottom:0;padding-bottom:0}
+  .list-item .ico{width:40px;height:40px;border-radius:8px;border:1px solid var(--border);display:grid;place-items:center;flex-shrink:0;background:#fff}
+  .list-item .meta{flex:1;min-width:0}
+  .list-item .meta .t{font-weight:500;display:flex;align-items:center;gap:8px}
+  .list-item .meta .d{font-size:13px;color:var(--text-3)}
+
+  .danger-card{border-color:#fecdca}
+  .danger-card .card-body{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .danger-card + .danger-card{margin-top:12px}
+
+  .plan{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .plan h3{font-size:18px;font-weight:700}
+  .plan .price{font-size:28px;font-weight:700;letter-spacing:-.02em}
+  .plan .price small{font-size:14px;font-weight:500;color:var(--text-3)}
+  .usage{margin-top:20px;display:grid;gap:14px}
+  .usage .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .bar{height:8px;border-radius:999px;background:#f2f4f7;overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--brand);border-radius:999px}
+
+  .invoice-table{width:100%;border-collapse:collapse}
+  .invoice-table th{text-align:left;font-size:12px;font-weight:600;color:var(--text-3);padding:10px 24px;background:#fcfcfd;border-bottom:1px solid var(--border)}
+  .invoice-table td{padding:12px 24px;border-bottom:1px solid var(--border)}
+  .invoice-table tr:last-child td{border-bottom:0}
+
+  /* Save bar */
+  .savebar{position:fixed;left:calc(240px + 50%);transform:translate(-50%,120%);bottom:24px;background:#111322;color:#fff;border-radius:12px;padding:10px 10px 10px 18px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow-lg);transition:transform .25s cubic-bezier(.2,.8,.2,1);z-index:30}
+  .savebar.show{transform:translate(calc(-50% - 120px),0)}
+  .savebar .btn{box-shadow:none}
+  .savebar .btn-plain{background:transparent;border-color:rgba(255,255,255,.2);color:#fff}
+  .savebar .btn-plain:hover{background:rgba(255,255,255,.08)}
+
+  .toast{position:fixed;top:76px;right:24px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);transform:translateX(130%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:40;font-weight:500}
+  .toast.show{transform:none}
+  .toast .ok{width:24px;height:24px;border-radius:50%;background:var(--success-50);color:var(--success);display:grid;place-items:center}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.5);backdrop-filter:blur(2px);display:none;place-items:center;z-index:50}
+  .modal-bg.show{display:grid;animation:fade .15s}
+  .modal{background:#fff;border-radius:14px;width:440px;max-width:calc(100vw - 32px);box-shadow:var(--shadow-lg);padding:24px}
+  .modal .warn{width:44px;height:44px;border-radius:50%;background:var(--danger-50);color:var(--danger);display:grid;place-items:center;border:6px solid #fffbfa;box-sizing:content-box;margin-bottom:14px}
+  .modal h3{font-size:17px;font-weight:600}
+  .modal p{color:var(--text-3);margin:6px 0 16px}
+  .modal .acts{display:flex;gap:10px;margin-top:20px}
+  .modal .acts .btn{flex:1;justify-content:center}
+
+  @media (max-width:960px){
+    .app{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .section{grid-template-columns:1fr;gap:14px}
+    .savebar{left:50%}
+    .savebar.show{transform:translate(-50%,0)}
+    .search{display:none}
+  }
+  @media (max-width:600px){
+    .grid-2,.radio-cards{grid-template-columns:1fr}
+    .page{padding:24px 16px 120px}
+    .topbar{padding:0 16px}
+    .danger-card .card-body{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg></div>
+      Tasklane
+    </div>
+    <div class="workspace">
+      <div class="ws-av">A</div>
+      <div><div class="ws-name">Acme Studio</div><div class="ws-plan">Team plan · 14 members</div></div>
+    </div>
+    <nav class="nav">
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>My tasks<span class="count">12</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Inbox<span class="count">3</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboards</a>
+      <div class="nav-label">Projects</div>
+      <a href="#"><span class="proj-dot" style="background:#7a7af0"></span>Website redesign</a>
+      <a href="#"><span class="proj-dot" style="background:#12b76a"></span>Mobile app v3</a>
+      <a href="#"><span class="proj-dot" style="background:#f79009"></span>Q1 Marketing</a>
+      <a href="#"><span class="proj-dot" style="background:#ee46bc"></span>Brand refresh</a>
+      <div class="nav-label">Workspace</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Members</a>
+      <a href="#" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="av" data-initials>JR</div>
+      <div style="min-width:0"><div class="n" data-name>Jordan Rivera</div><div class="e">jordan@acme.co</div></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main>
+    <header class="topbar">
+      <div class="crumbs">Settings <span>/</span> <b id="crumb">Profile</b></div>
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="Search settings…" aria-label="Search">
+        <span class="kbd">⌘K</span>
+      </label>
+      <button class="icon-btn" aria-label="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="pip"></span></button>
+    </header>
+
+    <div class="page">
+      <div class="page-head">
+        <h1>Account settings</h1>
+        <p>Manage your personal profile, preferences, and security.</p>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="profile">Profile</button>
+        <button class="tab" data-tab="preferences">Preferences</button>
+        <button class="tab" data-tab="notifications">Notifications</button>
+        <button class="tab" data-tab="security">Security</button>
+        <button class="tab" data-tab="integrations">Integrations</button>
+        <button class="tab" data-tab="billing">Billing</button>
+      </div>
+
+      <form id="settings" onsubmit="return false">
+
+      <!-- PROFILE -->
+      <section class="panel active" id="profile">
+        <div class="section">
+          <div class="section-info"><h2>Personal info</h2><p>This is how teammates see you across projects, comments, and assignments.</p></div>
+          <div class="card">
+            <div class="card-body">
+              <div class="avatar-row" style="margin-bottom:24px">
+                <div class="av" data-initials id="avatarBig">JR</div>
+                <div>
+                  <div class="actions">
+                    <button type="button" class="btn btn-sm">Upload new</button>
+                    <button type="button" class="btn btn-sm btn-ghost-danger">Remove</button>
+                  </div>
+                  <div class="hint">PNG, JPG or GIF. Square, at least 256×256px.</div>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="first">First name</label><input class="input" id="first" value="Jordan"></div>
+                <div class="field"><label for="last">Last name</label><input class="input" id="last" value="Rivera"></div>
+              </div>
+              <div class="field">
+                <label for="email">Email address</label>
+                <div class="input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+                  <input class="input" id="email" type="email" value="jordan@acme.co">
+                </div>
+                <span class="hint"><span class="badge badge-success"><span class="dot"></span>Verified</span>&nbsp; Changing your email will require re-verification.</span>
+              </div>
+              <div class="field">
+                <label for="username">Username</label>
+                <div class="input-group"><span class="prefix">tasklane.app/@</span><input class="input" id="username" value="jordanr"></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="title">Job title</label><input class="input" id="title" value="Product Designer"></div>
+                <div class="field"><label for="dept">Team</label>
+                  <select class="input" id="dept"><option>Design</option><option>Engineering</option><option>Marketing</option><option>Operations</option><option>Product</option></select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="bio">Bio</label>
+                <textarea class="input" id="bio" maxlength="240">Designing calm, focused tools for busy teams. Ask me about design systems.</textarea>
+                <span class="hint"><span id="bioCount">0</span>/240 characters</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-info"><h2>Status</h2><p>Let your team know whether you're available.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="status">Current status</label>
+                <select class="input" id="status"><option>🟢 Available</option><option>🔴 Busy — focus time</option><option>🌴 Out of office</option><option>🤒 Out sick</option></select>
+              </div>
+              <div class="field"><label for="clear">Clear after</label>
+                <select class="input" id="clear"><option>Don't clear</option><option>30 minutes</option><option>1 hour</option><option>Today</option><option>This week</option></select>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- PREFERENCES -->
+      <section class="panel" id="preferences">
+        <div class="section">
+          <div class="section-info"><h2>Appearance</h2><p>Customize how Tasklane looks on this device.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="label" style="margin-bottom:10px">Theme</div>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="theme" value="light" checked><div class="preview pv-light"><i style="width:22%"></i><i style="flex:1"></i></div><div class="name">Light</div></label>
+              <label class="radio-card"><input type="radio" name="theme" value="dark"><div class="preview pv-dark"><i style="width:22%"></i><i style="flex:1"></i></div><div class="name">Dark</div></label>
+              <label class="radio-card"><input type="radio" name="theme" value="system"><div class="preview pv-system"><i style="width:22%"></i><i style="flex:1"></i></div><div class="name">System</div></label>
+            </div>
+            <div style="margin-top:20px">
+              <div class="toggle-row"><div><div class="t">Compact mode</div><div class="d">Show more tasks on screen with tighter spacing.</div></div><label class="switch"><input type="checkbox"><span></span></label></div>
+              <div class="toggle-row"><div><div class="t">Show task IDs</div><div class="d">Display identifiers like WEB-142 next to task titles.</div></div><label class="switch"><input type="checkbox" checked><span></span></label></div>
+            </div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Region & time</h2><p>Used for due dates, reminders, and reports.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="lang">Language</label><select class="input" id="lang"><option>English (US)</option><option>English (UK)</option><option>Español</option><option>Français</option><option>Deutsch</option><option>日本語</option></select></div>
+              <div class="field"><label for="tz">Time zone</label><select class="input" id="tz"><option>(UTC−08:00) Pacific Time</option><option selected>(UTC−05:00) Eastern Time</option><option>(UTC+00:00) London</option><option>(UTC+01:00) Berlin</option><option>(UTC+09:00) Tokyo</option></select></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label for="datefmt">Date format</label><select class="input" id="datefmt"><option>Nov 10, 2026</option><option>10/11/2026</option><option>11/10/2026</option><option>2026-11-10</option></select></div>
+              <div class="field"><label for="week">Week starts on</label><select class="input" id="week"><option>Monday</option><option>Sunday</option><option>Saturday</option></select></div>
+            </div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Defaults</h2><p>What you see when opening Tasklane and creating tasks.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="home">Default home view</label><select class="input" id="home"><option>My tasks</option><option>Inbox</option><option>Dashboards</option><option>Last visited project</option></select></div>
+              <div class="field"><label for="pview">Default project layout</label><select class="input" id="pview"><option>Board</option><option>List</option><option>Timeline</option><option>Calendar</option></select></div>
+            </div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="panel" id="notifications">
+        <div class="section">
+          <div class="section-info"><h2>Activity</h2><p>Choose where you're notified about work that involves you.</p></div>
+          <div class="card"><div class="card-body">
+            <table class="notif-table">
+              <thead><tr><th>Event</th><th>In‑app</th><th>Email</th><th>Push</th></tr></thead>
+              <tbody>
+                <tr><td><div class="t">Assigned to me</div><div class="d">When a task is assigned to you</div></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td></tr>
+                <tr><td><div class="t">Mentions</div><div class="d">When someone @mentions you</div></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td></tr>
+                <tr><td><div class="t">Comments</div><div class="d">Replies on tasks you follow</div></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox"></td><td><input class="check" type="checkbox"></td></tr>
+                <tr><td><div class="t">Status changes</div><div class="d">Tasks you created move columns</div></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox"></td><td><input class="check" type="checkbox"></td></tr>
+                <tr><td><div class="t">Due date reminders</div><div class="d">24 hours before a task is due</div></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td><td><input class="check" type="checkbox" checked></td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Digests</h2><p>Summaries delivered to your inbox.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="toggle-row"><div><div class="t">Daily summary</div><div class="d">Your tasks due today, every morning at 8:00 AM.</div></div><label class="switch"><input type="checkbox" checked><span></span></label></div>
+            <div class="toggle-row"><div><div class="t">Weekly project report</div><div class="d">Progress across projects you're a member of, every Monday.</div></div><label class="switch"><input type="checkbox"><span></span></label></div>
+            <div class="toggle-row"><div><div class="t">Product updates</div><div class="d">New features and improvements to Tasklane.</div></div><label class="switch"><input type="checkbox" checked><span></span></label></div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Quiet hours</h2><p>Pause push notifications outside working hours.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="toggle-row"><div><div class="t">Enable quiet hours</div><div class="d">Notifications are held and delivered when quiet hours end.</div></div><label class="switch"><input type="checkbox" id="quiet" checked><span></span></label></div>
+            <div class="grid-2" id="quietTimes" style="margin-top:16px">
+              <div class="field"><label for="qfrom">From</label><input class="input" type="time" id="qfrom" value="19:00"></div>
+              <div class="field"><label for="qto">To</label><input class="input" type="time" id="qto" value="08:00"></div>
+            </div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- SECURITY -->
+      <section class="panel" id="security">
+        <div class="section">
+          <div class="section-info"><h2>Password</h2><p>Use at least 12 characters, with a mix of letters, numbers, and symbols.</p></div>
+          <div class="card">
+            <div class="card-body">
+              <div class="field"><label for="cur">Current password</label><input class="input" type="password" id="cur" autocomplete="current-password" placeholder="••••••••••"></div>
+              <div class="grid-2">
+                <div class="field"><label for="np">New password</label><input class="input" type="password" id="np" autocomplete="new-password"></div>
+                <div class="field"><label for="cp">Confirm new password</label><input class="input" type="password" id="cp" autocomplete="new-password"></div>
+              </div>
+              <div style="margin-top:12px"><div class="bar"><i id="pwBar" style="width:0;transition:width .2s,background .2s"></i></div><div class="hint" id="pwHint" style="margin-top:6px">Last changed 4 months ago</div></div>
+            </div>
+            <div class="card-foot"><button type="button" class="btn btn-primary" id="pwBtn" disabled>Update password</button></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Two‑factor authentication</h2><p>Add an extra layer of security to your account.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="list-item">
+              <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+              <div class="meta"><div class="t">Authenticator app <span class="badge badge-success"><span class="dot"></span>Enabled</span></div><div class="d">Configured on Mar 2, 2026</div></div>
+              <button type="button" class="btn btn-sm">Manage</button>
+            </div>
+            <div class="list-item">
+              <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3M14 9l2 2"/></svg></div>
+              <div class="meta"><div class="t">Security keys <span class="badge badge-gray">Not set up</span></div><div class="d">Use a hardware key or passkey to sign in.</div></div>
+              <button type="button" class="btn btn-sm">Add key</button>
+            </div>
+            <div class="list-item">
+              <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
+              <div class="meta"><div class="t">Recovery codes</div><div class="d">8 of 10 codes remaining.</div></div>
+              <button type="button" class="btn btn-sm">View codes</button>
+            </div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Active sessions</h2><p>Devices currently signed in to your account.</p></div>
+          <div class="card">
+            <div class="card-body" id="sessions">
+              <div class="list-item">
+                <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+                <div class="meta"><div class="t">Chrome on macOS <span class="badge badge-brand">This device</span></div><div class="d">New York, US · Active now</div></div>
+              </div>
+              <div class="list-item">
+                <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+                <div class="meta"><div class="t">Tasklane for iOS</div><div class="d">New York, US · 2 hours ago</div></div>
+                <button type="button" class="btn btn-sm revoke">Revoke</button>
+              </div>
+              <div class="list-item">
+                <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+                <div class="meta"><div class="t">Firefox on Windows</div><div class="d">Boston, US · 6 days ago</div></div>
+                <button type="button" class="btn btn-sm revoke">Revoke</button>
+              </div>
+            </div>
+            <div class="card-foot"><button type="button" class="btn btn-ghost-danger" id="revokeAll">Sign out of all other sessions</button></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Danger zone</h2><p>Irreversible actions for your account.</p></div>
+          <div>
+            <div class="card danger-card"><div class="card-body">
+              <div><div style="font-weight:600">Leave Acme Studio</div><div class="hint">You'll lose access to all projects in this workspace.</div></div>
+              <button type="button" class="btn btn-ghost-danger" data-modal="leave">Leave workspace</button>
+            </div></div>
+            <div class="card danger-card"><div class="card-body">
+              <div><div style="font-weight:600">Delete account</div><div class="hint">Permanently remove your account and all personal data.</div></div>
+              <button type="button" class="btn btn-danger" data-modal="delete">Delete account</button>
+            </div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTEGRATIONS -->
+      <section class="panel" id="integrations">
+        <div class="section">
+          <div class="section-info"><h2>Connected apps</h2><p>Bring updates from your tools into Tasklane.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="list-item">
+              <div class="ico" style="background:#4a154b;border-color:#4a154b;color:#fff;font-weight:700">S</div>
+              <div class="meta"><div class="t">Slack <span class="badge badge-success"><span class="dot"></span>Connected</span></div><div class="d">Post task updates to #design-team</div></div>
+              <label class="switch"><input type="checkbox" checked><span></span></label>
+            </div>
+            <div class="list-item">
+              <div class="ico" style="background:#24292f;border-color:#24292f;color:#fff;font-weight:700">G</div>
+              <div class="meta"><div class="t">GitHub <span class="badge badge-success"><span class="dot"></span>Connected</span></div><div class="d">Link pull requests to tasks automatically</div></div>
+              <label class="switch"><input type="checkbox" checked><span></span></label>
+            </div>
+            <div class="list-item">
+              <div class="ico" style="background:#1a73e8;border-color:#1a73e8;color:#fff;font-weight:700">C</div>
+              <div class="meta"><div class="t">Google Calendar</div><div class="d">Sync due dates to your calendar</div></div>
+              <button type="button" class="btn btn-sm connect">Connect</button>
+            </div>
+            <div class="list-item">
+              <div class="ico" style="background:#0d0d0d;border-color:#0d0d0d;color:#fff;font-weight:700">F</div>
+              <div class="meta"><div class="t">Figma</div><div class="d">Embed live design files in tasks</div></div>
+              <button type="button" class="btn btn-sm connect">Connect</button>
+            </div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>API tokens</h2><p>Personal tokens for scripts and the Tasklane API.</p></div>
+          <div class="card">
+            <div class="card-body">
+              <div class="list-item">
+                <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="1.8"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+                <div class="meta"><div class="t">Reporting script</div><div class="d"><code>tl_live_••••••••3f9a</code> · Last used 3 days ago</div></div>
+                <button type="button" class="btn btn-sm btn-ghost-danger revoke">Revoke</button>
+              </div>
+            </div>
+            <div class="card-foot"><button type="button" class="btn">+ Generate new token</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BILLING -->
+      <section class="panel" id="billing">
+        <div class="section">
+          <div class="section-info"><h2>Current plan</h2><p>Billed to the Acme Studio workspace. You're a billing admin.</p></div>
+          <div class="card">
+            <div class="card-body">
+              <div class="plan">
+                <div><span class="badge badge-brand">Team</span><h3 style="margin-top:8px">Team plan</h3><div class="hint">Renews on Dec 1, 2026</div></div>
+                <div class="price">$12<small> / seat / month</small></div>
+              </div>
+              <div class="usage">
+                <div><div class="row"><span>Seats</span><span>14 of 20</span></div><div class="bar"><i style="width:70%"></i></div></div>
+                <div><div class="row"><span>File storage</span><span>38.2 GB of 100 GB</span></div><div class="bar"><i style="width:38%"></i></div></div>
+                <div><div class="row"><span>Automations this month</span><span>4,620 of 5,000</span></div><div class="bar"><i style="width:92%;background:#f79009"></i></div></div>
+              </div>
+            </div>
+            <div class="card-foot"><button type="button" class="btn">Cancel plan</button><button type="button" class="btn btn-primary">Upgrade to Business</button></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Payment method</h2><p>Charged automatically at each renewal.</p></div>
+          <div class="card"><div class="card-body">
+            <div class="list-item">
+              <div class="ico" style="width:52px;height:36px;font-weight:800;font-size:12px;color:#1a1f71;font-style:italic">VISA</div>
+              <div class="meta"><div class="t">Visa ending in 4242</div><div class="d">Expires 08/2028</div></div>
+              <button type="button" class="btn btn-sm">Edit</button>
+            </div>
+          </div></div>
+        </div>
+        <div class="section">
+          <div class="section-info"><h2>Invoices</h2><p>Download receipts for your records.</p></div>
+          <div class="card" style="overflow:hidden">
+            <table class="invoice-table">
+              <thead><tr><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Nov 1, 2026</td><td>$168.00</td><td><span class="badge badge-success"><span class="dot"></span>Paid</span></td><td style="text-align:right"><a href="#">Download</a></td></tr>
+                <tr><td>Oct 1, 2026</td><td>$168.00</td><td><span class="badge badge-success"><span class="dot"></span>Paid</span></td><td style="text-align:right"><a href="#">Download</a></td></tr>
+                <tr><td>Sep 1, 2026</td><td>$144.00</td><td><span class="badge badge-success"><span class="dot"></span>Paid</span></td><td style="text-align:right"><a href="#">Download</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      </form>
+    </div>
+  </main>
+</div>
+
+<!-- Save bar -->
+<div class="savebar" id="savebar" role="status">
+  <span>You have unsaved changes</span>
+  <button type="button" class="btn btn-plain" id="discard">Discard</button>
+  <button type="button" class="btn btn-primary" id="save">Save changes</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span id="toastMsg">Settings saved</span></div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="warn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg></div>
+    <h3 id="mTitle">Delete account?</h3>
+    <p id="mText">This permanently deletes your account, tasks you own, and comments. This cannot be undone.</p>
+    <div class="field"><label for="confirmInput">Type <b id="mWord">DELETE</b> to confirm</label><input class="input" id="confirmInput" autocomplete="off"></div>
+    <div class="acts"><button type="button" class="btn" id="mCancel">Cancel</button><button type="button" class="btn btn-danger" id="mConfirm" disabled>Delete account</button></div>
+  </div>
+</div>
+
+<script>
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+
+  // Tabs
+  $$('.tab').forEach(t => t.addEventListener('click', () => {
+    $$('.tab').forEach(x => x.classList.toggle('active', x === t));
+    $$('.panel').forEach(p => p.classList.toggle('active', p.id === t.dataset.tab));
+    $('#crumb').textContent = t.textContent;
+    history.replaceState(null, '', '#' + t.dataset.tab);
+  }));
+  const initial = location.hash.slice(1);
+  if (initial) $(`.tab[data-tab="${initial}"]`)?.click();
+
+  // Dirty tracking (excludes password fields, which have their own action)
+  const form = $('#settings');
+  const tracked = () => [...form.querySelectorAll('input,select,textarea')].filter(el => !['cur','np','cp','confirmInput'].includes(el.id));
+  const val = el => (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+  let snapshot = new Map(tracked().map(el => [el, val(el)]));
+  const isDirty = () => tracked().some(el => snapshot.get(el) !== val(el));
+  const updateBar = () => $('#savebar').classList.toggle('show', isDirty());
+  form.addEventListener('input', updateBar);
+  form.addEventListener('change', updateBar);
+
+  $('#discard').addEventListener('click', () => {
+    snapshot.forEach((v, el) => { (el.type === 'checkbox' || el.type === 'radio') ? el.checked = v : el.value = v; });
+    syncDerived(); updateBar();
+  });
+  $('#save').addEventListener('click', () => {
+    const b = $('#save'); b.disabled = true; b.textContent = 'Saving…';
+    setTimeout(() => {
+      snapshot = new Map(tracked().map(el => [el, val(el)]));
+      b.disabled = false; b.textContent = 'Save changes';
+      updateBar(); toast('Settings saved');
+    }, 700);
+  });
+
+  // Derived UI
+  function syncDerived() {
+    const f = $('#first').value.trim(), l = $('#last').value.trim();
+    const initials = ((f[0] || '') + (l[0] || '')).toUpperCase() || '?';
+    $$('[data-initials]').forEach(e => e.textContent = initials);
+    $$('[data-name]').forEach(e => e.textContent = `${f} ${l}`.trim() || 'Unnamed');
+    $('#bioCount').textContent = $('#bio').value.length;
+    $('#quietTimes').style.opacity = $('#quiet').checked ? 1 : .45;
+    $$('#quietTimes input').forEach(i => i.disabled = !$('#quiet').checked);
+  }
+  ['first','last','bio','quiet'].forEach(id => $('#' + id).addEventListener('input', syncDerived));
+  $('#quiet').addEventListener('change', syncDerived);
+  syncDerived();
+
+  // Password strength
+  function checkPw() {
+    const p = $('#np').value, c = $('#cp').value;
+    let s = 0;
+    if (p.length >= 8) s++; if (p.length >= 12) s++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+    if (/\d/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++;
+    const labels = ['Too short','Weak','Fair','Good','Strong','Very strong'];
+    const colors = ['#d92d20','#d92d20','#f79009','#eaaa08','#12b76a','#079455'];
+    $('#pwBar').style.width = p ? (s / 5 * 100) + '%' : 0;
+    $('#pwBar').style.background = colors[s];
+    let hint = p ? `Strength: ${labels[s]}` : 'Last changed 4 months ago';
+    if (c && p !== c) hint += ' · Passwords do not match';
+    $('#pwHint').textContent = hint;
+    $('#pwBtn').disabled = !($('#cur').value && s >= 3 && p === c);
+  }
+  ['cur','np','cp'].forEach(id => $('#' + id).addEventListener('input', checkPw));
+  $('#pwBtn').addEventListener('click', () => {
+    ['cur','np','cp'].forEach(id => $('#' + id).value = '');
+    checkPw(); $('#pwHint').textContent = 'Last changed just now'; toast('Password updated');
+  });
+
+  // Sessions / tokens
+  document.addEventListener('click', e => {
+    const r = e.target.closest('.revoke');
+    if (r) { const item = r.closest('.list-item'); item.style.transition = 'opacity .2s'; item.style.opacity = 0; setTimeout(() => item.remove(), 200); toast('Access revoked'); }
+    const c = e.target.closest('.connect');
+    if (c) {
+      const meta = c.closest('.list-item').querySelector('.meta .t');
+      meta.insertAdjacentHTML('beforeend', ' <span class="badge badge-success"><span class="dot"></span>Connected</span>');
+      c.outerHTML = '<label class="switch"><input type="checkbox" checked><span></span></label>';
+      toast(meta.firstChild.textContent.trim() + ' connected');
+      snapshot = new Map(tracked().map(el => [el, snapshot.has(el) ? snapshot.get(el) : val(el)]));
+    }
+  });
+  $('#revokeAll').addEventListener('click', () => { $$('#sessions .revoke').forEach(b => b.click()); });
+
+  // Modal
+  const modal = $('#modal');
+  const modalCfg = {
+    delete: { title: 'Delete account?', text: 'This permanently deletes your account, tasks you own, and comments. This cannot be undone.', word: 'DELETE', btn: 'Delete account' },
+    leave:  { title: 'Leave Acme Studio?', text: 'You will lose access to all projects, tasks, and files in this workspace unless re-invited.', word: 'LEAVE', btn: 'Leave workspace' }
+  };
+  let currentWord = '';
+  $$('[data-modal]').forEach(b => b.addEventListener('click', () => {
+    const c = modalCfg[b.dataset.modal];
+    $('#mTitle').textContent = c.title; $('#mText').textContent = c.text;
+    $('#mWord').textContent = currentWord = c.word; $('#mConfirm').textContent = c.btn;
+    $('#confirmInput').value = ''; $('#mConfirm').disabled = true;
+    modal.classList.add('show'); setTimeout(() => $('#confirmInput').focus(), 50);
+  }));
+  const closeModal = () => modal.classList.remove('show');
+  $('#confirmInput').addEventListener('input', e => $('#mConfirm').disabled = e.target.value !== currentWord);
+  $('#mCancel').addEventListener('click', closeModal);
+  $('#mConfirm').addEventListener('click', () => { closeModal(); toast('Request received — check your email to confirm'); });
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Toast
+  let tt;
+  function toast(msg) {
+    $('#toastMsg').textContent = msg;
+    $('#toast').classList.add('show');
+    clearTimeout(tt); tt = setTimeout(() => $('#toast').classList.remove('show'), 2400);
+  }
+
+  // Warn on leaving with unsaved changes
+  window.addEventListener('beforeunload', e => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
+</script>
+</body>
+</html>

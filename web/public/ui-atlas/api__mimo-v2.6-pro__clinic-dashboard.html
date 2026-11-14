@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Clinic — Appointment Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eaeff2;
+    --surface:#ffffff;
+    --surface-2:#f6f9fa;
+    --ink:#0e2029;
+    --ink-2:#33505c;
+    --muted:#7d939c;
+    --line:rgba(14,32,41,.10);
+    --line-strong:rgba(14,32,41,.16);
+    --nav:#0d1d25;
+    --nav-2:#122b35;
+    --teal:#0f766e;
+    --teal-2:#0b5c56;
+    --teal-soft:#e2f1ef;
+    --green:#17803d;
+    --green-soft:#e3f3e8;
+    --amber:#b4610b;
+    --amber-soft:#fbf0dd;
+    --red:#c02626;
+    --red-soft:#fbe7e7;
+    --violet:#5b46c9;
+    --violet-soft:#ece9fb;
+    --slate-soft:#eaf0f2;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(14,32,41,.05), 0 8px 24px -12px rgba(14,32,41,.14);
+    --shadow-lg:0 24px 60px -20px rgba(14,32,41,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 85% -10%, #dfeef0 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  ::selection{background:#c9e6e2;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  /* ---------- Shell ---------- */
+  .app{
+    display:grid;
+    grid-template-columns:242px minmax(0,1fr);
+    min-height:100vh;
+    max-width:1720px;
+    margin:0 auto;
+    gap:0;
+  }
+
+  /* ---------- Rail ---------- */
+  .rail{
+    background:linear-gradient(180deg,var(--nav) 0%, #0a1720 100%);
+    color:#c8d7dd;
+    padding:22px 16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:11px;padding:2px 6px 14px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .brand-mark{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    background:linear-gradient(150deg,#159c8f,#0b5c56);
+    display:grid;place-items:center;
+    box-shadow:0 8px 18px -8px rgba(21,156,143,.7);
+  }
+  .brand-name{font-weight:700;color:#fff;letter-spacing:-.01em;font-size:15px;line-height:1.15;}
+  .brand-sub{font-size:11px;color:#7f9aa4;letter-spacing:.06em;text-transform:uppercase;}
+  .nav-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#63808b;padding:0 10px;margin-bottom:8px;}
+  .nav{display:flex;flex-direction:column;gap:3px;}
+  .nav a{
+    display:flex;align-items:center;gap:11px;
+    padding:9px 11px;border-radius:10px;
+    color:#b6cbd2;text-decoration:none;font-size:13.5px;font-weight:500;
+    border:1px solid transparent;
+    transition:background .18s, color .18s, border-color .18s;
+    position:relative;
+  }
+  .nav a svg{width:17px;height:17px;opacity:.82;flex:none;}
+  .nav a:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav a.active{
+    background:linear-gradient(180deg,rgba(21,156,143,.24),rgba(21,156,143,.12));
+    border-color:rgba(21,156,143,.34);
+    color:#fff;
+  }
+  .nav a.active::before{
+    content:"";position:absolute;left:-16px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:#2fc0b0;
+  }
+  .nav .count{
+    margin-left:auto;font-size:11px;font-weight:600;
+    background:rgba(255,255,255,.10);color:#cfe3e6;
+    padding:1px 7px;border-radius:999px;
+  }
+  .rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;}
+  .sys-card{
+    background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:12px;
+  }
+  .sys-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#cfe0e4;font-weight:500;}
+  .sys-dot{width:7px;height:7px;border-radius:50%;background:#3ddc97;box-shadow:0 0 0 3px rgba(61,220,151,.18);}
+  .sys-meta{font-size:11px;color:#78939c;margin-top:6px;line-height:1.5;}
+  .user{
+    display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  }
+  .user .avatar{width:32px;height:32px;font-size:12px;}
+  .user-name{font-size:12.5px;color:#fff;font-weight:600;}
+  .user-role{font-size:11px;color:#7c97a1;}
+
+  /* ---------- Main ---------- */
+  .main{padding:22px 26px 34px;min-width:0;display:flex;flex-direction:column;gap:18px;}
+
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  .eyebrow{
+    font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:600;
+    display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow .sep{width:16px;height:1px;background:var(--line-strong);}
+  h1{font-size:29px;line-height:1.12;letter-spacing:-.025em;margin:7px 0 4px;font-weight:700;}
+  .sub{color:var(--ink-2);font-size:13.5px;}
+  .sub b{color:var(--ink);font-weight:600;}
+
+  .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .datenav{
+    display:flex;align-items:center;gap:2px;background:var(--surface);
+    border:1px solid var(--line);border-radius:11px;padding:4px;box-shadow:var(--shadow);
+  }
+  .icon-btn{
+    width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;
+    display:grid;place-items:center;color:var(--ink-2);transition:background .16s;
+  }
+  .icon-btn:hover{background:var(--surface-2);}
+  .datenav .today{
+    border:none;background:transparent;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+    padding:0 10px;height:32px;border-radius:8px;cursor:pointer;
+  }
+  .datenav .today:hover{background:var(--surface-2);}
+  .btn{
+    height:40px;padding:0 15px;border-radius:11px;border:1px solid var(--line-strong);
+    background:var(--surface);color:var(--ink);font:inherit;font-size:13px;font-weight:600;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow);
+    transition:transform .12s, background .16s, border-color .16s;
+  }
+  .btn:hover{background:#fff;border-color:rgba(14,32,41,.26);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{
+    background:linear-gradient(180deg,#12857b,#0d6b63);color:#fff;border-color:#0b5c56;
+    box-shadow:0 10px 22px -12px rgba(13,107,99,.85);
+  }
+  .btn.primary:hover{background:linear-gradient(180deg,#14938a,#0e756c);}
+  .btn svg{width:15px;height:15px;}
+  .search{
+    position:relative;height:40px;min-width:236px;
+  }
+  .search input{
+    width:100%;height:100%;border-radius:11px;border:1px solid var(--line-strong);
+    background:var(--surface);padding:0 38px 0 37px;font:inherit;font-size:13px;color:var(--ink);
+    box-shadow:var(--shadow);outline:none;transition:border-color .16s, box-shadow .16s;
+  }
+  .search input:focus{border-color:#57a79f;box-shadow:0 0 0 3px rgba(15,118,110,.14);}
+  .search .s-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+  .search .kbd{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    font-size:10.5px;font-weight:600;color:var(--muted);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;background:var(--surface-2);pointer-events:none;
+  }
+
+  /* ---------- KPI ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(220px,1.15fr);gap:14px;}
+  .kpi{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px 16px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+    display:flex;flex-direction:column;gap:9px;min-height:118px;
+  }
+  .kpi::after{
+    content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,var(--kpi-accent,var(--teal)),transparent 78%);
+    opacity:.85;
+  }
+  .kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .kpi-label{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .kpi-icon{
+    width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+    background:var(--kpi-soft,var(--teal-soft));color:var(--kpi-accent,var(--teal));
+  }
+  .kpi-icon svg{width:15px;height:15px;}
+  .kpi-value{font-size:29px;font-weight:700;letter-spacing:-.03em;line-height:1;display:flex;align-items:baseline;gap:6px;}
+  .kpi-value .unit{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0;}
+  .kpi-foot{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-top:auto;}
+  .delta{
+    display:inline-flex;align-items:center;gap:3px;font-weight:600;font-size:11px;
+    padding:2px 7px;border-radius:999px;
+  }
+  .delta.up{background:var(--green-soft);color:var(--green);}
+  .delta.down{background:var(--red-soft);color:var(--red);}
+  .delta.flat{background:var(--slate-soft);color:var(--ink-2);}
+  .spark{height:26px;width:100%;display:block;}
+
+  .kpi.progress-kpi{gap:11px;}
+  .progress-track{
+    height:9px;border-radius:999px;background:var(--slate-soft);overflow:hidden;position:relative;
+  }
+  .progress-fill{
+    height:100%;border-radius:999px;
+    background:linear-gradient(90deg,#12857b,#31b3a5);
+  }
+  .progress-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:500;}
+  .prog-legend{display:flex;gap:12px;font-size:11px;color:var(--ink-2);flex-wrap:wrap;}
+  .prog-legend span{display:inline-flex;align-items:center;gap:5px;}
+  .swatch{width:8px;height:8px;border-radius:3px;}
+
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0;
+  }
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:15px 17px 13px;border-bottom:1px solid var(--line);
+  }
+  .card-title{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:650;letter-spacing:-.012em;}
+  .card-title .t-icon{
+    width:27px;height:27px;border-radius:8px;display:grid;place-items:center;
+    background:var(--teal-soft);color:var(--teal);
+  }
+  .card-title .t-icon svg{width:15px;height:15px;}
+  .card-sub{font-size:11.5px;color:var(--muted);font-weight:500;}
+  .head-right{display:flex;align-items:center;gap:8px;}
+  .pill{
+    font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+    background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap;
+  }
+  .pill.teal{background:var(--teal-soft);color:var(--teal-2);border-color:rgba(15,118,110,.18);}
+  .pill.amber{background:var(--amber-soft);color:var(--amber);border-color:rgba(180,97,11,.18);}
+  .pill.red{background:var(--red-soft);color:var(--red);border-color:rgba(192,38,38,.16);}
+  .link-btn{
+    border:none;background:transparent;color:var(--teal);font:inherit;font-size:12px;font-weight:600;
+    cursor:pointer;padding:5px 8px;border-radius:8px;
+  }
+  .link-btn:hover{background:var(--teal-soft);}
+
+  /* ---------- Layout grid ---------- */
+  .layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(320px,1fr);gap:16px;align-items:start;}
+  .stack{display:flex;flex-direction:column;gap:16px;min-width:0;}
+
+  /* ---------- Schedule ---------- */
+  .filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .chip{
+    border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+    font:inherit;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;cursor:pointer;
+    transition:all .15s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .chip:hover{border-color:var(--line-strong);background:var(--surface-2);}
+  .chip .n{font-size:10.5px;color:var(--muted);font-weight:600;}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .chip.active .n{color:rgba(255,255,255,.7);}
+
+  .sched-body{max-height:612px;overflow-y:auto;padding:4px 8px 10px;}
+  .sched-body::-webkit-scrollbar{width:9px;}
+  .sched-body::-webkit-scrollbar-thumb{background:rgba(14,32,41,.16);border-radius:99px;border:3px solid #fff;}
+  .sched-body::-webkit-scrollbar-track{background:transparent;}
+
+  .hour{
+    display:flex;align-items:center;gap:12px;padding:13px 12px 7px;
+    position:sticky;top:0;background:linear-gradient(180deg,#fff 72%,rgba(255,255,255,0));z-index:3;
+  }
+  .hour .h-time{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;width:52px;flex:none;}
+  .hour .h-line{flex:1;height:1px;background:var(--line);}
+  .hour .h-count{font-size:10.5px;color:var(--muted);font-weight:600;}
+
+  .appt{
+    display:grid;
+    grid-template-columns:74px minmax(0,1fr) 108px 132px 62px;
+    align-items:center;gap:12px;
+    padding:11px 12px;border-radius:12px;position:relative;
+    border:1px solid transparent;
+    transition:background .16s, border-color .16s, box-shadow .16s;
+    cursor:pointer;
+  }
+  .appt + .appt{margin-top:2px;}
+  .appt:hover{background:var(--surface-2);border-color:var(--line);box-shadow:0 6px 18px -12px rgba(14,32,41,.35);}
+  .appt::before{
+    content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;
+    background:var(--st-color,var(--muted));opacity:0;transition:opacity .16s;
+  }
+  .appt[data-status="completed"]{opacity:.72;}
+  .appt[data-status="completed"]:hover{opacity:1;}
+  .appt[data-status="no-show"],.appt[data-status="cancelled"]{opacity:.78;}
+  .appt[data-status="in-session"]{background:linear-gradient(90deg,rgba(15,118,110,.075),rgba(15,118,110,.012));border-color:rgba(15,118,110,.16);}
+  .appt[data-status="in-session"]::before,.appt:hover::before{opacity:1;}
+
+  .appt-time .t{font-size:14px;font-weight:600;letter-spacing:-.01em;display:block;}
+  .appt-time .d{font-size:10.5px;color:var(--muted);font-weight:500;}
+
+  .who{display:flex;align-items:center;gap:11px;min-width:0;}
+  .avatar{
+    width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;
+    font-size:11.5px;font-weight:700;letter-spacing:.01em;color:#fff;
+    background:var(--av,#5c7d8a);
+  }
+  .avatar.round{border-radius:50%;}
+  .who-name{font-size:13.5px;font-weight:600;letter-spacing:-.011em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .who-meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .who-meta .dot{opacity:.5;margin:0 5px;}
+
+  .status{
+    display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+    padding:4px 10px;border-radius:999px;white-space:nowrap;
+  }
+  .status .sdot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .st-scheduled{background:var(--slate-soft);color:#466270;}
+  .st-checked-in{background:var(--amber-soft);color:var(--amber);}
+  .st-in-session{background:var(--teal-soft);color:var(--teal-2);}
+  .st-completed{background:var(--green-soft);color:var(--green);}
+  .st-no-show{background:var(--red-soft);color:var(--red);}
+  .st-cancelled{background:#eeecf6;color:#6b5fa8;}
+
+  .chip-room{
+    display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+    padding:4px 9px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+    white-space:nowrap;
+  }
+  .chip-room svg{width:12px;height:12px;opacity:.6;}
+  .appt-actions{display:flex;justify-content:flex-end;gap:4px;opacity:0;transition:opacity .16s;}
+  .appt:hover .appt-actions{opacity:1;}
+  .mini-btn{
+    width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-2);
+  }
+  .mini-btn:hover{border-color:var(--line-strong);background:#fff;color:var(--teal);}
+
+  .now-line{display:flex;align-items:center;gap:9px;padding:6px 12px;position:relative;z-index:2;}
+  .now-tag{
+    display:inline-flex;align-items:center;gap:6px;background:var(--red);color:#fff;
+    font-size:10px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:999px;
+    box-shadow:0 6px 14px -8px rgba(192,38,38,.9);
+  }
+  .now-tag .live{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.8);}}
+  .now-line .rule{flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(192,38,38,.55) 0 6px,transparent 6px 12px);}
+
+  .empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px;}
+
+  /* ---------- Rooms ---------- */
+  .rooms{padding:6px 14px 14px;}
+  .room{
+    display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+    padding:12px 11px;border-radius:12px;border:1px solid transparent;position:relative;
+    transition:background .16s,border-color .16s;
+  }
+  .room + .room{margin-top:3px;}
+  .room:hover{background:var(--surface-2);border-color:var(--line);}
+  .room::before{
+    content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--room-color,#8aa0aa);
+  }
+  .room-name{font-size:13px;font-weight:650;letter-spacing:-.011em;display:flex;align-items:center;gap:8px;}
+  .room-type{font-size:11px;color:var(--muted);font-weight:500;margin-top:2px;}
+  .room-who{font-size:11.5px;color:var(--ink-2);margin-top:6px;display:flex;align-items:center;gap:7px;}
+  .room-bar{width:112px;}
+  .room-bar .track{height:6px;border-radius:999px;background:var(--slate-soft);overflow:hidden;}
+  .room-bar .fill{height:100%;border-radius:999px;background:var(--room-color,#5c7d8a);}
+  .room-bar .cap{font-size:10px;color:var(--muted);margin-top:6px;text-align:right;font-weight:600;}
+  .room-state{
+    display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+    padding:3px 8px;border-radius:999px;letter-spacing:.02em;
+  }
+  .live-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .live-dot.on{animation:pulse 1.8s infinite;}
+
+  .util{padding:13px 17px 16px;border-top:1px solid var(--line);margin-top:4px;}
+  .util-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;}
+  .util-head h4{margin:0;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:650;}
+  .util-head .big{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+  .bars{display:flex;align-items:flex-end;gap:5px;height:74px;}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;}
+  .bar .stem{
+    width:100%;border-radius:5px 5px 3px 3px;background:linear-gradient(180deg,#9fc6c2,#c9dedd);
+    transition:height .5s cubic-bezier(.2,.8,.2,1);
+  }
+  .bar.now .stem{background:linear-gradient(180deg,#12857b,#31b3a5);}
+  .bar .lab{font-size:9.5px;color:var(--muted);font-weight:600;}
+  .bar.now .lab{color:var(--teal);}
+
+  /* ---------- No-shows ---------- */
+  .noshow-list{padding:6px 14px 12px;}
+  .ns{
+    display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:11px;align-items:center;
+    padding:11px 10px;border-radius:11px;transition:background .16s;
+  }
+  .ns + .ns{margin-top:2px;}
+  .ns:hover{background:var(--surface-2);}
+  .ns-name{font-size:12.8px;font-weight:650;letter-spacing:-.011em;}
+  .ns-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .ns-actions{display:flex;gap:5px;}
+  .tag{
+    display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:650;
+    padding:2px 7px;border-radius:6px;letter-spacing:.015em;
+  }
+  .tag.red{background:var(--red-soft);color:var(--red);}
+  .tag.amber{background:var(--amber-soft);color:var(--amber);}
+  .tag.slate{background:var(--slate-soft);color:#4b6472;}
+  .tag.violet{background:var(--violet-soft);color:var(--violet);}
+
+  .ns-foot{padding:13px 17px;border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;}
+  .donut-wrap{position:relative;width:66px;height:66px;flex:none;}
+  .donut-wrap .mid{
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  }
+  .donut-wrap .mid .n{font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1;}
+  .donut-wrap .mid .l{font-size:8.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600;}
+  .ns-foot-text{font-size:11.5px;color:var(--ink-2);line-height:1.55;}
+  .ns-foot-text b{color:var(--ink);}
+  .trend{display:flex;align-items:flex-end;gap:4px;height:24px;margin-top:7px;}
+  .trend i{width:6px;border-radius:2px;background:#d5e2e2;display:block;}
+  .trend i.hi{background:#e2a1a1;}
+
+  /* ---------- Bottom ---------- */
+  .bottom{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;}
+  .providers{padding:6px 15px 15px;}
+  .prov{
+    display:grid;grid-template-columns:minmax(0,1fr) 132px 58px;gap:14px;align-items:center;
+    padding:11px 9px;border-radius:11px;
+  }
+  .prov + .prov{margin-top:2px;}
+  .prov:hover{background:var(--surface-2);}
+  .prov-name{font-size:12.8px;font-weight:650;display:flex;align-items:center;gap:9px;letter-spacing:-.011em;}
+  .prov-meta{font-size:11px;color:var(--muted);margin-top:2px;padding-left:32px;}
+  .load-track{height:7px;border-radius:999px;background:var(--slate-soft);overflow:hidden;}
+  .load-fill{height:100%;border-radius:999px;}
+  .load-num{text-align:right;font-size:12.5px;font-weight:700;letter-spacing:-.015em;}
+  .load-num span{display:block;font-size:9.5px;color:var(--muted);font-weight:600;letter-spacing:.06em;}
+
+  .wait-list{padding:6px 15px 15px;}
+  .wait-row{
+    display:flex;align-items:center;gap:11px;padding:10px 9px;border-radius:11px;
+  }
+  .wait-row + .wait-row{margin-top:2px;}
+  .wait-row:hover{background:var(--surface-2);}
+  .wait-who{flex:1;min-width:0;}
+  .wait-name{font-size:12.6px;font-weight:650;letter-spacing:-.011em;}
+  .wait-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+  .wait-time{text-align:right;}
+  .wait-time .v{font-size:13px;font-weight:700;letter-spacing:-.02em;}
+  .wait-time .l{font-size:9.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600;}
+
+  /* ---------- Toast + dialog ---------- */
+  .toast-wrap{position:fixed;right:22px;bottom:22px;display:flex;flex-direction:column;gap:9px;z-index:80;}
+  .toast{
+    background:var(--nav);color:#eaf4f5;padding:12px 15px;border-radius:11px;font-size:12.5px;font-weight:550;
+    box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;
+    animation:slideIn .28s cubic-bezier(.2,.8,.2,1);max-width:330px;
+  }
+  .toast .tdot{width:7px;height:7px;border-radius:50%;background:#3ddc97;flex:none;}
+  @keyframes slideIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+  dialog{
+    border:none;border-radius:16px;padding:0;width:min(480px,calc(100vw - 34px));
+    box-shadow:var(--shadow-lg);color:var(--ink);
+  }
+  dialog::backdrop{background:rgba(10,23,30,.5);backdrop-filter:blur(3px);}
+  .dlg-head{padding:19px 21px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .dlg-head h3{margin:0;font-size:17px;letter-spacing:-.02em;}
+  .dlg-head p{margin:4px 0 0;font-size:12px;color:var(--muted);}
+  .dlg-body{padding:18px 21px;display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field.full{grid-column:1 / -1;}
+  .field label{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:650;}
+  .field input,.field select{
+    height:39px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface-2);
+    padding:0 11px;font:inherit;font-size:13px;color:var(--ink);outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:#57a79f;box-shadow:0 0 0 3px rgba(15,118,110,.13);background:#fff;}
+  .dlg-foot{padding:15px 21px 19px;display:flex;justify-content:flex-end;gap:9px;border-top:1px solid var(--line);background:var(--surface-2);border-radius:0 0 16px 16px;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:1320px){
+    .kpis{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .kpi.progress-kpi{grid-column:span 2;}
+  }
+  @media (max-width:1120px){
+    .app{grid-template-columns:1fr;}
+    .rail{
+      position:static;height:auto;flex-direction:row;align-items:center;gap:16px;overflow-x:auto;
+      padding:13px 18px;
+    }
+    .brand{border-bottom:none;padding:0;flex:none;}
+    .nav-label{display:none;}
+    .nav{flex-direction:row;gap:6px;}
+    .nav a{padding:8px 12px;white-space:nowrap;}
+    .nav a.active::before{display:none;}
+    .rail-foot{margin:0 0 0 auto;flex-direction:row;align-items:center;}
+    .sys-card{display:none;}
+    .user{white-space:nowrap;}
+    .layout{grid-template-columns:1fr;}
+    .bottom{grid-template-columns:1fr;}
+  }
+  @media (max-width:820px){
+    .main{padding:18px 14px 28px;}
+    h1{font-size:24px;}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .kpi.progress-kpi{grid-column:span 2;}
+    .search{min-width:180px;flex:1;}
+    .appt{grid-template-columns:64px minmax(0,1fr);grid-auto-rows:auto;gap:9px 11px;}
+    .appt-room,.appt-status{grid-column:2;}
+    .appt-actions{display:none;}
+    .sched-body{max-height:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ================= RAIL ================= -->
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eafffb" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h3.2l2-4.6L11 17l2.4-6.2 1.6 2.2H21"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Meridian Clinic</div>
+        <div class="brand-sub">Front desk</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="nav-label">Workspace</div>
+      <nav class="nav">
+        <a href="#" class="active" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>
+          Dashboard
+        </a>
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+          Schedule <span class="count">32</span>
+        </a>
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+          Patients
+        </a>
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6.5A2.5 2.5 0 0 1 6.5 4H20v17"/><path d="M4 21h16M9 9h3M9 13h3M9 17h3"/></svg>
+          Rooms <span class="count">8</span>
+        </a>
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.6"/><path d="M3 19a6 6 0 0 1 12 0M15.5 19a4.6 4.6 0 0 1 5.5-4.4"/></svg>
+          Providers
+        </a>
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          Reports
+        </a>
+      </nav>
+    </div>
+
+    <div>
+      <div class="nav-label">System</div>
+      <nav class="nav">
+        <a href="#" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.33-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6h.09A1.7 1.7 0 0 0 10 3.05V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+          Settings
+        </a>
+      </nav>
+    </div>
+
+    <div class="rail-foot">
+      <div class="sys-card">
+        <div class="sys-row"><span class="sys-dot"></span> All systems operational</div>
+        <div class="sys-meta">Sync 12s ago · EMR v4.2<br>Last backup 06:00</div>
+      </div>
+      <div class="user">
+        <div class="avatar round" style="background:linear-gradient(150deg,#2b8f86,#125c5c)">AR</div>
+        <div>
+          <div class="user-name">Ana Rivera</div>
+          <div class="user-role">Front desk lead</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <div class="eyebrow"><span class="sep"></span> <span id="todayLabel">Tuesday, 14 May</span> · Live</div>
+        <h1>Today’s Schedule</h1>
+        <div class="sub"><b>32 appointments</b> across 8 rooms · 5 providers on duty · <span id="liveClock" class="mono">10:42</span> local</div>
+      </div>
+
+      <div class="top-actions">
+        <div class="search">
+          <span class="s-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          </span>
+          <input id="search" type="text" placeholder="Search patient, provider, room…" autocomplete="off">
+          <span class="kbd">/</span>
+        </div>
+
+        <div class="datenav">
+          <button class="icon-btn" title="Previous day" data-toast="Showing previous day">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button class="today" data-toast="Jumped to today">Today</button>
+          <button class="icon-btn" title="Next day" data-toast="Showing next day">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <button class="btn" data-toast="Schedule exported as CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Export
+        </button>
+        <button class="btn primary" id="openDialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          New appointment
+        </button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <section class="kpis">
+      <div class="kpi" style="--kpi-accent:#0f766e;--kpi-soft:#e2f1ef;">
+        <div class="kpi-top">
+          <div class="kpi-label">Appointments</div>
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">32</div>
+        <div class="kpi-foot">
+          <span class="delta up">▲ 4</span> vs last Tuesday
+          <svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none" style="margin-left:auto;width:66px">
+            <path d="M0 20 L14 17 L28 18 L42 12 L56 14 L70 8 L84 9 L100 4" fill="none" stroke="#0f766e" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="kpi" style="--kpi-accent:#17803d;--kpi-soft:#e3f3e8;">
+        <div class="kpi-top">
+          <div class="kpi-label">Checked in</div>
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.6 2.6L16 9.6"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">18 <span class="unit">/ 32</span></div>
+        <div class="kpi-foot"><span class="delta up">▲ 6.4%</span> arrival rate on time</div>
+      </div>
+
+      <div class="kpi" style="--kpi-accent:#c02626;--kpi-soft:#fbe7e7;">
+        <div class="kpi-top">
+          <div class="kpi-label">No-shows</div>
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">4 <span class="unit">12.5%</span></div>
+        <div class="kpi-foot"><span class="delta down">▼ 2.1 pts</span> vs 30-day average</div>
+      </div>
+
+      <div class="kpi" style="--kpi-accent:#b4610b;--kpi-soft:#fbf0dd;">
+        <div class="kpi-top">
+          <div class="kpi-label">Avg wait</div>
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">12 <span class="unit">min</span></div>
+        <div class="kpi-foot"><span class="delta up">▲ faster</span> target ≤ 15 min</div>
+      </div>
+
+      <div class="kpi progress-kpi" style="--kpi-accent:#5b46c9;--kpi-soft:#ece9fb;">
+        <div class="kpi-top">
+          <div class="kpi-label">Day progress</div>
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="dayFill" style="width:27%"></div></div>
+        <div class="progress-scale mono"><span>08:00</span><span id="dayNow">10:42</span><span>18:00</span></div>
+        <div class="prog-legend">
+          <span><i class="swatch" style="background:#17803d"></i> 11 completed</span>
+          <span><i class="swatch" style="background:#0f766e"></i> 3 in session</span>
+          <span><i class="swatch" style="background:#cfdade"></i> 14 upcoming</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main layout -->
+    <section class="layout">
+
+      <!-- ===== Schedule ===== -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">
+              <span class="t-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+              </span>
+              Today’s schedule
+            </div>
+            <div class="card-sub" style="margin-left:36px">08:00 – 18:00 · times shown in local clinic time</div>
+          </div>
+          <div class="head-right">
+            <span class="pill teal" id="visibleCount">32 shown</span>
+            <button class="link-btn" data-toast="Full calendar view opened">View calendar</button>
+          </div>
+        </div>
+
+        <div style="padding:12px 17px 4px;border-bottom:1px solid var(--line);">
+          <div class="filters" id="filters">
+            <button class="chip active" data-filter="all">All <span class="n">32</span></button>
+            <button class="chip" data-filter="scheduled">Scheduled <span class="n">14</span></button>
+            <button class="chip" data-filter="checked-in">Checked in <span class="n">2</span></button>
+            <button class="chip" data-filter="in-session">In session <span class="n">3</span></button>
+            <button class="chip" data-filter="completed">Completed <span class="n">11</span></button>
+            <button class="chip" data-filter="no-show">No-show <span class="n">4</span></button>
+            <button class="chip" data-filter="cancelled">Cancelled <span class="n">2</span></button>
+          </div>
+        </div>
+
+        <div class="sched-body" id="schedule"></div>
+      </div>
+
+      <!-- ===== Right column ===== -->
+      <div class="stack">
+
+        <!-- Rooms -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">
+                <span class="t-icon" style="background:var(--violet-soft);color:var(--violet)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6.5A2.5 2.5 0 0 1 6.5 4H20v17"/><path d="M4 21h16M9 9h3M9 13h3M9 17h3"/></svg>
+                </span>
+                Rooms in use
+              </div>
+              <div class="card-sub" style="margin-left:36px">Live occupancy · updated automatically</div>
+            </div>
+            <div class="head-right">
+              <span class="pill"><b style="color:var(--ink)">5</b> / 8 active</span>
+            </div>
+          </div>
+
+          <div class="rooms" id="rooms"></div>
+
+          <div class="util">
+            <div class="util-head">
+              <h4>Hourly room load</h4>
+              <div class="big mono">78% <span style="font-size:11px;color:var(--muted);font-weight:600">avg util.</span></div>
+            </div>
+            <div class="bars" id="loadBars"></div>
+          </div>
+        </div>
+
+        <!-- No-shows -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">
+                <span class="t-icon" style="background:var(--red-soft);color:var(--red)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                </span>
+                No-shows today
+              </div>
+              <div class="card-sub" style="margin-left:36px">4 missed · follow-up required</div>
+            </div>
+            <div class="head-right">
+              <span class="pill red">12.5% rate</span>
+            </div>
+          </div>
+
+          <div class="noshow-list" id="noshow"></div>
+
+          <div class="ns-foot">
+            <div class="donut-wrap">
+              <svg width="66" height="66" viewBox="0 0 66 66">
+                <circle cx="33" cy="33" r="26" fill="none" stroke="#eef2f3" stroke-width="9"/>
+                <circle cx="33" cy="33" r="26" fill="none" stroke="#d1564f" stroke-width="9" stroke-linecap="round"
+                        stroke-dasharray="20.4 142.7" transform="rotate(-90 33 33)"/>
+              </svg>
+              <div class="mid"><div><div class="n">4</div><div class="l">missed</div></div></div>
+            </div>
+            <div class="ns-foot-text">
+              <b>7-day no-show trend</b> is easing — down from 16.4% to 12.5% since SMS reminders were enabled.
+              <div class="trend" aria-hidden="true">
+                <i class="hi" style="height:20px"></i><i class="hi" style="height:17px"></i><i class="hi" style="height:18px"></i>
+                <i style="height:14px"></i><i style="height:12px"></i><i style="height:11px"></i><i style="height:9px"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Bottom row -->
+    <section class="bottom">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">
+              <span class="t-icon" style="background:var(--amber-soft);color:var(--amber)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.6"/><path d="M3 19a6 6 0 0 1 12 0M15.5 19a4.6 4.6 0 0 1 5.5-4.4"/></svg>
+              </span>
+              Provider load
+            </div>
+            <div class="card-sub" style="margin-left:36px">Booked slots vs. daily capacity</div>
+          </div>
+          <div class="head-right"><span class="pill">5 on duty</span></div>
+        </div>
+        <div class="providers" id="providers"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">
+              <span class="t-icon" style="background:var(--slate-soft);color:#466270">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>
+              </span>
+              Waiting room
+            </div>
+            <div class="card-sub" style="margin-left:36px">3 patients checked in · target ≤ 15 min</div>
+          </div>
+          <div class="head-right"><button class="link-btn" data-toast="Check-in kiosk opened">Open kiosk</button></div>
+        </div>
+        <div class="wait-list" id="waiting"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Toasts -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- Dialog -->
+<dialog id="apptDialog">
+  <form method="dialog" id="apptForm">
+    <div class="dlg-head">
+      <div>
+        <h3>New appointment</h3>
+        <p>Slots available today: 11:30, 14:00, 15:30, 16:15</p>
+      </div>
+      <button class="icon-btn" type="button" id="closeDialog" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="field full">
+        <label for="f-patient">Patient</label>
+        <input id="f-patient" type="text" placeholder="Search or type full name" value="">
+      </div>
+      <div class="field">
+        <label for="f-type">Visit type</label>
+        <select id="f-type">
+          <option>Follow-up</option><option>New patient</option><option>Annual physical</option>
+          <option>Procedure</option><option>Lab draw</option><option>Telehealth</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-provider">Provider</label>
+        <select id="f-provider">
+          <option>Dr. Alvarez</option><option>Dr. Okafor</option><option>Dr. Lindqvist</option>
+          <option>Dr. Banerjee</option><option>NP Haddad</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-time">Time</label>
+        <input id="f-time" type="time" value="14:00">
+      </div>
+      <div class="field">
+        <label for="f-room">Room</label>
+        <select id="f-room">
+          <option>Exam A</option><option>Exam B</option><option>Exam C</option>
+          <option>Procedure 1</option><option>Procedure 2</option><option>Lab</option><option>Ultrasound</option>
+        </select>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="cancelDialog">Cancel</button>
+      <button class="btn primary" type="submit">Book appointment</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- Data ---------------- */
+  const STATUS = {
+    "scheduled":   { label: "Scheduled",   cls: "st-scheduled",   color: "#8aa0aa" },
+    "checked-in":  { label: "Checked in",  cls: "st-checked-in",  color: "#c4791d" },
+    "in-session":  { label: "In session",  cls: "st-in-session",  color: "#0f766e" },
+    "completed":   { label: "Completed",   cls: "st-completed",   color: "#17803d" },
+    "no-show":     { label: "No-show",     cls: "st-no-show",     color: "#c02626" },
+    "cancelled":   { label: "Cancelled",   cls: "st-cancelled",   color: "#6b5fa8" }
+  };
+
+  const AV = ["#2f7f8c", "#7a5bb8", "#2f8a63", "#b06a3c", "#3c6ba8", "#a2475c", "#4a7c8f", "#8a6d3b"];
+
+  const appointments = [
+    { time: "08:00", dur: 30, patient: "Margaret Osei",      type: "Annual physical",   provider: "Dr. Alvarez",   room: "Exam A",      status: "completed" },
+    { time: "08:15", dur: 30, patient: "Tomás Ferreira",     type: "Lab draw",          provider: "NP Haddad",     room: "Lab",         status: "completed" },
+    { time: "08:30", dur: 45, patient: "Helen Park",         type: "New patient",       provider: "Dr. Okafor",    room: "Exam C",      status: "completed" },
+    { time: "08:45", dur: 30, patient: "Daniel Whitmore",    type: "Follow-up",         provider: "Dr. Alvarez",   room: "Exam A",      status: "completed" },
+    { time: "09:00", dur: 30, patient: "Priya Raghavan",     type: "Follow-up",         provider: "Dr. Banerjee",  room: "Exam B",      status: "completed" },
+    { time: "09:15", dur: 60, patient: "Luis Ortega",        type: "Procedure",         provider: "Dr. Lindqvist", room: "Procedure 1", status: "completed" },
+    { time: "09:30", dur: 30, patient: "Nadia Hassan",       type: "Follow-up",         provider: "Dr. Okafor",    room: "Exam C",      status: "completed" },
+    { time: "09:45", dur: 30, patient: "Gregory Salinas",    type: "Medication review", provider: "NP Haddad",     room: "Exam B",      status: "no-show" },
+    { time: "10:00", dur: 30, patient: "Aisha Bello",        type: "Follow-up",         provider: "Dr. Alvarez",   room: "Exam A",      status: "completed" },
+    { time: "10:00", dur: 30, patient: "Marcus Feld",        type: "Ultrasound",        provider: "Dr. Lindqvist", room: "Ultrasound",  status: "completed" },
+    { time: "10:15", dur: 45, patient: "Ruth Vandermeer",    type: "New patient",       provider: "Dr. Banerjee",  room: "Exam B",      status: "in-session" },
+    { time: "10:30", dur: 30, patient: "Jordan Mills",       type: "Follow-up",         provider: "Dr. Alvarez",   room: "Exam A",      status: "in-session" },
+    { time: "10:45", dur: 30, patient: "Elena Sokolova",     type: "Wound check",       provider: "NP Haddad",     room: "Procedure 2", status: "in-session" },
+    { time: "11:00", dur: 30, patient: "Owen Castellano",    type: "Follow-up",         provider: "Dr. Okafor",    room: "Exam C",      status: "checked-in" },
+    { time: "11:00", dur: 30, patient: "Sofia Lindgren",     type: "Lab draw",          provider: "NP Haddad",     room: "Lab",         status: "checked-in" },
+    { time: "11:30", dur: 30, patient: "Amara Nwosu",        type: "Follow-up",         provider: "Dr. Banerjee",  room: "Exam B",      status: "scheduled" },
+    { time: "11:45", dur: 45, patient: "Peter Halvorsen",    type: "Procedure",         provider: "Dr. Lindqvist", room: "Procedure 1", status: "scheduled" },
+    { time: "12:00", dur: 30, patient: "Camille Duval",      type: "New patient",       provider: "Dr. Alvarez",   room: "Exam A",      status: "scheduled" },
+    { time: "13:00", dur: 30, patient: "Isaac Mendel",       type: "Follow-up",         provider: "Dr. Okafor",    room: "Exam C",      status: "scheduled" },
+    { time: "13:15", dur: 30, patient: "Yara Costa",         type: "Telehealth",        provider: "NP Haddad",     room: "Consult",     status: "scheduled" },
+    { time: "13:30", dur: 30, patient: "Nathan Brooks",      type: "Annual physical",   provider: "Dr. Banerjee",  room: "Exam B",      status: "scheduled" },
+    { time: "13:45", dur: 30, patient: "Farah Khalil",       type: "Follow-up",         provider: "Dr. Alvarez",   room: "Exam A",      status: "cancelled" },
+    { time: "14:00", dur: 45, patient: "Grace Ito",          type: "New patient",       provider: "Dr. Lindqvist", room: "Exam C",      status: "scheduled" },
+    { time: "14:30", dur: 30, patient: "Samuel Adeyemi",     type: "Medication review", provider: "NP Haddad",     room: "Exam A",      status: "scheduled" },
+    { time: "14:45", dur: 30, patient: "Lena Fischer",       type: "Lab draw",          provider: "NP Haddad",     room: "Lab",         status: "no-show" },
+    { time: "15:00", dur: 60, patient: "Rafael Nunes",       type: "Procedure",         provider: "Dr. Lindqvist", room: "Procedure 2", status: "scheduled" },
+    { time: "15:30", dur: 30, patient: "Olivia Ramsey",      type: "Follow-up",         provider: "Dr. Okafor",    room: "Exam C",      status: "scheduled" },
+    { time: "15:45", dur: 30, patient: "Hugo Marchetti",     type: "Wound check",       provider: "NP Haddad",     room: "Procedure 1", status: "no-show" },
+    { time: "16:00", dur: 30, patient: "Bianca Rossi",       type: "Follow-up",         provider: "Dr. Alvarez",   room: "Exam A",      status: "scheduled" },
+    { time: "16:15", dur: 30, patient: "Theo Mbeki",         type: "New patient",       provider: "Dr. Banerjee",  room: "Exam B",      status: "scheduled" },
+    { time: "16:45", dur: 30, patient: "Claire Doherty",     type: "Follow-up",         provider: "Dr. Okafor",    room: "Exam C",      status: "cancelled" },
+    { time: "17:15", dur: 30, patient: "Malik Turner",       type: "Annual physical",   provider: "Dr. Alvarez",   room: "Exam A",      status: "no-show" }
+  ];
+
+  const rooms = [
+    { name: "Exam A",       type: "General exam",      state: "In use",  who: "Jordan Mills · Dr. Alvarez",   next: "Free at 11:00",   pct: 62, color: "#0f766e" },
+    { name: "Exam B",       type: "General exam",      state: "In use",  who: "Ruth Vandermeer · Dr. Banerjee", next: "Free at 11:15",  pct: 44, color: "#0f766e" },
+    { name: "Exam C",       type: "General exam",      state: "Turnover", who: "Cleaning · 8 min remaining",   next: "Free at 11:00",   pct: 88, color: "#b4610b" },
+    { name: "Procedure 2",  type: "Minor procedure",   state: "In use",  who: "Elena Sokolova · NP Haddad",   next: "Free at 11:15",   pct: 35, color: "#0f766e" },
+    { name: "Ultrasound",   type: "Imaging",           state: "In use",  who: "Marcus Feld · Dr. Lindqvist",  next: "Free at 10:45",   pct: 78, color: "#5b46c9" },
+    { name: "Lab",          type: "Phlebotomy",        state: "Free",    who: "Next: Sofia Lindgren 11:00",   next: "Available now",   pct: 12, color: "#8aa0aa" },
+    { name: "Procedure 1",  type: "Minor procedure",   state: "Free",    who: "Next: Peter Halvorsen 11:45",  next: "Available now",   pct: 20, color: "#8aa0aa" },
+    { name: "Consult",      type: "Telehealth booth",  state: "Reserved", who: "Held for virtual visits",      next: "Free at 13:45",   pct: 30, color: "#466270" }
+  ];
+
+  const noShows = [
+    { name: "Gregory Salinas", initials: "GS", time: "09:45", provider: "NP Haddad",     reason: "No contact",      tag: "red",    action: "Call" },
+    { name: "Lena Fischer",    initials: "LF", time: "14:45", provider: "NP Haddad",     reason: "Cancelled late",  tag: "amber",  action: "Reschedule" },
+    { name: "Hugo Marchetti",  initials: "HM", time: "15:45", provider: "NP Haddad",     reason: "Transport issue", tag: "slate",  action: "Reschedule" },
+    { name: "Malik Turner",    initials: "MT", time: "17:15", provider: "Dr. Alvarez",   reason: "Reminder failed", tag: "violet", action: "Call" }
+  ];
+
+  const providers = [
+    { name: "Dr. Alvarez",   meta: "Family medicine · Exam A / B",  booked: 9,  cap: 11, color: "#0f766e" },
+    { name: "Dr. Okafor",    meta: "Internal medicine · Exam C",    booked: 7,  cap: 9,  color: "#5b46c9" },
+    { name: "Dr. Lindqvist", meta: "Procedures · Procedure / US",   booked: 5,  cap: 6,  color: "#b4610b" },
+    { name: "Dr. Banerjee",  meta: "Family medicine · Exam B",      booked: 6,  cap: 10, color: "#2f7f8c" },
+    { name: "NP Haddad",     meta: "Nurse practitioner · Float",    booked: 8,  cap: 12, color: "#a2475c" }
+  ];
+
+  const waiting = [
+    { name: "Owen Castellano", meta: "11:00 · Dr. Okafor · Exam C",        mins: 14, tone: "amber" },
+    { name: "Sofia Lindgren",  meta: "11:00 · NP Haddad · Lab",            mins: 12, tone: "amber" },
+    { name: "Amara Nwosu",     meta: "11:30 · Dr. Banerjee · early arrival", mins: 4,  tone: "green" }
+  ];
+
+  /* ---------------- Helpers ---------------- */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const toMins = (t) => parseInt(t.slice(0, 2), 10) * 60 + parseInt(t.slice(3, 5), 10);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmt = (m) => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
+  const initials = (n) => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  const avColor = (n) => AV[Math.abs(n.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % AV.length];
+
+  function toast(msg) {
+    const wrap = $("#toasts");
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = '<span class="tdot"></span><span>' + msg + '</span>';
+    wrap.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = "opacity .3s, transform .3s";
+      el.style.opacity = "0";
+      el.style.transform = "translateY(8px)";
+      setTimeout(() => el.remove(), 320);
+    }, 2800);
+  }
+
+  /* ---------------- Clock / day progress ---------------- */
+  const DAY_START = 8 * 60, DAY_END = 18 * 60;
+  function currentMins() {
+    const d = new Date();
+    const m = d.getHours() * 60 + d.getMinutes();
+    return (m >= DAY_START && m <= DAY_END) ? m : 10 * 60 + 42;
+  }
+
+  function tick() {
+    const m = currentMins();
+    const label = fmt(m);
+    $("#liveClock").textContent = label;
+    $("#dayNow").textContent = label;
+    const pct = Math.max(0, Math.min(100, ((m - DAY_START) / (DAY_END - DAY_START)) * 100));
+    $("#dayFill").style.width = pct.toFixed(1) + "%";
+    const d = new Date();
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    $("#todayLabel").textContent = days[d.getDay()] + ", " + d.getDate() + " " + months[d.getMonth()];
+  }
+
+  /* ---------------- Schedule ---------------- */
+  let activeFilter = "all";
+  let query = "";
+
+  function renderSchedule() {
+    const root = $("#schedule");
+    const nowMins = currentMins();
+    const rows = appointments
+      .filter(a => activeFilter === "all" || a.status === activeFilter)
+      .filter(a => {
+        if (!query) return true;
+        const hay = (a.patient + " " + a.provider + " " + a.room + " " + a.type).toLowerCase();
+        return hay.indexOf(query) !== -1;
+      })
+      .sort((a, b) => toMins(a.time) - toMins(b.time));
+
+    $("#visibleCount").textContent = rows.length + " shown";
+
+    if (!rows.length) {
+      root.innerHTML = '<div class="empty">No appointments match this filter.<br>Try clearing the search or selecting “All”.</div>';
+      return;
+    }
+
+    let html = "";
+    let lastHour = null;
+    let nowPlaced = false;
+    const hourCount = {};
+
+    rows.forEach(a => { const h = a.time.slice(0, 2); hourCount[h] = (hourCount[h] || 0) + 1; });
+
+    rows.forEach(a => {
+      const mins = toMins(a.time);
+      const h = a.time.slice(0, 2);
+
+      if (!nowPlaced && mins > nowMins) {
+        html += '<div class="now-line"><span class="now-tag"><span class="live"></span>NOW ' + fmt(nowMins) + '</span><span class="rule"></span></div>';
+        nowPlaced = true;
+      }
+
+      if (h !== lastHour) {
+        html += '<div class="hour"><span class="h-time mono">' + h + ':00</span><span class="h-line"></span><span class="h-count">' +
+                hourCount[h] + ' appt' + (hourCount[h] > 1 ? 's' : '') + '</span></div>';
+        lastHour = h;
+      }
+
+      const st = STATUS[a.status];
+      html += '' +
+      '<div class="appt" data-status="' + a.status + '" data-mins="' + mins + '" style="--st-color:' + st.color + '">' +
+        '<div class="appt-time"><span class="t mono">' + a.time + '</span><span class="d">' + a.dur + ' min</span></div>' +
+        '<div class="who">' +
+          '<div class="avatar" style="--av:' + avColor(a.patient) + '">' + initials(a.patient) + '</div>' +
+          '<div style="min-width:0">' +
+            '<div class="who-name">' + a.patient + '</div>' +
+            '<div class="who-meta">' + a.type + '<span class="dot">·</span>' + a.provider + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="appt-room"><span class="chip-room">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21V6.5A2.5 2.5 0 0 1 6.5 4H20v17"/><path d="M4 21h16"/></svg>' +
+          a.room + '</span></div>' +
+        '<div class="appt-status"><span class="status ' + st.cls + '"><span class="sdot"></span>' + st.label + '</span></div>' +
+        '<div class="appt-actions">' +
+          '<button class="mini-btn" title="Open chart" data-open="' + a.patient + '">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M18 14v5a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 19V7.8A1.8 1.8 0 0 1 5.8 6H11"/></svg>' +
+          '</button>' +
+          '<button class="mini-btn" title="More" data-more="' + a.patient + '">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    });
+
+    if (!nowPlaced) {
+      html += '<div class="now-line"><span class="now-tag"><span class="live"></span>NOW ' + fmt(nowMins) + '</span><span class="rule"></span></div>';
+    }
+
+    root.innerHTML = html;
+  }
+
+  /* ---------------- Rooms ---------------- */
+  function renderRooms() {
+    const root = $("#rooms");
+    root.innerHTML = rooms.map(r => {
+      const stateCls = r.state === "In use" ? "st-in-session"
+        : r.state === "Turnover" ? "st-checked-in"
+        : r.state === "Reserved" ? "st-cancelled" : "st-completed";
+      return '' +
+      '<div class="room" style="--room-color:' + r.color + '">' +
+        '<div>' +
+          '<div class="room-name">' + r.name +
+            '<span class="status ' + stateCls + '" style="padding:2px 8px;font-size:10px"><span class="sdot' + (r.state === "In use" ? ' live-dot on' : '') + '"></span>' + r.state + '</span>' +
+          '</div>' +
+          '<div class="room-type">' + r.type + '</div>' +
+          '<div class="room-who">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>' +
+            r.who + '</div>' +
+        '</div>' +
+        '<div class="room-bar">' +
+          '<div class="track"><div class="fill" style="width:' + r.pct + '%"></div></div>' +
+          '<div class="cap">' + r.next + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  /* ---------------- Hourly load ---------------- */
+  function renderLoad() {
+    const hours = ["08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18"];
+    const counts = [2, 3, 4, 3, 0, 3, 3, 3, 3, 2, 1];
+    const max = Math.max.apply(null, counts) || 1;
+    const nowHour = Math.floor(currentMins() / 60);
+    $("#loadBars").innerHTML = hours.map((h, i) => {
+      const height = Math.round((counts[i] / max) * 100);
+      const isNow = parseInt(h, 10) === nowHour;
+      return '<div class="bar' + (isNow ? ' now' : '') + '">' +
+        '<div class="stem" style="height:' + Math.max(height, 8) + '%"></div>' +
+        '<div class="lab">' + h + '</div></div>';
+    }).join("");
+  }
+
+  /* ---------------- No-shows ---------------- */
+  function renderNoShows() {
+    $("#noshow").innerHTML = noShows.map(n => '' +
+      '<div class="ns">' +
+        '<div class="avatar round" style="--av:' + avColor(n.name) + '">' + n.initials + '</div>' +
+        '<div style="min-width:0">' +
+          '<div class="ns-name">' + n.name + '</div>' +
+          '<div class="ns-meta"><span class="mono">' + n.time + '</span> · ' + n.provider + '</div>' +
+          '<div style="margin-top:5px"><span class="tag ' + n.tag + '">' + n.reason + '</span></div>' +
+        '</div>' +
+        '<div class="ns-actions">' +
+          '<button class="mini-btn" title="Call patient" data-call="' + n.name + '">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h3l2 5-2.2 1.4a12.5 12.5 0 0 0 5.8 5.8L15 14l5 2v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 3 6.2 2 2 0 0 1 5 4z"/></svg>' +
+          '</button>' +
+          '<button class="mini-btn" title="Reschedule" data-resched="' + n.name + '">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>').join("");
+  }
+
+  /* ---------------- Providers + waiting ---------------- */
+  function renderProviders() {
+    $("#providers").innerHTML = providers.map(p => {
+      const pct = Math.round((p.booked / p.cap) * 100);
+      return '' +
+      '<div class="prov">' +
+        '<div>' +
+          '<div class="prov-name"><span class="avatar round" style="width:23px;height:23px;font-size:9.5px;--av:' + avColor(p.name) + '">' + initials(p.name) + '</span>' + p.name + '</div>' +
+          '<div class="prov-meta">' + p.meta + '</div>' +
+        '</div>' +
+        '<div><div class="load-track"><div class="load-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + p.color + ',#7fc0b8)"></div></div></div>' +
+        '<div class="load-num mono">' + pct + '%<span>' + p.booked + '/' + p.cap + '</span></div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function renderWaiting() {
+    $("#waiting").innerHTML = waiting.map(w => {
+      const color = w.mins > 15 ? "#c02626" : w.mins > 10 ? "#b4610b" : "#17803d";
+      return '' +
+      '<div class="wait-row">' +
+        '<div class="avatar round" style="--av:' + avColor(w.name) + '">' + initials(w.name) + '</div>' +
+        '<div class="wait-who">' +
+          '<div class="wait-name">' + w.name + '</div>' +
+          '<div class="wait-meta">' + w.meta + '</div>' +
+        '</div>' +
+        '<div class="wait-time"><div class="v mono" style="color:' + color + '">' + w.mins + 'm</div><div class="l">waiting</div></div>' +
+      '</div>';
+    }).join("");
+  }
+
+  /* ---------------- Events ---------------- */
+  $("#filters").addEventListener("click", e => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    $$(".chip", $("#filters")).forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.filter;
+    renderSchedule();
+  });
+
+  $("#search").addEventListener("input", e => {
+    query = e.target.value.trim().toLowerCase();
+    renderSchedule();
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && document.activeElement !== $("#search")) {
+      e.preventDefault();
+      $("#search").focus();
+    }
+    if (e.key === "Escape") $("#search").blur();
+  });
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-toast]");
+    if (t) { toast(t.dataset.toast); return; }
+
+    const open = e.target.closest("[data-open]");
+    if (open) { toast("Opening chart for " + open.dataset.open); return; }
+
+    const more = e.target.closest("[data-more]");
+    if (more) { toast("Actions menu · " + more.dataset.more); return; }
+
+    const call = e.target.closest("[data-call]");
+    if (call) { toast("Calling " + call.dataset.call + "…"); return; }
+
+    const rs = e.target.closest("[data-resched]");
+    if (rs) { toast("Reschedule flow started for " + rs.dataset.resched); return; }
+
+    const nav = e.target.closest("[data-nav]");
+    if (nav) {
+      e.preventDefault();
+      $$("[data-nav]").forEach(a => a.classList.remove("active"));
+      nav.classList.add("active");
+      toast(nav.textContent.trim().replace(/\s+\d+$/, "") + " view selected");
+    }
+
+    const row = e.target.closest(".appt");
+    if (row && !e.target.closest("button")) {
+      const name = row.querySelector(".who-name").textContent;
+      toast("Selected appointment · " + name);
+    }
+  });
+
+  /* Dialog */
+  const dlg = $("#apptDialog");
+  $("#openDialog").addEventListener("click", () => {
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  });
+  $("#closeDialog").addEventListener("click", () => dlg.close());
+  $("#cancelDialog").addEventListener("click", () => dlg.close());
+  $("#apptForm").addEventListener("submit", () => {
+    const name = $("#f-patient").value.trim() || "New patient";
+    toast("Appointment booked for " + name + " at " + $("#f-time").value);
+  });
+
+  /* ---------------- Boot ---------------- */
+  tick();
+  renderSchedule();
+  renderRooms();
+  renderLoad();
+  renderNoShows();
+  renderProviders();
+  renderWaiting();
+
+  setInterval(() => {
+    tick();
+    renderSchedule();
+    renderLoad();
+  }, 30000);
+})();
+</script>
+</body>
+</html>

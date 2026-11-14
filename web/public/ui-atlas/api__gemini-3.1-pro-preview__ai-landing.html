@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murmur | AI-Powered Note Taking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #080b12;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --secondary: #ec4899;
+            --card-bg: rgba(30, 41, 59, 0.5);
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Utility Classes */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Navigation */
+        nav {
+            padding: 24px 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-icon {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            padding: 160px 0 100px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Background glow effect */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(8, 11, 18, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+        }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 480px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .email-input {
+            padding: 14px 20px;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            font-size: 1rem;
+            width: 300px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .email-input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Abstract UI Mockup */
+        .hero-visual {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mockup-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            width: 90%;
+            height: 80%;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .mockup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        .mockup-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .recording-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+        }
+
+        .mockup-body .line {
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .mockup-body .line:nth-child(1) { width: 80%; }
+        .mockup-body .line:nth-child(2) { width: 95%; }
+        .mockup-body .line:nth-child(3) { width: 60%; }
+
+        .mockup-ai-summary {
+            margin-top: 32px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .ai-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .decorative-blob {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            z-index: 1;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px 32px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Social Proof */
+        .testimonial {
+            padding: 80px 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .quote {
+            font-size: 1.75rem;
+            font-weight: 500;
+            font-style: italic;
+            max-width: 800px;
+            margin: 0 auto 32px;
+            line-height: 1.4;
+        }
+
+        .author {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .author-info h4 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .author-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Bottom CTA */
+        .cta-bottom {
+            padding: 120px 0;
+            text-align: center;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 32px;
+            padding: 80px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-box h2 {
+            font-size: 3rem;
+            margin-bottom: 24px;
+        }
+
+        .cta-box p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-main);
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+            }
+            .hero-content p {
+                margin: 0 auto 40px;
+            }
+            .hero-cta {
+                justify-content: center;
+            }
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none; /* Simplification for single file */
+            }
+            .hero-content h1 {
+                font-size: 3rem;
+            }
+            .hero-cta {
+                flex-direction: column;
+            }
+            .email-input {
+                width: 100%;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .quote {
+                font-size: 1.25rem;
+            }
+            .cta-box h2 {
+                font-size: 2rem;
+            }
+            .footer-container {
+                flex-direction: column;
+                gap: 24px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-microphone-lines logo-icon"></i>
+                Murmur
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#" class="btn btn-outline" style="padding: 8px 20px;">Log in</a>
+                <a href="#" class="btn btn-primary" style="padding: 8px 20px;">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container hero-grid">
+            <div class="hero-content">
+                <h1>Turn your thoughts into <span class="gradient-text">perfect notes</span>.</h1>
+                <p>Speak naturally. Murmur uses advanced AI to instantly transcribe, summarize, and organize your ideas into structured intelligence.</p>
+                <div class="hero-cta">
+                    <input type="email" class="email-input" placeholder="Enter your email address">
+                    <button class="btn btn-primary">Start Murmuring Free</button>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="decorative-blob"></div>
+                <div class="mockup-card">
+                    <div class="mockup-header">
+                        <div class="mockup-title">
+                            <div class="recording-indicator"></div>
+                            <span>Recording "Product Ideas"...</span>
+                        </div>
+                        <i class="fa-solid fa-ellipsis" style="color: var(--text-muted)"></i>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line" style="width: 40%"></div>
+                        
+                        <div class="mockup-ai-summary">
+                            <div class="ai-label">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI Summary Generated
+                            </div>
+                            <div class="line" style="background: rgba(255,255,255,0.2); width: 100%; height: 8px;"></div>
+                            <div class="line" style="background: rgba(255,255,255,0.2); width: 85%; height: 8px;"></div>
+                            <div class="line" style="background: rgba(255,255,255,0.2); width: 70%; height: 8px;"></div>
+                            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                                <span style="background: rgba(139, 92, 246, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; color: #d8b4fe;">#roadmap</span>
+                                <span style="background: rgba(236, 72, 153, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; color: #f9a8d4;">#Q3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features container">
+        <div class="section-header">
+            <h2>Your AI second brain</h2>
+            <p>Stop typing and start speaking. Murmur handles the heavy lifting of organization so you can focus on creating.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <h3>Flawless Transcription</h3>
+                <p>Industry-leading voice recognition understands context, accents, and industry jargon with near-perfect accuracy.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3>Auto-Summarization</h3>
+                <p>Rambled for 20 minutes? Murmur extracts the key takeaways, action items, and decisions instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-folder-tree"></i>
+                </div>
+                <h3>Magic Organization</h3>
+                <p>Notes are automatically tagged, categorized, and linked to related concepts without you lifting a finger.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <h3>Semantic Search</h3>
+                <p>Don't remember the exact words? Search by concept or meaning and Murmur will find the exact thought.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-language"></i>
+                </div>
+                <h3>Multi-Language</h3>
+                <p>Speak in 50+ languages. Murmur translates and transcribes seamlessly in real-time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-share-nodes"></i>
+                </div>
+                <h3>Export Anywhere</h3>
+                <p>Push your polished notes directly to Notion, Obsidian, Slack, or email with a single tap.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonial">
+        <div class="container">
+            <p class="quote">"Murmur changed how I work. I used to lose half my ideas because I couldn't write them down fast enough. Now, I just talk to my phone while walking the dog, and come back to perfectly structured project briefs."</p>
+            <div class="author">
+                <div class="author-avatar">S</div>
+                <div class="author-info">
+                    <h4>Sarah Jenkins</h4>
+                    <p>Product Director at TechFlow</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-bottom container">
+        <div class="cta-box">
+            <h2>Ready to capture brilliance?</h2>
+            <p>Join 50,000+ thinkers who have stopped typing and started Murmuring.</p>
+            <button class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 32px;">Get Started for Free</button>
+            <p style="font-size: 0.85rem; margin-top: 16px; margin-bottom: 0;">No credit card required. Free plan available.</p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-container">
+            <div class="logo" style="font-size: 1.2rem;">
+                <i class="fa-solid fa-microphone-lines logo-icon"></i>
+                Murmur
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Contact</a>
+                <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                <a href="#"><i class="fa-brands fa-github"></i></a>
+            </div>
+            <div class="copyright">
+                &copy; 2023 Murmur AI Inc. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

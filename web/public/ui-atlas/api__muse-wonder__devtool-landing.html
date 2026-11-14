@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tern — Find slow database queries, before your users do</title>
+<meta name="description" content="Tern is a fast command-line tool that finds, explains, and fixes slow database queries in Postgres, MySQL, and SQLite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#070A0E;--bg2:#0B0F14;--panel:#0E141B;--panel2:#111923;--line:#1E2A36;--line2:#263646;
+--text:#E6EDF3;--muted:#8A9BA8;--muted2:#5C6E7E;--teal:#2DD4BF;--teal2:#5EEAD4;--green:#4ADE80;--amber:#FBBF24;--red:#F87171;--orange:#FB923C;--blue:#60A5FA;--purple:#C084FC;
+--radius:18px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden;line-height:1.6}
+a{color:inherit;text-decoration:none}
+::selection{background:#2DD4BF;color:#06231F}
+.mono{font-family:'JetBrains Mono',monospace}
+.topbar{height:3px;background:linear-gradient(90deg,#2DD4BF,#4ADE80,#FBBF24,#2DD4BF);background-size:200% 100%;animation:slide 6s linear infinite}
+@keyframes slide{to{background-position:200% 0}}
+/* NAV */
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);background:rgba(7,10,14,.82);border-bottom:1px solid rgba(255,255,255,.06)}
+.navin{max-width:1180px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{display:flex;align-items:center;gap:11px;font-weight:900;letter-spacing:-.04em;font-size:24px}
+.logomark{width:38px;height:38px;border-radius:10px;background:#0F1D1B;border:1px solid #1E3A35;display:grid;place-items:center;position:relative;overflow:hidden}
+.logomark:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(45,212,191,.45),transparent 60%)}
+.logomark span{position:relative;font-size:20px}
+.logo b{color:var(--teal)}
+.logo small{font-size:10px;letter-spacing:.14em;color:var(--muted);font-weight:700;margin-left:2px;border:1px solid var(--line);padding:3px 7px;border-radius:20px}
+.links{display:flex;gap:28px;color:#A7B6C2;font-size:14.5px;font-weight:600}
+.links a:hover{color:#fff}
+.navbtns{display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:11px;font-weight:700;font-size:14.5px;border:1px solid transparent;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn-primary{background:var(--teal);color:#03211D;box-shadow:0 8px 30px rgba(45,212,191,.25)}
+.btn-primary:hover{background:#5EEAD4;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:#DCE6ED;border-color:var(--line)}
+.btn-ghost:hover{border-color:#3A4E62;background:#0F1620}
+.btn-dark{background:#E6EDF3;color:#0B0F14}
+.github{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:13px}
+/* HERO */
+.hero{position:relative;max-width:1180px;margin:0 auto;padding:72px 24px 30px;text-align:center}
+.hero:before{content:"";position:absolute;left:50%;top:-80px;transform:translateX(-50%);width:900px;height:560px;background:radial-gradient(ellipse at center,rgba(45,212,191,.16) 0%,rgba(74,222,128,.05) 40%,transparent 70%);pointer-events:none}
+.gridbg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:54px 54px;mask-image:radial-gradient(ellipse 70% 50% at 50% 0%,black 30%,transparent 75%);pointer-events:none}
+.hero>*{position:relative}
+.pill{display:inline-flex;gap:8px;align-items:center;background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.22);color:#99F6E4;padding:7px 13px;border-radius:30px;font-size:13px;font-weight:700}
+.pill i{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 0 5px rgba(74,222,128,.15);display:inline-block}
+h1{font-size:clamp(44px,7vw,76px);line-height:.96;letter-spacing:-.055em;font-weight:900;margin:22px auto 20px;max-width:850px}
+h1 em{font-style:normal;color:var(--teal)}
+h1 .strike{position:relative;color:#FBBF24}
+h1 .strike:after{content:"";position:absolute;left:-4px;right:-4px;top:54%;height:5px;background:#F87171;border-radius:99px;transform:rotate(-1deg)}
+.sub{max-width:660px;margin:0 auto;color:#9FB0BE;font-size:18.5px;line-height:1.65}
+.sub b{color:#E6EDF3}
+.herocta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.installbar{max-width:560px;margin:20px auto 0;background:#0C1219;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;overflow:hidden;text-align:left}
+.installbar code{flex:1;padding:13px 16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;color:#CFFAFE;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.installbar code span{color:var(--teal)}
+.copybtn{border:0;border-left:1px solid var(--line);background:#101922;color:#CBD5E1;padding:13px 16px;cursor:pointer;font-weight:700;font-size:13px}
+.copybtn:hover{color:#fff;background:#162231}
+.stats{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-size:13.5px}
+.stats b{color:#fff;font-size:16px}
+.stats div{display:flex;gap:7px;align-items:center}
+.stars{color:var(--amber)}
+/* TERMINAL */
+.termwrap{max-width:960px;margin:48px auto 0;position:relative}
+.termwrap:before{content:"";position:absolute;inset:-1px;border-radius:20px;background:linear-gradient(180deg,rgba(45,212,191,.35),rgba(255,255,255,.08) 30%,transparent);z-index:0}
+.term{position:relative;background:#080D12;border-radius:19px;border:1px solid #1C2835;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);text-align:left}
+.termhead{display:flex;align-items:center;gap:8px;padding:13px 16px;background:#0D141C;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}
+.termhead span{margin-left:8px;color:#7D90A0;font-size:13px;font-family:'JetBrains Mono',monospace}
+.termhead .right{margin-left:auto;display:flex;gap:8px}
+.chip{font-size:11px;letter-spacing:.06em;font-weight:800;padding:4px 8px;border-radius:20px;border:1px solid var(--line);color:#94A8B8}
+.chip.live{color:#86EFAC;border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.07)}
+.termbody{padding:20px 20px 8px;font-family:'JetBrains Mono',monospace;font-size:13.2px;line-height:1.75;min-height:380px}
+.cmd{color:#E6EDF3}.cmd:before{content:"$ ";color:var(--teal);font-weight:800}
+.muted{color:#647A8A}.teal{color:#2DD4BF}.green{color:#4ADE80}.amber{color:#FBBF24}.red{color:#F87171}.blue{color:#7DD3FC}.purple{color:#C084FC}.dim{color:#43566A}
+.queryrow{display:flex;gap:12px;align-items:center;padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.queryrow:hover,.queryrow.active{background:#0F1A22;border-color:#1E3442}
+.badge{font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:20px;white-space:nowrap}
+.b-slow{background:rgba(248,113,113,.13);color:#FCA5A5;border:1px solid rgba(248,113,113,.25)}
+.b-warn{background:rgba(251,191,36,.12);color:#FDE68A;border:1px solid rgba(251,191,36,.25)}
+.bar{height:6px;border-radius:99px;background:#1E2A36;overflow:hidden;flex:1;min-width:70px}
+.bar i{display:block;height:100%;border-radius:99px}
+.termfoot{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px;border-top:1px solid var(--line);background:#0A1118}
+.runbtn{flex:1;min-width:150px;background:#0F1924;border:1px solid var(--line);color:#D6E2EC;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12.5px;text-align:left;transition:.15s}
+.runbtn:hover{border-color:var(--teal);color:#fff}
+.runbtn b{color:var(--teal)}
+.cursor{display:inline-block;width:8px;height:16px;background:var(--teal);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+/* DB STRIP */
+.dbstrip{max-width:1080px;margin:44px auto 0;padding:0 24px;text-align:center}
+.dbstrip p{font-size:12px;letter-spacing:.16em;font-weight:800;color:#5F7284;text-transform:uppercase}
+.dbs{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.db{display:flex;gap:9px;align-items:center;background:#0C121A;border:1px solid var(--line);padding:10px 15px;border-radius:99px;font-weight:700;font-size:14px;color:#C6D3DE}
+.db i{width:9px;height:9px;border-radius:50%}
+/* SECTIONS */
+section{max-width:1180px;margin:0 auto;padding:84px 24px 10px}
+.kicker{color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;font-weight:800;text-transform:uppercase;text-align:center}
+h2{font-size:clamp(32px,4.5vw,48px);letter-spacing:-.04em;line-height:1.05;text-align:center;margin:12px auto 14px;max-width:720px}
+.section-sub{text-align:center;color:var(--muted);max-width:600px;margin:0 auto;font-size:17px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:38px}
+.card{background:linear-gradient(180deg,#0E151E,#0A1017);border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:.2s}
+.card:hover{transform:translateY(-3px);border-color:#2E4356}
+.icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;margin-bottom:16px;border:1px solid}
+.card h3{font-size:18px;letter-spacing:-.02em;margin-bottom:8px}
+.card p{color:var(--muted);font-size:14.5px;line-height:1.65}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:#0B2530;color:#67E8F9;padding:2px 6px;border-radius:6px}
+.meta{margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#5EEAD4}
+/* DEMO */
+.demo{background:#0A1017;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-top:38px;display:grid;grid-template-columns:1.15fr .85fr}
+.demo-left{border-right:1px solid var(--line)}
+.demo-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.demo-head b{font-size:14px}.demo-head span{color:var(--muted);font-size:13px}
+.sortbtns{display:flex;gap:6px}
+.sortbtns button{background:#101A25;border:1px solid var(--line);color:#A9BCCB;padding:6px 10px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:700}
+.sortbtns button.active{background:var(--teal);color:#03211D;border-color:var(--teal)}
+.qitem{padding:16px 18px;border-bottom:1px solid #16202B;cursor:pointer;display:flex;gap:14px;align-items:flex-start}
+.qitem:hover{background:#0E1721}.qitem.sel{background:#0E1E24;border-left:3px solid var(--teal)}
+.qtime{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:15px;min-width:62px;text-align:right}
+.qsql{font-family:'JetBrains Mono',monospace;font-size:12.7px;color:#C7D6E2;line-height:1.55;word-break:break-word}
+.qmeta{color:#6B8296;font-size:12px;margin-top:5px;font-family:'JetBrains Mono',monospace}
+.demo-right{padding:20px;background:#0C141E}
+.demo-right h4{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#7E96A9;margin-bottom:12px}
+.plan{background:#070C11;border:1px solid #1A2836;border-radius:12px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:#A9C0D2;white-space:pre-wrap;min-height:148px}
+.fix{margin-top:14px;background:rgba(45,212,191,.07);border:1px solid rgba(45,212,191,.22);border-radius:12px;padding:14px}
+.fix b{color:#5EEAD4;font-size:13px}.fix code{display:block;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12.2px;color:#D1FAE5;background:#071512;padding:10px;border-radius:8px;overflow:auto}
+.gain{display:flex;align-items:center;gap:12px;margin-top:14px}
+.gain .old{color:#F87171;font-weight:800}.gain .arrow{color:var(--muted)}.gain .new{color:#4ADE80;font-weight:800;font-size:18px}
+.gain small{color:var(--muted)}
+.apply{width:100%;margin-top:14px}
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.step{padding:22px;border-radius:16px;background:#0B1119;border:1px dashed #243447;position:relative}
+.stepnum{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:800;color:#152635;line-height:1}
+.step h3{margin:8px 0 6px}.step p{color:var(--muted);font-size:14.5px}
+.codebox{margin-top:14px;background:#060B0F;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12.3px;color:#A5F3FC;overflow:auto;white-space:nowrap}
+/* BENCH */
+.bench{margin-top:36px;background:#0A1017;border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.benchrow{margin-bottom:16px}.benchrow label{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:7px}.benchrow label b{font-family:'JetBrains Mono',monospace}
+.track{height:10px;background:#162231;border-radius:99px;overflow:hidden}.track i{display:block;height:100%;border-radius:99px}
+.quote{font-size:19px;line-height:1.6;letter-spacing:-.01em}
+.quote b{color:var(--teal)} .person{display:flex;gap:12px;align-items:center;margin-top:18px}
+.avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#08110E}
+.person small{display:block;color:var(--muted)}
+/* INSTALL + PRICING */
+.tabs{display:flex;gap:8px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:#0C141E;color:#B8C9D6;cursor:pointer;font-weight:700;font-size:14px}
+.tab.active{background:#E6EDF3;color:#0A0F14;border-color:#E6EDF3}
+.installbox{max-width:720px;margin:18px auto 0;background:#080D12;border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;gap:12px;align-items:center}
+.installbox code{flex:1;font-family:'JetBrains Mono',monospace;font-size:13.5px;color:#CFFAFE;overflow:auto;white-space:nowrap}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;align-items:stretch}
+.price{padding:26px}
+.price.pop{border-color:rgba(45,212,191,.5);background:linear-gradient(180deg,#0E2220,#0A141B);position:relative}
+.popbadge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--teal);color:#03211D;font-size:11px;font-weight:900;letter-spacing:.08em;padding:5px 10px;border-radius:99px}
+.amount{font-size:42px;font-weight:900;letter-spacing:-.04em;margin:10px 0}.amount span{font-size:15px;color:var(--muted);font-weight:600}
+.price ul{list-style:none;margin:18px 0 22px;display:grid;gap:10px;color:#B9C9D6;font-size:14.5px}
+.price li:before{content:"✓ ";color:var(--teal);font-weight:900}
+.price .btn{width:100%}
+/* FAQ */
+.faq{max-width:760px;margin:32px auto 0}
+.faqitem{border:1px solid var(--line);border-radius:13px;margin-bottom:10px;background:#0B1119;overflow:hidden}
+.faqq{width:100%;text-align:left;background:none;border:0;color:#E6EDF3;padding:17px 18px;font-weight:700;font-size:15.5px;cursor:pointer;display:flex;justify-content:space-between;gap:16px}
+.faqa{max-height:0;overflow:hidden;transition:.3s;color:var(--muted);font-size:14.5px}
+.faqa div{padding:0 18px 17px}
+.faqitem.open .faqa{max-height:180px}.faqitem.open .plus{transform:rotate(45deg);color:var(--teal)}.plus{transition:.2s;color:var(--muted)}
+/* CTA FOOTER */
+.cta{margin:84px auto 0;max-width:1180px;padding:0 24px}
+.ctain{background:radial-gradient(600px 300px at 50% 0%,rgba(45,212,191,.22),transparent),#0C1716;border:1px solid rgba(45,212,191,.25);border-radius:24px;padding:52px 24px;text-align:center}
+.ctain h2{margin-top:0}.ctain p{color:#9AB8B2;max-width:520px;margin:0 auto}
+footer{max-width:1180px;margin:0 auto;padding:42px 24px 36px;border-top:1px solid var(--line);margin-top:60px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#6E8496;font-size:13.5px}
+footer b{color:#DCE6ED}
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,80px);background:#E6EDF3;color:#0A0F14;padding:11px 16px;border-radius:99px;font-weight:800;font-size:14px;box-shadow:0 16px 40px rgba(0,0,0,.4);transition:.3s;z-index:99}
+.toast.show{transform:translate(-50%,0)}
+@media(max-width:860px){.links{display:none}.grid3,.steps,.pricing{grid-template-columns:1fr}.demo{grid-template-columns:1fr}.demo-left{border-right:0;border-bottom:1px solid var(--line)}.bench{grid-template-columns:1fr}.termbody{font-size:12px;min-height:420px}.navbtns .btn-ghost{display:none}h1{font-size:46px}}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+
+<nav><div class="navin">
+  <a class="logo" href="#"><div class="logomark"><span>🦤</span></div>tern<b>.</b><small>v2.4</small></a>
+  <div class="links"><a href="#features">Features</a><a href="#demo">Live demo</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
+  <div class="navbtns">
+    <a class="btn btn-ghost github" href="#install">★ 18.2k&nbsp; GitHub</a>
+    <a class="btn btn-primary" href="#install">Install Tern →</a>
+  </div>
+</div></nav>
+
+<header class="hero">
+  <div class="gridbg"></div>
+  <div class="pill"><i></i> NEW &nbsp;·&nbsp; Tern 2.4 — N+1 detection is here</div>
+  <h1>Find <em>slow queries</em><br>before they become<br><span class="strike">3 a.m. pages.</span></h1>
+  <p class="sub">Tern watches your database from the terminal, surfaces the queries actually hurting you, explains <b>why</b> they're slow, and tells you the exact index to add. <b>No dashboard. No agent. One command.</b></p>
+  <div class="herocta">
+    <a href="#demo" class="btn btn-primary" style="padding:14px 22px;font-size:15px">▸ &nbsp;See it catch a slow query</a>
+    <a href="#how" class="btn btn-ghost" style="padding:14px 22px;font-size:15px">Read the docs ↗</a>
+  </div>
+  <div class="installbar">
+    <code><span>$</span> brew install tern &nbsp;<span style="color:#5C6E7E"># or curl -fsSL tern.sh | sh</span></code>
+    <button class="copybtn" onclick="copyText('brew install tern',this)">Copy</button>
+  </div>
+  <div class="stats">
+    <div><b>18,204</b> <span class="stars">★</span> on GitHub</div>
+    <div><b>~14 MB</b> single binary</div>
+    <div><b>&lt; 40ms</b> overhead</div>
+    <div><b>MIT</b> open source</div>
+  </div>
+
+  <!-- TERMINAL -->
+  <div class="termwrap"><div class="term">
+    <div class="termhead"><span class="dot" style="background:#F87171"></span><span class="dot" style="background:#FBBF24"></span><span class="dot" style="background:#4ADE80"></span><span>tern — ~/acme-api — zsh</span><div class="right"><span class="chip">postgres 16</span><span class="chip live">● LIVE</span></div></div>
+    <div class="termbody" id="terminal"></div>
+    <div class="termfoot">
+      <button class="runbtn" onclick="runDemo('scan')"><b>▸ tern scan</b><br><span class="muted">rank slow queries</span></button>
+      <button class="runbtn" onclick="runDemo('explain')"><b>▸ tern explain #1</b><br><span class="muted">why is it slow?</span></button>
+      <button class="runbtn" onclick="runDemo('fix')"><b>▸ tern fix #1</b><br><span class="muted">suggest an index</span></button>
+      <button class="runbtn" onclick="runDemo('n1')"><b>▸ tern watch</b><br><span class="muted">catch N+1s live</span></button>
+    </div>
+  </div></div>
+
+  <div class="dbstrip">
+    <p>Works with the databases you already run</p>
+    <div class="dbs">
+      <span class="db"><i style="background:#60A5FA"></i>PostgreSQL</span>
+      <span class="db"><i style="background:#FB923C"></i>MySQL</span>
+      <span class="db"><i style="background:#A78BFA"></i>SQLite</span>
+      <span class="db"><i style="background:#4ADE80"></i>MariaDB</span>
+      <span class="db"><i style="background:#F87171"></i>CockroachDB</span>
+      <span class="db"><i style="background:#FBBF24"></i>PlanetScale</span>
+    </div>
+  </div>
+</header>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="kicker">// Why Tern</div>
+  <h2>Your APM shows symptoms.<br>Tern shows the query.</h2>
+  <p class="section-sub">Most tools tell you p95 went up. Tern tells you which query, which line of code, and which index fixes it.</p>
+  <div class="grid3">
+    <div class="card"><div class="icon" style="background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.25)">🐢</div><h3>Slow-query ranking that matters</h3><p>Ranked by <code>total impact = time × calls</code>, not just worst single run. The 80ms query called 40k times finally outranks the 2s report.</p><div class="meta">→ tern scan --sort impact</div></div>
+    <div class="card"><div class="icon" style="background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.25)">🔍</div><h3>Plain-English EXPLAIN</h3><p>Seq Scans, Hash Joins and “rows removed by filter” translated into a sentence you can act on — plus the plan diff after you fix it.</p><div class="meta">→ Seq Scan → Index Scan in 1 step</div></div>
+    <div class="card"><div class="icon" style="background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.25)">⚡</div><h3>Index suggestions, verified</h3><p>Tern doesn't guess. It creates the index hypothetically, re-plans the query, and only suggests it if the cost actually drops.</p><div class="meta">→ avg. 23× speedup on suggested fixes</div></div>
+    <div class="card"><div class="icon" style="background:rgba(192,132,252,.1);border-color:rgba(192,132,252,.25)">🪺</div><h3>N+1 detection</h3><p><code>tern watch</code> groups near-identical queries fired in a burst and points at the loop in your app that caused them.</p><div class="meta">→ NEW in 2.4</div></div>
+    <div class="card"><div class="icon" style="background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25)">⌨️</div><h3>Built for CI, not just humans</h3><p>Fail the build when a new query exceeds your budget. JSON, SARIF and GitHub annotations out of the box. Zero config to start.</p><div class="meta">→ tern scan --fail-over 500ms</div></div>
+    <div class="card"><div class="icon" style="background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)">🔒</div><h3>Read-only &amp; local-first</h3><p>Connects read-only, never stores query literals with secrets, and runs entirely on your machine. SOC 2-friendly by design.</p><div class="meta">→ no agent · no phone-home</div></div>
+  </div>
+</section>
+
+<!-- LIVE DEMO -->
+<section id="demo">
+  <div class="kicker">// Interactive demo — click a query</div>
+  <h2>This is what Tern found in<br>a real production log.</h2>
+  <p class="section-sub">Sample data from an anonymised e-commerce Postgres. Click any query to see its plan and fix.</p>
+
+  <div class="demo">
+    <div class="demo-left">
+      <div class="demo-head"><div><b>Slow queries</b> &nbsp;<span>last 24h · 1.2M queries analysed</span></div>
+        <div class="sortbtns"><button class="active" onclick="sortQ('impact',this)">Impact</button><button onclick="sortQ('time',this)">Slowest</button><button onclick="sortQ('calls',this)">Most called</button></div>
+      </div>
+      <div id="qlist"></div>
+      <div style="padding:13px 18px;color:#5C6E7E;font-size:12.5px;font-family:'JetBrains Mono',monospace">3 queries account for <span style="color:#FBBF24">71% of total DB time</span> — fixing #1 alone saves ~41 min/day</div>
+    </div>
+    <div class="demo-right">
+      <h4>◆ Explain — query <span id="d-id" style="color:#2DD4BF">#1</span></h4>
+      <div class="plan" id="d-plan"></div>
+      <div class="fix"><b>✦ Tern suggestion</b><code id="d-fix"></code><div style="color:#8A9BA8;font-size:13px;margin-top:8px" id="d-why"></div></div>
+      <div class="gain"><span class="old" id="d-old">2,384ms</span><span class="arrow">——→</span><span class="new" id="d-new">18ms</span><small id="d-gain">132× faster</small></div>
+      <button class="btn btn-primary apply" onclick="toast('✓ Index applied in demo — 2,384ms → 18ms')">Apply fix &amp; re-check →</button>
+      <button class="btn btn-ghost apply" style="margin-top:8px" onclick="copyText(document.getElementById('d-fix').innerText,this)">Copy migration</button>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="kicker">// How it works</div>
+  <h2>From install to first fix<br>in about 90 seconds.</h2>
+  <div class="steps">
+    <div class="step"><div class="stepnum">01</div><h3>Connect read-only</h3><p>Point Tern at any connection string. It enables <code style="font-family:'JetBrains Mono',monospace;color:#67E8F9">pg_stat_statements</code> if needed — nothing to deploy.</p><div class="codebox">$ tern connect $DATABASE_URL<br><span style="color:#4ADE80">✓ connected · 214 tables · read-only</span></div></div>
+    <div class="step"><div class="stepnum">02</div><h3>Scan &amp; explain</h3><p>Tern ranks queries by impact, runs safe <code style="font-family:'JetBrains Mono',monospace;color:#67E8F9">EXPLAIN</code> plans, and flags seq scans, N+1s and missing indexes.</p><div class="codebox">$ tern scan --since 24h<br><span style="color:#FBBF24">⚠ 3 slow · 1 N+1 · 2 missing indexes</span></div></div>
+    <div class="step"><div class="stepnum">03</div><h3>Fix &amp; verify</h3><p>Apply the suggested migration, then Tern re-runs the plan and confirms the speedup — in terminal or in CI.</p><div class="codebox">$ tern fix #1 --apply<br><span style="color:#4ADE80">✓ 2,384ms → 18ms · plan verified</span></div></div>
+  </div>
+
+  <div class="bench">
+    <div>
+      <h3 style="font-size:20px;letter-spacing:-.02em;margin-bottom:6px">Where your DB time actually goes</h3>
+      <p style="color:var(--muted);font-size:14.5px;margin-bottom:20px">Before Tern, on the demo database:</p>
+      <div class="benchrow"><label><span>orders lookup (no index)</span><b style="color:#F87171">2,384ms</b></label><div class="track"><i style="width:92%;background:#F87171"></i></div></div>
+      <div class="benchrow"><label><span>N+1: line_items per order</span><b style="color:#FB923C">847ms avg burst</b></label><div class="track"><i style="width:58%;background:#FB923C"></i></div></div>
+      <div class="benchrow"><label><span>users by lower(email)</span><b style="color:#FBBF24">612ms</b></label><div class="track"><i style="width:38%;background:#FBBF24"></i></div></div>
+      <div class="benchrow"><label><span>everything else (1.19M queries)</span><b style="color:#4ADE80">29% of time</b></label><div class="track"><i style="width:29%;background:#2DD4BF"></i></div></div>
+      <p style="font-size:13px;color:#5C6E7E;font-family:'JetBrains Mono',monospace;margin-top:8px">After fixing #1 + #2: p95 latency 1.9s → 210ms</p>
+    </div>
+    <div>
+      <div style="font-size:28px;color:var(--teal)">★★★★★</div>
+      <p class="quote" style="margin-top:12px">“We'd stared at Datadog for a week. Tern found the missing index in <b>40 seconds</b> — and the migration it wrote is the one we'd have written, eventually.”</p>
+      <div class="person"><div class="avatar" style="background:#FDE68A">MK</div><div><b>Maya K.</b><small>Staff Engineer, Northwind — 40M orders/day</small></div></div>
+      <div class="person"><div class="avatar" style="background:#A7F3D0">JO</div><div><b>Jonas O.</b><small>CTO, Fieldset</small></div></div>
+      <p style="color:var(--muted);font-size:14.5px;margin-top:6px">“It's now the first thing we run on every new service. The CI gate alone has saved us twice.”</p>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="kicker">// Install</div>
+  <h2>One binary. No runtime.</h2>
+  <p class="section-sub">macOS, Linux and Windows. No Node, no Python, no Docker required.</p>
+  <div class="tabs">
+    <button class="tab active" onclick="setInstall(this,'brew install tern')">🍺 Homebrew</button>
+    <button class="tab" onclick="setInstall(this,'curl -fsSL https://tern.sh/install | sh')">curl</button>
+    <button class="tab" onclick="setInstall(this,'npm i -g @tern/cli &nbsp;# or npx tern scan')">npm</button>
+    <button class="tab" onclick="setInstall(this,'docker run --rm ghcr.io/tern/tern scan $DATABASE_URL')">Docker</button>
+    <button class="tab" onclick="setInstall(this,'scoop install tern')">Windows</button>
+  </div>
+  <div class="installbox"><code id="installCmd">brew install tern</code><button class="copybtn" style="border:1px solid var(--line);border-radius:9px" onclick="copyText(document.getElementById('installCmd').innerText,this)">Copy</button></div>
+  <p style="text-align:center;color:#5C6E7E;font-size:13.5px;margin-top:14px;font-family:'JetBrains Mono',monospace">then: &nbsp;<span style="color:#5EEAD4">tern connect $DATABASE_URL &amp;&amp; tern scan</span></p>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="kicker">// Pricing</div>
+  <h2>Free for the terminal.<br>Fair for teams.</h2>
+  <div class="pricing">
+    <div class="card price"><h3>Open Source</h3><div class="amount">$0 <span>/ forever</span></div><p style="color:var(--muted);font-size:14.5px">Everything you need on one machine.</p><ul><li>Unlimited local scans</li><li>EXPLAIN + index suggestions</li><li>N+1 detection</li><li>CI mode (JSON / SARIF)</li><li>Postgres, MySQL, SQLite</li></ul><a href="#install" class="btn btn-ghost">Install free →</a></div>
+    <div class="card price pop"><div class="popbadge">MOST POPULAR</div><h3>Team</h3><div class="amount">$12 <span>/ dev / mo</span></div><p style="color:#9AB8B2;font-size:14.5px">Shared history, budgets and alerts.</p><ul><li>Everything in OSS</li><li>Shared scan history &amp; trends</li><li>Slack alerts on new slow queries</li><li>Query budgets per service</li><li>SSO &amp; audit log</li></ul><button class="btn btn-primary" onclick="toast('✓ Team trial started — check your inbox')">Start 14-day trial →</button></div>
+    <div class="card price"><h3>Enterprise</h3><div class="amount">Custom</div><p style="color:var(--muted);font-size:14.5px">For regulated &amp; large fleets.</p><ul><li>Everything in Team</li><li>Self-hosted / VPC</li><li>Custom data retention</li><li>Dedicated support &amp; SLA</li><li>Security review support</li></ul><button class="btn btn-ghost" onclick="toast('→ Our team will reply within 1 business day')">Talk to sales →</button></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="kicker">// FAQ</div><h2>Questions, answered.</h2>
+  <div class="faq" id="faqList">
+    <div class="faqitem"><button class="faqq" onclick="toggleFaq(this)">Is Tern safe to run against production? <span class="plus">+</span></button><div class="faqa"><div>Yes. Tern connects read-only, uses <code>EXPLAIN</code> (never <code>EXPLAIN ANALYZE</code> on prod unless you pass <code>--analyze</code>), sets a statement timeout, and never writes without explicit <code>--apply</code> confirmation.</div></div></div>
+    <div class="faqitem"><button class="faqq" onclick="toggleFaq(this)">How is this different from pgBadger or APM tools? <span class="plus">+</span></button><div class="faqa"><div>Log analysers show you history; APMs show you symptoms. Tern closes the loop: it ranks by impact, explains the plan in plain English, proposes a verified index, and can gate CI so the slow query never ships again.</div></div></div>
+    <div class="faqitem"><button class="faqq" onclick="toggleFaq(this)">Does it send my queries anywhere? <span class="plus">+</span></button><div class="faqa"><div>No. The open-source CLI runs 100% locally and makes no network calls except to your database. Query literals are redacted by default. Team features are opt-in.</div></div></div>
+    <div class="faqitem"><button class="faqq" onclick="toggleFaq(this)">Which databases and ORMs are supported? <span class="plus">+</span></button><div class="faqa"><div>Postgres 12+, MySQL 8 / MariaDB, SQLite and CockroachDB. Tern works at the database level, so it works with Rails, Django, Prisma, SQLAlchemy, raw SQL — anything.</div></div></div>
+    <div class="faqitem"><button class="faqq" onclick="toggleFaq(this)">Can I use it in CI? <span class="plus">+</span></button><div class="faqa"><div>That's one of its best uses: <code>tern scan --fail-over 500ms --format sarif</code> fails the build and annotates the PR when a migration or code change introduces a slow query.</div></div></div>
+  </div>
+</section>
+
+<div class="cta"><div class="ctain">
+  <div style="font-size:34px">🦤</div>
+  <h2>Your slowest query is<br>already in production.</h2>
+  <p>Find it in the next 90 seconds. Free, open source, and read-only by default.</p>
+  <div class="installbar" style="margin-top:24px"><code><span>$</span> brew install tern && tern scan</code><button class="copybtn" onclick="copyText('brew install tern && tern scan',this)">Copy</button></div>
+  <p style="font-size:13px;margin-top:14px;color:#6B8F88">No signup · No agent · MIT licensed</p>
+</div></div>
+
+<footer>
+  <div><b>tern.</b> &nbsp;Find slow queries, fast.<br><span style="color:#43566A">© 2026 Tern Labs, Inc. — MIT License</span></div>
+  <div style="display:flex;gap:22px;flex-wrap:wrap"><a href="#features">Features</a><a href="#demo">Demo</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="#install">GitHub ↗</a><a href="#install">Docs ↗</a></div>
+  <div class="mono" style="color:#3A4E62">$ tern --version<br><span style="color:#5EEAD4">tern 2.4.1</span></div>
+</footer>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+const queries=[
+{id:1,time:2384,calls:1842,sql:"SELECT * FROM orders WHERE user_id = $1 AND status = 'pending' ORDER BY created_at DESC",src:"api/orders.ts:84 · OrdersController#index",plan:"Seq Scan on orders  (cost=0.00..18492.11 rows=12)\n  Filter: ((user_id = $1) AND (status='pending'))\n  Rows Removed by Filter: 1,204,881\n  Sort: created_at DESC  (quicksort, 18ms)\n→ Scanning 1.2M rows to return 12.",fix:"CREATE INDEX CONCURRENTLY idx_orders_user_status_created\n  ON orders (user_id, status, created_at DESC);",why:"Covers the filter + sort in one index. No table scan, no separate sort step.",old:"2,384ms",newT:"18ms",gain:"132× faster"},
+{id:2,time:847,calls:31204,sql:"SELECT * FROM line_items WHERE order_id = $1  — repeated 48× per request (N+1)",src:"api/orders.ts:91 · loop over orders",plan:"Index Scan on line_items (per call: 17ms)\n  × 48 calls inside one request\n  Total burst: 847ms · 48 round-trips\n→ Classic N+1. Detected by tern watch.",fix:"-- Eager-load instead of looping:\nSELECT * FROM line_items\n WHERE order_id = ANY($1::bigint[]);",why:"One query with ANY() replaces 48 round-trips. Or use your ORM's preload / include.",old:"847ms",newT:"22ms",gain:"38× faster"},
+{id:3,time:612,calls:9210,sql:"SELECT * FROM users WHERE lower(email) = lower($1)",src:"auth/session.ts:31 · findUserByEmail",plan:"Seq Scan on users  (cost=0.00..9214.02 rows=1)\n  Filter: (lower(email) = lower($1))\n  Rows Removed by Filter: 842,119\n→ Function on the column defeats the email index.",fix:"CREATE INDEX CONCURRENTLY idx_users_lower_email\n  ON users (lower(email));",why:"A functional index on lower(email) makes the existing lookup an Index Scan again.",old:"612ms",newT:"3ms",gain:"204× faster"},
+{id:4,time:391,calls:540,sql:"SELECT date_trunc('day', created_at), count(*) FROM events GROUP BY 1 ORDER BY 1",src:"jobs/nightly_report.rb:12",plan:"Seq Scan on events (38M rows)\n  HashAggregate → Sort\n  Execution: 391ms (mostly I/O)\n→ Acceptable for nightly, watch growth.",fix:"-- Optional: partial rollup table\n-- or BRIN index for time-range scans:\nCREATE INDEX idx_events_created_brin ON events USING brin(created_at);",why:"BRIN is tiny (~100KB) and speeds time-ordered scans without a full B-tree.",old:"391ms",newT:"96ms",gain:"4× faster"}
+];
+let current=queries[0];
+function impact(q){return q.time*q.calls}
+function renderList(list){
+ document.getElementById('qlist').innerHTML=list.map(q=>`
+ <div class="qitem ${q.id===current.id?'sel':''}" onclick="selectQ(${q.id})">
+   <div style="flex:1;min-width:0"><div class="qsql">${q.sql}</div><div class="qmeta">#${q.id} · ${q.calls.toLocaleString()} calls · ${q.src}</div></div>
+   <div class="qtime" style="color:${q.time>1000?'#F87171':q.time>500?'#FBBF24':'#FB923C'}">${q.time.toLocaleString()}<small style="font-size:11px;color:#5C6E7E">ms</small></div>
+ </div>`).join('');
+}
+function selectQ(id){current=queries.find(q=>q.id===id);renderList(queries);
+ document.getElementById('d-id').textContent='#'+current.id;
+ document.getElementById('d-plan').textContent=current.plan;
+ document.getElementById('d-fix').textContent=current.fix;
+ document.getElementById('d-why').textContent=current.why;
+ document.getElementById('d-old').textContent=current.old;
+ document.getElementById('d-new').textContent=current.newT;
+ document.getElementById('d-gain').textContent=current.gain;
+}
+function sortQ(by,btn){document.querySelectorAll('.sortbtns button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+ let list=[...queries]; if(by==='impact')list.sort((a,b)=>impact(b)-impact(a)); if(by==='time')list.sort((a,b)=>b.time-a.time); if(by==='calls')list.sort((a,b)=>b.calls-a.calls); renderList(list); toast('Sorted by '+by);}
+renderList([...queries].sort((a,b)=>impact(b)-impact(a))); selectQ(1);
+
+/* TERMINAL */
+const term=document.getElementById('terminal');
+function line(html){const d=document.createElement('div');d.innerHTML=html;term.appendChild(d);term.scrollTop=term.scrollHeight;return d}
+function typeCmd(text,cb){const d=line('<span class="cmd"></span><span class="cursor"></span>');const el=d.querySelector('.cmd');let i=0;const iv=setInterval(()=>{el.textContent=text.slice(0,++i);if(i>=text.length){clearInterval(iv);d.querySelector('.cursor').remove();cb&&cb()}},28)}
+function runDemo(mode){term.innerHTML='';
+ if(mode==='scan'){typeCmd('tern scan --since 24h --sort impact',()=>{line('<span class="muted">Connected to acme_prod (Postgres 16) · read-only · 1,248,392 queries analysed</span>');line('<br><span class="muted">  # &nbsp; IMPACT &nbsp;&nbsp;&nbsp; AVG &nbsp;&nbsp;&nbsp; CALLS &nbsp;&nbsp; QUERY</span>');
+ queries.forEach((q,i)=>{setTimeout(()=>{line(`<div class="queryrow ${i===0?'active':''}" onclick="selectQ(${q.id});document.getElementById('demo').scrollIntoView({behavior:'smooth'})"><span class="badge ${q.time>900?'b-slow':'b-warn'}">${q.time>900?'SLOW':'WATCH'}</span><b style="color:${q.time>900?'#F87171':'#FBBF24'};min-width:58px">${q.time.toLocaleString()}ms</b><span class="bar"><i style="width:${Math.max(12,100-i*24)}%;background:${q.time>900?'#F87171':'#FBBF24'}"></i></span><span style="color:#9FB6C6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.sql.slice(0,52)}…</span></div>`)},260*(i+1))});
+ setTimeout(()=>line('<br><span class="amber">⚠ 3 queries = 71% of all DB time.</span> <span class="muted">Run</span> <span class="teal">tern explain #1</span> <span class="muted">to see why →</span>'),1300);})}
+ if(mode==='explain'){typeCmd('tern explain 1',()=>{line('<span class="muted">Query #1 · api/orders.ts:84</span>');line('<span class="mono" style="color:#C7D6E2">SELECT * FROM orders WHERE user_id=$1 AND status=\'pending\'…</span><br>');line('<span class="red">✕ Seq Scan on orders</span><span class="muted"> — scanning 1,204,881 rows to return 12</span>');line('<span class="muted">  Filter: user_id + status &nbsp;·&nbsp; Rows removed: 1.2M &nbsp;·&nbsp; 2,384ms</span>');line('<br><span class="teal">Why it\'s slow:</span> <span style="color:#D6E2EC">There\'s no index matching (user_id, status), so Postgres reads the whole table and sorts what\'s left.</span>');line('<span class="muted">Run</span> <span class="teal">tern fix 1</span> <span class="muted">for the verified fix →</span>')})}
+ if(mode==='fix'){typeCmd('tern fix 1',()=>{line('<span class="teal">✦ Suggested index (verified with hypothetical planning):</span>');line('<span class="mono" style="color:#A7F3D0;background:#071512;padding:8px 10px;border-radius:8px;display:block;margin:8px 0">CREATE INDEX CONCURRENTLY idx_orders_user_status_created<br>&nbsp;&nbsp;ON orders (user_id, status, created_at DESC);</span>');line('<span class="muted">Plan cost:</span> <span class="red">18,492</span> <span class="muted">→</span> <span class="green">8.4</span> &nbsp; <span class="muted">Estimated:</span> <span class="red">2,384ms</span> <span class="muted">→</span> <span class="green" style="font-size:16px"><b>~18ms</b></span>');line('<br><span class="green">✓ Safe:</span><span class="muted"> CONCURRENTLY = no table lock · ~84MB · reversible</span>');line('<button class="copybtn" style="border:1px solid #1E2A36;border-radius:8px;margin-top:8px" onclick="copyText(\'CREATE INDEX CONCURRENTLY idx_orders_user_status_created ON orders (user_id, status, created_at DESC);\',this)">Copy migration</button> <span class="muted" style="font-size:12px">or run: tern fix 1 --apply</span>')})}
+ if(mode==='n1'){typeCmd('tern watch --window 5s',()=>{line('<span class="muted">Watching… (Ctrl+C to stop) · grouping similar queries</span><br>');let c=0;const iv=setInterval(()=>{c++;line(`<span class="dim">${new Date().toLocaleTimeString()}</span> <span class="purple">SELECT * FROM line_items WHERE order_id = ${1040+c}</span> <span class="muted">17ms</span>`);if(c>=5){clearInterval(iv);line('<br><span class="amber">⚠ N+1 detected:</span> <span style="color:#E6EDF3">48 × line_items lookups in 847ms from one request</span>');line('<span class="muted">  └─ api/orders.ts:91 — loop over orders without eager loading</span>');line('<span class="teal">Fix:</span><span style="color:#D6E2EC"> preload line_items, or query with </span><span class="mono" style="color:#A7F3D0">order_id = ANY($1)</span>')}},340)})}
+}
+runDemo('scan');
+
+/* HELPERS */
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+function copyText(txt,btn){navigator.clipboard&&navigator.clipboard.writeText(txt.replace(/<[^>]+>/g,''));const o=btn?btn.textContent:'';if(btn)btn.textContent='✓ Copied';toast('✓ Copied to clipboard');setTimeout(()=>{if(btn)btn.textContent=o},1600)}
+function setInstall(btn,cmd){document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('installCmd').innerHTML=cmd}
+function toggleFaq(btn){const item=btn.parentElement;const was=item.classList.contains('open');document.querySelectorAll('.faqitem').forEach(i=>i.classList.remove('open'));if(!was)item.classList.add('open')}
+</script>
+</body>
+</html>

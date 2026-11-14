@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Board — Design Team Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f4ef; --surface:#fff; --ink:#1d1b18; --muted:#7a756c; --line:#e5e1d8;
+    --accent:#e4572e; --radius:12px;
+    --shadow:0 1px 2px rgba(30,25,15,.06),0 2px 8px rgba(30,25,15,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:20px 28px 8px}
+  h1{font-family:Fraunces,serif;font-size:28px;margin:0;letter-spacing:-.01em}
+  h1 span{color:var(--accent)}
+  .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input[type=search],select,input[type=text],input[type=date],textarea{
+    font:inherit;font-size:14px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
+  input[type=search]{width:200px}
+  select{width:auto}
+  input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .btn{font:inherit;font-size:14px;font-weight:600;border:0;border-radius:8px;padding:9px 16px;background:var(--ink);color:#fff;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#efece4}
+  .btn.danger{background:transparent;color:#b3261e;border:1px solid #e8c5c1}
+  .team{display:flex;padding:0 28px 12px;gap:6px;align-items:center;color:var(--muted);font-size:13px}
+  .avatar{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;color:#fff;flex:none}
+  .board{flex:1;display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:16px;padding:8px 28px 28px;overflow-x:auto;align-items:start}
+  .col{background:#ece8df;border-radius:var(--radius);padding:12px;min-height:200px;transition:background .15s}
+  .col.over{background:#e2dccd;outline:2px dashed var(--accent);outline-offset:-4px}
+  .col-head{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 10px}
+  .col-title{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .count{background:#fff;border-radius:99px;font-size:12px;padding:1px 8px;color:var(--muted);font-weight:600}
+  .add{background:none;border:0;font-size:20px;line-height:1;cursor:pointer;color:var(--muted);border-radius:6px;padding:2px 8px}
+  .add:hover{background:#fff;color:var(--ink)}
+  .cards{display:flex;flex-direction:column;gap:10px;min-height:40px}
+  .card{background:var(--surface);border-radius:10px;padding:12px;box-shadow:var(--shadow);cursor:grab;border:1px solid transparent;position:relative}
+  .card:hover{border-color:var(--line)}
+  .card.dragging{opacity:.4}
+  .card h3{margin:0 0 6px;font-size:14.5px;font-weight:600;line-height:1.3}
+  .card p{margin:0 0 10px;font-size:13px;color:var(--muted);line-height:1.4}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+  .due.late{color:#b3261e;font-weight:600}
+  .prio{width:4px;position:absolute;left:0;top:12px;bottom:12px;border-radius:0 4px 4px 0}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
+  dialog{border:0;border-radius:16px;padding:0;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(20,16,10,.45)}
+  form{padding:22px;display:grid;gap:14px}
+  form h2{margin:0;font-family:Fraunces,serif;font-size:22px}
+  label{display:grid;gap:5px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  .actions .spacer{margin-right:auto}
+  @media(max-width:700px){.board{grid-template-columns:repeat(4,80vw)}header{padding:16px}.team,.board{padding-left:16px;padding-right:16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Studio<span>.</span>Board</h1>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Search cards…" aria-label="Search cards">
+    <select id="fAssignee" aria-label="Filter by person"></select>
+    <button class="btn" id="newBtn">+ New card</button>
+  </div>
+</header>
+<div class="team" id="team"></div>
+<main class="board" id="board"></main>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <h2 id="dlgTitle">New card</h2>
+    <label>Title<input type="text" id="fTitle" required maxlength="80"></label>
+    <label>Description<textarea id="fDesc" rows="3"></textarea></label>
+    <div class="row">
+      <label>Assignee<select id="fWho" style="width:100%"></select></label>
+      <label>Due date<input type="date" id="fDue"></label>
+    </div>
+    <div class="row">
+      <label>Type<select id="fTag" style="width:100%"></select></label>
+      <label>Priority<select id="fPrio" style="width:100%">
+        <option value="low">Low</option><option value="med" selected>Medium</option><option value="high">High</option></select></label>
+    </div>
+    <label>Column<select id="fCol" style="width:100%"></select></label>
+    <div class="actions">
+      <button type="button" class="btn danger spacer" id="delBtn">Delete</button>
+      <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const COLS=[{id:'backlog',name:'Backlog',color:'#9a948a'},{id:'progress',name:'In Progress',color:'#e4572e'},{id:'review',name:'In Review',color:'#e0a100'},{id:'done',name:'Done',color:'#2f9e6b'}];
+const PEOPLE=[{id:'mia',name:'Mia',color:'#e4572e'},{id:'jonas',name:'Jonas',color:'#3a6ea5'},{id:'priya',name:'Priya',color:'#7b5ea7'},{id:'tomas',name:'Tomás',color:'#2f9e6b'}];
+const TAGS={Brand:['#fde7df','#a93a18'],UI:['#e1ebf7','#2b5282'],Research:['#ece4f5','#5a3f85'],Motion:['#fff1cc','#8a6200'],Illustration:['#dcf2e6','#1f7049']};
+const PRIO={low:'#b9b4a9',med:'#e0a100',high:'#e4572e'};
+const KEY='studio-board-v1';
+const d=n=>{const t=new Date();t.setDate(t.getDate()+n);return t.toISOString().slice(0,10)};
+const seed=[
+ {id:1,title:'Refresh logo lockups',desc:'Horizontal and stacked versions for the new site.',who:'mia',due:d(5),tag:'Brand',prio:'high',col:'progress'},
+ {id:2,title:'Onboarding flow wireframes',desc:'Three-step flow, mobile first.',who:'jonas',due:d(2),tag:'UI',prio:'high',col:'progress'},
+ {id:3,title:'User interviews synthesis',desc:'Cluster notes from 8 sessions.',who:'priya',due:d(-1),tag:'Research',prio:'med',col:'review'},
+ {id:4,title:'Loading animation',desc:'Lottie export, under 30kb.',who:'tomas',due:d(9),tag:'Motion',prio:'low',col:'backlog'},
+ {id:5,title:'Spot illustrations for blog',desc:'Set of six, shared palette.',who:'mia',due:d(14),tag:'Illustration',prio:'med',col:'backlog'},
+ {id:6,title:'Design tokens audit',desc:'',who:'jonas',due:d(-6),tag:'UI',prio:'med',col:'done'},
+ {id:7,title:'Pitch deck template',desc:'16:9 master slides.',who:'priya',due:d(7),tag:'Brand',prio:'low',col:'backlog'}
+];
+let cards=JSON.parse(localStorage.getItem(KEY)||'null')||seed;
+let editing=null,dragId=null;
+const $=s=>document.querySelector(s);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(cards));
+const person=id=>PEOPLE.find(p=>p.id===id);
+const initials=p=>p?p.name[0]:'?';
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function fill(sel,opts,withAll){sel.innerHTML=(withAll?'<option value="">Everyone</option>':'')+opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('')}
+fill($('#fAssignee'),PEOPLE.map(p=>({v:p.id,t:p.name})),true);
+fill($('#fWho'),[{v:'',t:'Unassigned'},...PEOPLE.map(p=>({v:p.id,t:p.name}))]);
+fill($('#fTag'),Object.keys(TAGS).map(t=>({v:t,t})));
+fill($('#fCol'),COLS.map(c=>({v:c.id,t:c.name})));
+$('#team').innerHTML='Team: '+PEOPLE.map(p=>`<span class="avatar" style="background:${p.color}" title="${p.name}">${p.name[0]}</span>`).join('');
+
+function render(){
+  const q=$('#q').value.trim().toLowerCase(), who=$('#fAssignee').value;
+  const today=d(0);
+  $('#board').innerHTML=COLS.map(c=>{
+    const list=cards.filter(x=>x.col===c.id&&(!who||x.who===who)&&(!q||(x.title+' '+x.desc+' '+x.tag).toLowerCase().includes(q)));
+    return `<section class="col" data-col="${c.id}">
+      <div class="col-head"><div class="col-title"><span class="dot" style="background:${c.color}"></span>${c.name}<span class="count">${list.length}</span></div>
+      <button class="add" data-add="${c.id}" aria-label="Add card to ${c.name}">+</button></div>
+      <div class="cards">${list.map(x=>{
+        const p=person(x.who),t=TAGS[x.tag]||['#eee','#444'];
+        const late=x.due&&x.due<today&&x.col!=='done';
+        return `<article class="card" draggable="true" data-id="${x.id}" tabindex="0">
+          <span class="prio" style="background:${PRIO[x.prio]}" title="${x.prio} priority"></span>
+          <div class="tags"><span class="tag" style="background:${t[0]};color:${t[1]}">${x.tag}</span></div>
+          <h3>${esc(x.title)}</h3>${x.desc?`<p>${esc(x.desc)}</p>`:''}
+          <div class="meta"><span class="due ${late?'late':''}">${x.due?(late?'Overdue · ':'')+new Date(x.due+'T00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'No date'}</span>
+          ${p?`<span class="avatar" style="background:${p.color}" title="${p.name}">${initials(p)}</span>`:'<span>Unassigned</span>'}</div>
+        </article>`}).join('')||'<div class="empty">Drop cards here</div>'}</div></section>`}).join('');
+}
+
+function openDlg(card,col){
+  editing=card||null;
+  $('#dlgTitle').textContent=card?'Edit card':'New card';
+  $('#delBtn').style.display=card?'':'none';
+  $('#fTitle').value=card?.title||'';
+  $('#fDesc').value=card?.desc||'';
+  $('#fWho').value=card?.who||'';
+  $('#fDue').value=card?.due||'';
+  $('#fTag').value=card?.tag||'UI';
+  $('#fPrio').value=card?.prio||'med';
+  $('#fCol').value=card?.col||col||'backlog';
+  $('#dlg').showModal();
+  $('#fTitle').focus();
+}
+
+$('#form').addEventListener('submit',e=>{
+  const data={title:$('#fTitle').value.trim(),desc:$('#fDesc').value.trim(),who:$('#fWho').value,due:$('#fDue').value,tag:$('#fTag').value,prio:$('#fPrio').value,col:$('#fCol').value};
+  if(!data.title){e.preventDefault();return}
+  if(editing)Object.assign(editing,data);
+  else cards.push({id:Date.now(),...data});
+  save();render();
+});
+$('#cancelBtn').onclick=()=>$('#dlg').close();
+$('#delBtn').onclick=()=>{if(editing&&confirm('Delete this card?')){cards=cards.filter(c=>c!==editing);save();render();$('#dlg').close()}};
+$('#newBtn').onclick=()=>openDlg();
+$('#q').oninput=render;
+$('#fAssignee').onchange=render;
+
+const board=$('#board');
+board.addEventListener('click',e=>{
+  const a=e.target.closest('[data-add]');
+  if(a)return openDlg(null,a.dataset.add);
+  const c=e.target.closest('.card');
+  if(c)openDlg(cards.find(x=>x.id==c.dataset.id));
+});
+board.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.classList.contains('card'))openDlg(cards.find(x=>x.id==e.target.dataset.id));
+});
+board.addEventListener('dragstart',e=>{
+  const c=e.target.closest('.card');if(!c)return;
+  dragId=c.dataset.id;c.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragId);
+});
+board.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));render()});
+board.addEventListener('dragover',e=>{
+  const col=e.target.closest('.col');if(!col||!dragId)return;
+  e.preventDefault();
+  document.querySelectorAll('.over').forEach(x=>x!==col&&x.classList.remove('over'));
+  col.classList.add('over');
+});
+board.addEventListener('drop',e=>{
+  const col=e.target.closest('.col');if(!col||!dragId)return;
+  e.preventDefault();
+  const card=cards.find(x=>x.id==dragId);
+  if(card){
+    cards=cards.filter(x=>x!==card);
+    card.col=col.dataset.col;
+    const after=[...col.querySelectorAll('.card:not(.dragging)')].find(el=>e.clientY<el.getBoundingClientRect().top+el.offsetHeight/2);
+    const ref=after&&cards.find(x=>x.id==after.dataset.id);
+    ref?cards.splice(cards.indexOf(ref),0,card):cards.push(card);
+    save();
+  }
+  dragId=null;render();
+});
+render();
+</script>
+</body>
+</html>

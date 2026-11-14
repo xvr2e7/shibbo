@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murmur — AI notes that write themselves</title>
+<meta name="description" content="Murmur sits quietly in your meetings, transcribes every word, and hands you clean summaries and action items before you're back at your desk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  *{margin:0;padding:0}
+
+  :root{
+    --bg:#08070B;
+    --text:#F3F1F8;
+    --muted:#9A94AC;
+    --dim:#6E687E;
+    --line:rgba(255,255,255,.08);
+    --violet:#A78BFA;
+    --rose:#F0A6C0;
+    --amber:#F5C97B;
+    --wrap:1160px;
+    --ease:cubic-bezier(.22,.68,.28,1);
+  }
+
+  html{scroll-behavior:smooth}
+
+  body{
+    background-color:#08070B;
+    background-image:
+      radial-gradient(900px 620px at 50% -6%, rgba(130,95,235,.24), transparent 65%),
+      radial-gradient(720px 520px at 88% 4%, rgba(240,166,192,.10), transparent 70%),
+      radial-gradient(600px 500px at 6% 22%, rgba(245,201,123,.06), transparent 70%);
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:clip;
+  }
+
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    pointer-events:none;
+    opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a{color:inherit;text-decoration:none}
+  img,svg{display:block}
+  button,input{font:inherit;color:inherit}
+
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+  section{position:relative}
+  section[id]{scroll-margin-top:86px}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    border-radius:999px;
+    font-size:14.5px;font-weight:500;
+    padding:11px 20px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .25s var(--ease), box-shadow .25s var(--ease), background .25s var(--ease), border-color .25s var(--ease);
+    white-space:nowrap;
+  }
+  .btn.primary{
+    background:linear-gradient(135deg,#C4B0FF 0%,#F0A6C0 100%);
+    color:#150F1F;
+    font-weight:600;
+    box-shadow:0 10px 32px -12px rgba(180,150,255,.85), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 18px 46px -14px rgba(180,150,255,1), inset 0 1px 0 rgba(255,255,255,.5)}
+  .btn.ghost{
+    background:rgba(255,255,255,.035);
+    border-color:rgba(255,255,255,.14);
+    color:var(--text);
+  }
+  .btn.ghost:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.24);transform:translateY(-2px)}
+  .btn.lg{padding:14px 26px;font-size:15.5px}
+  .btn.sm{padding:9px 16px;font-size:13.5px}
+
+  /* ---------- nav ---------- */
+  .nav{
+    position:sticky;top:0;z-index:60;
+    background:rgba(8,7,11,.62);
+    backdrop-filter:blur(16px) saturate(150%);
+    -webkit-backdrop-filter:blur(16px) saturate(150%);
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .nav-inner{
+    max-width:var(--wrap);margin:0 auto;padding:13px 24px;
+    display:flex;align-items:center;gap:28px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16.5px;letter-spacing:-.015em}
+  .mark{
+    width:29px;height:29px;border-radius:9px;
+    display:grid;place-items:center;
+    background:linear-gradient(140deg,#C4B0FF,#F0A6C0 60%,#F5C97B);
+    color:#14101C;
+    box-shadow:0 6px 18px -8px rgba(180,150,255,.9);
+  }
+  .mark svg{width:16px;height:16px}
+  .nav-links{display:flex;align-items:center;gap:26px;margin-left:8px}
+  .nav-links a{font-size:14.5px;color:var(--muted);transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .nav-cta .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+  .nav-cta .btn.ghost:hover{color:var(--text);background:rgba(255,255,255,.06)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:88px 0 0;text-align:center;position:relative}
+  .hero-glow{
+    position:absolute;left:50%;top:-260px;transform:translateX(-50%);
+    width:1100px;height:820px;pointer-events:none;
+    background:
+      radial-gradient(520px 360px at 50% 40%, rgba(167,139,250,.30), transparent 70%),
+      radial-gradient(420px 320px at 22% 55%, rgba(240,166,192,.18), transparent 70%),
+      radial-gradient(420px 320px at 78% 45%, rgba(245,201,123,.14), transparent 70%);
+    filter:blur(14px);
+    z-index:0;
+  }
+  .hero .wrap{position:relative;z-index:1}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:6px 14px 6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);
+    font-size:13px;color:var(--muted);
+    letter-spacing:.005em;
+  }
+  .badge .pulse{
+    width:6px;height:6px;border-radius:50%;background:#8CE0A8;
+    box-shadow:0 0 0 0 rgba(140,224,168,.7);
+    animation:ring 2.4s ease-out infinite;
+  }
+  @keyframes ring{
+    0%{box-shadow:0 0 0 0 rgba(140,224,168,.55)}
+    70%{box-shadow:0 0 0 8px rgba(140,224,168,0)}
+    100%{box-shadow:0 0 0 0 rgba(140,224,168,0)}
+  }
+
+  h1{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(48px,8.2vw,96px);
+    line-height:1.02;
+    letter-spacing:-.025em;
+    margin:26px 0 0;
+  }
+  h1 em{
+    font-style:italic;
+    background:linear-gradient(100deg,#C9B6FF 0%,#F5B4CE 52%,#F7D18E 100%);
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;
+  }
+  .hero p.lede{
+    max-width:590px;margin:24px auto 0;
+    font-size:clamp(16px,1.7vw,18.5px);
+    line-height:1.62;
+    color:var(--muted);
+    font-weight:300;
+  }
+  .hero p.lede b{color:#D8D3E6;font-weight:500}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:36px}
+  .micro{margin-top:18px;font-size:13px;color:var(--dim)}
+
+  /* ---------- app window ---------- */
+  .window-shell{position:relative;margin-top:70px}
+  .window-shell::before{
+    content:"";position:absolute;left:50%;top:8%;transform:translateX(-50%);
+    width:82%;height:70%;
+    background:radial-gradient(closest-side, rgba(167,139,250,.32), transparent 75%);
+    filter:blur(60px);
+    z-index:0;
+  }
+  .window{
+    position:relative;z-index:1;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.11);
+    background:linear-gradient(180deg, rgba(23,21,32,.92), rgba(11,10,16,.96));
+    box-shadow:0 70px 130px -50px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.02) inset;
+    overflow:hidden;
+    text-align:left;
+  }
+  .win-bar{
+    display:flex;align-items:center;gap:14px;
+    padding:12px 18px;
+    border-bottom:1px solid rgba(255,255,255,.07);
+    background:rgba(255,255,255,.02);
+  }
+  .dots{display:flex;gap:6px}
+  .dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .win-title{
+    font-size:12.5px;color:var(--dim);
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.02em;
+  }
+  .win-meta{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .rec{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;letter-spacing:.08em;
+    color:#F3A0B4;
+    padding:4px 10px;border-radius:999px;
+    background:rgba(240,166,192,.09);
+    border:1px solid rgba(240,166,192,.18);
+  }
+  .rec i{width:6px;height:6px;border-radius:50%;background:#F0718F;animation:blinkdot 1.6s ease-in-out infinite}
+  @keyframes blinkdot{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .win-body{display:grid;grid-template-columns:216px 1fr;min-height:420px}
+
+  .win-side{
+    border-right:1px solid rgba(255,255,255,.07);
+    padding:18px 14px;
+    display:flex;flex-direction:column;gap:3px;
+    background:rgba(255,255,255,.012);
+  }
+  .side-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--dim);
+    padding:12px 10px 6px;
+  }
+  .side-label:first-child{padding-top:2px}
+  .side-item{
+    display:flex;align-items:center;gap:9px;
+    padding:8px 10px;border-radius:9px;
+    font-size:13.5px;color:var(--muted);
+    transition:background .2s, color .2s;
+  }
+  .side-item:hover{background:rgba(255,255,255,.045);color:var(--text)}
+  .side-item.active{
+    background:linear-gradient(90deg, rgba(167,139,250,.16), rgba(167,139,250,.04));
+    color:var(--text);
+    box-shadow:inset 0 0 0 1px rgba(167,139,250,.2);
+  }
+  .side-item .bullet{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18);flex:none}
+  .side-item.active .bullet{background:var(--violet);box-shadow:0 0 10px rgba(167,139,250,.9)}
+
+  .win-main{padding:20px 22px 24px;display:flex;flex-direction:column;gap:18px}
+
+  .wave{display:flex;align-items:center;gap:3px;height:52px}
+  .wave span{
+    flex:1;height:100%;border-radius:99px;
+    background:linear-gradient(180deg,#C4B0FF,#F0A6C0);
+    transform:scaleY(var(--h));transform-origin:center;
+    animation:wv 1.8s ease-in-out infinite alternate;
+    animation-delay:var(--d);
+  }
+  @keyframes wv{
+    from{transform:scaleY(calc(var(--h) * .28));opacity:.4}
+    to{transform:scaleY(var(--h));opacity:1}
+  }
+
+  .win-cols{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}
+
+  .transcript{display:flex;flex-direction:column;gap:16px}
+  .tline p{font-size:14.5px;line-height:1.55;color:#CFC9DD;font-weight:300}
+  .tline .who{
+    display:flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--dim);margin-bottom:5px;
+  }
+  .tline .who i{width:6px;height:6px;border-radius:50%;flex:none}
+  .tline.live p{color:#F3F1F8}
+  .tline.live p::after{
+    content:"";display:inline-block;
+    width:2px;height:14px;margin-left:3px;vertical-align:-2px;
+    background:var(--violet);
+    animation:blinkdot 1s steps(1,end) infinite;
+  }
+
+  .ai{
+    border-radius:16px;
+    padding:18px;
+    background:linear-gradient(180deg, rgba(167,139,250,.13), rgba(167,139,250,.03));
+    border:1px solid rgba(167,139,250,.22);
+    box-shadow:0 20px 50px -30px rgba(167,139,250,.8);
+  }
+  .ai-head{
+    display:flex;align-items:center;gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#C9B6FF;
+    margin-bottom:11px;
+  }
+  .ai-head svg{width:14px;height:14px}
+  .ai-p{font-size:13.5px;line-height:1.6;color:#D6D1E4;font-weight:300}
+  .ai-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--dim);margin:18px 0 10px;
+  }
+  .ai-list{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .ai-list li{
+    display:flex;align-items:flex-start;gap:9px;
+    font-size:13px;color:#C6C0D6;font-weight:300;
+  }
+  .ai-list li b{color:#8F88A3;font-weight:500;font-size:11.5px;margin-left:auto;white-space:nowrap;padding-left:8px}
+  .cb{
+    width:14px;height:14px;border-radius:5px;flex:none;margin-top:2px;
+    border:1px solid rgba(167,139,250,.5);
+    background:rgba(167,139,250,.14);
+    position:relative;
+  }
+  .cb::after{
+    content:"";position:absolute;left:4px;top:1px;
+    width:4px;height:8px;
+    border-right:1.5px solid #C9B6FF;border-bottom:1.5px solid #C9B6FF;
+    transform:rotate(40deg);
+  }
+
+  /* ---------- strip ---------- */
+  .strip{padding:76px 0 20px;text-align:center}
+  .strip-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--dim);
+  }
+  .logos{
+    display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+    gap:18px 46px;margin-top:26px;
+  }
+  .logos span{
+    font-size:14px;font-weight:600;letter-spacing:.16em;
+    color:rgba(255,255,255,.26);
+    transition:color .3s;
+  }
+  .logos span:hover{color:rgba(255,255,255,.55)}
+
+  /* ---------- section headers ---------- */
+  .sec-head{max-width:660px;margin:0 auto 58px;text-align:center}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:#B9A6FF;
+    margin-bottom:18px;
+  }
+  h2{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(34px,4.6vw,54px);
+    line-height:1.08;
+    letter-spacing:-.02em;
+  }
+  h2 em{
+    font-style:italic;
+    background:linear-gradient(100deg,#C9B6FF,#F5B4CE 60%,#F7D18E);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sec-head p{margin-top:18px;color:var(--muted);font-size:16.5px;font-weight:300;line-height:1.65}
+
+  /* ---------- bento ---------- */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+  .card{
+    position:relative;
+    border-radius:20px;
+    padding:28px;
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+    border:1px solid rgba(255,255,255,.08);
+    overflow:hidden;
+    transition:border-color .35s var(--ease), transform .35s var(--ease), background .35s var(--ease);
+  }
+  .card:hover{
+    border-color:rgba(255,255,255,.17);
+    transform:translateY(-3px);
+    background:linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.018));
+  }
+  .card .icon{
+    width:36px;height:36px;border-radius:11px;
+    display:grid;place-items:center;
+    background:linear-gradient(140deg, rgba(167,139,250,.24), rgba(240,166,192,.12));
+    border:1px solid rgba(167,139,250,.24);
+    color:#C9B6FF;
+    margin-bottom:20px;
+  }
+  .card .icon svg{width:18px;height:18px}
+  .card h3{font-size:17.5px;font-weight:600;letter-spacing:-.012em;margin-bottom:9px}
+  .card p{font-size:14.5px;line-height:1.62;color:var(--muted);font-weight:300}
+  .card.a{grid-column:span 4}
+  .card.b{grid-column:span 2}
+  .card.a p{max-width:460px}
+  .card-wave{
+    margin-top:30px;height:96px;
+    display:flex;align-items:center;gap:3px;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  }
+  .card-wave span{
+    flex:1;height:100%;border-radius:99px;
+    background:linear-gradient(180deg,rgba(196,176,255,.95),rgba(240,166,192,.55));
+    transform:scaleY(var(--h));transform-origin:center;
+    animation:wv 2.1s ease-in-out infinite alternate;
+    animation-delay:var(--d);
+  }
+  .card .glowline{
+    position:absolute;inset:auto 0 0 0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(167,139,250,.6),transparent);
+    opacity:0;transition:opacity .4s;
+  }
+  .card:hover .glowline{opacity:1}
+
+  /* ---------- steps ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .step{
+    position:relative;
+    padding:32px 28px 34px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+    transition:border-color .35s var(--ease), transform .35s var(--ease);
+  }
+  .step:hover{border-color:rgba(255,255,255,.16);transform:translateY(-3px)}
+  .step .num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;letter-spacing:.16em;
+    color:#B9A6FF;
+    display:inline-block;
+    padding:4px 10px;border-radius:999px;
+    background:rgba(167,139,250,.1);
+    border:1px solid rgba(167,139,250,.2);
+    margin-bottom:22px;
+  }
+  .step h3{font-size:19px;font-weight:600;letter-spacing:-.015em;margin-bottom:10px}
+  .step p{font-size:14.5px;color:var(--muted);line-height:1.65;font-weight:300}
+
+  /* ---------- quote ---------- */
+  .quote{text-align:center;padding:0 0 8px}
+  .quote blockquote{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-size:clamp(26px,3.5vw,42px);
+    line-height:1.28;
+    letter-spacing:-.015em;
+    max-width:900px;margin:0 auto;
+    color:#EDEAF6;
+  }
+  .quote blockquote span{
+    background:linear-gradient(100deg,#C9B6FF,#F5B4CE 65%,#F7D18E);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .quote .attrib{
+    display:flex;align-items:center;justify-content:center;gap:13px;
+    margin-top:34px;
+  }
+  .avatar{
+    width:42px;height:42px;border-radius:50%;
+    display:grid;place-items:center;
+    font-size:14px;font-weight:600;color:#14101C;
+    background:linear-gradient(140deg,#C4B0FF,#F0A6C0);
+    flex:none;
+  }
+  .attrib .who-txt{text-align:left}
+  .attrib .who-txt b{display:block;font-size:14.5px;font-weight:600;letter-spacing:-.01em}
+  .attrib .who-txt span{font-size:13px;color:var(--dim)}
+
+  /* ---------- pricing ---------- */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+  .plan{
+    position:relative;
+    border-radius:22px;
+    padding:32px 28px 34px;
+    border:1px solid rgba(255,255,255,.09);
+    background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+    transition:border-color .35s var(--ease), transform .35s var(--ease);
+  }
+  .plan:hover{border-color:rgba(255,255,255,.17);transform:translateY(-3px)}
+  .plan.featured{
+    border-color:rgba(167,139,250,.36);
+    background:linear-gradient(180deg, rgba(167,139,250,.13), rgba(167,139,250,.025));
+    box-shadow:0 40px 90px -50px rgba(167,139,250,.9);
+  }
+  .plan .tag{
+    position:absolute;top:-11px;left:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:4px 11px;border-radius:999px;
+    background:linear-gradient(135deg,#C4B0FF,#F0A6C0);
+    color:#150F1F;font-weight:600;
+  }
+  .plan .name{font-size:14px;font-weight:600;letter-spacing:.01em;color:#D8D3E6}
+  .plan .price{
+    display:flex;align-items:baseline;gap:7px;
+    margin:14px 0 6px;
+    font-family:'Instrument Serif',Georgia,serif;
+    font-size:46px;line-height:1;letter-spacing:-.02em;
+  }
+  .plan .price small{font-family:'Inter',sans-serif;font-size:13.5px;color:var(--dim);font-weight:400;letter-spacing:0}
+  .plan .desc{font-size:13.5px;color:var(--dim);min-height:22px;font-weight:300}
+  .plan .btn{width:100%;margin:24px 0 26px}
+  .plan ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+  .plan li{
+    display:flex;align-items:flex-start;gap:10px;
+    font-size:14px;color:#BDB7CE;font-weight:300;line-height:1.5;
+  }
+  .plan li::before{
+    content:"✓";
+    color:#B9A6FF;font-size:12px;font-weight:700;
+    line-height:1.55;
+    flex:none;
+  }
+
+  /* ---------- final cta ---------- */
+  .cta-panel{
+    position:relative;
+    border-radius:30px;
+    padding:76px 32px 80px;
+    text-align:center;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(167,139,250,.16), rgba(240,166,192,.06) 55%, rgba(255,255,255,.015));
+  }
+  .cta-panel::after{
+    content:"";position:absolute;left:50%;top:-70%;transform:translateX(-50%);
+    width:760px;height:760px;pointer-events:none;
+    background:radial-gradient(closest-side, rgba(167,139,250,.42), transparent 72%);
+    filter:blur(20px);
+  }
+  .cta-panel > *{position:relative;z-index:1}
+  .cta-panel h2{max-width:640px;margin:0 auto}
+  .cta-panel p{max-width:480px;margin:20px auto 0;color:var(--muted);font-weight:300;font-size:16.5px}
+  .cta-form{
+    display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+    margin:34px auto 0;max-width:470px;
+  }
+  .cta-form input{
+    flex:1 1 240px;min-width:0;
+    padding:13px 20px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.15);
+    background:rgba(10,9,14,.6);
+    font-size:14.5px;
+    outline:none;
+    transition:border-color .25s, box-shadow .25s;
+  }
+  .cta-form input::placeholder{color:var(--dim)}
+  .cta-form input:focus{border-color:rgba(167,139,250,.6);box-shadow:0 0 0 4px rgba(167,139,250,.14)}
+  .cta-note{margin-top:16px;font-size:12.5px;color:var(--dim)}
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:120px;
+    border-top:1px solid rgba(255,255,255,.07);
+    padding:64px 0 40px;
+  }
+  .foot-grid{
+    display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;
+    gap:40px;
+  }
+  .foot-brand p{
+    margin-top:16px;font-size:14px;color:var(--dim);
+    max-width:250px;font-weight:300;line-height:1.6;
+  }
+  .foot-col h4{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:500;margin-bottom:18px;
+  }
+  .foot-col a{
+    display:block;font-size:14px;color:var(--muted);
+    margin-bottom:11px;transition:color .2s;
+  }
+  .foot-col a:hover{color:var(--text)}
+  .foot-bottom{
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+    margin-top:64px;padding-top:26px;
+    border-top:1px solid rgba(255,255,255,.06);
+    font-size:13px;color:var(--dim);
+  }
+  .foot-bottom .socials{display:flex;gap:20px}
+  .foot-bottom .socials a{transition:color .2s}
+  .foot-bottom .socials a:hover{color:var(--text)}
+
+  /* ---------- reveal ---------- */
+  .reveal{
+    opacity:0;transform:translateY(26px);
+    transition:opacity .8s var(--ease), transform .8s var(--ease);
+    transition-delay:var(--rd,0s);
+  }
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1000px){
+    .nav-links{display:none}
+    .win-body{grid-template-columns:1fr}
+    .win-side{display:none}
+  }
+  @media (max-width:900px){
+    .bento{grid-template-columns:repeat(2,1fr)}
+    .card.a{grid-column:span 2}
+    .card.b{grid-column:span 1}
+    .steps{grid-template-columns:1fr}
+    .plans{grid-template-columns:1fr;max-width:460px;margin:0 auto}
+    .foot-grid{grid-template-columns:1fr 1fr;gap:36px}
+    .foot-brand{grid-column:span 2}
+  }
+  @media (max-width:760px){
+    .hero{padding-top:64px}
+    .win-cols{grid-template-columns:1fr}
+    .window-shell{margin-top:52px}
+    .strip{padding-top:56px}
+  }
+  @media (max-width:600px){
+    .bento{grid-template-columns:1fr}
+    .card.a,.card.b{grid-column:span 1}
+    .card{padding:24px}
+    .step{padding:26px 22px}
+    .plan{padding:28px 22px}
+    .cta-panel{padding:56px 22px 60px;border-radius:24px}
+    .foot-grid{grid-template-columns:1fr}
+    .foot-brand{grid-column:span 1}
+    footer{margin-top:88px}
+    .nav-cta .btn.ghost{display:none}
+    .hero-cta .btn{width:100%}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+    .reveal{opacity:1;transform:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M4 12h1.4M8.5 7v10M12 4v16M15.5 8v8M19.2 11.4h1"/>
+        </svg>
+      </span>
+      Murmur
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#changelog">Changelog</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn ghost sm" href="#">Sign in</a>
+      <a class="btn primary sm" href="#pricing">Get started</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <span class="badge reveal"><span class="pulse"></span> Murmur 2.0 is live — now with Ask Your Archive</span>
+
+    <h1 class="reveal" style="--rd:.06s">Every word,<br><em>remembered.</em></h1>
+
+    <p class="lede reveal" style="--rd:.12s">
+      Murmur sits quietly in your meetings and turns every word into clean, searchable notes —
+      <b>a summary, the decisions, and every action item</b> — before you're back at your desk.
+    </p>
+
+    <div class="hero-cta reveal" style="--rd:.18s">
+      <a class="btn primary lg" href="#pricing">
+        Start for free
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12.5 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn ghost lg" href="#how">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+        Watch the 90s demo
+      </a>
+    </div>
+
+    <p class="micro reveal" style="--rd:.24s">Free plan includes 10 hours a month · No credit card required</p>
+
+    <!-- app window -->
+    <div class="window-shell reveal" style="--rd:.3s">
+      <div class="window">
+        <div class="win-bar">
+          <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="win-title">Design sync — Weekly</div>
+          <div class="win-meta">
+            <span class="rec"><i></i>REC 24:18</span>
+          </div>
+        </div>
+        <div class="win-body">
+          <aside class="win-side">
+            <div class="side-label">Today</div>
+            <a class="side-item active" href="#top"><span class="bullet"></span>Design sync</a>
+            <a class="side-item" href="#top"><span class="bullet"></span>Q3 roadmap</a>
+            <a class="side-item" href="#top"><span class="bullet"></span>User interviews</a>
+            <div class="side-label">Yesterday</div>
+            <a class="side-item" href="#top"><span class="bullet"></span>Standup</a>
+            <a class="side-item" href="#top"><span class="bullet"></span>1:1 — Priya</a>
+            <a class="side-item" href="#top"><span class="bullet"></span>Customer call</a>
+          </aside>
+
+          <div class="win-main">
+            <div class="wave" data-wave="56" aria-hidden="true"></div>
+
+            <div class="win-cols">
+              <div class="transcript">
+                <div class="tline">
+                  <span class="who"><i style="background:#A78BFA"></i>Maya</span>
+                  <p>Let's start with onboarding drop-off — it's still the biggest leak in the funnel.</p>
+                </div>
+                <div class="tline">
+                  <span class="who"><i style="background:#F0A6C0"></i>Dev</span>
+                  <p>We can ship the new empty state by Thursday if we cut the tour animation.</p>
+                </div>
+                <div class="tline">
+                  <span class="who"><i style="background:#F5C97B"></i>Priya</span>
+                  <p>Fine by me. I'll line up ten users for a Friday test.</p>
+                </div>
+                <div class="tline live">
+                  <span class="who"><i style="background:#A78BFA"></i>Maya</span>
+                  <p>Perfect. Let's get it in front of real people before we touch the pricing page…</p>
+                </div>
+              </div>
+
+              <div class="ai">
+                <div class="ai-head">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.7 4.8L18.5 9.5l-4.8 1.7L12 16l-1.7-4.8L5.5 9.5l4.8-1.7z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>
+                  Summary
+                </div>
+                <p class="ai-p">The team traced onboarding drop-off to a confusing first screen and agreed to ship a simplified empty state by Thursday, followed by a ten-user test on Friday.</p>
+
+                <div class="ai-label">Action items</div>
+                <ul class="ai-list">
+                  <li><span class="cb"></span>Ship new empty state <b>Dev · Thu</b></li>
+                  <li><span class="cb"></span>Recruit 10 test users <b>Priya · Fri</b></li>
+                  <li><span class="cb"></span>Update drop-off dashboard <b>Maya</b></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOGO STRIP ============ -->
+<section class="strip" id="changelog">
+  <div class="wrap reveal">
+    <p class="strip-label">Trusted by teams who talk for a living</p>
+    <div class="logos">
+      <span>NORTHWIND</span>
+      <span>LUMEN</span>
+      <span>ARCADIA</span>
+      <span>KESTREL</span>
+      <span>HALO LABS</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" style="padding:120px 0">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Why Murmur</div>
+      <h2>Built for the way you <em>actually</em> think</h2>
+      <p>No bot to invite. No notes to type. No "wait, what did we decide?" on Thursday. Murmur listens, and the rest just appears.</p>
+    </div>
+
+    <div class="bento">
+      <article class="card a reveal">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12h1.5M7.5 6.5v11M12 3v18M16.5 7.5v9M21 11.6h.5"/></svg>
+        </div>
+        <h3>Live transcription that actually keeps up</h3>
+        <p>Speaker labels, punctuation, timestamps and accents — resolved in real time across 40+ languages. Murmur learns your team's names, acronyms and jargon the more it listens.</p>
+        <div class="card-wave" data-wave="64" aria-hidden="true"></div>
+        <span class="glowline"></span>
+      </article>
+
+      <article class="card b reveal" style="--rd:.06s">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.7 4.8L18.5 9.5l-4.8 1.7L12 16l-1.7-4.8L5.5 9.5l4.8-1.7z"/></svg>
+        </div>
+        <h3>Summaries in your voice</h3>
+        <p>Murmur studies how your team writes and produces recaps you'd actually send — not a wall of bullet points.</p>
+        <span class="glowline"></span>
+      </article>
+
+      <article class="card b reveal" style="--rd:.1s">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.4 12.3l2.5 2.5 4.6-5.2"/></svg>
+        </div>
+        <h3>Action items, extracted</h3>
+        <p>Owners and deadlines pulled straight from the conversation and pushed to your task tracker.</p>
+        <span class="glowline"></span>
+      </article>
+
+      <article class="card b reveal" style="--rd:.14s">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        </div>
+        <h3>Ask your archive</h3>
+        <p>"What did we promise the Northwind team in March?" Search a year of meetings in plain English.</p>
+        <span class="glowline"></span>
+      </article>
+
+      <article class="card b reveal" style="--rd:.18s">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>
+        </div>
+        <h3>Private by default</h3>
+        <p>Encrypted end to end, never used to train models, and deletable in a single tap. Your words stay yours.</p>
+        <span class="glowline"></span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how" style="padding:20px 0 120px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps. Then <em>nothing</em>.</h2>
+      <p>Set it up once and forget it exists — until the recap lands.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <span class="num">01</span>
+        <h3>Connect your calendar</h3>
+        <p>Sign in and Murmur joins your Zoom, Meet and Teams calls automatically. No bot links to paste, no one waiting in a lobby.</p>
+      </div>
+      <div class="step reveal" style="--rd:.08s">
+        <span class="num">02</span>
+        <h3>Let it listen</h3>
+        <p>The transcript appears live as people speak, with names attached. Nothing to press. Nothing to remember. Just talk.</p>
+      </div>
+      <div class="step reveal" style="--rd:.16s">
+        <span class="num">03</span>
+        <h3>Read, search, ship</h3>
+        <p>A clean summary and a list of action items arrive in your inbox before you've refilled your coffee. Every word, permanently searchable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUOTE ============ -->
+<section style="padding:0 0 120px">
+  <div class="wrap">
+    <div class="quote reveal">
+      <blockquote>
+        "Murmur is the first tool that made me stop taking notes in meetings. I just read the recap afterwards — and honestly, <span>it's better than what I would have written.</span>"
+      </blockquote>
+      <div class="attrib">
+        <div class="avatar">PR</div>
+        <div class="who-txt">
+          <b>Priya Raman</b>
+          <span>Head of Product, Lumen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" style="padding:0 0 120px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Pricing</div>
+      <h2>Start free. Stay <em>forever</em> if you like.</h2>
+      <p>Every plan includes live transcription, speaker labels and unlimited notes. Upgrade when you need the archive.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan reveal">
+        <div class="name">Free</div>
+        <div class="price">$0<small>/ forever</small></div>
+        <div class="desc">For trying it out on real meetings.</div>
+        <a class="btn ghost" href="#top">Create account</a>
+        <ul>
+          <li>10 hours of transcription a month</li>
+          <li>Live transcript &amp; speaker labels</li>
+          <li>Basic AI summaries</li>
+          <li>7-day note history</li>
+        </ul>
+      </div>
+
+      <div class="plan featured reveal" style="--rd:.08s">
+        <span class="tag">Most popular</span>
+        <div class="name">Pro</div>
+        <div class="price">$16<small>/ month</small></div>
+        <div class="desc">For people whose job is mostly meetings.</div>
+        <a class="btn primary" href="#top">Start 14-day trial</a>
+        <ul>
+          <li>Unlimited transcription hours</li>
+          <li>Full summaries &amp; action items</li>
+          <li>Unlimited note history</li>
+          <li>Ask Your Archive search</li>
+          <li>Export to Notion, Slack &amp; email</li>
+        </ul>
+      </div>
+
+      <div class="plan reveal" style="--rd:.16s">
+        <div class="name">Team</div>
+        <div class="price">$24<small>/ user / mo</small></div>
+        <div class="desc">For teams who need one shared memory.</div>
+        <a class="btn ghost" href="#top">Talk to us</a>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Shared workspaces &amp; folders</li>
+          <li>Custom vocabulary &amp; templates</li>
+          <li>SSO, SCIM &amp; admin controls</li>
+          <li>Priority human support</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section style="padding:0 0 40px">
+  <div class="wrap">
+    <div class="cta-panel reveal">
+      <h2>Stop taking notes.<br>Start <em>remembering</em>.</h2>
+      <p>Join 12,000+ teams who let Murmur do the listening. Set up in under two minutes.</p>
+      <form class="cta-form" onsubmit="return false">
+        <input type="email" placeholder="you@company.com" aria-label="Work email" required>
+        <button class="btn primary" type="submit">Get started free</button>
+      </form>
+      <p class="cta-note">Free forever plan · No credit card · Cancel anytime</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M4 12h1.4M8.5 7v10M12 4v16M15.5 8v8M19.2 11.4h1"/>
+            </svg>
+          </span>
+          Murmur
+        </a>
+        <p>AI notes that write themselves. Quietly listening, so you can be fully present.</p>
+      </div>
+
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#changelog">Changelog</a>
+      </div>
+
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Careers</a>
+        <a href="#">Blog</a>
+        <a href="#">Press kit</a>
+      </div>
+
+      <div class="foot-col">
+        <h4>Resources</h4>
+        <a href="#">Help center</a>
+        <a href="#">Privacy</a>
+        <a href="#">Security</a>
+        <a href="#">Status</a>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <span>© 2025 Murmur Labs, Inc. All rights reserved.</span>
+      <div class="socials">
+        <a href="#">X</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- generate waveform bars ----
+  document.querySelectorAll('[data-wave]').forEach(function (el) {
+    var n = parseInt(el.getAttribute('data-wave'), 10) || 40;
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < n; i++) {
+      var s = document.createElement('span');
+      // shape the envelope so the wave tapers at the edges
+      var t = i / (n - 1);
+      var envelope = Math.sin(Math.PI * t);
+      var h = (0.28 + Math.random() * 0.72) * (0.45 + 0.55 * envelope);
+      s.style.setProperty('--h', Math.max(0.14, h).toFixed(3));
+      s.style.setProperty('--d', (Math.random() * 1.6).toFixed(2) + 's');
+      frag.appendChild(s);
+    }
+    el.appendChild(frag);
+  });
+
+  // ---- scroll reveal ----
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var items = document.querySelectorAll('.reveal');
+
+  if (reduce || !('IntersectionObserver' in window)) {
+    items.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+    items.forEach(function (el) { io.observe(el); });
+  }
+</script>
+
+</body>
+</html>

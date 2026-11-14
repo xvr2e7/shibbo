@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Odd Loaf — neighbourhood sourdough, gone by noon</title>
+<meta name="description" content="Odd Loaf is a small sourdough bakery on Ferney Street. We bake what we feel like, we bake it once, and we sell out by noon." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7efe1;
+    --paper-2:#efe3cf;
+    --ink:#2b1d13;
+    --ink-soft:#6b5544;
+    --crust:#c05621;
+    --crust-dark:#8f3d16;
+    --seed:#6f7f46;
+    --jam:#8c2f39;
+    --line:#d9c7ab;
+    --rad:2px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"DM Mono", ui-monospace, monospace;
+    font-size:15px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    z-index:999;
+    opacity:.5;
+    mix-blend-mode:multiply;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/></filter><rect width="220" height="220" filter="url(%23n)" opacity="0.32"/></svg>');
+  }
+
+  h1,h2,h3,.display{
+    font-family:"Fraunces", Georgia, serif;
+    font-weight:600;
+    font-variation-settings:"SOFT" 40,"WONK" 1;
+    line-height:.96;
+    letter-spacing:-.02em;
+    margin:0;
+  }
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .mono-label{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- status bar ---------- */
+  .statusbar{
+    background:var(--ink);
+    color:var(--paper);
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    position:sticky;top:0;z-index:50;
+  }
+  .statusbar .wrap{
+    display:flex;gap:18px;align-items:center;justify-content:space-between;
+    padding-top:9px;padding-bottom:9px;flex-wrap:wrap;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--seed);
+    display:inline-block;margin-right:8px;
+    box-shadow:0 0 0 0 rgba(140,170,90,.7);
+    animation:pulse 2.2s infinite;
+  }
+  .dot.off{background:var(--jam);animation:none}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(160,190,110,.6)}
+    70%{box-shadow:0 0 0 9px rgba(160,190,110,0)}
+    100%{box-shadow:0 0 0 0 rgba(160,190,110,0)}
+  }
+  #clock{font-variant-numeric:tabular-nums;color:#f3cfa6}
+
+  /* ---------- nav ---------- */
+  nav .wrap{
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    padding-top:18px;padding-bottom:18px;
+  }
+  .logo{display:flex;align-items:center;gap:11px;text-decoration:none}
+  .logo svg{width:34px;height:34px;flex:none}
+  .logo b{font-family:"Fraunces",serif;font-size:21px;letter-spacing:-.03em;font-weight:700}
+  .navlinks{display:flex;gap:26px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  .navlinks a{text-decoration:none;padding-bottom:2px;border-bottom:1px solid transparent}
+  .navlinks a:hover{border-color:var(--crust);color:var(--crust-dark)}
+  @media(max-width:720px){.navlinks{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:26px 0 70px;position:relative}
+  .hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+  @media(max-width:880px){.hero .wrap{grid-template-columns:1fr;gap:10px}}
+
+  h1{font-size:clamp(50px,9.2vw,124px);font-weight:700}
+  h1 em{
+    font-style:italic;color:var(--crust);
+    font-variation-settings:"SOFT" 60,"WONK" 1;
+  }
+  .hero p.lede{
+    font-size:16px;max-width:46ch;margin:26px 0 0;color:var(--ink-soft);
+  }
+  .hero p.lede strong{color:var(--ink);font-weight:500}
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px;align-items:center}
+  .btn{
+    display:inline-block;text-decoration:none;
+    background:var(--ink);color:var(--paper);
+    padding:14px 24px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    border:1px solid var(--ink);border-radius:var(--rad);
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn:hover{background:var(--crust-dark);border-color:var(--crust-dark);transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper)}
+
+  .loafart{position:relative;display:flex;justify-content:center;align-items:center}
+  .loafart svg.loaf{width:100%;max-width:420px;height:auto;display:block}
+  .badge{
+    position:absolute;right:-6px;top:-4px;width:132px;height:132px;
+    animation:spin 24s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(max-width:880px){.badge{width:104px;height:104px;right:0;top:-28px}}
+
+  /* ---------- marquee ---------- */
+  .marquee{
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    background:var(--paper-2);
+    overflow:hidden;white-space:nowrap;padding:12px 0;
+  }
+  .marquee-track{display:inline-flex;animation:slide 38s linear infinite}
+  .marquee span{
+    font-family:"Fraunces",serif;font-size:19px;padding:0 22px;
+    font-style:italic;color:var(--ink-soft);
+  }
+  .marquee span::after{content:"✳";margin-left:22px;color:var(--crust);font-style:normal}
+  @keyframes slide{to{transform:translateX(-50%)}}
+
+  /* ---------- board ---------- */
+  section{padding:80px 0}
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:34px}
+  .sec-head h2{font-size:clamp(32px,5vw,56px)}
+  .sec-head p{margin:8px 0 0;max-width:40ch;color:var(--ink-soft);font-size:14px}
+
+  .board{border-top:1px solid var(--ink)}
+  .item{
+    display:grid;grid-template-columns:38px 1fr 180px 150px;
+    gap:20px;align-items:center;
+    padding:22px 4px;border-bottom:1px solid var(--line);
+    transition:background .2s ease;
+  }
+  .item:hover{background:#fff6e6}
+  .item .no{font-size:12px;color:var(--ink-soft)}
+  .item h3{font-size:25px;font-weight:600}
+  .item .desc{font-size:13px;color:var(--ink-soft);margin-top:5px;max-width:44ch}
+  .item .price{font-family:"Fraunces",serif;font-size:21px}
+  .bar{height:7px;background:var(--paper-2);border:1px solid var(--line);position:relative;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--crust);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+  .left{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:7px;color:var(--ink-soft)}
+  .pill{
+    display:inline-block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    padding:5px 10px;border:1px solid currentColor;border-radius:999px;
+  }
+  .pill.ok{color:var(--seed)}
+  .pill.low{color:var(--crust-dark);background:#f6e0c9}
+  .pill.gone{color:var(--jam);background:transparent;text-decoration:line-through}
+  .item.sold{opacity:.52}
+  @media(max-width:820px){
+    .item{grid-template-columns:28px 1fr;grid-template-areas:"no name" ". meta" ". stat"}
+    .item .no{grid-area:no}.item .nm{grid-area:name}
+    .item .m{grid-area:meta}.item .s{grid-area:stat;justify-self:start}
+    .item .m{margin-top:12px}
+  }
+
+  /* ---------- how ---------- */
+  .how{background:var(--ink);color:var(--paper-2)}
+  .how h2{color:var(--paper)}
+  .how .sec-head p{color:#bda78d}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#4a382b;border:1px solid #4a382b}
+  .cols>div{background:var(--ink);padding:32px 26px}
+  .cols h3{font-size:23px;color:#f3cfa6;margin-bottom:12px}
+  .cols p{font-size:13.5px;color:#c9b59c;margin:0}
+  .cols .num{font-family:"Fraunces",serif;font-size:13px;letter-spacing:.2em;color:var(--crust);margin-bottom:18px}
+  @media(max-width:820px){.cols{grid-template-columns:1fr}}
+
+  /* ---------- order ---------- */
+  .order .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+  @media(max-width:880px){.order .wrap{grid-template-columns:1fr;gap:34px}}
+  form{display:grid;gap:14px}
+  label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:6px}
+  input,select{
+    width:100%;padding:13px 14px;font-family:inherit;font-size:14px;
+    background:#fffaf0;border:1px solid var(--line);color:var(--ink);border-radius:var(--rad);
+  }
+  input:focus,select:focus{outline:2px solid var(--crust);outline-offset:-1px;border-color:var(--crust)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:520px){.row2{grid-template-columns:1fr}}
+  .note{font-size:12px;color:var(--ink-soft)}
+  .ticket{
+    border:1px solid var(--ink);background:#fffaf0;padding:28px;
+    box-shadow:8px 8px 0 var(--paper-2);
+  }
+  .ticket h3{font-size:28px;margin-bottom:14px}
+  .ticket ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-soft)}
+  .ticket li{margin-bottom:9px}
+  .ok-msg{display:none;font-size:13px;color:var(--seed);border:1px dashed var(--seed);padding:12px}
+
+  /* ---------- find us ---------- */
+  .find{border-top:1px solid var(--line);background:var(--paper-2)}
+  .find .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px}
+  @media(max-width:880px){.find .wrap{grid-template-columns:1fr;gap:34px}}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:11px 0;border-bottom:1px solid var(--line)}
+  td:last-child{text-align:right;color:var(--ink-soft)}
+  tr.today td{color:var(--crust-dark);font-weight:500}
+  tr.today td:first-child::before{content:"→ ";}
+  .addr{font-family:"Fraunces",serif;font-size:30px;line-height:1.15;margin:0 0 14px}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--ink);color:#a89177;padding:60px 0 34px;font-size:12.5px}
+  footer .wrap{display:grid;grid-template-columns:2fr 1fr 1fr;gap:34px}
+  @media(max-width:720px){footer .wrap{grid-template-columns:1fr}}
+  footer h4{font-family:"Fraunces",serif;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#f3cfa6;margin:0 0 14px;font-weight:600}
+  footer a{display:block;text-decoration:none;margin-bottom:9px}
+  footer a:hover{color:#f3cfa6}
+  .colophon{border-top:1px solid #4a382b;margin-top:44px;padding-top:20px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+  .big-word{
+    font-family:"Fraunces",serif;font-weight:700;
+    font-size:clamp(60px,17vw,220px);line-height:.8;color:#3b2a1d;
+    letter-spacing:-.04em;margin:50px 0 -14px;text-align:center;user-select:none;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ STATUS BAR ============ -->
+<div class="statusbar" role="status">
+  <div class="wrap">
+    <div><span class="dot" id="dot"></span><span id="state">Oven on at 5 · Doors at 7 · Gone by noon</span></div>
+    <div id="clock">counting…</div>
+  </div>
+</div>
+
+<!-- ============ NAV ============ -->
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <ellipse cx="32" cy="38" rx="28" ry="20" fill="#c05621"/>
+        <ellipse cx="32" cy="34" rx="28" ry="20" fill="#e09a52"/>
+        <path d="M12 30c7-6 33-6 40 0" stroke="#8f3d16" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M19 38c5-4 21-4 26 0" stroke="#8f3d16" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".7"/>
+      </svg>
+      <b>Odd&nbsp;Loaf</b>
+    </a>
+    <div class="navlinks">
+      <a href="#board">Today's bake</a>
+      <a href="#how">How it works</a>
+      <a href="#order">Standing order</a>
+      <a href="#find">Find us</a>
+    </div>
+    <a class="btn ghost" href="#order" style="padding:11px 18px">Reserve a loaf</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="mono-label">Ferney St · est. 2019 · 40 loaves a day</p>
+      <h1>Bread that's<br>a bit <em>odd</em>,<br>gone by noon.</h1>
+      <p class="lede">
+        We're a two-person bakery with one oven and no freezer. Everything is mixed
+        the night before, baked at dawn, and sold until the shelf is bare —
+        <strong>which is usually around 11:40am.</strong>
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="#board">See today's shelf</a>
+        <a class="btn ghost" href="#order">Start a standing order</a>
+      </div>
+    </div>
+
+    <div class="loafart">
+      <svg class="badge" viewBox="0 0 200 200" aria-hidden="true">
+        <defs><path id="circ" d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0"/></defs>
+        <circle cx="100" cy="100" r="88" fill="none" stroke="#2b1d13" stroke-width="1.4"/>
+        <circle cx="100" cy="100" r="56" fill="#8c2f39"/>
+        <text font-family="DM Mono, monospace" font-size="15.5" letter-spacing="3.1" fill="#2b1d13">
+          <textPath href="#circ" startOffset="0%">SOLD OUT BY NOON · SOLD OUT BY NOON · </textPath>
+        </text>
+        <text x="100" y="95" text-anchor="middle" font-family="Fraunces, serif" font-size="27" font-weight="700" fill="#f7efe1">40</text>
+        <text x="100" y="113" text-anchor="middle" font-family="DM Mono, monospace" font-size="8.5" letter-spacing="2" fill="#f0c9a0">LOAVES</text>
+      </svg>
+
+      <svg class="loaf" viewBox="0 0 400 340" role="img" aria-label="A scored round sourdough boule">
+        <ellipse cx="200" cy="300" rx="150" ry="22" fill="#e2d2b8"/>
+        <path d="M200 48c86 0 148 54 148 120 0 74-66 116-148 116S52 242 52 168C52 102 114 48 200 48z" fill="#b2561f"/>
+        <path d="M200 40c84 0 144 52 144 116 0 72-64 112-144 112S56 228 56 156C56 92 116 40 200 40z" fill="#d98a44"/>
+        <path d="M200 40c84 0 144 52 144 116 0 20-5 37-14 52-24-38-74-62-130-62s-106 24-130 62c-9-15-14-32-14-52C56 92 116 40 200 40z" fill="#e8a862"/>
+        <!-- ear / score -->
+        <path d="M92 134c38-30 178-30 216 0" stroke="#79390f" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <path d="M96 128c38-30 174-30 212 0" stroke="#f2cb94" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M128 182c26-14 118-14 144 0" stroke="#8f4414" stroke-width="6" fill="none" stroke-linecap="round" opacity=".75"/>
+        <path d="M152 218c18-9 78-9 96 0" stroke="#8f4414" stroke-width="5" fill="none" stroke-linecap="round" opacity=".55"/>
+        <!-- flour dust -->
+        <g fill="#f8eedc" opacity=".8">
+          <circle cx="140" cy="96" r="3"/><circle cx="252" cy="88" r="2.4"/><circle cx="196" cy="74" r="2"/>
+          <circle cx="306" cy="150" r="2.6"/><circle cx="84" cy="168" r="2.2"/><circle cx="224" cy="248" r="2.4"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>stone-milled rye</span><span>72-hour cold ferment</span><span>black treacle</span><span>miso &amp; sesame</span><span>cardamom</span><span>no commercial yeast, ever</span><span>wood ash crust</span><span>a starter named Brenda</span>
+    <span>stone-milled rye</span><span>72-hour cold ferment</span><span>black treacle</span><span>miso &amp; sesame</span><span>cardamom</span><span>no commercial yeast, ever</span><span>wood ash crust</span><span>a starter named Brenda</span>
+  </div>
+</div>
+
+<!-- ============ BOARD ============ -->
+<section id="board">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <p class="mono-label">The shelf · updated live from the counter</p>
+        <h2>Today's bake</h2>
+        <p>Thursday. One bake, no second round. When a line goes grey, it's gone — please don't ask Dev to check the back.</p>
+      </div>
+      <div class="mono-label" style="text-align:right">
+        <span id="totalLeft">—</span> loaves left<br>of 40 baked
+      </div>
+    </div>
+
+    <div class="board" id="boardList"></div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <p class="mono-label" style="color:#a89177">No app. No loyalty points.</p>
+        <h2>How it works</h2>
+        <p>Three rules, and we're sorry about all of them.</p>
+      </div>
+    </div>
+    <div class="cols">
+      <div>
+        <div class="num">01</div>
+        <h3>Come early</h3>
+        <p>Doors open at 7:00. The queue starts forming around 6:45, mostly people in slippers. By 9:30 the interesting loaves have usually left the building.</p>
+      </div>
+      <div>
+        <div class="num">02</div>
+        <h3>Take what's there</h3>
+        <p>We bake forty loaves because that's what fits in the oven. There is no back room. There is no tomorrow's bread today. The Odd One changes weekly and we don't announce it in advance.</p>
+      </div>
+      <div>
+        <div class="num">03</div>
+        <h3>Or book a shelf spot</h3>
+        <p>Standing orders are held under your name until 9:00am on collection day. Eight spots per day, because that's how many names Dev can remember.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ORDER ============ -->
+<section class="order" id="order">
+  <div class="wrap">
+    <div>
+      <p class="mono-label">Reserve · £0 deposit · pay at the counter</p>
+      <h2 style="font-size:clamp(32px,5vw,52px);margin:8px 0 18px">Put your name<br>on a loaf.</h2>
+      <p class="note" style="margin-bottom:26px;max-width:42ch">
+        Pick a day and a loaf, and we'll set it aside on the top shelf with your name on a bit of masking tape. Unclaimed loaves go back on sale at 9:00am sharp.
+      </p>
+      <form id="resForm" novalidate>
+        <div>
+          <label for="nm">Your name</label>
+          <input id="nm" name="name" type="text" placeholder="e.g. Marguerite from no. 14" required>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="day">Collection day</label>
+            <select id="day" name="day">
+              <option>Friday — tomorrow</option>
+              <option>Saturday</option>
+              <option>Sunday (knots only)</option>
+              <option>Next Wednesday</option>
+            </select>
+          </div>
+          <div>
+            <label for="loaf">Loaf</label>
+            <select id="loaf" name="loaf">
+              <option>Country Sour — £5.20</option>
+              <option>Rye &amp; Treacle — £6.00</option>
+              <option>The Odd One — £6.50</option>
+              <option>Seeded Spelt — £5.80</option>
+              <option>Cardamom Knots ×4 — £7.00</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="em">Email or mobile</label>
+          <input id="em" name="contact" type="text" placeholder="so we can tell you if the oven dies">
+        </div>
+        <button class="btn" type="submit" style="justify-self:start;cursor:pointer">Hold my loaf</button>
+        <p class="ok-msg" id="okMsg">Done — you're on the list. Masking tape applied. See you before 9.</p>
+      </form>
+    </div>
+
+    <aside class="ticket">
+      <p class="mono-label">Counter notes</p>
+      <h3>Small print, honestly</h3>
+      <ul>
+        <li><strong>Cash is nice, card is fine.</strong> The card machine sulks below 4°C.</li>
+        <li><strong>Bring a bag or a tote.</strong> We wrap in paper; paper is not a handle.</li>
+        <li><strong>Day-old bread</strong> goes half price at 11:30 — if any exists, which it rarely does.</li>
+        <li><strong>Crumbs for the ducks:</strong> free, by the door, in the tin marked DUCKS.</li>
+        <li><strong>Brenda the starter</strong> is nine years old and travels by bike. Sharing by request.</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ FIND US ============ -->
+<section class="find" id="find">
+  <div class="wrap">
+    <div>
+      <p class="mono-label">Find us</p>
+      <p class="addr">41a Ferney Street,<br>between the launderette<br>and the good bins.</p>
+      <p class="note">Two minutes from Halloway Green. There's a bench outside; people eat the knots on it before they get home. We think that's the correct use of the bench.</p>
+      <p style="margin-top:22px"><a class="btn ghost" href="#top">Directions →</a></p>
+    </div>
+    <div>
+      <p class="mono-label" style="margin-bottom:12px">Hours · or until sold out</p>
+      <table>
+        <tbody>
+          <tr data-d="1"><td>Monday</td><td>closed — Brenda rests</td></tr>
+          <tr data-d="2"><td>Tuesday</td><td>closed</td></tr>
+          <tr data-d="3"><td>Wednesday</td><td>7:00 – 12:00</td></tr>
+          <tr data-d="4"><td>Thursday</td><td>7:00 – 12:00</td></tr>
+          <tr data-d="5"><td>Friday</td><td>7:00 – 12:00 · focaccia</td></tr>
+          <tr data-d="6"><td>Saturday</td><td>6:30 – 12:00</td></tr>
+          <tr data-d="0"><td>Sunday</td><td>8:00 – 10:30 · knots only</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:16px">Average sell-out time this month: <strong>11:41am</strong>. Earliest: 8:52am (the day the cardamom knots were in the paper).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div>
+      <h4>Odd Loaf</h4>
+      <p style="margin:0;max-width:34ch">Flour, water, salt, time, and a slightly unreasonable attachment to one oven. Baked by Dev &amp; Halima.</p>
+    </div>
+    <div>
+      <h4>Visit</h4>
+      <a href="#find">41a Ferney Street</a>
+      <a href="#find">Opening hours</a>
+      <a href="#order">Standing orders</a>
+    </div>
+    <div>
+      <h4>Elsewhere</h4>
+      <a href="#top">Instagram — @oddloaf</a>
+      <a href="#top">The bread letter</a>
+      <a href="#top">Starter sharing</a>
+    </div>
+  </div>
+  <div class="big-word" aria-hidden="true">GONE BY NOON</div>
+  <div class="wrap">
+    <div class="colophon">
+      <span>© 2024 Odd Loaf</span>
+      <span>No freezer · No franchise</span>
+      <span>Site baked at 180°C</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---------- today's shelf ---------- */
+const items = [
+  {n:"Country Sour", d:"Three-day ferment, 20% stone-milled wheat. The one you buy twice a week and stop noticing.", p:"£5.20", baked:14, left:6},
+  {n:"Rye &amp; Treacle", d:"Dense, dark, faintly bitter. Keeps for a week, outlives most relationships.", p:"£6.00", baked:8, left:3},
+  {n:"The Odd One", d:"This week: white miso, black sesame, a slick of brown butter. Next week: who knows.", p:"£6.50", baked:6, left:0},
+  {n:"Seeded Spelt", d:"Sunflower, flax, pumpkin, soaked overnight so they don't fight you.", p:"£5.80", baked:8, left:5},
+  {n:"Cardamom Knots", d:"Laminated, twisted badly on purpose, sugar-syruped twice. Sold in fours.", p:"£7.00", baked:4, left:2},
+  {n:"Friday Focaccia", d:"Only on Fridays. Olive oil puddle in every dimple. Ask Halima for a corner piece.", p:"£4.40", baked:0, left:0, note:true}
+];
+
+const list = document.getElementById('boardList');
+
+function status(it){
+  if(it.baked===0) return ['gone','Friday only'];
+  if(it.left===0)  return ['gone','Gone'];
+  if(it.left<=3)   return ['low','A few left'];
+  return ['ok','On the shelf'];
+}
+
+function render(){
+  list.innerHTML = items.map((it,i)=>{
+    const [cls,txt] = status(it);
+    const pct = it.baked ? Math.round(it.left/it.baked*100) : 0;
+    return `<div class="item ${it.left===0?'sold':''}">
+      <div class="no">${String(i+1).padStart(2,'0')}</div>
+      <div class="nm">
+        <h3>${it.n}</h3>
+        <div class="desc">${it.d}</div>
+      </div>
+      <div class="m">
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="left">${it.baked? it.left+' of '+it.baked+' left' : 'not baked today'}</div>
+      </div>
+      <div class="s" style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+        <span class="pill ${cls}">${txt}</span>
+        <span class="price">${it.p}</span>
+      </div>
+    </div>`;
+  }).join('');
+  const tot = items.reduce((a,b)=>a+b.left,0);
+  document.getElementById('totalLeft').textContent = tot;
+}
+render();
+
+/* someone buys something every so often */
+setInterval(()=>{
+  const avail = items.filter(i=>i.left>0);
+  if(!avail.length) return;
+  const pick = avail[Math.floor(Math.random()*avail.length)];
+  pick.left--;
+  render();
+}, 9000);
+
+/* ---------- countdown to noon ---------- */
+const clock = document.getElementById('clock');
+const stateEl = document.getElementById('state');
+const dot = document.getElementById('dot');
+
+function tick(){
+  const now = new Date();
+  const noon = new Date(now); noon.setHours(12,0,0,0);
+  const open = new Date(now); open.setHours(7,0,0,0);
+  const diff = noon - now;
+
+  if(now < open){
+    const m = Math.floor((open-now)/60000);
+    const h = Math.floor(m/60);
+    dot.classList.add('off');
+    stateEl.textContent = 'Oven on — doors not open yet';
+    clock.textContent = `Doors in ${h}h ${String(m%60).padStart(2,'0')}m`;
+  } else if(diff > 0){
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor(diff/60000)%60;
+    const s = Math.floor(diff/1000)%60;
+    dot.classList.remove('off');
+    stateEl.textContent = 'Open now — bread on the shelf';
+    clock.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} until we shut`;
+  } else {
+    dot.classList.add('off');
+    stateEl.textContent = 'Sold out — back tomorrow at 7';
+    clock.textContent = 'Shelf bare · see you at dawn';
+  }
+}
+tick(); setInterval(tick,1000);
+
+/* ---------- highlight today's hours ---------- */
+document.querySelectorAll('tr[data-d]').forEach(tr=>{
+  if(+tr.dataset.d === new Date().getDay()) tr.classList.add('today');
+});
+
+/* ---------- form ---------- */
+document.getElementById('resForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const nm = document.getElementById('nm');
+  if(!nm.value.trim()){ nm.focus(); return; }
+  document.getElementById('okMsg').style.display='block';
+  e.target.querySelector('button').textContent='On the list ✓';
+});
+</script>
+</body>
+</html>
