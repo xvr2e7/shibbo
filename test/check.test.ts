@@ -22,6 +22,11 @@ test("contrastive negation: model forms hit, ordinary human forms don't", () => 
   for (const s of ["It's not rocket science, but it takes practice.", "This not only saves money, but time.", "It wasn't raining, so we walked.", "The fix was simple: restart it."]) assert.ok(!hit(s, "contrastive-negation"), s);
 });
 
+test("unfilled placeholder: template slots hit, Markdown links don't", () => {
+  for (const s of ["Best regards, [Your Name]", "As shown in [insert source], sales rose.", "Due 2026-XX-XX."]) assert.ok(hit(s, "unfilled-placeholder"), s);
+  for (const s of ["See [Add or change a tell](docs/guide/add-a-tell.md).", "Open [Your account](https://example.com/account).", "Read [Add a server][servers] first."]) assert.ok(!hit(s, "unfilled-placeholder"), s);
+});
+
 test("density rules only count past their rate", () => {
   const one = check("This is genuinely useful. ".padEnd(400, "word "), "-", { only: ["genuinely"], lexicon: false });
   assert.equal(one.findings.filter((f) => f.counted).length, 0);

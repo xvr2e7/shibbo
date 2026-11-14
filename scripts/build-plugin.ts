@@ -37,6 +37,9 @@ writeFileSync(join(P, ".claude-plugin", "plugin.json"), JSON.stringify({
   name: "shibbo",
   version,
   description: "Checks prose, docs and UI that Claude writes for tells that read as machine-made, using measured per-model data.",
+  author: { name: "ziyan", url: "https://github.com/xvr2e7" },
+  homepage: "https://xvr2e7.github.io/shibbo/",
+  repository: "https://github.com/xvr2e7/shibbo",
   license: "MIT",
   keywords: ["writing", "lint", "style", "ai-slop", "docs"],
 }, null, 2) + "\n");

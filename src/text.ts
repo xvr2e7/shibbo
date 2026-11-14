@@ -46,7 +46,7 @@ export function proseFromMarkdown(md: string): string {
   t = mask(t, /^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm); // fenced code
   t = mask(t, /<!--[\s\S]*?-->/g);
   t = mask(t, /`[^`\n]+`/g); // inline code
-  t = t.replace(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (m) => "]" + blank(m.slice(1))); // link targets
+  t = t.replace(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (m) => "](" + blank(m.slice(2, -1)) + ")"); // link targets; the parentheses stay so a rule can tell a link from a bare bracket
   t = mask(t, /https?:\/\/\S+/g);
   t = mask(t, /<\/?[a-zA-Z][^>\n]*>/g);
   t = mask(t, /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/gm); // table rules

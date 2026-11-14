@@ -41,6 +41,13 @@ npx shibbo init <harness>
 
 This writes shibbo's rules into the harness's instructions file and registers its MCP tools. The rules cover clear writing, the tells of the model you name, and agent habits such as claiming that tests pass without running them. It works with Claude Code, Codex, Cursor, Copilot, Gemini CLI, Devin, Cline, Roo, Aider, Kiro, Junie, Amp, opencode, Goose, Zed, Continue and Warp. In Claude Code, Codex, Gemini CLI, Cline and Aider, the agent also hears about tells after each edit; Claude Code and Gemini CLI check its final reply too. Claude Code sessions also load rules for interface work. Cursor, Copilot, Devin and Kiro have experimental hooks; the [support table](docs/harnesses/index.md) has the details.
 
+Claude Code users can install the plugin, which bundles the checker, the MCP server and the hooks:
+
+```text
+/plugin marketplace add xvr2e7/shibbo
+/plugin install shibbo@shibbo
+```
+
 To check files yourself:
 
 ```console
