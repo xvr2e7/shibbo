@@ -37,8 +37,6 @@ export const data = registry as unknown as {
   };
 };
 export interface Habit { key: string; label: string; glyph: string; what: string; unit: string; sign: 1 | -1; tell?: string; human: number; models: Record<string, { mean: number; d: number }> }
-// Agent-conduct tells stay in the registry and the harness rules; the site shows only the three layers it maps.
-data.tells = data.tells.filter((t) => t.domain !== "agent");
 export const habits = ((registry as unknown as { habits?: Habit[] }).habits ?? []) as Habit[];
 export const chronology = chronologyRaw as { milestones: Milestone[]; tells: HistTell[] };
 

@@ -1,6 +1,6 @@
 // The four measured layers, each reduced to what a sheet of the stack draws: points, a few labels, model anchors
 // and release trails, in the sheet's own unit square. Prose comes from map.json (the prose atlas), interface from
-// ui-map.json, and code and conduct from code-map.json and conduct-map.json once they exist
+// ui-map.json, and code and behavior from code-map.json and behavior-map.json once they exist
 // (scripts/copy-layer-maps.ts copies them from data/measured/). A layer whose file is missing shows as "measuring now".
 import { models as proseModels, phrases } from "./AtlasMap";
 import uiRaw from "../data/ui-map.json";
@@ -8,11 +8,11 @@ import type { LayerId } from "./layers";
 import { famVar, byFamily } from "./families";
 
 /** The order of the stack, top to bottom: from what a reader sees (prose, pages) to what lies under it (code). */
-// Conduct has tells in the registry but no sheet: its only runs came from one maker's agent, which is no basis for a map of models.
-export const STACK: LayerId[] = ["prose", "interface", "code"];
-export const LAYER_NAME: Record<LayerId, string> = { prose: "Prose", interface: "Interface", code: "Code", conduct: "Conduct" };
+// Behavior sits at the bottom. Its sheet maps one part of it, the final report: every model writes up the same finished work logs.
+export const STACK: LayerId[] = ["prose", "interface", "code", "behavior"];
+export const LAYER_NAME: Record<LayerId, string> = { prose: "Prose", interface: "Interface", code: "Code", behavior: "Behavior" };
 
-// the generic layer shape (ui-map.json, code-map.json, conduct-map.json)
+// the generic layer shape (ui-map.json, code-map.json, behavior-map.json)
 export type Owned = { token: string; pages?: number; points?: number; of: number; others: number; p: number };
 export type GModel = { id: string; route?: string; name: string; family: string; released: string | null; date_url?: string | null; x: number; y: number; n: number; complete?: boolean; active?: boolean; owns: Owned[] };
 export type GToken = { id: string; label: string; group?: string; n: number; x: number | null; y: number | null; share: number[] };
@@ -59,12 +59,12 @@ export function normalize(id: LayerId, raw: Any, unit: [string, string]): GLayer
   };
 }
 
-// Code and conduct arrive from another measurement run; until a file exists the glob is empty for it.
-const optional = import.meta.glob<Any>("../data/{code,conduct}-map.json", { eager: true, import: "default" });
+// Code and behavior arrive from another measurement run; until a file exists the glob is empty for it.
+const optional = import.meta.glob<Any>("../data/{code,behavior}-map.json", { eager: true, import: "default" });
 const fileOf = (name: string) => optional[`../data/${name}-map.json`];
-export const UNITS: Record<LayerId, [string, string]> = { prose: ["phrase", "phrases"], interface: ["page", "pages"], code: ["reply", "replies"], conduct: ["transcript", "transcripts"] };
+export const UNITS: Record<LayerId, [string, string]> = { prose: ["phrase", "phrases"], interface: ["page", "pages"], code: ["reply", "replies"], behavior: ["report", "reports"] };
 export const codeLayer: GLayer | null = fileOf("code") ? normalize("code", fileOf("code"), UNITS.code) : null;
-export const conductLayer: GLayer | null = fileOf("conduct") ? normalize("conduct", fileOf("conduct"), UNITS.conduct) : null;
+export const behaviorLayer: GLayer | null = fileOf("behavior") ? normalize("behavior", fileOf("behavior"), UNITS.behavior) : null;
 export const uiLayer: GLayer = normalize("interface", uiRaw as unknown as Any, UNITS.interface);
 
 // shared model keys
@@ -123,7 +123,7 @@ function proseSheet(): Sheet {
     frame: at.frame, box: spanBox([...proseModels.map((m) => m.x), ...phrases.map((d) => d.x), 0], [...proseModels.map((m) => m.y), ...phrases.map((d) => d.y), 0]) };
 }
 
-/** Interface, code and conduct: the main set's points, the tokens that split models most, and the models with enough points to place. */
+/** Interface, code and behavior: the main set's points, the tokens that split models most, and the models with enough points to place. */
 export function genericSheet(L: GLayer | null, id: LayerId): Sheet {
   if (!L) return { id, name: LAYER_NAME[id], ready: false, count: "Measuring now", points: [], anchors: [], labels: [] };
   const main = L.models.map((m, i) => ({ m, i })).filter((e) => (!L.primary || !e.m.route || e.m.route === L.primary) && e.m.active !== false && e.m.n >= 6);
@@ -143,7 +143,7 @@ export function genericSheet(L: GLayer | null, id: LayerId): Sheet {
   const route = L.models.map((m, i) => ({ m, i })).filter((e) => !L.primary || !e.m.route || e.m.route === L.primary);
   const routeIdx = new Set(route.map((e) => e.i));
   const all = L.points.filter((p) => routeIdx.has(p.model));
-  // Interface fits its pages and tokens to the middle 90% and its active models; code and conduct fit points to the middle 92% and every model.
+  // Interface fits its pages and tokens to the middle 90% and its active models; code and behavior fit points to the middle 92% and every model.
   const box = id === "interface"
     ? trimBox([...all.map((p) => p.x), ...L.tokens.filter((t) => t.x !== null).map((t) => t.x!)], [...all.map((p) => p.y), ...L.tokens.filter((t) => t.y !== null).map((t) => t.y!)], 0.05, route.filter((e) => e.m.active !== false).map((e) => e.m.x), route.filter((e) => e.m.active !== false).map((e) => e.m.y))
     : trimBox(all.map((p) => p.x), all.map((p) => p.y), 0.04, route.map((e) => e.m.x), route.map((e) => e.m.y));
@@ -152,7 +152,7 @@ export function genericSheet(L: GLayer | null, id: LayerId): Sheet {
 
 let cache: Sheet[] | null = null;
 export function sheets(): Sheet[] {
-  cache ??= [proseSheet(), genericSheet(uiLayer, "interface"), genericSheet(codeLayer, "code")];
+  cache ??= [proseSheet(), genericSheet(uiLayer, "interface"), genericSheet(codeLayer, "code"), genericSheet(behaviorLayer, "behavior")];
   return cache;
 }
 

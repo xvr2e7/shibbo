@@ -8,7 +8,7 @@ import { Timeline, TIME, NOW } from "../components/Timeline";
 import { data, tellById, ym, familyColor, label, type Habit } from "../data";
 import { LayerStack, LayerSections } from "../components/LayerStack";
 import { LayerAtlas, Measuring } from "../components/LayerAtlas";
-import { STACK, LAYER_NAME, codeLayer, conductLayer, uiLayer } from "../components/layerData";
+import { STACK, LAYER_NAME, codeLayer, behaviorLayer, uiLayer } from "../components/layerData";
 import { isLayer, type LayerId } from "../components/layers";
 import "../styles/atlas-switch.css";
 
@@ -18,7 +18,7 @@ type View = "stack" | LayerId;
 
 /** The flat-view tabs: back to the stack, or straight to any one layer's map. Unmeasured layers open their "measuring now" state. */
 function LayerSwitch({ layer, setLayer, onStack }: { layer: LayerId; setLayer: (l: LayerId) => void; onStack: () => void }) {
-  const missing = STACK.filter((l) => (l === "code" && !codeLayer) || (l === "conduct" && !conductLayer));
+  const missing = STACK.filter((l) => (l === "code" && !codeLayer) || (l === "behavior" && !behaviorLayer));
   return (
     <div className="layer-switch" role="group" aria-label="Atlas layer">
       <button type="button" className="to-stack" onClick={onStack}>All layers</button>
@@ -32,6 +32,10 @@ function LayerSwitch({ layer, setLayer, onStack }: { layer: LayerId; setLayer: (
 
 /** The layer a visitor last opened, so the way back folds that sheet into the stack. Not part of the URL. */
 let lastFlat: LayerId | null = null;
+/** Where the title stood on that layer's page, so the stack can slide it from there. */
+let titleFrom: { x: number; y: number } | null = null;
+/** Set while the view changes between the stack and a layer: the new screen fades in under a title that stays solid. */
+let soft = false;
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** Change the view with a cross-fade from the old screen to the new, where the browser can. */
@@ -70,7 +74,7 @@ const PACE: Record<LayerId, ReturnType<typeof pace>> = {
   prose: pace(mapModels.map((m) => m.released)),
   interface: pace(uiLayer.models.map((m) => m.released)),
   code: pace(codeLayer?.models.map((m) => m.released) ?? []),
-  conduct: pace([]),
+  behavior: pace(behaviorLayer?.models.map((m) => m.released) ?? []),
 };
 
 export function AtlasPage() {
@@ -80,8 +84,9 @@ export function AtlasPage() {
   const view: View = isLayer(asked) && STACK.includes(asked) ? asked : params.get("view") !== "stack" && (params.has("focus") || params.has("t")) ? "prose" : "stack";
   const layer: LayerId = view === "stack" ? "prose" : view;
   const setLayer = (l: LayerId) => fade(() => setParams((p) => { const n = new URLSearchParams(p); n.delete("view"); n.set("layer", l); if (l !== "prose") { n.delete("focus"); n.delete("t"); } return n; }, { replace: true }));
-  const openLayer = (l: LayerId) => fade(() => setParams(new URLSearchParams({ layer: l })));
-  const toStack = () => { lastFlat = layer; fade(() => setParams(new URLSearchParams({ view: "stack" }))); };
+  // Between the stack and a layer the sheet's own motion carries the change, so no cross-fade runs over it.
+  const openLayer = (l: LayerId) => { soft = true; titleFrom = null; setParams(new URLSearchParams({ layer: l })); };
+  const toStack = () => { lastFlat = layer; soft = true; const r = document.getElementById("atlas-h")?.getBoundingClientRect(); titleFrom = r ? { x: r.x, y: r.y } : null; setParams(new URLSearchParams({ view: "stack" })); };
   // Fetch the interface map early, so opening it never shows an empty frame.
   useEffect(() => { void loadInterface(); }, []);
   const [narrow, setNarrow] = useState(window.innerWidth < 760);
@@ -90,7 +95,7 @@ export function AtlasPage() {
     addEventListener("resize", on);
     return () => removeEventListener("resize", on);
   }, []);
-  useEffect(() => { lastFlat = view === "stack" ? null : view; }, [view]);
+  useEffect(() => { lastFlat = view === "stack" ? null : view; if (view !== "stack") titleFrom = null; const t = setTimeout(() => { soft = false; }, 600); return () => clearTimeout(t); }, [view]);
   // t is continuous (fractional months) so playback glides; month is the whole month the notes and labels use.
   const [t, setT] = useState(initialMonth);
   const month = Math.floor(t);
@@ -156,15 +161,15 @@ export function AtlasPage() {
   const timeline = <Timeline month={month} t={t} quiet={PACE[layer].quiet} setMonth={scrub} playing={playing} onPlay={play} onReset={() => { setPlaying(false); setT(NOW); }} />;
   let atlas: ReactNode;
   if (view === "stack") {
-    atlas = narrow ? <LayerSections onOpen={openLayer} header={title} /> : <LayerStack key="stack" onOpen={openLayer} from={lastFlat} header={title} />;
+    atlas = narrow ? <LayerSections onOpen={openLayer} header={title} /> : <LayerStack key="stack" onOpen={openLayer} from={lastFlat} titleFrom={titleFrom} header={title} />;
   } else if (view === "interface") {
     atlas = (
       <Suspense fallback={<section className="atlas" aria-busy="true" />}>
         <InterfaceAtlas header={flatHeader} month={month} footer={timeline} />
       </Suspense>
     );
-  } else if (view === "code" || view === "conduct") {
-    const L = view === "code" ? codeLayer : conductLayer;
+  } else if (view === "code" || view === "behavior") {
+    const L = view === "code" ? codeLayer : behaviorLayer;
     atlas = L ? <LayerAtlas key={view} layer={L} header={flatHeader} month={month} footer={timeline} /> : <Measuring layer={view} header={flatHeader} />;
   } else {
     atlas = (
@@ -183,7 +188,7 @@ export function AtlasPage() {
       </section>
     );
   }
-  return <div key={view}>{atlas}</div>;
+  return <div key={view} className={soft ? "soft-in" : undefined}>{atlas}</div>;
 }
 
 /** Layer switches double as the legend; the full key unfolds on hover or focus. */

@@ -194,6 +194,10 @@ if (existsSync(addPath)) {
   chronology.milestones.sort((a: { date: string }, b: { date: string }) => String(a.date).localeCompare(String(b.date)));
 }
 writeFileSync(join(OUT, "chronology.json"), JSON.stringify(chronology));
+// Project news for the home page (data/news.yaml), newest first.
+const newsPath = join(R, "data", "news.yaml");
+const news = (existsSync(newsPath) ? (YAML.parse(readFileSync(newsPath, "utf8")) ?? []) : []) as Array<{ date: string }>;
+writeFileSync(join(OUT, "news.json"), JSON.stringify(news.map((n) => ({ ...n, date: String(n.date).slice(0, 10) })).sort((a, b) => b.date.localeCompare(a.date))));
 
 // Docs: a generated list of every source, so it never drifts from the data.
 {
@@ -210,7 +214,7 @@ writeFileSync(join(OUT, "chronology.json"), JSON.stringify(chronology));
     "",
     `- Graphite, [“AI Tells”](${g.url}) (2026), ${g.license}. Per-model rates for 2025–26 models, the atlas, and the checker’s phrase list.`,
     raid ? `- [RAID](${raid.source.url}) (Dugan et al., ACL 2024), ${raid.source.license}. Measured by shibbo for 2022–23 chat models against matched human texts.` : "",
-    api?.models.length ? `- shibbo's own runs through each maker's API (${api.models.map((m) => m.name).join(", ")}), on held-out Graphite topics against their human articles. [measure/](${api.source.url}).` : "",
+    api?.models.length ? `- shibbo's own runs through maker APIs and OpenRouter (${api.models.map((m) => m.name).join(", ")}), on held-out Graphite topics against their human articles. [measure/](${api.source.url}).` : "",
     "- Model and lab icons: [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT). The marks belong to their owners.",
     "",
     "## Registry sources",

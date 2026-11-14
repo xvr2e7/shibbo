@@ -54,7 +54,7 @@ createRoot(document.getElementById("root")!).render(
 /** The layers prototype now lives on the Tells page; old #/layers links land on the matching layer. */
 function LayersRedirect() {
   const { layer } = useParams();
-  const known = ["prose", "code", "interface"].includes(layer ?? "");
+  const known = ["prose", "code", "interface", "behavior"].includes(layer ?? "");
   return <Navigate to={known ? `/tells?layer=${layer}` : "/tells"} replace />;
 }
 

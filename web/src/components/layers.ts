@@ -1,15 +1,16 @@
-// The three layers the Tells page sorts by (prose, code, interface), the year axis and the root habits
+// The four layers the Tells page sorts by (prose, code, interface, behavior), the year axis and the root habits
 // that run through more than one layer. Root habits come from data/roots.json (scripts/build-roots-data.ts).
 import { data, tellById, type Tell } from "../data";
 import rootsRaw from "../data/roots.json";
 
-export type LayerId = "prose" | "code" | "interface" | "conduct";
+export type LayerId = "prose" | "code" | "interface" | "behavior";
 export interface Layer { id: LayerId; name: string; domains: string[]; blurb: string }
 
 export const LAYERS: Layer[] = [
   { id: "prose", name: "Prose", domains: ["prose", "chat"], blurb: "Words a person reads: articles, replies, messages." },
   { id: "code", name: "Code", domains: ["code"], blurb: "Source, comments, tests and commits." },
   { id: "interface", name: "Interface", domains: ["ui"], blurb: "Pages and screens: color, type, layout, motion." },
+  { id: "behavior", name: "Behavior", domains: ["agent"], blurb: "What an agent does while it works: its steps, its tool calls and how it reports." },
 ];
 export const layerById = new Map(LAYERS.map((l) => [l.id, l]));
 export const isLayer = (s: string | null | undefined): s is LayerId => !!s && layerById.has(s as LayerId);
@@ -37,7 +38,7 @@ const GROUP_ORDER: Record<LayerId, string[]> = {
   prose: ["clarity", "vocabulary", "phrasing", "openers", "closers", "structure", "formatting", "punctuation", "tone", "disclaimers", "fiction"],
   code: ["comments", "structure", "errors", "tests", "deps", "output", "docs", "git"],
   interface: ["color", "typography", "layout", "components", "motion", "iconography", "copy", "imagery", "dataviz"],
-  conduct: ["clarity", "claims", "scope", "process", "files", "tone", "safety"],
+  behavior: ["clarity", "claims", "scope", "process", "files", "tone", "safety"],
 };
 const GROUP_NAME: Record<string, string> = {
   typography: "Type", color: "Color", copy: "Interface copy", iconography: "Icons", dataviz: "Charts",

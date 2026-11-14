@@ -1,10 +1,11 @@
 // The layered atlas: four measured layers as sheets in an isometric stack, each printed with its own map at reduced
 // detail. A thread joins one model's place on every sheet it appears on. Click a sheet (or its button) and it
 // lies flat, handing over to that layer's full map. Below 760 px, or with no room, the sheets sit as flat sections.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BrandIcon } from "./BrandIcon";
 import { sheets, sharedModels, ASPECT, STACK, LAYER_NAME, type Sheet } from "./layerData";
+import newsRaw from "../data/news.json";
 import { canon, famVar, famName, famBrand, byFamily, FAM_VARS } from "./families";
 import { data } from "../data";
 import type { LayerId } from "./layers";
@@ -26,7 +27,7 @@ const FLAT_INSETS: Record<LayerId, { left: number; right: number; top: number; b
   prose: { left: 380, right: 360, top: 16, bottom: 330 },
   interface: { left: 260, right: 32, top: 60, bottom: 330 },
   code: { left: 260, right: 32, top: 60, bottom: 330 },
-  conduct: { left: 260, right: 32, top: 60, bottom: 330 },
+  behavior: { left: 260, right: 32, top: 60, bottom: 330 },
 };
 
 // A sheet's place on screen: an affine map from sheet units (u across, v down, centred) to pixels.
@@ -113,7 +114,7 @@ function drawSheet(ctx: CanvasRenderingContext2D, dpr: number, C: Colors, sh: Sh
   const fams = [...new Set(sh.anchors.map((a) => a.family))];
   for (const f of fams) {
     const seq = sh.anchors.filter((a) => a.family === f && a.released).sort((a, b) => a.released!.localeCompare(b.released!));
-    if (seq.length < 2) continue;
+    if (seq.length < 2 || canon(f) === "other") continue; // "other" holds unrelated makers: no trail
     ctx.beginPath();
     seq.forEach((a, i) => { const [x, y] = proj(m, a.u, a.v); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
     ctx.globalAlpha = o.alpha * (o.lit ? 0.35 : 0.85);
@@ -168,7 +169,7 @@ function useSprite(sh: Sheet[]) {
 // the stack
 type Hit = { kind: "sheet"; i: number } | { kind: "model"; key: string; x: number; y: number };
 
-export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => void; from: LayerId | null; header: ReactNode }) {
+export function LayerStack({ onOpen, from, titleFrom, header }: { onOpen: (l: LayerId) => void; from: LayerId | null; titleFrom?: { x: number; y: number } | null; header: ReactNode }) {
   const all = useMemo(sheets, []);
   const ordered = useMemo(() => STACK.map((id) => all.find((s) => s.id === id)!), [all]);
   const shared = useMemo(() => sharedModels(ordered), [ordered]);
@@ -182,6 +183,20 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
   // The side text steps back while a sheet opens or folds away, so the sheet never slides under it.
   const [moving, setMoving] = useState(!!from && !reduced());
   useEffect(() => { if (!moving) return; const t = setTimeout(() => setMoving(false), 420); return () => clearTimeout(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opening a sheet lifts the title to where the map page has it. On the way back the title starts where the map page
+  // had it (titleFrom) and slides to its place here. The app runs both moves itself: a browser view transition on the
+  // title was dropped by Chrome about half the time, which made the title jump.
+  const [raised, setRaised] = useState(false);
+  const sideRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const h = sideRef.current?.querySelector<HTMLElement>("h1");
+    if (!h || !titleFrom || reduced()) return;
+    const to = h.getBoundingClientRect();
+    const dx = titleFrom.x - to.x, dy = titleFrom.y - to.y;
+    if (Math.abs(dx) + Math.abs(dy) < 2) return;
+    const a = h.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 620, easing: "cubic-bezier(0.45, 0, 0.15, 1)" });
+    return () => a.cancel();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const lit = hoverModel ?? pinned;
   const litFam = lit ? null : hoverFam ?? pinnedFam;
   const ref = useRef<HTMLCanvasElement>(null);
@@ -210,7 +225,10 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
     const layout = () => {
       // Beside the title block when it floats over the map; below 900 px it sits above the canvas instead.
       const beside = !matchMedia("(max-width: 900px)").matches;
-      const left = beside ? (W > 1000 ? 470 : 320) : 0, right = 32, top = beside ? 48 : 24, bottom = beside ? 56 : 24;
+      // The sheets' labels start about 125 px right of this inset, so the inset may run under the text block's edge.
+      const side = canvas.parentElement?.querySelector<HTMLElement>(".stack-side");
+      const sideRight = side ? side.offsetLeft + side.offsetWidth : 484;
+      const left = beside ? Math.max(300, sideRight - (W >= 1300 ? 95 : 10)) : 0, right = 32, top = beside ? 48 : 24, bottom = beside ? 56 : 24;
       // Gaps as a share of one sheet's height on screen. A measured sheet gets room to show past the one above it;
       // a dashed sheet needs little. The reduced-motion stack sits further apart, so nothing needs a hover to show.
       const ready = ordered.filter((x) => x.ready).length;
@@ -353,7 +371,7 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
       open: (i: number) => {
         if (opening) return;
         if (still) { live.current.onOpen(ordered[i].id); return; }
-        setMoving(true);
+        setMoving(true); setRaised(true);
         opening = { i, start: performance.now(), dur: 620, dir: 1 };
         schedule();
       },
@@ -410,9 +428,9 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
   const tipModel = tip ? shared.find((e) => e.key === tip.key) : null;
   const makers = useMemo(() => [...new Set(shared.map((e) => canon(e.family)))].filter((f) => f !== "other").sort(byFamily), [shared]);
   return (
-    <section className="atlas stack" data-moving={moving || undefined} aria-labelledby="atlas-h">
+    <section className="atlas stack" data-moving={moving || undefined} data-raised={raised || undefined} aria-labelledby="atlas-h">
       <canvas ref={ref} role="img" aria-label={`${ordered.length} sheets stacked: ${ordered.map((s) => `${s.name}, ${s.count.toLowerCase()}`).join("; ")}. Lines join each model's place on every sheet it appears on. The links beside the stack open each layer.`} />
-      <div className="cartouche stack-side">
+      <div className="cartouche stack-side" ref={sideRef}>
         {header}
         <About ordered={ordered} onOpen={(i) => api.current?.open(i)} onPeek={setHoverSheet} peek={hoverSheet} />
         <ul className="makers" aria-label="Trace a maker's models through the stack">
@@ -425,7 +443,11 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
           ))}
           <li className="makers-more"><Link to="/models">All models</Link></li>
         </ul>
+        <p className="about about-does">
+          <b>Your agent can drop them.</b> Set shibbo up in a coding agent and it gives the rules before work starts, then checks each edit and the final reply.
+        </p>
         <Install />
+        <News />
       </div>
       {tipModel && tip && (
         <div className="tip stack-tip" style={{ transform: `translate(${Math.min(tip.x + 16, window.innerWidth - 300)}px, ${tip.y + 16}px)` }} role="status">
@@ -438,6 +460,19 @@ export function LayerStack({ onOpen, from, header }: { onOpen: (l: LayerId) => v
   );
 }
 
+/** "machine-made", with the note that says what the word does and doesn't mean here. Opens on hover, focus or a tap. */
+function MadeNote() {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="note" data-open={open || undefined} onMouseLeave={() => setOpen(false)}>
+      <button type="button" className="note-term" aria-expanded={open} aria-describedby="made-note" aria-label="machine-made: read the note" onClick={() => setOpen((o) => !o)} onBlur={() => setOpen(false)} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>machine-made<sup aria-hidden="true">†</sup></button>
+      <span id="made-note" role="note" className="note-body">
+        <sup aria-hidden="true">†</sup> Machine-made work is not bad work. A model can write a clear sentence and build a sound page. Slop is the trouble: work shipped on defaults nobody chose. Shibbo names those defaults and gives a better way for each, so that agents, and the people who work with them, put more thought into what they make.
+      </span>
+    </span>
+  );
+}
+
 /** What shibbo is, in two sentences. The layer names open their maps, so the text is also the way in. */
 function About({ ordered, onOpen, onPeek, peek }: { ordered: Sheet[]; onOpen: (i: number) => void; onPeek?: (i: number | null) => void; peek?: number | null }) {
   const keys = new Set(ordered.flatMap((s) => s.anchors.map((a) => a.key)));
@@ -446,9 +481,11 @@ function About({ ordered, onOpen, onPeek, peek }: { ordered: Sheet[]; onOpen: (i
     <button type="button" className="about-layer" data-on={peek === i || undefined} onClick={() => onOpen(i)} onMouseEnter={() => onPeek?.(i)} onMouseLeave={() => onPeek?.(null)} onFocus={() => onPeek?.(i)} onBlur={() => onPeek?.(null)}>{ordered[i].name.toLowerCase()}</button>
   );
   return (
+    <>
     <p className="about">
-      Shibbo tracks the habits that mark a model’s work as machine-made, in three layers: <span className="nb">{link(0)},</span> {link(1)} and <span className="nb">{link(2)}.</span> It maps {keys.size} models from {fams.size} makers and lists <Link to="/tells">{data.tells.length} tells</Link> with their sources.
+      Shibbo tracks the habits that mark a model’s work as <MadeNote />, in {ordered.length === 4 ? "four" : "three"} layers: {ordered.slice(0, -1).map((_, i) => <Fragment key={i}><span className="nb">{link(i)}{i < ordered.length - 2 ? "," : ""}</span>{" "}</Fragment>)}and <span className="nb">{link(ordered.length - 1)}.</span> It maps {keys.size} models from {fams.size} makers and lists <Link to="/tells">{data.tells.length} tells</Link> with their sources.
     </p>
+    </>
   );
 }
 
@@ -473,6 +510,29 @@ function Install() {
   );
 }
 
+const NEWS = (newsRaw as Array<{ date: string; text: string; icon?: string; to?: string }>).slice(0, 3);
+const shortDay = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
+/** The latest three things that changed in the project: a model added, a feature, a milestone. */
+function News() {
+  if (!NEWS.length) return null;
+  return (
+    <div className="about-news">
+      <h2>News</h2>
+      <ul>
+        {NEWS.map((n) => (
+          <li key={n.date + n.text}>
+            <time dateTime={n.date}>{shortDay(n.date)}</time>
+            <span>
+              {n.icon && <i className="ic"><BrandIcon brand={famBrand(n.icon)} size={13} /></i>}
+              {n.to ? <Link to={n.to}>{n.text}</Link> : n.text}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // narrow screens: the layers as flat sections
 export function LayerSections({ onOpen, header }: { onOpen: (l: LayerId) => void; header: ReactNode }) {
   const all = useMemo(sheets, []);
@@ -484,6 +544,7 @@ export function LayerSections({ onOpen, header }: { onOpen: (l: LayerId) => void
         {header}
         <About ordered={ordered} onOpen={(i) => onOpen(ordered[i].id)} />
         <Install />
+        <News />
       </div>
       {ordered.map((s) => (
         <section key={s.id} className="stack-section" aria-labelledby={`sec-${s.id}`}>

@@ -108,9 +108,12 @@ export function Shell() {
         </Link>
         <Tabs path={loc.pathname} />
         <NavLink to="/docs" className="docs-link">Docs</NavLink>
-        <a className="repo-link" href={REPO} aria-label="shibbo on GitHub" title="shibbo on GitHub">
-          <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor">
+        <a className="repo-link" href={REPO} aria-label="Star shibbo on GitHub" title="Star shibbo on GitHub">
+          <svg className="cat" viewBox="0 0 16 16" width="17" height="17" aria-hidden="true" fill="currentColor">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+          </svg>
+          <svg className="star" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <path d="M8 1.6l1.9 4 4.4.6-3.2 3 .8 4.3L8 11.4l-3.9 2.1.8-4.3-3.2-3 4.4-.6z" />
           </svg>
         </a>
         <ThemeToggle dark={theme === "dark"} onChange={(d) => setThemeSoftly(d ? "dark" : "light")} />
@@ -121,7 +124,7 @@ export function Shell() {
       {!inDocs && (
         <footer className={onMap ? "foot foot-map" : "foot"}>
           <p>
-            © 2026 Ziyan Xie. <a href={`${REPO}/blob/main/LICENSE`}>MIT license</a>.
+            © 2026 <a href="https://x.com/zhiatsyien" rel="me noopener">Ziyan Xie</a>. <a href={`${REPO}/blob/main/LICENSE`}>MIT license</a>.
           </p>
         </footer>
       )}

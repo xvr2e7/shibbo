@@ -1,4 +1,4 @@
-// A flat map for any layer in the ui-map shape (code-map.json, conduct-map.json): points (one per reply or
+// A flat map for any layer in the ui-map shape (code-map.json, behavior-map.json): points (one per reply or
 // transcript), the tokens that place them, and the models that made them, joined in release order. The panel holds
 // the same models and points as buttons, so everything on the map can be reached from the keyboard.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -32,7 +32,7 @@ export function Measuring({ layer, header }: { layer: LayerId; header: ReactNode
       <div className="cartouche">{header}</div>
       <div className="measuring-sheet" role="status">
         <p className="measuring-h">{LAYER_NAME[layer]}: measuring now</p>
-        <p>Shibbo is running the same tasks through each model and placing every {layer === "code" ? "reply" : "transcript"} among the habits it shows. This map appears when the first runs land.</p>
+        <p>Shibbo is running the same tasks through each model and placing every {layer === "code" ? "reply" : "report"} among the habits it shows. This map appears when the first runs land.</p>
         <p>Meanwhile, read the <Link to={`/tells?layer=${layer}`}>{LAYER_NAME[layer].toLowerCase()} tells</Link> shibbo already tracks.</p>
       </div>
     </section>
@@ -278,7 +278,7 @@ function GMap(props: MapProps) {
       const vis = view.byRelease.filter((e) => (e.m.n >= 6 || sel === e.i) && !out(e.m));
       for (const f of view.fams) {
         const pts = vis.filter((e) => e.m.family === f && e.m.released).map((e) => [sx(e.m.x), sy(e.m.y)] as const);
-        if (pts.length < 2) continue;
+        if (pts.length < 2 || f === "other") continue; // "other" holds unrelated makers: no trail
         ctx.globalAlpha = fam !== null && fam !== f ? 0.25 : sel !== null || tok !== null ? 0.45 : 1; ctx.lineJoin = "round"; ctx.lineCap = "round";
         ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
         ctx.lineWidth = 6; ctx.strokeStyle = C["--halo"]; ctx.stroke();
