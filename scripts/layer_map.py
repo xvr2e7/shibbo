@@ -56,7 +56,13 @@ REL = releases()
 key = lambda mid: re.sub(r"-\d{8}$", "", mid.split("/")[-1]).replace(".", "-").lower()
 
 
+# API ids whose timeline entry has another id.
+ALIAS = {"deepseek-v4-pro-0813": "deepseek-v4-pro-ga", "lfm-3-1.7b": "lfm3"}
+
+
 def release_by_id(mid):
+    if mid.split("/")[-1] in ALIAS:
+        return REL.get(ALIAS[mid.split("/")[-1]], {})
     parts = re.sub(r"-\d{8}$", "", mid.split("/")[-1]).lower().split("-")
     while parts:
         k = "-".join(parts).replace(".", "-")
@@ -69,7 +75,7 @@ def release_by_id(mid):
 
 
 def family(mid):
-    for f, pat in (("claude", r"^claude"), ("gpt", r"^(gpt|o\d|openai)"), ("gemini", r"^(gemini|gemma|google)"), ("meta", r"llama"), ("mistral", r"mistral"), ("qwen", r"qwen"), ("deepseek", r"deepseek"), ("moonshot", r"kimi|moonshot"), ("zhipu", r"glm|zhipu"), ("xai", r"grok")):
+    for f, pat in (("claude", r"^claude"), ("gpt", r"^(gpt|o\d|openai)"), ("gemini", r"^(gemini|gemma|google)"), ("meta", r"llama|^muse"), ("mistral", r"mistral"), ("qwen", r"qwen"), ("deepseek", r"deepseek"), ("moonshot", r"kimi|moonshot"), ("zhipu", r"glm|zhipu"), ("xai", r"grok")):
         if re.search(pat, mid.split("/")[-1]):
             return f
     return "other"
