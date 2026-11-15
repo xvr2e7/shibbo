@@ -48,6 +48,12 @@ Claude Code users can install the plugin, which bundles the checker, the MCP ser
 /plugin install shibbo@shibbo
 ```
 
+To add only the rules, as a skill for any agent that loads skills:
+
+```bash
+npx skills add xvr2e7/shibbo
+```
+
 To check files yourself:
 
 ```console
