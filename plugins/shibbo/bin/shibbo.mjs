@@ -665,19 +665,19 @@ var require_Alias = __commonJS({
           if (ctx)
             ctx.aliasResolveCache = nodes;
         }
-        let found = void 0;
+        let found2 = void 0;
         for (const node2 of nodes) {
           if (node2 === this)
             break;
           if (node2.anchor === this.source)
-            found = node2;
+            found2 = node2;
         }
-        if (found && ctx) {
+        if (found2 && ctx) {
           const { anchors: anchors2, doc: doc2, maxAliasCount } = ctx;
-          let data = anchors2.get(found);
+          let data = anchors2.get(found2);
           if (!data) {
-            toJS.toJS(found, null, ctx);
-            data = anchors2.get(found);
+            toJS.toJS(found2, null, ctx);
+            data = anchors2.get(found2);
           }
           if (data?.res === void 0) {
             const msg = "This should not happen: Alias anchor was not resolved?";
@@ -686,14 +686,14 @@ var require_Alias = __commonJS({
           if (maxAliasCount >= 0) {
             data.count += 1;
             if (data.aliasCount === 0)
-              data.aliasCount = getAliasCount(doc2, found, anchors2);
+              data.aliasCount = getAliasCount(doc2, found2, anchors2);
             if (data.count * data.aliasCount > maxAliasCount) {
               const msg = "Excessive alias count indicates a resource exhaustion attack";
               throw new ReferenceError(msg);
             }
           }
         }
-        return found;
+        return found2;
       }
       toJSON(_arg, ctx) {
         if (!ctx)
@@ -3799,7 +3799,7 @@ var require_resolve_props = __commonJS({
       let tag = null;
       let newlineAfterProp = null;
       let comma = null;
-      let found = null;
+      let found2 = null;
       let start = null;
       for (const token of tokens2) {
         if (reqSpace) {
@@ -3836,7 +3836,7 @@ var require_resolve_props = __commonJS({
             if (atNewline) {
               if (comment)
                 comment += token.source;
-              else if (!found || indicator !== "seq-item-ind")
+              else if (!found2 || indicator !== "seq-item-ind")
                 spaceBefore = true;
             } else
               commentSep += token.source;
@@ -3870,9 +3870,9 @@ var require_resolve_props = __commonJS({
           case indicator:
             if (anchor2 || tag)
               onError(token, "BAD_PROP_ORDER", `Anchors and tags must be after the ${token.source} indicator`);
-            if (found)
+            if (found2)
               onError(token, "UNEXPECTED_TOKEN", `Unexpected ${token.source} in ${flow ?? "collection"}`);
-            found = token;
+            found2 = token;
             atNewline = indicator === "seq-item-ind" || indicator === "explicit-key-ind";
             hasSpace = false;
             break;
@@ -3901,7 +3901,7 @@ var require_resolve_props = __commonJS({
         onError(tab, "TAB_AS_INDENT", "Tabs are not allowed as indentation");
       return {
         comma,
-        found,
+        found: found2,
         spaceBefore,
         comment,
         hasNewline,
@@ -4011,10 +4011,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4028,7 +4028,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map2.comment)
@@ -4052,7 +4052,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map2.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4068,7 +4068,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4159,7 +4159,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4173,13 +4173,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -4222,18 +4222,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4287,8 +4287,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4300,7 +4300,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4311,8 +4311,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4329,7 +4329,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4509,7 +4509,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4526,24 +4526,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4726,25 +4726,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep = " ";
+      let sep2 = " ";
       let pos = line.lastIndex;
       while (match = line.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + lm;
-          sep = " ";
+          res += sep2 + lm;
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5554,14 +5554,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6728,18 +6728,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map2 = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map2;
@@ -6892,15 +6892,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7094,13 +7094,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map2 = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map2;
@@ -7389,6 +7389,16 @@ function root() {
     dir = dirname(dir);
   }
   throw new Error("shibbo: cannot find data/tells.yaml");
+}
+function version() {
+  for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
+    try {
+      const v = JSON.parse(readFileSync(join(root(), f), "utf8")).version;
+      if (typeof v === "string") return v;
+    } catch {
+    }
+  }
+  return "0.0.0";
 }
 function load(rel, parse3) {
   if (!cache.has(rel)) cache.set(rel, parse3(rel.includes(":") ? "" : readFileSync(join(root(), rel), "utf8")));
@@ -8050,6 +8060,117 @@ var init_rules = __esm({
   "src/rules.ts"() {
     "use strict";
     init_registry();
+  }
+});
+
+// src/export.ts
+var export_exports = {};
+__export(export_exports, {
+  blockVersion: () => blockVersion,
+  runExport: () => runExport,
+  toRe2: () => toRe2,
+  upsertBlock: () => upsertBlock,
+  valeRules: () => valeRules
+});
+import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync2, writeFileSync } from "node:fs";
+import { join as join2, dirname as dirname2 } from "node:path";
+function blockVersion(text) {
+  const m = BLOCK.exec(text);
+  return m ? m[1] ?? null : void 0;
+}
+function upsertBlock(path, body) {
+  const block = `<!-- shibbo:start v${version()} -->
+${body.trim()}
+${END}`;
+  if (!existsSync2(path)) {
+    mkdirSync(dirname2(path), { recursive: true });
+    writeFileSync(path, block + "\n");
+    return "created";
+  }
+  const cur = readFileSync2(path, "utf8");
+  const next = BLOCK.test(cur) ? cur.replace(BLOCK, () => block) : `${cur.trimEnd()}
+
+${block}
+`;
+  if (next === cur) return "unchanged";
+  writeFileSync(path, next);
+  return "updated";
+}
+function toRe2(src) {
+  if (/\(\?<[=!]|\(\?[=!]|\\u\{|\\[1-9]/.test(src)) return null;
+  return src.replace(/\\u([0-9a-fA-F]{4})/g, "\\x{$1}");
+}
+function valeRules() {
+  const files = {};
+  for (const t of tells()) {
+    if (t.detect.method !== "regex" || !t.detect.pattern || !["prose", "chat"].includes(t.domain) || t.severity === 0) continue;
+    if ((t.detect.flags ?? "i").includes("m")) continue;
+    const re = toRe2(t.detect.pattern);
+    if (!re) continue;
+    const name = t.id.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join("");
+    const level = t.severity >= 3 ? "error" : t.severity === 2 ? "warning" : "suggestion";
+    const msg = (t.fix ?? t.what).replace(/'/g, "''");
+    files[`${name}.yml`] = [
+      `# Generated by shibbo from data/tells.yaml (${t.id}). Do not edit by hand.`,
+      "extends: existence",
+      `message: '${t.name.replace(/'/g, "''")}: %s. ${msg}'`,
+      `level: ${level}`,
+      `ignorecase: ${!(t.detect.flags ?? "i").includes("i") ? "false" : "true"}`,
+      "nonword: true",
+      "tokens:",
+      `  - '${re.replace(/'/g, "''")}'`,
+      ""
+    ].join("\n");
+  }
+  return files;
+}
+function runExport(target, opts) {
+  const rules = rulesMarkdown({ model: opts.model });
+  switch (target) {
+    case "claude": {
+      const p = join2(opts.out, "CLAUDE.md");
+      console.log(`${upsertBlock(p, rules)} ${p}`);
+      return;
+    }
+    case "agents": {
+      const p = join2(opts.out, "AGENTS.md");
+      console.log(`${upsertBlock(p, rules)} ${p}`);
+      return;
+    }
+    case "cursor": {
+      const p = join2(opts.out, ".cursor", "rules", "shibbo.mdc");
+      mkdirSync(dirname2(p), { recursive: true });
+      writeFileSync(p, `---
+description: Avoid writing patterns that read as machine-made (shibbo)
+alwaysApply: true
+---
+
+${rules}
+`);
+      console.log(`wrote ${p}`);
+      return;
+    }
+    case "vale": {
+      const dir = join2(opts.out, "styles", "Shibbo");
+      mkdirSync(dir, { recursive: true });
+      const files = valeRules();
+      for (const [name, body] of Object.entries(files)) writeFileSync(join2(dir, name), body);
+      console.log(`wrote ${Object.keys(files).length} Vale rules to ${dir}. Add "BasedOnStyles = Shibbo" to .vale.ini.`);
+      return;
+    }
+    default:
+      console.error("export target must be one of: claude, agents, cursor, vale");
+      process.exitCode = 2;
+  }
+}
+var END, BLOCK;
+var init_export = __esm({
+  "src/export.ts"() {
+    "use strict";
+    init_rules();
+    init_registry();
+    END = "<!-- shibbo:end -->";
+    BLOCK = new RegExp(`<!-- shibbo:start(?: v([\\w.+-]+))? -->[\\s\\S]*?${END}`);
   }
 });
 
@@ -14078,10 +14199,10 @@ ${content.join("\n")}
 });
 
 // node_modules/zod/v4/core/versions.js
-var version;
+var version2;
 var init_versions = __esm({
   "node_modules/zod/v4/core/versions.js"() {
-    version = {
+    version2 = {
       major: 4,
       minor: 6,
       patch: 7
@@ -14784,7 +14905,7 @@ var init_schemas = __esm({
       inst ?? (inst = {});
       inst._zod.def = def;
       inst._zod.bag = inst._zod.bag || {};
-      inst._zod.version = version;
+      inst._zod.version = version2;
       const defChecks = inst._zod.def.checks;
       const checks = inst._zod.traits.has("$ZodCheck") ? [inst, ...defChecks ?? []] : defChecks?.length ? [...defChecks] : [];
       for (const ch of checks) {
@@ -16551,7 +16672,7 @@ function isRef(value) {
 function cloneIssues(issues) {
   return issues.map((iss) => iss.path ? { ...iss, path: iss.path.slice() } : { ...iss });
 }
-function isRecursive(inst, stack, resolve) {
+function isRecursive(inst, stack, resolve2) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -16561,7 +16682,7 @@ function isRecursive(inst, stack, resolve) {
   let result = NONE;
   const check3 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve);
+      const answer = isRecursive(child, stack, resolve2);
       if (answer > result)
         result = answer;
     }
@@ -16572,7 +16693,7 @@ function isRecursive(inst, stack, resolve) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -16636,7 +16757,7 @@ function isRecursive(inst, stack, resolve) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
       merge3(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -29278,7 +29399,7 @@ __export(core_exports2, {
   validate: () => validate,
   validateAsync: () => validateAsync,
   validateURL: () => validateURL,
-  version: () => version,
+  version: () => version2,
   withParser: () => withParser
 });
 var init_core2 = __esm({
@@ -36429,7 +36550,7 @@ var init_protocol = __esm({
               return;
             }
             const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
             options?.signal?.throwIfAborted();
           }
         } catch (error62) {
@@ -36446,7 +36567,7 @@ var init_protocol = __esm({
        */
       request(request2, resultSchema, options) {
         const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve2, reject) => {
           const earlyReject = (error62) => {
             reject(error62);
           };
@@ -36524,7 +36645,7 @@ var init_protocol = __esm({
               if (!parseResult.success) {
                 reject(parseResult.error);
               } else {
-                resolve(parseResult.data);
+                resolve2(parseResult.data);
               }
             } catch (error62) {
               reject(error62);
@@ -36786,12 +36907,12 @@ var init_protocol = __esm({
           }
         } catch {
         }
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve2, reject) => {
           if (signal.aborted) {
             reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
             return;
           }
-          const timeoutId = setTimeout(resolve, interval);
+          const timeoutId = setTimeout(resolve2, interval);
           signal.addEventListener("abort", () => {
             clearTimeout(timeoutId);
             reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -39818,7 +39939,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root2, ref);
+      let _sch = resolve2.call(this, root2, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root2.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -39845,7 +39966,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root2, ref) {
+    function resolve2(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -40709,7 +40830,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -41100,7 +41221,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -45267,7 +45388,7 @@ var init_mcp = __esm({
         let task = createTaskResult.task;
         const pollInterval = task.pollInterval ?? 5e3;
         while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+          await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
           const updatedTask = await extra.taskStore.getTask(taskId);
           if (!updatedTask) {
             throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -45876,12 +45997,12 @@ var init_stdio2 = __esm({
         this.onclose?.();
       }
       send(message) {
-        return new Promise((resolve) => {
+        return new Promise((resolve2) => {
           const json2 = serializeMessage(message);
           if (this._stdout.write(json2)) {
-            resolve();
+            resolve2();
           } else {
-            this._stdout.once("drain", resolve);
+            this._stdout.once("drain", resolve2);
           }
         });
       }
@@ -45894,10 +46015,9 @@ var mcp_exports = {};
 __export(mcp_exports, {
   build: () => build,
   serve: () => serve,
-  version: () => version2
+  version: () => version
 });
-import { readFileSync as readFileSync2 } from "node:fs";
-import { join as join2 } from "node:path";
+import { readFileSync as readFileSync3 } from "node:fs";
 function summary(r) {
   const hits = r.findings.filter((f) => f.counted && f.severity > 0);
   const lines = [`score ${r.score}/100 [${r.band}], ${r.words} words, ${hits.length} hits`];
@@ -45906,18 +46026,8 @@ function summary(r) {
   if (r.judge.length) lines.push("", "Also judge by reading:", ...r.judge.map((j) => `- ${j.id}: ${j.question}`));
   return lines.join("\n");
 }
-function version2() {
-  for (const f of ["package.json", ".claude-plugin/plugin.json"]) {
-    try {
-      const v = JSON.parse(readFileSync2(join2(root(), f), "utf8")).version;
-      if (typeof v === "string") return v;
-    } catch {
-    }
-  }
-  return "0.0.0";
-}
 function build() {
-  const server = new McpServer({ name: "shibbo", version: version2() });
+  const server = new McpServer({ name: "shibbo", version: version() });
   const kinds = ["markdown", "text", "html", "css", "markup-code", "code"];
   server.registerTool(
     "check_text",
@@ -45937,7 +46047,7 @@ function build() {
       inputSchema: { path: external_exports.string(), model: external_exports.string().optional() },
       annotations: READ_ONLY
     },
-    async ({ path, model }) => ({ content: [{ type: "text", text: summary(check(readFileSync2(path, "utf8"), path, { model })) }] })
+    async ({ path, model }) => ({ content: [{ type: "text", text: summary(check(readFileSync3(path, "utf8"), path, { model })) }] })
   );
   server.registerTool(
     "rules",
@@ -45980,113 +46090,6 @@ var init_mcp2 = __esm({
     init_rules();
     init_registry();
     READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
-  }
-});
-
-// src/export.ts
-var export_exports = {};
-__export(export_exports, {
-  runExport: () => runExport,
-  toRe2: () => toRe2,
-  upsertBlock: () => upsertBlock,
-  valeRules: () => valeRules
-});
-import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
-import { join as join3, dirname as dirname2 } from "node:path";
-function upsertBlock(path, body) {
-  const block = `${START}
-${body.trim()}
-${END}`;
-  if (!existsSync2(path)) {
-    mkdirSync(dirname2(path), { recursive: true });
-    writeFileSync(path, block + "\n");
-    return "created";
-  }
-  const cur = readFileSync3(path, "utf8");
-  const re = new RegExp(`${START}[\\s\\S]*?${END}`);
-  const next = re.test(cur) ? cur.replace(re, block) : `${cur.trimEnd()}
-
-${block}
-`;
-  if (next === cur) return "unchanged";
-  writeFileSync(path, next);
-  return "updated";
-}
-function toRe2(src) {
-  if (/\(\?<[=!]|\(\?[=!]|\\u\{|\\[1-9]/.test(src)) return null;
-  return src.replace(/\\u([0-9a-fA-F]{4})/g, "\\x{$1}");
-}
-function valeRules() {
-  const files = {};
-  for (const t of tells()) {
-    if (t.detect.method !== "regex" || !t.detect.pattern || !["prose", "chat"].includes(t.domain) || t.severity === 0) continue;
-    if ((t.detect.flags ?? "i").includes("m")) continue;
-    const re = toRe2(t.detect.pattern);
-    if (!re) continue;
-    const name = t.id.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join("");
-    const level = t.severity >= 3 ? "error" : t.severity === 2 ? "warning" : "suggestion";
-    const msg = (t.fix ?? t.what).replace(/'/g, "''");
-    files[`${name}.yml`] = [
-      `# Generated by shibbo from data/tells.yaml (${t.id}). Do not edit by hand.`,
-      "extends: existence",
-      `message: '${t.name.replace(/'/g, "''")}: %s. ${msg}'`,
-      `level: ${level}`,
-      `ignorecase: ${!(t.detect.flags ?? "i").includes("i") ? "false" : "true"}`,
-      "nonword: true",
-      "tokens:",
-      `  - '${re.replace(/'/g, "''")}'`,
-      ""
-    ].join("\n");
-  }
-  return files;
-}
-function runExport(target, opts) {
-  const rules = rulesMarkdown({ model: opts.model });
-  switch (target) {
-    case "claude": {
-      const p = join3(opts.out, "CLAUDE.md");
-      console.log(`${upsertBlock(p, rules)} ${p}`);
-      return;
-    }
-    case "agents": {
-      const p = join3(opts.out, "AGENTS.md");
-      console.log(`${upsertBlock(p, rules)} ${p}`);
-      return;
-    }
-    case "cursor": {
-      const p = join3(opts.out, ".cursor", "rules", "shibbo.mdc");
-      mkdirSync(dirname2(p), { recursive: true });
-      writeFileSync(p, `---
-description: Avoid writing patterns that read as machine-made (shibbo)
-alwaysApply: true
----
-
-${rules}
-`);
-      console.log(`wrote ${p}`);
-      return;
-    }
-    case "vale": {
-      const dir = join3(opts.out, "styles", "Shibbo");
-      mkdirSync(dir, { recursive: true });
-      const files = valeRules();
-      for (const [name, body] of Object.entries(files)) writeFileSync(join3(dir, name), body);
-      console.log(`wrote ${Object.keys(files).length} Vale rules to ${dir}. Add "BasedOnStyles = Shibbo" to .vale.ini.`);
-      return;
-    }
-    default:
-      console.error("export target must be one of: claude, agents, cursor, vale");
-      process.exitCode = 2;
-  }
-}
-var START, END;
-var init_export = __esm({
-  "src/export.ts"() {
-    "use strict";
-    init_rules();
-    init_registry();
-    START = "<!-- shibbo:start -->";
-    END = "<!-- shibbo:end -->";
   }
 });
 
@@ -46282,7 +46285,7 @@ __export(hook_exports, {
   runHook: () => runHook
 });
 import { appendFileSync, existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
-import { dirname as dirname3, join as join4 } from "node:path";
+import { dirname as dirname3, join as join3 } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 function modelFor(input2) {
@@ -46309,7 +46312,7 @@ function log(entry) {
 function editedFiles(input2, flavor) {
   const ti = input2.tool_input ?? {};
   const cwd = typeof input2.cwd === "string" ? input2.cwd : process.cwd();
-  const abs = (p2) => p2.startsWith("/") ? p2 : join4(cwd, p2);
+  const abs = (p2) => p2.startsWith("/") ? p2 : join3(cwd, p2);
   if (flavor === "codex") {
     const patch = String(ti.command ?? "");
     const files = [];
@@ -46475,8 +46478,8 @@ var init_hook = __esm({
     init_rules();
     init_judge();
     init_text();
-    stateDir = () => process.env.CLAUDE_PLUGIN_DATA || join4(tmpdir(), "shibbo");
-    stateFile = (sid) => join4(stateDir(), `session-${sid.replace(/[^\w-]/g, "")}.json`);
+    stateDir = () => process.env.CLAUDE_PLUGIN_DATA || join3(tmpdir(), "shibbo");
+    stateFile = (sid) => join3(stateDir(), `session-${sid.replace(/[^\w-]/g, "")}.json`);
     disabled = () => (process.env.SHIBBO_DISABLE ?? "").split(",").filter(Boolean);
     ids = (fs) => fs.map((f) => f.origin === "lexicon" ? `phrase:${f.match.toLowerCase()}` : f.id);
     out = (event, context) => process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: context } }));
@@ -46491,7 +46494,7 @@ __export(harness_exports, {
   init: () => init
 });
 import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync3, chmodSync } from "node:fs";
-import { dirname as dirname4, join as join5 } from "node:path";
+import { dirname as dirname4, join as join4 } from "node:path";
 function strip(e) {
   if (plain(e) && Array.isArray(e.hooks)) {
     const hooks = e.hooks.filter((h) => !OURS.test(JSON.stringify(h)));
@@ -46532,7 +46535,7 @@ function init(id, opts) {
       out2.push({ action: `note: ${step.text}` });
       continue;
     }
-    const p = join5(opts.dir, step.file);
+    const p = join4(opts.dir, step.file);
     if (step.kind === "rules") {
       if (step.file.endsWith("shibbo.md") && !opts.dryRun) {
         mkdirSync3(dirname4(p), { recursive: true });
@@ -46812,12 +46815,196 @@ exec ${hook("post-edit", "cline")}
   }
 });
 
+// src/doctor.ts
+var doctor_exports = {};
+__export(doctor_exports, {
+  compareVersions: () => compareVersions,
+  doctor: () => doctor,
+  printDoctor: () => printDoctor
+});
+import { existsSync as existsSync5, readFileSync as readFileSync6 } from "node:fs";
+import { homedir } from "node:os";
+import { join as join5, resolve, sep } from "node:path";
+function compareVersions(a, b) {
+  const parts = (v) => v.split("-")[0].split(".").map((n) => Number(n) || 0);
+  const [x, y] = [parts(a), parts(b)];
+  for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0) ? -1 : 1;
+  return 0;
+}
+function installOf(dir) {
+  const path = root();
+  const segs = path.split(sep);
+  const kind = !existsSync5(join5(path, "package.json")) && existsSync5(join5(path, ".claude-plugin", "plugin.json")) ? "plugin" : segs.includes("_npx") ? "npx" : path.startsWith(join5(resolve(dir), "node_modules") + sep) ? "project" : segs.includes("node_modules") ? "npm" : "source";
+  return { kind, path };
+}
+async function newest() {
+  try {
+    const r = await fetch("https://registry.npmjs.org/shibbo/latest", { signal: AbortSignal.timeout(4e3) });
+    const v = r.ok ? (await r.json()).version : null;
+    return typeof v === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+function pluginRecord(home, env) {
+  try {
+    const file2 = join5(env.CLAUDE_CONFIG_DIR || join5(home, ".claude"), "plugins", "installed_plugins.json");
+    const plugins = JSON.parse(readFileSync6(file2, "utf8")).plugins ?? {};
+    const key = Object.keys(plugins).find((k) => k.startsWith("shibbo@"));
+    return key ? plugins[key][0]?.version ?? "unknown" : null;
+  } catch {
+    return null;
+  }
+}
+function found(dir, step) {
+  const p = join5(dir, step.file);
+  if (!existsSync5(p)) return "missing";
+  const text = readFileSync6(p, "utf8");
+  if (step.kind === "rules") {
+    if (step.file.endsWith("shibbo.md")) return "set";
+    const v = blockVersion(text);
+    return v === void 0 ? "missing" : { stamp: v };
+  }
+  if (step.json) {
+    try {
+      let at = JSON.parse(text);
+      for (const k of step.json.path) at = at && typeof at === "object" ? at[k] : void 0;
+      return at !== void 0 && /shibbo/.test(JSON.stringify(at)) ? "set" : "missing";
+    } catch {
+    }
+  }
+  return text.includes("shibbo") ? "set" : "missing";
+}
+async function doctor(opts) {
+  const env = opts.env ?? process.env;
+  const cur = version();
+  const install = installOf(opts.dir);
+  const latest = opts.latest !== void 0 ? opts.latest : opts.offline ? null : await newest();
+  const lines = [];
+  const add = (section, state, text, fix) => lines.push({ section, state, text, fix });
+  if (latest === null) add("Install", "note", opts.offline ? "skipped the npm lookup (--offline)" : "could not reach npm to look up the newest version");
+  else if (compareVersions(cur, latest) < 0) add("Install", "warn", `${latest} is on npm; this is ${cur}`, UPDATE[install.kind]);
+  else add("Install", "ok", `${cur} is the newest version`);
+  const node2 = process.versions.node;
+  if (Number(node2.split(".")[0]) >= 20) add("Install", "ok", `Node ${node2}`);
+  else add("Install", "fail", `Node ${node2}; shibbo needs 20 or later`, "install Node 20 or later");
+  try {
+    const measured = Object.keys(graphite()?.models ?? {}).length;
+    add("Install", "ok", `data loads: ${tells().length} tells, ${measured} measured models`);
+    const hits = check(SAMPLE, "sample.md").findings.filter((f) => f.counted && f.severity > 0).length;
+    if (hits) add("Install", "ok", `checker works: ${hits} hits in the sample sentence`);
+    else add("Install", "fail", "checker found nothing in a sentence full of tells", "reinstall shibbo");
+  } catch (e) {
+    add("Install", "fail", `data does not load: ${e instanceof Error ? e.message : e}`, "reinstall shibbo");
+  }
+  const key = (s) => `${s.file}
+${s.kind}`;
+  const entries = /* @__PURE__ */ new Map();
+  for (const h of HARNESSES) for (const step of h.steps("")) {
+    if (!step.file) continue;
+    const seen = entries.get(key(step));
+    if (seen) seen.ids.add(h.id);
+    else entries.set(key(step), { step, ids: /* @__PURE__ */ new Set([h.id]), found: found(opts.dir, step) });
+  }
+  const entry = (s) => entries.get(key(s));
+  const has = (s) => !!s.file && entry(s).found !== "missing";
+  const setUp = HARNESSES.filter((h) => {
+    const steps = h.steps("");
+    const config2 = steps.filter((s) => s.kind !== "rules" && has(s));
+    return config2.some((s) => entry(s).ids.size === 1) || config2.length > 0 && steps.some((s) => s.kind === "rules" && has(s));
+  });
+  const initFor = (ids2) => `npx shibbo init ${setUp.find((h) => ids2.has(h.id))?.id ?? [...ids2][0]}`;
+  for (const f of entries.values()) {
+    const file2 = f.step.file;
+    if (f.found === "missing") continue;
+    if (f.found === "set") {
+      add("Project", "ok", `${file2}: ${WHAT[f.step.kind]}`);
+      continue;
+    }
+    const stamp = f.found.stamp;
+    if (stamp === null) add("Project", "warn", `${file2}: rules block from an older shibbo (no version stamp)`, initFor(f.ids));
+    else if (compareVersions(stamp, cur) < 0) add("Project", "warn", `${file2}: rules block written by ${stamp}; this is ${cur}`, initFor(f.ids));
+    else add("Project", "ok", `${file2}: rules block written by ${stamp}`);
+  }
+  const told = /* @__PURE__ */ new Set();
+  for (const h of setUp) for (const s of h.steps("")) {
+    if (!s.file || s.experimental || has(s) || told.has(key(s))) continue;
+    told.add(key(s));
+    add("Project", "warn", `${s.file}: no ${WHAT[s.kind]} for ${h.name}`, `npx shibbo init ${h.id}`);
+  }
+  if (![...entries.values()].some((f) => f.found !== "missing")) add("Project", "note", `nothing from shibbo in ${resolve(opts.dir)}`, "npx shibbo init <harness>");
+  const plugin = install.kind === "plugin" ? cur : pluginRecord(opts.home ?? homedir(), env);
+  if (plugin) {
+    if (latest && plugin !== "unknown" && compareVersions(plugin, latest) < 0) add("Claude Code plugin", "warn", `${plugin} installed; ${latest} is out`, UPDATE.plugin);
+    else add("Claude Code plugin", "ok", `${plugin} installed`);
+    if (entries.get(".claude/settings.json\nhooks")?.found === "set") add("Claude Code plugin", "warn", "the plugin and .claude/settings.json both run shibbo's hooks, so each edit is checked twice", "remove shibbo's hooks from .claude/settings.json, or uninstall the plugin");
+  }
+  if (env.SHIBBO_EDIT === "off") add("Settings", "warn", "SHIBBO_EDIT=off: the after-edit check is off");
+  if (env.SHIBBO_STOP === "off") add("Settings", "warn", "SHIBBO_STOP=off: the reply check is off");
+  for (const k of ["SHIBBO_MODEL", "SHIBBO_DISABLE", "SHIBBO_STOP_SCORE", "SHIBBO_JUDGE"]) if (env[k]) add("Settings", "note", `${k}=${env[k]}`);
+  if (!env.SHIBBO_LOG) add("Settings", "note", "SHIBBO_LOG is not set, so no record of hook runs exists", "set SHIBBO_LOG to a file path to record each check");
+  else if (!existsSync5(env.SHIBBO_LOG)) add("Settings", "warn", `SHIBBO_LOG=${env.SHIBBO_LOG}: no file yet, so no hook has run a check since it was set`);
+  else {
+    const rows = readFileSync6(env.SHIBBO_LOG, "utf8").trim().split("\n").filter(Boolean);
+    let last = "unknown";
+    try {
+      last = JSON.parse(rows.at(-1)).at ?? last;
+    } catch {
+    }
+    add("Settings", "ok", `SHIBBO_LOG: ${rows.length} checks recorded, the last at ${last}`);
+  }
+  return { version: cur, latest, install, lines };
+}
+function printDoctor(r, C2) {
+  const mark = { ok: C2.green("ok  "), warn: C2.yellow("warn"), fail: C2.red("fail"), note: C2.dim("note") };
+  const out2 = [`${C2.bold(`shibbo ${r.version}`)} ${C2.dim(`from ${HOW[r.install.kind]} (${r.install.path})`)}`];
+  let section = "";
+  for (const l of r.lines) {
+    if (l.section !== section) {
+      section = l.section;
+      out2.push("", C2.bold(section));
+    }
+    out2.push(`  ${mark[l.state]}  ${l.text}`);
+    if (l.fix) out2.push(`        ${C2.dim("\u2192 " + l.fix)}`);
+  }
+  const count = (s) => r.lines.filter((l) => l.state === s).length;
+  const [fails, warns] = [count("fail"), count("warn")];
+  out2.push("", fails || warns ? `${fails} ${fails === 1 ? "failure" : "failures"}, ${warns} ${warns === 1 ? "warning" : "warnings"}` : "Nothing to fix.");
+  return out2.join("\n");
+}
+var SAMPLE, UPDATE, HOW, WHAT;
+var init_doctor = __esm({
+  "src/doctor.ts"() {
+    "use strict";
+    init_check();
+    init_export();
+    init_harness();
+    init_registry();
+    SAMPLE = "This is a genuinely useful approach. That distinction matters. It is not a refactor, it is a rethink.";
+    UPDATE = {
+      plugin: "claude plugin update shibbo@shibbo",
+      npx: "npx shibbo@latest doctor",
+      project: "npm install shibbo@latest",
+      npm: "npm install -g shibbo@latest",
+      source: "git pull, then npm run build"
+    };
+    HOW = {
+      plugin: "the Claude Code plugin",
+      npx: "the npx cache",
+      project: "this project's node_modules",
+      npm: "an npm install",
+      source: "a source checkout"
+    };
+    WHAT = { rules: "rules", mcp: "MCP server", hooks: "hooks", note: "" };
+  }
+});
+
 // src/cli.ts
 init_check();
 init_rules();
 init_registry();
 init_text();
-import { readFileSync as readFileSync6, statSync, readdirSync as readdirSync2 } from "node:fs";
+import { readFileSync as readFileSync7, statSync, readdirSync as readdirSync2 } from "node:fs";
 import { join as join6, relative } from "node:path";
 import { parseArgs } from "node:util";
 var HELP = `shibbo: find the tells that mark writing and UI as machine-made
@@ -46832,6 +47019,7 @@ Usage
   shibbo mcp                 start the MCP server (stdio)
   shibbo init <harness> [--model ID] [--dry-run]   write rules, MCP config and hooks for a harness
   shibbo hook <post-edit|stop|session-start> [--for HARNESS]   hook entry point (reads stdin)
+  shibbo doctor [--dir PATH] [--offline] [--json]   report on this install and what the project has set up
   shibbo --version
 
 check options
@@ -46884,7 +47072,7 @@ async function main() {
     return;
   }
   if (cmd === "-v" || cmd === "--version" || cmd === "version") {
-    console.log((await Promise.resolve().then(() => (init_mcp2(), mcp_exports))).version());
+    console.log(version());
     return;
   }
   if (cmd === "check") {
@@ -46916,7 +47104,7 @@ async function main() {
         reports.push(check(await readStdin(), "-", { ...opts, kind: opts.kind ?? "text" }));
         continue;
       }
-      for (const f of walk(t)) reports.push(check(readFileSync6(f, "utf8"), relative(process.cwd(), f) || f, opts));
+      for (const f of walk(t)) reports.push(check(readFileSync7(f, "utf8"), relative(process.cwd(), f) || f, opts));
     }
     if (values.format === "json") console.log(JSON.stringify(reports.length === 1 ? reports[0] : reports, null, 2));
     else if (values.format === "github") {
@@ -47007,6 +47195,15 @@ ${HARNESSES2.map((h2) => `  ${h2.id.padEnd(10)} ${h2.name}`).join("\n")}`);
     }
     if (h) console.log(`
 ${h.name} is set up. Edit a Markdown file with the agent to see shibbo's feedback.`);
+    return;
+  }
+  if (cmd === "doctor") {
+    const { doctor: doctor2, printDoctor: printDoctor2 } = await Promise.resolve().then(() => (init_doctor(), doctor_exports));
+    const { values } = parseArgs({ args: rest, options: { dir: { type: "string", default: "." }, offline: { type: "boolean", default: false }, json: { type: "boolean", default: false } } });
+    const report = await doctor2({ dir: values.dir, offline: values.offline });
+    if (values.json) console.log(JSON.stringify(report, null, 2));
+    else console.log(printDoctor2(report, C));
+    if (report.lines.some((l) => l.state === "fail")) process.exitCode = 1;
     return;
   }
   if (cmd === "resolve") {
