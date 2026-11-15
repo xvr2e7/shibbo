@@ -13,6 +13,8 @@ export default defineConfig({
   appearance: true,
   sitemap: { hostname: "https://xvr2e7.github.io/shibbo/docs/" },
   head: [
+    // The app's icon, one level up from the docs.
+    ["link", { rel: "icon", type: "image/svg+xml", href: `${process.env.DOCS_BASE ?? "/docs/"}../favicon.svg` }],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:site_name", content: "shibbo" }],
     ["meta", { property: "og:image", content: "https://xvr2e7.github.io/shibbo/og.png" }],
