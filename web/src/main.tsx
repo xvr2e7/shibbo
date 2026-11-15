@@ -1,9 +1,9 @@
 import "@fontsource-variable/source-serif-4/standard.css";
 import "@fontsource-variable/source-serif-4/standard-italic.css";
 import "./styles/app.css";
-import { Component, StrictMode, type ReactNode } from "react";
+import { Component, StrictMode, useEffect, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { AtlasPage } from "./routes/Atlas";
 import { TellsPage, TellPage } from "./routes/Tells";
@@ -30,10 +30,25 @@ class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
   }
 }
 
+/** Report each route to the page counter (index.html loads it). The hash route becomes the counted path. */
+function Count() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const path = location.pathname.replace(/\/$/, "") + pathname;
+    const send = () => (window as { goatcounter?: { count?: (v: { path: string }) => void } }).goatcounter?.count?.({ path });
+    const tag = document.querySelector("script[data-goatcounter]");
+    if ((window as { goatcounter?: { count?: unknown } }).goatcounter?.count) send();
+    else tag?.addEventListener("load", send, { once: true });
+    return () => tag?.removeEventListener("load", send);
+  }, [pathname]);
+  return null;
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Guard>
     <HashRouter>
+      <Count />
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<AtlasPage />} />

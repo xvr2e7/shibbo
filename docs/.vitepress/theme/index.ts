@@ -16,7 +16,21 @@ function setTheme(theme: string) {
 export default {
   extends: DefaultTheme,
   enhanceApp({ router }) {
-    if (!embedded) return;
+    if (typeof window === "undefined") return;
+    if (!embedded) {
+      // Opened on their own, the docs count their pages; inside the app, the app counts them.
+      const tag = document.createElement("script");
+      tag.async = true;
+      tag.src = "https://gc.zgo.at/count.js";
+      tag.dataset.goatcounter = "https://cybergrass.goatcounter.com/count";
+      document.head.append(tag);
+      const before = router.onAfterRouteChange;
+      router.onAfterRouteChange = (to) => {
+        before?.(to);
+        (window as { goatcounter?: { count?: (v: { path: string }) => void } }).goatcounter?.count?.({ path: location.pathname });
+      };
+      return;
+    }
     document.documentElement.classList.add("embedded");
     const report = () => window.parent.postMessage({ type: "shibbo-docs-nav", path: location.pathname, title: document.title }, location.origin);
     const prev = router.onAfterRouteChange;
