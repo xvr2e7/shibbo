@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopMetrics - Sales Analytics Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 overflow-hidden h-screen flex">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-slate-900 flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out md:translate-x-0 md:relative md:flex shrink-0">
+        <!-- Logo -->
+        <div class="h-16 flex items-center px-6 border-b border-slate-800/80">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 mr-3">
+                <i class="fa-solid fa-chart-line text-sm"></i>
+            </div>
+            <span class="text-white font-bold text-lg tracking-tight">ShopMetrics</span>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+            <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">Main Menu</div>
+            
+            <a href="#" class="flex items-center px-3 py-2.5 bg-indigo-600/10 text-indigo-400 rounded-xl font-medium border border-indigo-600/20">
+                <i class="fa-solid fa-grid-2 w-5 mr-3"></i> Overview
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                <i class="fa-solid fa-cart-shopping w-5 mr-3"></i> Orders
+                <span class="ml-auto bg-slate-800 text-slate-300 text-[10px] py-0.5 px-2 rounded-full border border-slate-700">12</span>
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                <i class="fa-solid fa-box w-5 mr-3"></i> Products
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                <i class="fa-solid fa-users w-5 mr-3"></i> Customers
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                <i class="fa-solid fa-bullhorn w-5 mr-3"></i> Marketing
+            </a>
+            
+            <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-8 px-3">Settings</div>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                <i class="fa-solid fa-gear w-5 mr-3"></i> Store Settings
+            </a>
+        </nav>
+
+        <!-- User Profile -->
+        <div class="p-4 border-t border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <img src="https://ui-avatars.com/api/?name=Alex+Store&background=4f46e5&color=fff&font-size=0.33" alt="Avatar" class="w-9 h-9 rounded-full shadow-sm">
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-white truncate">Alex Store</div>
+                    <div class="text-xs text-slate-400 truncate">Administrator</div>
+                </div>
+                <button class="text-slate-500 hover:text-white transition-colors p-1">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-10 shrink-0">
+            <div class="flex items-center gap-4">
+                <button id="menu-toggle" class="md:hidden text-slate-500 hover:text-slate-800 transition-colors p-1">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-lg sm:text-xl font-bold text-slate-800 hidden sm:flex items-center gap-3">
+                    Analytics Overview
+                    <span class="flex h-2 w-2 relative" title="Live Data">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                </h1>
+            </div>
+            
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button class="hidden sm:flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                    <i class="fa-regular fa-calendar text-slate-400"></i> 
+                    <span>Oct 1 - Oct 30, 2023</span> 
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+                </button>
+                <button class="flex items-center gap-2 px-3.5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-colors">
+                    <i class="fa-solid fa-file-export"></i> 
+                    <span class="hidden sm:inline">Export</span>
+                </button>
+                <div class="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
+                <button class="relative w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1.5 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Dashboard Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+            
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6">
+                <!-- Total Revenue -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Total Revenue</p>
+                            <h3 class="text-2xl font-bold text-slate-800 tracking-tight">$124,563.00</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <i class="fa-solid fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-600">
+                            <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 14.5%
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium">vs last month</span>
+                    </div>
+                </div>
+
+                <!-- Total Orders -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Total Orders</p>
+                            <h3 class="text-2xl font-bold text-slate-800 tracking-tight">1,842</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600">
+                            <i class="fa-solid fa-bag-shopping"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-600">
+                            <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 8.2%
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium">vs last month</span>
+                    </div>
+                </div>
+
+                <!-- Avg. Order Value -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Avg. Order Value</p>
+                            <h3 class="text-2xl font-bold text-slate-800 tracking-tight">$67.62</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-600">
+                            <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 2.4%
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium">vs last month</span>
+                    </div>
+                </div>
+
+                <!-- Conversion Rate -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Conversion Rate</p>
+                            <h3 class="text-2xl font-bold text-slate-800 tracking-tight">3.24%</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                            <i class="fa-solid fa-percentage"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-600">
+                            <i class="fa-solid fa-arrow-trend-down text-[10px]"></i> 1.1%
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium">vs last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                
+                <!-- Revenue Over Time (Line Chart) -->
+                <div class="xl:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="font-semibold text-slate-800">Revenue Overview</h3>
+                            <p class="text-xs text-slate-400 mt-1">Comparing current period to previous year</p>
+                        </div>
+                        <button class="text-slate-400 hover:text-slate-700 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+                    </div>
+                    <div class="relative h-[300px] w-full">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sales by Category (Doughnut Chart) -->
+                <div class="xl:col-span-1 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-semibold text-slate-800">Sales by Category</h3>
+                        <button class="text-slate-400 hover:text-slate-700 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Chart & Center Overlay -->
+                    <div class="relative h-[220px] w-full mt-2 mb-2">
+                        <canvas id="categoryChart"></canvas>
+                        <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Sales</span>
+                            <span class="text-2xl font-bold text-slate-800 tracking-tight">$124.5k</span>
+                        </div>
+                    </div>
+
+                    <!-- Custom Legend -->
+                    <div class="mt-auto grid grid-cols-2 gap-y-3 gap-x-4 text-sm pt-4 border-t border-slate-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                                <span class="text-slate-600 font-medium">Electronics</span>
+                            </div>
+                            <span class="font-semibold text-slate-800">42%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+                                <span class="text-slate-600 font-medium">Apparel</span>
+                            </div>
+                            <span class="font-semibold text-slate-800">28%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span class="text-slate-600 font-medium">Home & Living</span>
+                            </div>
+                            <span class="font-semibold text-slate-800">18%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <span class="text-slate-600 font-medium">Beauty</span>
+                            </div>
+                            <span class="font-semibold text-slate-800">8%</span>
+                        </div>
+                        <div class="flex items-center justify-between col-span-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                                <span class="text-slate-600 font-medium">Other</span>
+                            </div>
+                            <span class="font-semibold text-slate-800">4%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Products Table -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col mb-4">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                    <h3 class="font-semibold text-slate-800">Top Performing Products</h3>
+                    <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1">
+                        View Catalog <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm whitespace-nowrap min-w-[750px]">
+                        <thead class="bg-slate-50/80 text-slate-500 font-medium border-b border-slate-100">
+                            <tr>
+                                <th class="px-6 py-3.5 font-medium">Product Name</th>
+                                <th class="px-6 py-3.5 font-medium">Price</th>
+                                <th class="px-6 py-3.5 font-medium">Units Sold</th>
+                                <th class="px-6 py-3.5 font-medium">Revenue</th>
+                                <th class="px-6 py-3.5 font-medium">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <!-- Row 1 -->
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3.5">
+                                        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
+                                            <i class="fa-solid fa-headphones"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-800">Sony WH-1000XM4</div>
+                                            <div class="text-xs text-slate-400 mt-0.5">Electronics • SKU: WH-1000</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">$299.00</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">412</td>
+                                <td class="px-6 py-4 font-semibold text-slate-800">$123,188.00</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                        <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 15.2%
+                                    </span>
+                                </td>
+                            </tr>
+                            <!-- Row 2 -->
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3.5">
+                                        <div class="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
+                                            <i class="fa-solid fa-shoe-prints"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-800">Nike Air Max 270</div>
+                                            <div class="text-xs text-slate-400 mt-0.5">Apparel • SKU: NK-AM270</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">$150.00</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">856</td>
+                                <td class="px-6 py-4 font-semibold text-slate-800">$128,400.00</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                        <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 8.4%
+                                    </span>
+                                </td>
+                            </tr>
+                            <!-- Row 3 -->
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3.5">
+                                        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
+                                            <i class="fa-solid fa-broom"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-800">Dyson V11 Vacuum</div>
+                                            <div class="text-xs text-slate-400 mt-0.5">Home & Living • SKU: DY-V11</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">$499.00</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">184</td>
+                                <td class="px-6 py-4 font-semibold text-slate-800">$91,816.00</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">
+                                        <i class="fa-solid fa-arrow-trend-down text-[10px]"></i> 3.1%
+                                    </span>
+                                </td>
+                            </tr>
+                            <!-- Row 4 -->
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3.5">
+                                        <div class="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
+                                            <i class="fa-solid fa-laptop"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-800">MacBook Air M2</div>
+                                            <div class="text-xs text-slate-400 mt-0.5">Electronics • SKU: AP-MBA-M2</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">$999.00</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">92</td>
+                                <td class="px-6 py-4 font-semibold text-slate-800">$91,908.00</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                        <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 22.7%
+                                    </span>
+                                </td>
+                            </tr>
+                            <!-- Row 5 -->
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3.5">
+                                        <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
+                                            <i class="fa-solid fa-pump-soap"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-800">Cerave Moisturizing Cream</div>
+                                            <div class="text-xs text-slate-400 mt-0.5">Beauty • SKU: CRV-MC16</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">$16.99</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium">2,104</td>
+                                <td class="px-6 py-4 font-semibold text-slate-800">$35,746.96</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                        <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> 5.3%
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Application Scripts -->
+    <script>
+        // --- Mobile Sidebar Logic ---
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        menuToggle.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // --- Chart.js Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // 1. Revenue Line Chart
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            
+            // Create Gradient
+            let gradientFill = salesCtx.createLinearGradient(0, 0, 0, 300);
+            gradientFill.addColorStop(0, 'rgba(79, 70, 229, 0.25)'); // Indigo 600
+            gradientFill.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+            new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Oct 01', 'Oct 05', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30'],
+                    datasets: [
+                        {
+                            label: 'This Year',
+                            data: [32000, 41000, 38000, 54000, 49000, 62000, 71000],
+                            borderColor: '#4f46e5',
+                            backgroundColor: gradientFill,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#4f46e5',
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 2
+                        },
+                        {
+                            label: 'Last Year',
+                            data: [28000, 30000, 34000, 39000, 42000, 48000, 52000],
+                            borderColor: '#cbd5e1',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#cbd5e1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                color: '#64748b',
+                                font: { family: 'Inter', size: 12, weight: 500 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: { family: 'Inter', size: 13 },
+                            bodyFont: { family: 'Inter', size: 13 },
+                            displayColors: true,
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { 
+                                color: '#94a3b8', 
+                                font: { family: 'Inter', size: 12 },
+                                padding: 10
+                            }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9', drawTicks: false },
+                            border: { display: false },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Inter', size: 12 },
+                                callback: function(value) { return '$' + (value / 1000) + 'k'; },
+                                maxTicksLimit: 6,
+                                padding: 12
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // 2. Category Doughnut Chart
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Electronics', 'Apparel', 'Home & Living', 'Beauty', 'Other'],
+                    datasets: [{
+                        data: [42, 28, 18, 8, 4],
+                        backgroundColor: [
+                            '#4f46e5', // Indigo
+                            '#8b5cf6', // Violet
+                            '#10b981', // Emerald
+                            '#f59e0b', // Amber
+                            '#cbd5e1'  // Slate
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '78%',
+                    plugins: {
+                        legend: { display: false }, // Handled by custom HTML
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            padding: 10,
+                            cornerRadius: 8,
+                            bodyFont: { family: 'Inter', size: 13 },
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

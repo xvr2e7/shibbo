@@ -46,9 +46,9 @@ Readers spot these patterns as machine-made. Write the plain version instead.
 - "helps explain why" → Say "explains", or state how much it explains. Instead of "Cost helps explain why few teams adopt it", write "At $40 a seat, most teams pass".
 - "does not need every", "rather than every" → Say which cases need it and which do not. Instead of "A team does not need every tool on day one", write "Start with CI and error alerts. Add tracing after launch".
 - "X stops being Y and starts being Z" → Describe the change and when it happens. Instead of "Testing stops being a chore and becomes a habit", write "After the change, most of us ran the tests before each push".
+- "quietly", "a quiet" → Cut it, or say what happened out of sight and who missed it. Instead of "The cache quietly became the most important part of the stack", write "The cache now serves 80% of reads".
 - "In plain terms", "to put it plainly" → Delete the label. If the next sentence is plain, it needs no notice. Instead of "In plain terms: the build is broken", write "The build is broken".
 - "is straightforward" → Show the steps and let readers judge the effort. Instead of "The setup is straightforward", write "Setup takes two commands: npm i, then npm start".
-- "quietly", "a quiet" → Cut it, or say what happened out of sight and who missed it. Instead of "The cache quietly became the most important part of the stack", write "The cache now serves 80% of reads".
 - "Whether you're a beginner or an expert" → Write for one reader. Instead of "Whether you're a seasoned developer or just starting out, this tool has something for you", write "This is for backend developers who already run Postgres".
 - "One honest caveat", "the honest answer" → Drop "honest" and give the caveat. Instead of "One honest caveat: I haven't tested this on Windows", write "I haven't tested this on Windows".
 

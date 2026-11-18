@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murmur - AI Note-Taking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8B5CF6;
+            --primary-hover: #7C3AED;
+            --bg: #ffffff;
+            --bg-alt: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            background-color: var(--bg);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 72px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .logo svg { width: 28px; height: 28px; }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            padding: 6rem 0 4rem;
+            text-align: center;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(255,255,255,0) 60%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 4rem;
+        }
+
+        /* App Mockup */
+        .mockup-wrapper {
+            max-width: 950px;
+            margin: 0 auto;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            background: white;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .mockup-header {
+            background: var(--bg-alt);
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.r { background: #ef4444; }
+        .dot.y { background: #f59e0b; }
+        .dot.g { background: #10b981; }
+
+        .mockup-body {
+            display: flex;
+            height: 480px;
+        }
+
+        .mockup-sidebar {
+            width: 240px;
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 1rem;
+            background: #fafafa;
+        }
+
+        .mockup-sidebar-item {
+            height: 32px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            opacity: 0.6;
+            width: 100%;
+        }
+
+        .mockup-sidebar-item.active {
+            background: #ddd6fe;
+            opacity: 1;
+            width: 85%;
+        }
+
+        .mockup-main {
+            flex: 1;
+            padding: 2.5rem;
+            position: relative;
+            background: white;
+        }
+
+        .mockup-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+        }
+
+        .mockup-note-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .mockup-line {
+            height: 12px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .live-transcription {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            background: #1e293b;
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .live-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .live-text {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.1rem;
+            background: var(--primary);
+            vertical-align: middle;
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .wave { display: flex; gap: 3px; align-items: center; height: 24px; margin-left: auto; }
+        .wave-bar { width: 3px; background: var(--primary); border-radius: 3px; animation: waveAnim 1s infinite ease-in-out; }
+        .wave-bar:nth-child(1) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.5s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes waveAnim {
+            0%, 100% { height: 6px; }
+            50% { height: 22px; }
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2.5rem;
+            border-radius: 20px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: #f3e8ff;
+            color: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-icon svg { width: 28px; height: 28px; }
+        .feature-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .feature-card p { color: var(--text-muted); }
+
+        /* Pricing Section */
+        .pricing { 
+            background: var(--bg-alt); 
+            padding: 6rem 0; 
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pricing-card {
+            position: relative;
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .price span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .pricing-features {
+            margin: 2rem 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .pricing-features li {
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pricing-features li svg {
+            width: 18px;
+            height: 18px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* Testimonials */
+        .testimonials { padding: 6rem 0; background: var(--bg); }
+        
+        .test-card { 
+            background: white; 
+            padding: 2.5rem; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
+            border: 1px solid var(--border); 
+        }
+        
+        .test-text { 
+            font-size: 1.1rem; 
+            color: var(--text-main); 
+            margin-bottom: 2rem; 
+            line-height: 1.6;
+        }
+        
+        .test-author { display: flex; align-items: center; gap: 1rem; }
+        
+        .test-avatar { 
+            width: 48px; height: 48px; border-radius: 50%; 
+            background: #e0e7ff; color: var(--primary); 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 1.1rem;
+        }
+        
+        .test-info h4 { font-size: 0.95rem; font-weight: 700; }
+        .test-info p { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* CTA Section */
+        .cta-section { padding: 0 0 6rem; text-align: center; }
+        .cta-box { 
+            background: var(--text-main); 
+            color: white; 
+            padding: 5rem 2rem; 
+            border-radius: 32px; 
+            max-width: 900px; 
+            margin: 0 auto; 
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -10%;
+            width: 120%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(139,92,246,0.3) 0%, rgba(15,23,42,0) 50%);
+            pointer-events: none;
+        }
+
+        .cta-box h2 { font-size: 3rem; margin-bottom: 1.5rem; position: relative; letter-spacing: -0.02em;}
+        .cta-box p { color: #94a3b8; margin-bottom: 2.5rem; font-size: 1.15rem; position: relative; }
+        .cta-box .btn-primary { background: white; color: var(--text-main); border: none; position: relative; padding: 1rem 2rem; font-size: 1.1rem;}
+        .cta-box .btn-primary:hover { background: #f1f5f9; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+
+        /* Footer */
+        footer { 
+            background: var(--bg); 
+            border-top: 1px solid var(--border); 
+            padding: 3rem 0; 
+        }
+        
+        .footer-content { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 2rem; 
+        }
+        
+        .footer-links { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .footer-links a { color: var(--text-muted); font-size: 0.9rem; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--primary); }
+        .copyright { color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.75rem; }
+            .hero p { font-size: 1.1rem; padding: 0 1rem; }
+            .hero-cta { flex-direction: column; padding: 0 2rem; }
+            .nav-links { display: none; }
+            .mockup-main { padding: 1.5rem; }
+            .mockup-sidebar { display: none; }
+            .live-transcription { left: 1rem; right: 1rem; bottom: 1rem; }
+            .cta-box h2 { font-size: 2.25rem; }
+            .footer-content { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container navbar">
+            <a href="#" class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+                Murmur
+            </a>
+            <nav class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#testimonials">Testimonials</a>
+                <a href="#">Blog</a>
+            </nav>
+            <a href="#pricing" class="btn btn-primary">Get Started Free</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Your thoughts, <br><span>perfectly organized.</span></h1>
+            <p>Murmur is the AI-powered note-taking app that listens, transcribes, and summarizes your voice and text, so you never miss a brilliant idea.</p>
+            <div class="hero-cta">
+                <a href="#pricing" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Start for free
+                </a>
+                <a href="#features" class="btn btn-outline">See how it works</a>
+            </div>
+
+            <div class="mockup-wrapper">
+                <div class="mockup-header">
+                    <div class="dot r"></div>
+                    <div class="dot y"></div>
+                    <div class="dot g"></div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-sidebar">
+                        <div class="mockup-sidebar-item active"></div>
+                        <div class="mockup-sidebar-item"></div>
+                        <div class="mockup-sidebar-item" style="width: 60%;"></div>
+                        <div style="height: 2rem;"></div>
+                        <div class="mockup-sidebar-item" style="width: 40%;"></div>
+                        <div class="mockup-sidebar-item" style="width: 70%;"></div>
+                        <div class="mockup-sidebar-item" style="width: 50%;"></div>
+                    </div>
+                    <div class="mockup-main">
+                        <div class="mockup-title">Q3 Product Sync - Oct 12</div>
+                        <div class="mockup-note-content">
+                            <div class="mockup-line" style="width: 90%;"></div>
+                            <div class="mockup-line"></div>
+                            <div class="mockup-line" style="width: 75%;"></div>
+                            <div style="height: 0.5rem;"></div>
+                            <div class="mockup-line" style="width: 40%; background: #ddd6fe;"></div>
+                            <div class="mockup-line" style="width: 85%;"></div>
+                            <div class="mockup-line" style="width: 60%;"></div>
+                        </div>
+                        
+                        <div class="live-transcription">
+                            <div class="live-header">
+                                <div class="recording-dot"></div>
+                                <span style="font-size: 0.85rem; font-weight: 500; color: #94a3b8;">Murmur AI is listening...</span>
+                                <div class="wave">
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                </div>
+                            </div>
+                            <div class="live-text">
+                                "And if we look at the retention metrics, the main takeaway is that user engagement has improved by <span style="color: #a78bfa; font-weight: 600;">15%</span> since the new onboarding update went live<span class="typing-cursor"></span>"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Everything you need to remember everything.</h2>
+                <p>Murmur replaces your fragmented notes, voice memos, and scattered thoughts with one intelligent workspace.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                        </svg>
+                    </div>
+                    <h3>Voice to Genius</h3>
+                    <p>Just speak naturally. Murmur transcribes your voice in real-time with 99% accuracy, filtering out filler words automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"></path>
+                        </svg>
+                    </div>
+                    <h3>Instant AI Summaries</h3>
+                    <p>Don't re-read an hour-long meeting. Get concise, context-aware summaries and action items generated instantly after you finish.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <h3>Smart Search</h3>
+                    <p>Search across everything—even the spoken words. Ask Murmur "What did we decide about the Q3 budget?" and get the exact answer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2>Loved by over 50,000 productive minds.</h2>
+            </div>
+            <div class="features-grid">
+                <div class="test-card">
+                    <div class="test-text">"Murmur has completely changed how I take meeting notes. I can actually focus on the conversation and connecting with people now, knowing Murmur is catching every word."</div>
+                    <div class="test-author">
+                        <div class="test-avatar">SJ</div>
+                        <div class="test-info">
+                            <h4>Sarah Jenkins</h4>
+                            <p>Product Manager at TechFlow</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="test-card">
+                    <div class="test-text">"The AI summaries are scarily accurate. It saves me at least 5 hours a week writing up client reports. It's like having a personal assistant taking notes for me."</div>
+                    <div class="test-author">
+                        <div class="test-avatar" style="background: #dbeafe; color: #3b82f6;">DL</div>
+                        <div class="test-info">
+                            <h4>David Lee</h4>
+                            <p>Independent Consultant</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="test-card">
+                    <div class="test-text">"I use it for all my university lectures. Being able to search my spoken thoughts and get instant flashcards from the audio is an absolute game changer for studying."</div>
+                    <div class="test-author">
+                        <div class="test-avatar" style="background: #dcfce7; color: #22c55e;">ER</div>
+                        <div class="test-info">
+                            <h4>Elena Rodriguez</h4>
+                            <p>Graduate Student</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple, transparent pricing</h2>
+                <p>Start for free. Upgrade when you need more superpowers.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card pricing-card">
+                    <h3>Free</h3>
+                    <div class="price">$0<span>/mo</span></div>
+                    <p>Perfect for casual note-takers.</p>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            5 hours of transcription
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Basic AI summaries
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Mobile & Web apps
+                        </li>
+                    </ul>
+                    <a href="#" class="btn btn-outline" style="width: 100%;">Get Started</a>
+                </div>
+                
+                <div class="feature-card pricing-card" style="border-color: var(--primary); box-shadow: 0 15px 35px rgba(139,92,246,0.1);">
+                    <div class="popular-badge">Most Popular</div>
+                    <h3>Pro</h3>
+                    <div class="price">$12<span>/mo</span></div>
+                    <p>For professionals and creators.</p>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Unlimited transcription
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Advanced AI insights
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Smart search & custom tags
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Offline mode
+                        </li>
+                    </ul>
+                    <a href="#" class="btn btn-primary" style="width: 100%;">Start 14-Day Trial</a>
+                </div>
+                
+                <div class="feature-card pricing-card">
+                    <h3>Team</h3>
+                    <div class="price">$25<span>/user/mo</span></div>
+                    <p>For teams that need to sync.</p>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Everything in Pro
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Shared workspaces
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Centralized billing
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Priority 24/7 support
+                        </li>
+                    </ul>
+                    <a href="#" class="btn btn-outline" style="width: 100%;">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-box">
+                <h2>Never lose a thought again.</h2>
+                <p>Join thousands of professionals who trust Murmur to capture and organize their ideas. No credit card required.</p>
+                <a href="#" class="btn btn-primary">Get Murmur for Free</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <a href="#" class="logo" style="font-size: 1.25rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+                Murmur
+            </a>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Security</a>
+                <a href="#">Status</a>
+            </div>
+            <div class="copyright">
+                &copy; 2023 Murmur Inc. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

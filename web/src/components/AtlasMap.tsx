@@ -35,9 +35,9 @@ export const mapWords = (mapData as unknown as { words: Record<string, number> }
 export const explained = (mapData as { explained: number }).explained;
 export const firstMeasured = Math.min(...models.map((m) => ym(m.released)));
 const idx = new Map(models.map((m, i) => [m.id, i]));
-export const FAM_NAME: Record<string, string> = { gpt: "OpenAI", claude: "Claude", gemini: "Gemini", meta: "Llama", mistral: "Mistral", mosaic: "MPT", cohere: "Cohere", qwen: "Qwen", deepseek: "DeepSeek", minimax: "MiniMax", mimo: "MiMo", nemotron: "Nemotron" };
+export const FAM_NAME: Record<string, string> = { gpt: "OpenAI", claude: "Claude", gemini: "Gemini", meta: "Llama", mistral: "Mistral", mosaic: "MPT", cohere: "Cohere", qwen: "Qwen", deepseek: "DeepSeek", minimax: "MiniMax", mimo: "MiMo", nemotron: "Nemotron", hunyuan: "Hunyuan" };
 /** Families in a fixed order: the 2025-26 makers first, then the 2023 open and API models. */
-export const FAMS = ["gpt", "claude", "gemini", "deepseek", "minimax", "mimo", "nemotron", "meta", "mistral", "mosaic", "cohere", "qwen"].filter((f) => models.some((m) => m.family === f));
+export const FAMS = ["gpt", "claude", "gemini", "deepseek", "minimax", "mimo", "nemotron", "hunyuan", "meta", "mistral", "mosaic", "cohere", "qwen"].filter((f) => models.some((m) => m.family === f));
 /** A release counts as current for 18 months, or until the family's next measured release. */
 const CURRENT_MONTHS = 18;
 
@@ -93,7 +93,7 @@ export function AtlasMap({ month, onHover, insets, resetSignal, layers = { words
     const s = st.current;
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
-      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--meta", "--mistral", "--mosaic", "--cohere", "--qwen", "--deepseek", "--minimax", "--mimo", "--nemotron", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
+      s.C = Object.fromEntries(["--sea", "--land-1", "--land-2", "--land-3", "--land-4", "--land-5", "--contour", "--hatch", "--fossil", "--ink", "--ink-2", "--ink-3", "--gpt", "--claude", "--gemini", "--meta", "--mistral", "--mosaic", "--cohere", "--qwen", "--deepseek", "--minimax", "--mimo", "--nemotron", "--hunyuan", "--halo", "--sheet"].map((n) => [n, cs.getPropertyValue(n).trim()]));
     };
     const sx = (x: number) => s.t.applyX(s.base.x + x * s.base.k);
     const sy = (y: number) => s.t.applyY(s.base.y + y * s.base.k);

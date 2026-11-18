@@ -40,7 +40,7 @@ export interface Habit { key: string; label: string; glyph: string; what: string
 export const habits = ((registry as unknown as { habits?: Habit[] }).habits ?? []) as Habit[];
 export const chronology = chronologyRaw as { milestones: Milestone[]; tells: HistTell[] };
 
-export const FAMS: Fam[] = ["gpt", "claude", "gemini", "gemma", "meta", "mistral", "deepseek", "glm", "grok", "minimax", "mimo", "nemotron", "mosaic", "cohere", "qwen"];
+export const FAMS: Fam[] = ["gpt", "claude", "gemini", "gemma", "meta", "mistral", "deepseek", "glm", "grok", "minimax", "mimo", "nemotron", "hunyuan", "mosaic", "cohere", "qwen"];
 export const ordered = FAMS.flatMap((f) => data.models.filter((m) => m.family === f).sort((a, b) => a.released.localeCompare(b.released)));
 export const graphiteOrdered = ordered.filter((m) => m.source !== "raid");
 /** Measured by shibbo's own API run, on a few hundred topics rather than Graphite's ~10,000. */
