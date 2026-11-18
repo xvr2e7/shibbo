@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Murmur — Think out loud. We'll handle the notes.</title>
+  <meta name="description" content="Murmur is the ambient AI note-taker that turns your rambles, meetings, and midnight ideas into perfectly structured, searchable text.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #FAFAF8;
+      --bg-glow: #EEECFF;
+      --text: #1C1C1A;
+      --text-muted: #6B6B66;
+      --accent: #6D5DF6;
+      --accent-hover: #5B4BE0;
+      --accent-soft: #F2F0FF;
+      --border: #E6E6E0;
+      --card-bg: #FFFFFF;
+      --dark: #17171A;
+      
+      --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-head: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-lg: 32px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: radial-gradient(ellipse 80% 50% at 50% -10%, var(--bg-glow), transparent 70%);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    ::selection {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* --- Typography --- */
+    h1, h2, h3, h4, .logo-text, .btn {
+      font-family: var(--font-head);
+    }
+
+    h1 {
+      font-size: clamp(3rem, 5.5vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    h2 {
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 1.125rem;
+    }
+
+    /* --- Utilities --- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FFF;
+      box-shadow: 0 8px 20px -6px rgba(109, 93, 246, 0.4);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -6px rgba(109, 93, 246, 0.5);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #FFF;
+      border-color: #D0D0C8;
+      transform: translateY(-2px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .badge svg { color: var(--accent); }
+
+    /* --- Navbar --- */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(250, 250, 248, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(230, 230, 224, 0.6);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--text);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta { padding: 10px 20px; font-size: 0.95rem; }
+
+    /* --- Hero --- */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      padding: 100px 0 120px;
+      min-height: calc(100vh - 72px);
+    }
+
+    .hero-content {
+      max-width: 540px;
+    }
+
+    .hero-content p {
+      font-size: 1.25rem;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .trust-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .trust-text svg { color: #10B981; }
+
+    /* --- Hero Visual (CSS Mockup) --- */
+    .visual-wrapper {
+      position: relative;
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .visual-glow {
+      position: absolute;
+      width: 80%;
+      height: 80%;
+      background: var(--accent);
+      filter: blur(80px);
+      opacity: 0.15;
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    .mockup-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 1);
+      box-shadow: 
+        0 30px 60px -15px rgba(109, 93, 246, 0.15),
+        0 0 0 1px var(--border),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+      border-radius: 24px;
+      padding: 28px;
+      transform: rotateY(-6deg) rotateX(3deg);
+      animation: float 7s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotateY(-6deg) rotateX(3deg); }
+      50% { transform: translateY(-14px) rotateY(-2deg) rotateX(5deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 28px;
+    }
+
+    .waveform span {
+      width: 4px;
+      background: var(--accent);
+      border-radius: 4px;
+      animation: wave 1.2s ease-in-out infinite;
+    }
+
+    .waveform span:nth-child(1) { height: 30%; animation-delay: 0.0s; }
+    .waveform span:nth-child(2) { height: 70%; animation-delay: 0.1s; }
+    .waveform span:nth-child(3) { height: 100%; animation-delay: 0.2s; }
+    .waveform span:nth-child(4) { height: 50%; animation-delay: 0.3s; }
+    .waveform span:nth-child(5) { height: 80%; animation-delay: 0.4s; }
+    .waveform span:nth-child(6) { height: 40%; animation-delay: 0.5s; }
+    .waveform span:nth-child(7) { height: 60%; animation-delay: 0.6s; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .status-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .card-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin-bottom: 24px;
+    }
+
+    .ai-processing {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .ai-processing svg { animation: spin 4s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .note-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .note-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .note-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.95rem;
+      color: #3D3D3A;
+      line-height: 1.5;
+      animation: slideUp 0.6s ease-out backwards;
+    }
+
+    .note-list li:nth-child(1) { animation-delay: 0.2s; }
+    .note-list li:nth-child(2) { animation-delay: 0.4s; }
+    .note-list li:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-list svg {
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--text-muted);
+    }
+    .note-list li:nth-child(2) svg { color: var(--accent); }
+    .note-list strong { color: var(--text); font-weight: 600; }
+
+    /* --- Social Proof --- */
+    .proof {
+      padding: 40px 0 100px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .proof p {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
+    .proof-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      flex-wrap: wrap;
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+
+    .proof-logos span {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* --- Features (Bento) --- */
+    .features {
+      padding: 120px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 64px;
+    }
+
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .bento-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .bento-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -20px rgba(0,0,0,0.08);
+    }
+
+    .bento-card.span-2 { grid-column: span 2; }
+    .bento-card.span-3 { grid-column: span 3; }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .bento-card p {
+      font-size: 1rem;
+      max-width: 400px;
+    }
+
+    /* Card 1: Transformation Visual */
+    .transform-visual {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 32px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .raw-text {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #9B9B95;
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    .magic-divider {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: relative;
+    }
+
+    .magic-divider::before, .magic-divider::after {
+      content: '';
+      width: 1px;
+      height: 30px;
+      background: linear-gradient(to bottom, transparent, var(--accent));
+    }
+    .magic-divider::after { background: linear-gradient(to top, transparent, var(--accent)); }
+
+    .clean-text {
+      flex: 1;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .clean-text ul { list-style: none; margin-top: 8px; }
+    .clean-text li { margin-bottom: 4px; display: flex; gap: 6px; }
+    .clean-text li::before { content: '•'; color: var(--accent); }
+
+    /* Card 2: Memory Visual */
+    .chat-visual {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      max-width: 90%;
+    }
+    .chat-user {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      color: var(--text-muted);
+    }
+    .chat-ai {
+      background: var(--accent-soft);
+      color: var(--accent);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      font-weight: 500;
+    }
+    .chat-ai small {
+      display: block;
+      opacity: 0.7;
+      font-weight: 400;
+      margin-top: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* Card 3: Ambient Visual */
+    .mic-visual {
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.4;
+    }
+    .pulse-ring {
+      position: absolute;
+      border: 1px solid var(--accent);
+      border-radius: 50%;
+      animation: pulse 3s ease-out infinite;
+    }
+    .pulse-ring:nth-child(1) { width: 60px; height: 60px; animation-delay: 0s; }
+    .pulse-ring:nth-child(2) { width: 100px; height: 100px; animation-delay: 1s; }
+    .pulse-ring:nth-child(3) { width: 140px; height: 140px; animation-delay: 2s; }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+    .mic-core {
+      width: 48px; height: 48px;
+      background: var(--accent-soft);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      z-index: 1;
+    }
+
+    /* Card 4: Privacy (Span 3) */
+    .privacy-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      background: var(--text);
+      color: #FFF;
+      border: none;
+    }
+    .privacy-card h3, .privacy-card p { color: #FFF; }
+    .privacy-card p { opacity: 0.7; }
+    .privacy-card .icon-box {
+      background: rgba(255,255,255,0.1);
+      color: #FFF;
+      margin-bottom: 0;
+      flex-shrink: 0;
+      width: 64px; height: 64px;
+    }
+    .privacy-card .icon-box svg { width: 28px; height: 28px; }
+    .privacy-text { flex: 1; }
+    .privacy-badges { display: flex; gap: 12px; flex-wrap: wrap; }
+    .privacy-badges span {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* --- Quote --- */
+    .quote-section {
+      padding: 80px 0 140px;
+      text-align: center;
+    }
+    .quote-mark {
+      font-family: var(--font-head);
+      font-size: 4rem;
+      color: var(--accent);
+      line-height: 0;
+      opacity: 0.3;
+      margin-bottom: 24px;
+    }
+    .quote-text {
+      font-family: var(--font-head);
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.02em;
+      max-width: 800px;
+      margin: 0 auto 32px;
+      color: var(--text);
+    }
+    .quote-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .author-info { text-align: left; font-size: 0.9rem; }
+    .author-info strong { display: block; color: var(--text); }
+    .author-info span { color: var(--text-muted); }
+
+    /* --- Bottom CTA --- */
+    .cta-wrapper {
+      padding: 0 0 100px;
+    }
+    .cta-box {
+      background: var(--dark);
+      border-radius: var(--radius-lg);
+      padding: 100px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      background-image: radial-gradient(circle at 50% 0%, rgba(109, 93, 246, 0.25), transparent 60%);
+    }
+    .cta-box h2 { color: #FFF; font-size: clamp(2.5rem, 4vw, 3.5rem); margin-bottom: 20px; }
+    .cta-box p { color: rgba(255,255,255,0.7); margin-bottom: 40px; }
+    
+    .waitlist-form {
+      display: flex;
+      gap: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .waitlist-form input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #FFF;
+      padding: 16px 24px;
+      border-radius: 100px;
+      font-family: var(--font-main);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .waitlist-form input::placeholder { color: rgba(255,255,255,0.4); }
+    .waitlist-form input:focus {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.1);
+    }
+    .waitlist-form .btn { padding: 16px 32px; white-space: nowrap; }
+
+    /* --- Footer --- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* --- Responsive --- */
+    @media (max-width: 1024px) {
+      .bento { grid-template-columns: repeat(2, 1fr); }
+      .bento-card.span-3 { grid-column: span 2; }
+      .bento-card.span-2 { grid-column: span 2; }
+      .privacy-card { flex-direction: column; text-align: center; gap: 24px; }
+      .privacy-badges { justify-content: center; }
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        padding: 60px 0 80px;
+        gap: 80px;
+      }
+      .hero-content { max-width: 100%; margin: 0 auto; }
+      .hero-actions, .trust-text { justify-content: center; }
+      .badge { margin: 0 auto 32px; }
+      .mockup-card { transform: none; animation: floatMobile 6s ease-in-out infinite; }
+      @keyframes floatMobile {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .bento { grid-template-columns: 1fr; }
+      .bento-card.span-2, .bento-card.span-3 { grid-column: span 1; }
+      .transform-visual { flex-direction: column; padding: 20px; }
+      .magic-divider { flex-direction: row; padding: 10px 0; }
+      .magic-divider::before, .magic-divider::after { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent)); }
+      .magic-divider::after { background: linear-gradient(270deg, transparent, var(--accent)); }
+      .waitlist-form { flex-direction: column; }
+      .waitlist-form .btn { width: 100%; }
+      .footer-inner { flex-direction: column; gap: 20px; text-align: center; }
+      .proof-logos { gap: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="container nav-inner">
+      <a href="#" class="logo">
+        <div class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12a10 10 0 0 1 20 0"/>
+            <path d="M6 12a6 6 0 0 1 12 0"/>
+            <circle cx="12" cy="12" r="1.5" fill="#FFF" stroke="none"/>
+          </svg>
+        </div>
+        <span class="logo-text">Murmur</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#waitlist">Pricing</a>
+      </div>
+      <a href="#waitlist" class="btn btn-primary nav-cta">Get Early Access</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <main>
+    <section class="container hero">
+      <div class="hero-content">
+        <div class="badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+          Now in Private Beta
+        </div>
+        <h1>Think out loud.<br><span>We'll handle</span> the notes.</h1>
+        <p>Murmur is the ambient AI note-taker that turns your rambles, meetings, and midnight ideas into perfectly structured, searchable text. Just speak. No typing, no formatting, no friction.</p>
+        
+        <div class="hero-actions">
+          <a href="#waitlist" class="btn btn-primary">
+            Start murmuring for free
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+          <a href="#features" class="btn btn-secondary">See the magic</a>
+        </div>
+        
+        <div class="trust-text">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+          No credit card • Works 100% offline
+        </div>
+      </div>
+
+      <!-- CSS App Mockup -->
+      <div class="visual-wrapper">
+        <div class="visual-glow"></div>
+        <div class="mockup-card">
+          <div class="card-header">
+            <div class="waveform">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="status-tag">Listening</div>
+          </div>
+          
+          <div class="card-divider"></div>
+          
+          <div class="ai-processing">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            Structuring thought...
+          </div>
+
+          <div class="note-title">Q3 Onboarding Ideas</div>
+          <ul class="note-list">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span><strong>Insight:</strong> Users drop off at the permissions screen.</span>
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              <span><strong>Action:</strong> Draft a voice-first walkthrough for Sarah by Thu.</span>
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 2 0 6-1.5 6-4"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c1.25 0 2.25-.75 2.25-1.972V7"/></svg>
+              <span><strong>Quote:</strong> "Make it feel like talking to a friend."</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="container proof">
+      <p>Built for people who think faster than they type</p>
+      <div class="proof-logos">
+        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Founders</span>
+        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Remote Teams</span>
+        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg> Podcasters</span>
+        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Writers</span>
+      </div>
+    </section>
+
+    <!-- Features Bento -->
+    <section id="features" class="container features">
+      <div class="section-header">
+        <h2>Zero friction. Total recall.</h2>
+        <p>Traditional notes demand your attention. Murmur works in the background, so you can stay in the flow.</p>
+      </div>
+
+      <div class="bento">
+        <!-- Card 1 -->
+        <div class="bento-card span-2">
+          <div class="icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+          </div>
+          <h3>Ramble in. Structure out.</h3>
+          <p>Um, like, you know... we strip the filler, find the signal, and format it into clean markdown before you even finish the sentence.</p>
+          
+          <div class="transform-visual">
+            <div class="raw-text">
+              "uh so basically we should probably maybe look at the uh churn from last month and i think dave said something about onboarding being clunky..."
+            </div>
+            <div class="magic-divider">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            </div>
+            <div class="clean-text">
+              <strong>📉 Churn Review</strong>
+              <ul>
+                <li>Analyze Q3 retention data</li>
+                <li><em>Follow up:</em> Dave's UI feedback</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bento-card">
+          <div class="icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </div>
+          <h3>Ask your memory.</h3>
+          <p>Don't dig through folders. Just ask Murmur where you left a thought.</p>
+          
+          <div class="chat-visual">
+            <div class="chat-bubble chat-user">"What was that API key Dave mentioned?"</div>
+            <div class="chat-bubble chat-ai">
+              Found it in Tuesday's Dev Sync.
+              <small>🎧 14:02 • "It's in the 1Password vault under Staging"</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bento-card">
+          <div class="icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </div>
+          <h3>Whisper-quiet.</h3>
+          <p>No wake words. No clunky record buttons. Murmur listens ambiently, even when your phone is in your pocket.</p>
+          
+          <div class="mic-visual">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="mic-core">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div id="privacy" class="bento-card span-2 privacy-card">
+          <div class="icon-box">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="privacy-text">
+            <h3>Your murmurs stay yours.</h3>
+            <p>Transcription and AI structuring happen entirely on-device. Your raw audio never touches a server. Ever.</p>
+          </div>
+          <div class="privacy-badges">
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> On-device AI</span>
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> No data selling</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote -->
+    <section id="how-it-works" class="container quote-section">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">
+        I used to lose my best ideas in the 10 seconds it took to unlock my phone and open a notes app. Now I just mumble them to the air, and they're perfectly formatted by the time I sit down at my desk.
+      </div>
+      <div class="quote-author">
+        <div class="avatar">EK</div>
+        <div class="author-info">
+          <strong>Elena K.</strong>
+          <span>Product Designer & Beta Tester</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section id="waitlist" class="container cta-wrapper">
+      <div class="cta-box">
+        <h2>Stop typing. Start thinking.</h2>
+        <p>Join 4,000+ thinkers on the waitlist. Be the first to let Murmur do the writing.</p>
+        <form class="waitlist-form" onsubmit="event.preventDefault(); this.innerHTML = '<div style=\'color:#FFF;font-weight:600;padding:16px;\'>✨ You\'re on the list. We\'ll be in touch!</div>';">
+          <input type="email" placeholder="Enter your email address" required>
+          <button type="submit" class="btn btn-primary">Get Early Access</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12a10 10 0 0 1 20 0"/><path d="M6 12a6 6 0 0 1 12 0"/><circle cx="12" cy="12" r="1.5" fill="#FFF" stroke="none"/>
+          </svg>
+        </div>
+        <span class="logo-text">Murmur</span>
+      </div>
+      <div style="font-size: 0.875rem;">© 2024 Murmur Labs. Made for quiet minds.</div>
+      <div class="footer-links">
+        <a href="#">Twitter</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

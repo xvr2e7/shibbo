@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tern — find the queries slowing you down</title>
+<meta name="description" content="Tern is a command-line tool that watches your database, ranks slow queries, and tells you exactly what to fix.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14;
+    --bg-2:#0e131c;
+    --panel:#111826;
+    --panel-2:#151d2e;
+    --line:#1e293b;
+    --line-soft:#182234;
+    --text:#e6edf6;
+    --muted:#8b98ad;
+    --faint:#5b6b82;
+    --amber:#f6b73c;
+    --amber-soft:#f6b73c22;
+    --green:#3ddc84;
+    --red:#ff6b6b;
+    --cyan:#5ccfe6;
+    --violet:#c792ea;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'Inter',system-ui,sans-serif;
+    --display:'Space Grotesk',var(--sans);
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--amber);color:#0a0e14}
+  a{color:inherit;text-decoration:none}
+  code,pre{font-family:var(--mono)}
+
+  /* ---------- backdrop ---------- */
+  .grid-bg{
+    position:fixed;inset:0;z-index:-2;
+    background-image:
+      linear-gradient(rgba(92,207,230,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(92,207,230,.035) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 100%);
+    -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 100%);
+  }
+  .glow{
+    position:fixed;z-index:-1;pointer-events:none;
+    width:900px;height:600px;top:-260px;left:50%;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center,rgba(246,183,60,.10),rgba(92,207,230,.05) 45%,transparent 70%);
+    filter:blur(10px);
+  }
+
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    background:rgba(10,14,20,.75);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .logo svg{display:block}
+  .logo .caret{color:var(--amber)}
+  .nav-links{display:flex;align-items:center;gap:28px;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .gh-btn{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:8px;
+    padding:7px 14px;font-size:13px;color:var(--text);
+    background:var(--panel);transition:border-color .2s,background .2s;
+  }
+  .gh-btn:hover{border-color:var(--amber);background:var(--panel-2)}
+  .gh-btn .star{color:var(--amber)}
+  @media(max-width:720px){.nav-links a:not(.gh-btn){display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:88px 0 40px;text-align:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:12px;color:var(--amber);
+    border:1px solid rgba(246,183,60,.35);background:var(--amber-soft);
+    padding:5px 14px;border-radius:999px;margin-bottom:26px;
+  }
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1{
+    font-family:var(--display);
+    font-size:clamp(38px,6vw,66px);
+    line-height:1.06;font-weight:700;letter-spacing:-.03em;
+    max-width:820px;margin:0 auto 22px;
+  }
+  h1 .hl{
+    color:var(--amber);
+    position:relative;white-space:nowrap;
+  }
+  .hero p.sub{
+    color:var(--muted);font-size:clamp(16px,2vw,19px);
+    max-width:620px;margin:0 auto 34px;
+  }
+  .hero p.sub strong{color:var(--text);font-weight:600}
+
+  .install-row{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .cmd{
+    display:flex;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:14.5px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:13px 16px 13px 20px;
+    box-shadow:0 0 0 1px rgba(246,183,60,.06),0 10px 30px rgba(0,0,0,.35);
+  }
+  .cmd .dollar{color:var(--faint);user-select:none}
+  .cmd .bin{color:var(--green)}
+  .copy-btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    border-radius:7px;padding:6px 10px;cursor:pointer;font-family:var(--mono);font-size:12px;
+    transition:all .2s;display:flex;align-items:center;gap:6px;
+  }
+  .copy-btn:hover{color:var(--text);border-color:var(--amber)}
+  .copy-btn.copied{color:var(--green);border-color:var(--green)}
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--amber);color:#14100a;font-weight:600;font-size:15px;
+    padding:13px 24px;border-radius:10px;border:none;cursor:pointer;
+    transition:transform .15s,box-shadow .2s;
+    box-shadow:0 6px 24px rgba(246,183,60,.25);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(246,183,60,.35)}
+  .hero .tiny{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .hero .tiny a{color:var(--muted);border-bottom:1px dotted var(--faint)}
+  .hero .tiny a:hover{color:var(--amber)}
+
+  /* ---------- terminal ---------- */
+  .terminal{
+    max-width:860px;margin:52px auto 0;text-align:left;
+    background:#0c1119;border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(92,207,230,.04),0 0 120px rgba(246,183,60,.05);
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line-soft);
+  }
+  .term-dot{width:11px;height:11px;border-radius:50%}
+  .term-dot.r{background:#ff5f57}.term-dot.y{background:#febc2e}.term-dot.g{background:#28c840}
+  .term-title{flex:1;text-align:center;font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .replay{
+    background:none;border:1px solid var(--line);color:var(--faint);
+    font-family:var(--mono);font-size:11px;border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .2s;
+  }
+  .replay:hover{color:var(--amber);border-color:var(--amber)}
+  .term-body{
+    padding:20px 22px 26px;font-family:var(--mono);font-size:13.5px;line-height:1.85;
+    min-height:378px;white-space:pre-wrap;word-break:break-word;
+  }
+  .tl{opacity:0;transform:translateY(3px);transition:opacity .25s,transform .25s}
+  .tl.on{opacity:1;transform:none}
+  .t-dim{color:var(--faint)}
+  .t-cmd{color:var(--text)}
+  .t-green{color:var(--green)}
+  .t-amber{color:var(--amber)}
+  .t-red{color:var(--red)}
+  .t-cyan{color:var(--cyan)}
+  .t-violet{color:var(--violet)}
+  .t-bold{font-weight:700}
+  .cursor{display:inline-block;width:8px;height:16px;background:var(--amber);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @media(max-width:640px){.term-body{font-size:11.5px;padding:16px}}
+
+  /* ---------- db strip ---------- */
+  .db-strip{padding:56px 0 8px;text-align:center}
+  .db-strip .label{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:20px}
+  .db-list{display:flex;justify-content:center;gap:14px 40px;flex-wrap:wrap;font-family:var(--mono);font-size:15px;color:var(--muted)}
+  .db-list span{display:flex;align-items:center;gap:9px;transition:color .2s}
+  .db-list span:hover{color:var(--text)}
+  .db-list .glyph{color:var(--cyan);font-size:13px}
+
+  /* ---------- sections ---------- */
+  section{padding:88px 0}
+  .sec-head{max-width:640px;margin-bottom:52px}
+  .sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
+  .kicker{font-family:var(--mono);font-size:12px;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px;display:block}
+  h2{font-family:var(--display);font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-bottom:14px}
+  .sec-head p{color:var(--muted);font-size:17px}
+
+  /* features */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:900px){.features{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.features{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:26px 24px;transition:border-color .25s,transform .25s,background .25s;
+    position:relative;overflow:hidden;
+  }
+  .card:hover{border-color:rgba(246,183,60,.4);transform:translateY(-3px);background:var(--panel-2)}
+  .card .icon{
+    font-family:var(--mono);font-size:13px;color:var(--amber);
+    background:var(--amber-soft);border:1px solid rgba(246,183,60,.25);
+    width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:18px;font-weight:700;
+  }
+  .card h3{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14.5px;line-height:1.65}
+  .card p code{color:var(--cyan);font-size:12.5px;background:rgba(92,207,230,.08);padding:1px 6px;border-radius:5px}
+
+  /* how it works */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:step}
+  @media(max-width:900px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:24px;position:relative}
+  .step .num{
+    font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:14px;display:flex;align-items:center;gap:10px;
+  }
+  .step .num::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .step .num b{color:var(--amber);font-size:14px}
+  .step h3{font-family:var(--display);font-size:17px;font-weight:600;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14px;margin-bottom:16px}
+  .mini-code{
+    font-family:var(--mono);font-size:12.5px;line-height:1.8;
+    background:#0c1119;border:1px solid var(--line-soft);border-radius:9px;
+    padding:14px 16px;overflow-x:auto;white-space:pre;
+  }
+
+  /* report */
+  .report-section{background:var(--bg-2);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+  .report{
+    background:#0c1119;border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);
+  }
+  .report-head{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    padding:16px 22px;border-bottom:1px solid var(--line-soft);background:var(--panel);
+    font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  }
+  .report-head .live{color:var(--green);display:flex;align-items:center;gap:7px}
+  .report-head .live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+  th{
+    text-align:left;padding:12px 22px;font-weight:500;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-soft);
+  }
+  td{padding:14px 22px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .15s}
+  tbody tr:hover{background:rgba(246,183,60,.03)}
+  .q{color:var(--text)}
+  .q .kw{color:var(--violet)}
+  .q .tbl{color:var(--cyan)}
+  .sev{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700}
+  .sev.crit{color:var(--red);background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.3)}
+  .sev.warn{color:var(--amber);background:var(--amber-soft);border:1px solid rgba(246,183,60,.3)}
+  .sev.ok{color:var(--green);background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3)}
+  .num-cell{color:var(--muted);text-align:right}
+  .bar-track{width:120px;height:6px;background:var(--line-soft);border-radius:99px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:99px;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .bar-fill.crit{background:linear-gradient(90deg,#ff6b6b,#ff9f6b)}
+  .bar-fill.warn{background:linear-gradient(90deg,#f6b73c,#ffd47e)}
+  .bar-fill.ok{background:linear-gradient(90deg,#3ddc84,#7ce8b0)}
+  .hint{color:var(--faint);font-size:12px}
+  .hint b{color:var(--amber);font-weight:500}
+  .table-scroll{overflow-x:auto}
+  @media(max-width:760px){.hide-sm{display:none}td,th{padding:12px 14px}}
+
+  /* quote */
+  .quote-block{max-width:760px;margin:0 auto;text-align:center}
+  .quote-mark{font-family:var(--mono);color:var(--amber);font-size:34px;line-height:1;margin-bottom:18px}
+  blockquote{font-family:var(--display);font-size:clamp(20px,3vw,27px);font-weight:500;line-height:1.45;letter-spacing:-.01em;margin-bottom:26px}
+  blockquote em{color:var(--amber);font-style:normal}
+  .attrib{display:flex;align-items:center;justify-content:center;gap:14px}
+  .avatar{
+    width:44px;height:44px;border-radius:50%;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:15px;color:#0a0e14;
+  }
+  .attrib .who{text-align:left;font-size:14px}
+  .attrib .who b{display:block;font-weight:600}
+  .attrib .who span{color:var(--faint);font-size:13px}
+
+  /* CTA */
+  .cta{
+    text-align:center;border:1px solid var(--line);border-radius:20px;
+    background:
+      radial-gradient(ellipse 60% 90% at 50% -20%,rgba(246,183,60,.12),transparent),
+      var(--panel);
+    padding:72px 32px;position:relative;overflow:hidden;
+  }
+  .cta .bird{position:absolute;font-family:var(--mono);color:var(--line);font-size:12px;white-space:pre;pointer-events:none;user-select:none}
+  .cta .bird.b1{top:26px;left:34px;transform:rotate(-6deg)}
+  .cta .bird.b2{bottom:26px;right:34px;transform:rotate(5deg)}
+  @media(max-width:700px){.cta .bird{display:none}}
+  .cta h2{margin-bottom:12px}
+  .cta p{color:var(--muted);max-width:520px;margin:0 auto 32px}
+  .cta .install-row{margin-bottom:18px}
+
+  /* footer */
+  footer{border-top:1px solid var(--line-soft);padding:36px 0;margin-top:88px}
+  .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;font-size:13.5px;color:var(--faint)}
+  .foot .links{display:flex;gap:24px}
+  .foot a:hover{color:var(--amber)}
+  .foot .mono{font-family:var(--mono);font-size:12px}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .tl{opacity:1;transform:none}
+    *{animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="glow"></div>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="logo" href="#">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <path d="M2 15 L11 10 L13 4 L15 10 L24 15 L15 13.5 L13 22 L11 13.5 Z" fill="#f6b73c"/>
+      </svg>
+      tern<span class="caret">_</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#report">Sample report</a>
+      <a href="https://github.com" class="gh-btn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="star">★</span> 12.4k
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <div class="pill"><span class="dot"></span> v0.9.2 — now with EXPLAIN plans</div>
+  <h1>Your database is slow.<br><span class="hl">Tern knows why.</span></h1>
+  <p class="sub">A single binary that watches live query traffic, ranks the offenders by <strong>total time burned</strong>, and hands you the exact index to add. No agents. No dashboards. No signup.</p>
+
+  <div class="install-row">
+    <div class="cmd">
+      <span class="dollar">$</span>
+      <span><span class="bin">brew</span> install tern</span>
+      <button class="copy-btn" data-copy="brew install tern" aria-label="Copy install command">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        copy
+      </button>
+    </div>
+    <a href="#how" class="btn-primary">See it in action ↓</a>
+  </div>
+  <div class="tiny">also: <a href="#">curl -sSf tern.sh | sh</a> · macOS · Linux · single 6&nbsp;MB binary · MIT</div>
+
+  <div class="terminal reveal">
+    <div class="term-bar">
+      <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+      <span class="term-title">tern — ~/prod — 96×28</span>
+      <button class="replay" id="replay">↻ replay</button>
+    </div>
+    <div class="term-body" id="term" aria-live="polite"></div>
+  </div>
+</header>
+
+<div class="db-strip wrap reveal">
+  <div class="label">Speaks fluent</div>
+  <div class="db-list">
+    <span><span class="glyph">◆</span>PostgreSQL</span>
+    <span><span class="glyph">◆</span>MySQL</span>
+    <span><span class="glyph">◆</span>MariaDB</span>
+    <span><span class="glyph">◆</span>SQLite</span>
+    <span><span class="glyph">◆</span>SQL Server</span>
+    <span><span class="glyph">◆</span>CockroachDB</span>
+  </div>
+</div>
+
+<section id="features" class="wrap">
+  <div class="sec-head reveal">
+    <span class="kicker">// features</span>
+    <h2>Everything you'd dig through pg_stat_statements for. Nothing you wouldn't.</h2>
+    <p>Tern lives in your terminal, reads what your database already knows, and gets out of the way.</p>
+  </div>
+  <div class="features">
+    <div class="card reveal">
+      <div class="icon">Σ</div>
+      <h3>Ranks by real cost</h3>
+      <p>A 4&nbsp;ms query called 90,000 times a minute beats a 2-second cron job. Tern sorts by <code>calls × mean</code>, so you fix what actually hurts.</p>
+    </div>
+    <div class="card reveal d1">
+      <div class="icon">⌁</div>
+      <h3>Live tail mode</h3>
+      <p><code>tern watch</code> streams queries as they happen, normalized and grouped. Like <code>tail -f</code>, but for your query load.</p>
+    </div>
+    <div class="card reveal d2">
+      <div class="icon">⌘</div>
+      <h3>Index suggestions</h3>
+      <p>Reads the EXPLAIN plan, spots the seq scans, and prints a ready-to-run <code>CREATE INDEX CONCURRENTLY</code>. You decide whether to ship it.</p>
+    </div>
+    <div class="card reveal">
+      <div class="icon">◫</div>
+      <h3>Zero infrastructure</h3>
+      <p>One static binary. No agent, no sidecar, no SaaS account. Point it at a connection string and it works — even against a read replica.</p>
+    </div>
+    <div class="card reveal d1">
+      <div class="icon">⇄</div>
+      <h3>Diff two windows</h3>
+      <p><code>tern diff before.json after.json</code> shows exactly which queries regressed after that deploy. Great in CI, better at 2&nbsp;a.m.</p>
+    </div>
+    <div class="card reveal d2">
+      <div class="icon">¶</div>
+      <h3>Scriptable output</h3>
+      <p>Pretty tables for humans, <code>--json</code> for machines. Pipe into jq, post to Slack, fail the build when p95 crosses a threshold.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="wrap" style="padding-top:24px">
+  <div class="sec-head reveal">
+    <span class="kicker">// how it works</span>
+    <h2>Three commands. One fewer incident.</h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="num"><b>01</b> point</div>
+      <h3>Give it a connection string</h3>
+      <p>Reads from your existing stats views. Read-only, never writes, safe on production replicas.</p>
+      <div class="mini-code"><span class="t-dim">$</span> <span class="t-green">tern</span> watch \
+    --db <span class="t-cyan">postgres://replica/app</span></div>
+    </div>
+    <div class="step reveal d1">
+      <div class="num"><b>02</b> watch</div>
+      <h3>Let traffic tell the story</h3>
+      <p>Tern normalizes literals, groups query shapes, and accumulates calls, mean, p95, and rows examined.</p>
+      <div class="mini-code"><span class="t-dim">watching…</span> 14 shapes
+<span class="t-amber">▲ orders_by_email</span>  p95 <span class="t-red">1.9s</span>
+<span class="t-dim">  seq scan on orders (2.1M rows)</span></div>
+    </div>
+    <div class="step reveal d2">
+      <div class="num"><b>03</b> fix</div>
+      <h3>Apply the suggestion</h3>
+      <p>One command prints the plan analysis and the index DDL. Re-run and watch p95 fall off a cliff.</p>
+      <div class="mini-code"><span class="t-dim">$</span> <span class="t-green">tern</span> fix orders_by_email
+<span class="t-cyan">CREATE INDEX CONCURRENTLY</span>
+  idx_orders_email <span class="t-cyan">ON</span> orders(email);
+<span class="t-green">✓ estimated 214× faster</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="report" class="report-section">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="kicker">// sample output</span>
+      <h2>The report you'll actually read</h2>
+      <p>Sorted by total database time. The top row is almost always the one worth fixing first.</p>
+    </div>
+    <div class="report reveal">
+      <div class="report-head">
+        <span>tern report --window 15m --db app_prod</span>
+        <span class="live">captured 412,807 queries · 6 shapes shown</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Query shape</th>
+              <th class="hide-sm">Calls</th>
+              <th style="text-align:right">p95</th>
+              <th class="hide-sm">Total time</th>
+              <th>Share</th>
+              <th class="hide-sm">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="q"><span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">orders</span> <span class="kw">WHERE</span> email = $1<br><span class="hint">↳ missing index on <b>orders.email</b> — seq scan, 2.1M rows</span></td>
+              <td class="num-cell hide-sm">88,412</td>
+              <td class="num-cell" style="color:var(--red)">1.92 s</td>
+              <td class="num-cell hide-sm">94.2 min</td>
+              <td><div class="bar-track"><div class="bar-fill crit" data-w="86"></div></div></td>
+              <td class="hide-sm"><span class="sev crit">FIX NOW</span></td>
+            </tr>
+            <tr>
+              <td class="q"><span class="kw">SELECT</span> count(*) <span class="kw">FROM</span> <span class="tbl">events</span> <span class="kw">WHERE</span> ts &gt; $1<br><span class="hint">↳ index exists, but cast disables it — <b>ts::text</b></span></td>
+              <td class="num-cell hide-sm">31,004</td>
+              <td class="num-cell" style="color:var(--amber)">640 ms</td>
+              <td class="num-cell hide-sm">18.7 min</td>
+              <td><div class="bar-track"><div class="bar-fill warn" data-w="34"></div></div></td>
+              <td class="hide-sm"><span class="sev warn">REWRITE</span></td>
+            </tr>
+            <tr>
+              <td class="q"><span class="kw">UPDATE</span> <span class="tbl">sessions</span> <span class="kw">SET</span> seen_at = $1 <span class="kw">WHERE</span> id = $2<br><span class="hint">↳ lock contention, 4% of time spent waiting</span></td>
+              <td class="num-cell hide-sm">120,551</td>
+              <td class="num-cell" style="color:var(--amber)">88 ms</td>
+              <td class="num-cell hide-sm">7.1 min</td>
+              <td><div class="bar-track"><div class="bar-fill warn" data-w="14"></div></div></td>
+              <td class="hide-sm"><span class="sev warn">BATCH</span></td>
+            </tr>
+            <tr>
+              <td class="q"><span class="kw">SELECT</span> … <span class="kw">FROM</span> <span class="tbl">users</span> <span class="kw">JOIN</span> <span class="tbl">plans</span> <span class="kw">ON</span> …<br><span class="hint">↳ index scan, plan looks healthy</span></td>
+              <td class="num-cell hide-sm">64,220</td>
+              <td class="num-cell" style="color:var(--green)">11 ms</td>
+              <td class="num-cell hide-sm">2.4 min</td>
+              <td><div class="bar-track"><div class="bar-fill ok" data-w="6"></div></div></td>
+              <td class="hide-sm"><span class="sev ok">HEALTHY</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p style="text-align:center;font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:20px" class="reveal">
+      <span style="color:var(--green)">✓</span> one index later: p95 1.92 s → <span style="color:var(--green)">8 ms</span> · total DB time down 71%
+    </p>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="quote-block reveal">
+    <div class="quote-mark">"</div>
+    <blockquote>We'd been staring at dashboards for a week. Tern found the missing index in <em>forty seconds</em>, on a laptop, over a coffee.</blockquote>
+    <div class="attrib">
+      <div class="avatar">MK</div>
+      <div class="who">
+        <b>Maya Kowalski</b>
+        <span>Staff Engineer, Ferryline</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" style="padding-top:0">
+  <div class="cta reveal">
+    <div class="bird b1">  __
+&lt;(o )___
+ ( ._&gt; /</div>
+    <div class="bird b2">   __
+___( o)&gt;
+\ &lt;_. )</div>
+    <span class="kicker">// get started</span>
+    <h2>Stop guessing. Start watching.</h2>
+    <p>Tern is free, open source, and takes about a minute to install. Your slowest query is waiting to be found.</p>
+    <div class="install-row">
+      <div class="cmd">
+        <span class="dollar">$</span>
+        <span><span class="bin">brew</span> install tern &amp;&amp; <span class="bin">tern</span> watch</span>
+        <button class="copy-btn" data-copy="brew install tern && tern watch" aria-label="Copy command">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          copy
+        </button>
+      </div>
+    </div>
+    <div class="tiny" style="font-family:var(--mono);font-size:12px;color:var(--faint)">MIT licensed · no telemetry · works offline</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <span class="mono">tern_ © 2025 · built by people who got paged too often</span>
+    <div class="links">
+      <a href="#">Docs</a>
+      <a href="#">GitHub</a>
+      <a href="#">Changelog</a>
+      <a href="#">Discord</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- terminal animation ---------- */
+  var term = document.getElementById("term");
+  var lines = [
+    {h:'<span class="t-dim">$</span> <span class="t-cmd"><span class="t-green">tern</span> watch --db <span class="t-cyan">postgres://replica/app_prod</span></span>', d:60, type:true},
+    {h:'<span class="t-dim">┌ connecting…</span> <span class="t-green">ok</span> <span class="t-dim">(read-only, replica lag 0.3s)</span>', d:420},
+    {h:'<span class="t-dim">└ watching query traffic — 14 shapes normalized</span>', d:260},
+    {h:'', d:220},
+    {h:'<span class="t-amber">▲ 14:02:11</span>  <span class="t-cmd">SELECT * FROM orders WHERE email = $1</span>', d:520},
+    {h:'   <span class="t-dim">calls</span> 88,412   <span class="t-dim">mean</span> 640ms   <span class="t-dim">p95</span> <span class="t-red t-bold">1.92s</span>   <span class="t-dim">rows</span> 2.1M', d:300},
+    {h:'   <span class="t-red">✗ seq scan on orders</span> <span class="t-dim">— no index on (email)</span>', d:340},
+    {h:'', d:200},
+    {h:'<span class="t-cyan">◆ 14:02:14</span>  <span class="t-cmd">SELECT count(*) FROM events WHERE ts &gt; $1</span>', d:480},
+    {h:'   <span class="t-dim">calls</span> 31,004   <span class="t-dim">p95</span> <span class="t-amber">640ms</span>   <span class="t-amber">⚠ cast disables idx_events_ts</span>', d:320},
+    {h:'', d:220},
+    {h:'<span class="t-dim">$</span> <span class="t-cmd"><span class="t-green">tern</span> fix orders_email</span>', d:640, type:true},
+    {h:'<span class="t-violet">CREATE INDEX CONCURRENTLY</span> idx_orders_email <span class="t-violet">ON</span> orders(email);', d:360},
+    {h:'<span class="t-green t-bold">✓ applied.</span> <span class="t-dim">re-measuring…</span> p95 <span class="t-red">1.92s</span> <span class="t-dim">→</span> <span class="t-green t-bold">8ms</span>  <span class="t-amber">(214× faster)</span>', d:700},
+    {h:'<span class="t-dim">total db time down 71%. go back to your coffee.</span> <span class="cursor"></span>', d:400}
+  ];
+
+  var timers = [];
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function runTerminal(){
+    clearTimers();
+    term.innerHTML = "";
+    if (reduced){
+      lines.forEach(function(l){
+        var div = document.createElement("div");
+        div.className = "tl on";
+        div.innerHTML = l.h || "&nbsp;";
+        term.appendChild(div);
+      });
+      return;
+    }
+    var t = 300;
+    lines.forEach(function(l){
+      timers.push(setTimeout(function(){
+        var div = document.createElement("div");
+        div.className = "tl";
+        div.innerHTML = l.h || "&nbsp;";
+        term.appendChild(div);
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ div.classList.add("on"); }); });
+        term.scrollTop = term.scrollHeight;
+      }, t));
+      t += l.d + (l.type ? 350 : 0);
+    });
+  }
+
+  document.getElementById("replay").addEventListener("click", runTerminal);
+
+  /* start terminal when visible */
+  var started = false;
+  var termObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting && !started){ started = true; runTerminal(); termObs.disconnect(); }
+    });
+  }, {threshold:.3});
+  termObs.observe(term);
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll(".copy-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var text = btn.getAttribute("data-copy");
+      function done(){
+        var orig = btn.innerHTML;
+        btn.classList.add("copied");
+        btn.innerHTML = "✓ copied";
+        setTimeout(function(){ btn.classList.remove("copied"); btn.innerHTML = orig; }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); try{ document.execCommand("copy"); }catch(e){}
+        document.body.removeChild(ta); done();
+      }
+    });
+  });
+
+  /* ---------- scroll reveal + bars ---------- */
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        e.target.classList.add("in");
+        e.target.querySelectorAll(".bar-fill").forEach(function(b){
+          b.style.width = b.getAttribute("data-w") + "%";
+        });
+        obs.unobserve(e.target);
+      }
+    });
+  }, {threshold:.15});
+  document.querySelectorAll(".reveal").forEach(function(el){ obs.observe(el); });
+})();
+</script>
+</body>
+</html>

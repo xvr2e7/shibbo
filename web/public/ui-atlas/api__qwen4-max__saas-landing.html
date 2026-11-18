@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay — Turn support tickets into your weekly product report</title>
+<meta name="description" content="Relay reads every support ticket, clusters the noise, and delivers a weekly product report your team actually reads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF6EF;
+    --paper-2:#F3EDE2;
+    --card:#FFFFFF;
+    --ink:#16130E;
+    --ink-2:#4A4438;
+    --ink-3:#8A8272;
+    --line:#E4DCCB;
+    --line-2:#D6CDB8;
+    --accent:#E4572E;
+    --accent-deep:#C43F1B;
+    --accent-soft:#FBEAE2;
+    --green:#1E7A55;
+    --green-soft:#E3F1E9;
+    --gold:#B98A1D;
+    --gold-soft:#F7EDD4;
+    --blue:#2C5E9E;
+    --blue-soft:#E4EDF8;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(22,19,14,.05), 0 8px 28px -12px rgba(22,19,14,.18);
+    --shadow-lg:0 2px 4px rgba(22,19,14,.06), 0 24px 60px -20px rgba(22,19,14,.28);
+    --serif:"Fraunces", Georgia, serif;
+    --sans:"Inter", -apple-system, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.6;
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--accent);color:#fff}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+  /* ---------- reveal ---------- */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal[data-d="1"]{transition-delay:.1s}
+  .reveal[data-d="2"]{transition-delay:.2s}
+  .reveal[data-d="3"]{transition-delay:.3s}
+
+  /* ---------- nav ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(250,246,239,.82);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:700;font-size:22px;letter-spacing:-.02em}
+  .logo-mark{width:30px;height:30px;flex:none}
+  .nav-links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--ink-2)}
+  .nav-links a{transition:color .2s}
+  .nav-links a:hover{color:var(--accent)}
+  .nav-cta{display:flex;gap:12px;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--sans);font-weight:600;font-size:14px;
+    padding:10px 20px;border-radius:99px;border:1.5px solid transparent;
+    cursor:pointer;transition:all .2s;white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 0 var(--accent-deep)}
+  .btn-primary:hover{background:var(--accent-deep);transform:translateY(-1px);box-shadow:0 3px 0 #9c3213}
+  .btn-primary:active{transform:translateY(1px);box-shadow:0 0 0 var(--accent-deep)}
+  .btn-ghost{border-color:var(--line-2);color:var(--ink);background:transparent}
+  .btn-ghost:hover{border-color:var(--ink);background:#fff}
+  .btn-lg{padding:14px 28px;font-size:15px}
+  @media(max-width:860px){.nav-links{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:78px 0 90px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:64px;align-items:center}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.04em;
+    color:var(--accent-deep);background:var(--accent-soft);
+    border:1px solid #F0CDBD;padding:6px 14px;border-radius:99px;margin-bottom:24px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(228,87,46,.4)}50%{box-shadow:0 0 0 5px rgba(228,87,46,0)}}
+  h1{
+    font-family:var(--serif);font-weight:600;font-size:clamp(40px,4.6vw,60px);
+    line-height:1.06;letter-spacing:-.025em;margin-bottom:22px;
+  }
+  h1 em{font-style:italic;color:var(--accent);position:relative;white-space:nowrap}
+  h1 em svg{position:absolute;left:0;bottom:-8px;width:100%;height:12px;overflow:visible}
+  .hero-sub{font-size:18px;color:var(--ink-2);max-width:480px;margin-bottom:32px}
+  .hero-sub strong{color:var(--ink)}
+  .hero-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .hero-note{font-size:13px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+  .hero-note svg{flex:none}
+  .hero-stats{display:flex;gap:0;margin-top:44px;border-top:1px solid var(--line);padding-top:26px}
+  .hstat{flex:1;padding-right:20px}
+  .hstat + .hstat{padding-left:20px;border-left:1px solid var(--line)}
+  .hstat b{display:block;font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  .hstat span{font-size:12.5px;color:var(--ink-3);line-height:1.4;display:block;margin-top:4px}
+  @media(max-width:980px){
+    .hero{padding:52px 0 64px}
+    .hero-grid{grid-template-columns:1fr;gap:48px}
+    .hero-sub{max-width:none}
+  }
+
+  /* ---------- demo panel ---------- */
+  .demo{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow-lg);overflow:hidden;position:relative;
+  }
+  .demo::before{
+    content:"";position:absolute;inset:-40px;z-index:-1;
+    background:radial-gradient(closest-side, rgba(228,87,46,.10), transparent);
+  }
+  .demo-bar{
+    display:flex;align-items:center;gap:8px;padding:13px 18px;
+    border-bottom:1px solid var(--line);background:var(--paper-2);
+  }
+  .demo-bar i{width:10px;height:10px;border-radius:50%;background:var(--line-2)}
+  .demo-bar i:first-child{background:#EFA48B}
+  .demo-bar span{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .demo-body{padding:20px 20px 22px;min-height:430px;position:relative}
+  .demo-view{transition:opacity .35s, transform .35s}
+  .demo-view.hidden{display:none}
+  .demo-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .demo-head h3{font-size:14px;font-weight:600}
+  .demo-head span{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .ticket{
+    display:flex;gap:12px;align-items:flex-start;
+    border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:9px;
+    background:#fff;transition:border-color .3s, background .3s, box-shadow .3s;
+    animation:ticketIn .5s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .ticket:nth-child(2){animation-delay:.06s}.ticket:nth-child(3){animation-delay:.12s}
+  .ticket:nth-child(4){animation-delay:.18s}.ticket:nth-child(5){animation-delay:.24s}
+  .ticket:nth-child(6){animation-delay:.3s}
+  @keyframes ticketIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .ticket.hot{border-color:#F0CDBD;background:var(--accent-soft);box-shadow:0 0 0 3px rgba(228,87,46,.07)}
+  .ticket-src{
+    flex:none;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.03em;
+    padding:3px 7px;border-radius:5px;margin-top:2px;
+  }
+  .src-zd{background:var(--green-soft);color:var(--green)}
+  .src-ic{background:var(--blue-soft);color:var(--blue)}
+  .src-fr{background:var(--gold-soft);color:var(--gold)}
+  .src-hs{background:var(--accent-soft);color:var(--accent-deep)}
+  .ticket p{font-size:13px;color:var(--ink-2);line-height:1.45}
+  .ticket p b{color:var(--ink);font-weight:600}
+  .ticket-id{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);display:block;margin-bottom:1px}
+  .demo-fade{position:relative}
+  .demo-fade::after{
+    content:"";position:absolute;left:-20px;right:-20px;bottom:-2px;height:56px;
+    background:linear-gradient(transparent,#fff);pointer-events:none;
+  }
+  .demo-run{
+    width:100%;margin-top:14px;justify-content:center;position:relative;z-index:2;
+  }
+  /* processing */
+  .proc{padding:52px 12px;text-align:center}
+  .proc-ring{
+    width:64px;height:64px;margin:0 auto 22px;border-radius:50%;
+    border:4px solid var(--paper-2);border-top-color:var(--accent);
+    animation:spin .9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .proc h4{font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:6px}
+  .proc-step{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);min-height:20px}
+  .proc-bar{height:5px;background:var(--paper-2);border-radius:99px;margin:26px auto 0;max-width:280px;overflow:hidden}
+  .proc-bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .5s ease}
+  /* report */
+  .report-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+  .report-head h3{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em}
+  .report-head p{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:2px}
+  .report-badge{font-family:var(--mono);font-size:10.5px;font-weight:600;background:var(--green-soft);color:var(--green);padding:4px 9px;border-radius:99px;flex:none}
+  .theme{margin-top:14px;animation:ticketIn .5s both}
+  .theme:nth-of-type(2){animation-delay:.1s}.theme:nth-of-type(3){animation-delay:.2s}.theme:nth-of-type(4){animation-delay:.3s}
+  .theme-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:5px}
+  .theme-top b{font-weight:600}
+  .theme-top .trend{font-family:var(--mono);font-size:11px;font-weight:600}
+  .trend.up{color:var(--accent-deep)}
+  .trend.down{color:var(--green)}
+  .theme-count{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:7px;font-weight:400}
+  .theme-track{height:8px;background:var(--paper-2);border-radius:99px;overflow:hidden}
+  .theme-fill{height:100%;border-radius:99px;width:0;transition:width 1s cubic-bezier(.2,.7,.2,1) .25s}
+  .tf-1{background:var(--accent)}.tf-2{background:var(--gold)}.tf-3{background:var(--blue)}.tf-4{background:var(--green)}
+  .report-quote{
+    margin-top:18px;border-left:3px solid var(--accent);background:var(--accent-soft);
+    padding:11px 14px;border-radius:0 10px 10px 0;font-size:12.5px;color:var(--ink-2);
+    font-style:italic;animation:ticketIn .5s .45s both;
+  }
+  .report-quote span{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:5px}
+  .report-action{
+    margin-top:14px;display:flex;gap:10px;align-items:flex-start;font-size:12.5px;
+    background:var(--green-soft);border:1px solid #CBE3D5;border-radius:10px;padding:11px 13px;
+    animation:ticketIn .5s .55s both;
+  }
+  .report-action svg{flex:none;margin-top:2px}
+  .report-action b{color:var(--green)}
+  .demo-back{
+    display:inline-flex;align-items:center;gap:6px;margin-top:16px;
+    font-size:12.5px;font-weight:600;color:var(--ink-3);background:none;border:none;cursor:pointer;
+    font-family:var(--sans);transition:color .2s;
+  }
+  .demo-back:hover{color:var(--accent)}
+
+  /* ---------- logos ---------- */
+  .logos{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper-2);padding:26px 0}
+  .logos-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  .logos-label{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase}
+  .logos-names{display:flex;gap:38px;flex-wrap:wrap;align-items:center}
+  .logos-names span{font-family:var(--serif);font-weight:600;font-size:18px;color:#A79D89;letter-spacing:-.01em;transition:color .3s}
+  .logos-names span:hover{color:var(--ink-2)}
+
+  /* ---------- sections ---------- */
+  section{padding:96px 0}
+  .sec-eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .sec-eyebrow::before{content:"";width:26px;height:1.5px;background:var(--accent)}
+  h2{font-family:var(--serif);font-weight:600;font-size:clamp(30px,3.4vw,44px);line-height:1.12;letter-spacing:-.02em;margin-bottom:16px}
+  .sec-sub{font-size:17px;color:var(--ink-2);max-width:560px}
+
+  /* ---------- problem / how ---------- */
+  .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px}
+  .step{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:30px 28px;position:relative;box-shadow:var(--shadow);
+    transition:transform .3s, box-shadow .3s;
+  }
+  .step:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .step-num{
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-deep);
+    background:var(--accent-soft);width:34px;height:34px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+  }
+  .step h3{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px}
+  .step p{font-size:14.5px;color:var(--ink-2)}
+  .step-tag{
+    margin-top:20px;padding-top:16px;border-top:1px dashed var(--line-2);
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:8px;
+  }
+  .step-tag i{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+  .how-connector{display:none}
+  @media(max-width:900px){.how-grid{grid-template-columns:1fr}}
+
+  /* ---------- report showcase ---------- */
+  .showcase{background:var(--ink);color:#EFEAE0;position:relative;overflow:hidden}
+  .showcase::before{
+    content:"";position:absolute;top:-200px;right:-200px;width:640px;height:640px;border-radius:50%;
+    background:radial-gradient(closest-side, rgba(228,87,46,.22), transparent);pointer-events:none;
+  }
+  .showcase .sec-eyebrow{color:#F0906B}
+  .showcase .sec-eyebrow::before{background:#F0906B}
+  .showcase h2{color:#FBF8F2}
+  .showcase .sec-sub{color:#B7AE9C}
+  .showcase-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px;align-items:center}
+  .show-list{margin-top:34px;display:flex;flex-direction:column;gap:22px}
+  .show-item{display:flex;gap:16px}
+  .show-icon{
+    flex:none;width:40px;height:40px;border-radius:10px;background:rgba(228,87,46,.15);
+    border:1px solid rgba(228,87,46,.3);display:flex;align-items:center;justify-content:center;
+  }
+  .show-item h4{font-size:15.5px;font-weight:600;color:#FBF8F2;margin-bottom:3px}
+  .show-item p{font-size:13.5px;color:#B7AE9C;line-height:1.55}
+  /* email mock */
+  .email{
+    background:#FFFDF8;color:var(--ink);border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);
+    overflow:hidden;transform:rotate(1.2deg);transition:transform .4s;
+  }
+  .email:hover{transform:rotate(0)}
+  .email-meta{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--paper-2);font-size:12.5px}
+  .email-meta div{display:flex;gap:8px;margin-bottom:3px}
+  .email-meta div:last-child{margin-bottom:0}
+  .email-meta b{color:var(--ink-3);font-weight:500;flex:none;width:56px}
+  .email-meta span{font-weight:600}
+  .email-body{padding:24px 26px 26px}
+  .email-body h3{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em}
+  .email-body .wk{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:2px 0 18px}
+  .email-kpis{display:flex;gap:10px;margin-bottom:20px}
+  .kpi{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .kpi b{display:block;font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.1}
+  .kpi span{font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
+  .kpi .up{color:var(--accent-deep)}
+  .kpi .dn{color:var(--green)}
+  .email h5{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 9px}
+  .erow{display:flex;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .erow:last-child{border-bottom:none}
+  .erow .rank{font-family:var(--mono);font-size:11px;color:var(--ink-3);width:16px;flex:none}
+  .erow b{font-weight:600;flex:1}
+  .erow .n{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+  .erow .t{font-family:var(--mono);font-size:11px;font-weight:600;width:48px;text-align:right}
+  .t.up{color:var(--accent-deep)}.t.dn{color:var(--green)}
+  .email-rec{
+    margin-top:16px;background:var(--green-soft);border:1px solid #CBE3D5;border-radius:10px;
+    padding:12px 14px;font-size:12.5px;color:var(--ink-2);
+  }
+  .email-rec b{color:var(--green)}
+  @media(max-width:980px){.showcase-grid{grid-template-columns:1fr;gap:48px}.email{transform:none}}
+
+  /* ---------- integrations ---------- */
+  .integrations{text-align:center}
+  .integrations .sec-eyebrow{justify-content:center}
+  .integrations .sec-eyebrow::before{display:none}
+  .integrations .sec-sub{margin:0 auto}
+  .int-grid{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:44px}
+  .int-chip{
+    display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
+    border-radius:99px;padding:12px 22px;font-weight:600;font-size:14.5px;box-shadow:var(--shadow);
+    transition:transform .25s, border-color .25s;
+  }
+  .int-chip:hover{transform:translateY(-3px);border-color:var(--line-2)}
+  .int-chip i{width:10px;height:10px;border-radius:3px;flex:none}
+  .int-note{margin-top:26px;font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+  .int-note a{color:var(--accent-deep);font-weight:600;border-bottom:1px dashed var(--accent)}
+
+  /* ---------- testimonial ---------- */
+  .quotes-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;margin-top:52px}
+  .quote-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:36px;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  }
+  .quote-card.big{background:var(--accent-soft);border-color:#F0CDBD}
+  .quote-mark{font-family:var(--serif);font-size:56px;line-height:.6;color:var(--accent);margin-bottom:20px}
+  .quote-card blockquote{font-family:var(--serif);font-size:21px;font-weight:500;line-height:1.45;letter-spacing:-.01em;flex:1}
+  .quote-card.small blockquote{font-size:17px}
+  .quote-who{display:flex;align-items:center;gap:13px;margin-top:26px}
+  .avatar{
+    width:42px;height:42px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px;color:#fff;font-family:var(--sans);
+  }
+  .quote-who b{display:block;font-size:14px;font-weight:600;line-height:1.3}
+  .quote-who span{font-size:12.5px;color:var(--ink-3)}
+  @media(max-width:900px){.quotes-grid{grid-template-columns:1fr}}
+
+  /* ---------- pricing ---------- */
+  .pricing{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px;align-items:stretch}
+  .plan{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 30px;
+    display:flex;flex-direction:column;box-shadow:var(--shadow);position:relative;
+    transition:transform .3s, box-shadow .3s;
+  }
+  .plan:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .plan.featured{border:2px solid var(--accent);box-shadow:var(--shadow-lg)}
+  .plan-flag{
+    position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+    background:var(--accent);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:600;
+    letter-spacing:.06em;padding:4px 14px;border-radius:99px;white-space:nowrap;
+  }
+  .plan h3{font-family:var(--serif);font-size:21px;font-weight:600;margin-bottom:4px}
+  .plan .plan-for{font-size:13px;color:var(--ink-3);margin-bottom:22px}
+  .plan-price{display:flex;align-items:baseline;gap:6px;margin-bottom:24px}
+  .plan-price b{font-family:var(--serif);font-size:46px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .plan-price span{font-size:13px;color:var(--ink-3)}
+  .plan ul{list-style:none;margin-bottom:28px;flex:1}
+  .plan li{font-size:14px;color:var(--ink-2);padding:7px 0 7px 26px;position:relative}
+  .plan li::before{
+    content:"";position:absolute;left:0;top:12px;width:15px;height:15px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 5' fill='none' stroke='%231E7A55' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center/contain;
+  }
+  .plan li b{color:var(--ink);font-weight:600}
+  .plan .btn{justify-content:center}
+  @media(max-width:900px){.price-grid{grid-template-columns:1fr;max-width:460px;margin-left:auto;margin-right:auto}}
+
+  /* ---------- faq ---------- */
+  .faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:64px;align-items:start}
+  .faq-list{display:flex;flex-direction:column;gap:12px}
+  details{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;transition:border-color .25s;
+  }
+  details[open]{border-color:var(--line-2)}
+  summary{
+    list-style:none;cursor:pointer;padding:19px 22px;font-weight:600;font-size:15px;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary .chev{flex:none;width:22px;height:22px;border-radius:50%;background:var(--paper-2);display:flex;align-items:center;justify-content:center;transition:transform .3s, background .3s}
+  details[open] summary .chev{transform:rotate(45deg);background:var(--accent-soft)}
+  details .faq-a{padding:0 22px 20px;font-size:14.5px;color:var(--ink-2)}
+  @media(max-width:900px){.faq-grid{grid-template-columns:1fr;gap:36px}}
+
+  /* ---------- final cta ---------- */
+  .final{padding:110px 0}
+  .final-card{
+    background:var(--ink);border-radius:24px;padding:72px 48px;text-align:center;
+    position:relative;overflow:hidden;color:#FBF8F2;
+  }
+  .final-card::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(600px 300px at 50% -80px, rgba(228,87,46,.35), transparent);
+  }
+  .final-card > *{position:relative}
+  .final-card h2{color:#FBF8F2;max-width:640px;margin:0 auto 16px}
+  .final-card p{color:#B7AE9C;font-size:17px;max-width:480px;margin:0 auto 34px}
+  .final-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn-paper{background:#FBF8F2;color:var(--ink);box-shadow:0 2px 0 #C9C0AC}
+  .btn-paper:hover{background:#fff;transform:translateY(-1px)}
+  .final-tiny{margin-top:22px;font-family:var(--mono);font-size:12px;color:#8A8272}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:44px 0;background:var(--paper-2)}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+  .foot-links{display:flex;gap:26px;font-size:13.5px;color:var(--ink-2)}
+  .foot-links a:hover{color:var(--accent)}
+  .foot-copy{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+
+  @media(max-width:640px){
+    section{padding:68px 0}
+    .hero-stats{flex-direction:column;gap:16px}
+    .hstat + .hstat{padding-left:0;border-left:none;border-top:1px solid var(--line);padding-top:16px}
+    .final-card{padding:52px 26px}
+    .email-kpis{flex-wrap:wrap}
+    .kpi{min-width:calc(50% - 5px)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#" aria-label="Relay home">
+      <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="#16130E"/>
+        <path d="M8 11h9M8 16h6M8 21h9" stroke="#FAF6EF" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M20 13.5l5 2.5-5 2.5" stroke="#E4572E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Relay
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#report">The report</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#pricing" class="btn btn-primary">Start free trial</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>WEEKLY DIGEST · EVERY MONDAY, 9:00 AM</div>
+      <h1>Your support queue is a <em>roadmap<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 50 2, 150 2, 197 8" stroke="#E4572E" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".55"/></svg></em> in disguise.</h1>
+      <p class="hero-sub">Relay reads every ticket across your help desk, clusters the noise into themes, and delivers <strong>one weekly product report</strong> — trends, sentiment, and what to build next. No tagging. No spreadsheets. No 400-tab Tuesdays.</p>
+      <div class="hero-actions">
+        <a href="#pricing" class="btn btn-primary btn-lg">Start free — 14 days
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#report" class="btn btn-ghost btn-lg">See a sample report</a>
+      </div>
+      <div class="hero-note">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 5.9-5.5 7-3.2-1.1-5.5-3.5-5.5-7v-4l5.5-2z" stroke="#8A8272" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 8l1.8 1.8L10.5 6.5" stroke="#8A8272" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Read-only access · SOC 2 Type II · No card required
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><b><span data-count="12400">0</span>+</b><span>tickets clustered<br>every week</span></div>
+        <div class="hstat"><b><span data-count="6">0</span> hrs</b><span>saved per PM,<br>per week</span></div>
+        <div class="hstat"><b><span data-count="94">0</span>%</b><span>theme accuracy vs.<br>human triage</span></div>
+      </div>
+    </div>
+
+    <!-- interactive demo -->
+    <div class="demo" id="demo">
+      <div class="demo-bar"><i></i><i></i><i></i><span>relay.app / acme-inc / week-34</span></div>
+      <div class="demo-body">
+
+        <!-- view: tickets -->
+        <div class="demo-view" id="view-tickets">
+          <div class="demo-head">
+            <h3>Incoming tickets</h3>
+            <span>1,284 this week · 4 sources</span>
+          </div>
+          <div class="demo-fade">
+            <div class="ticket" data-t><span class="ticket-src src-zd">ZENDESK</span><p><span class="ticket-id">#48211</span>SSO login loops back to sign-in page after Okta redirect. <b>Third report today.</b></p></div>
+            <div class="ticket" data-t><span class="ticket-src src-ic">INTERCOM</span><p><span class="ticket-id">#48209</span>CSV export spins forever on workspaces with &gt;50k rows. Timeline?</p></div>
+            <div class="ticket" data-t><span class="ticket-src src-fr">FRONT</span><p><span class="ticket-id">#48204</span>Our whole team can't get past SAML auth since this morning 😬</p></div>
+            <div class="ticket" data-t><span class="ticket-src src-hs">HELPSCOUT</span><p><span class="ticket-id">#48198</span>Push notifications arriving 20–30 min late on Android again.</p></div>
+            <div class="ticket" data-t><span class="ticket-src src-zd">ZENDESK</span><p><span class="ticket-id">#48195</span>Export to CSV timed out — tried 4 times. Blocking our board deck.</p></div>
+            <div class="ticket" data-t><span class="ticket-src src-ic">INTERCOM</span><p><span class="ticket-id">#48190</span>Any update on SAML? We're locked out of the admin console.</p></div>
+          </div>
+          <button class="btn btn-primary demo-run" id="run-btn">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M12.6 3.4l-2.1 2.1M5.5 10.5l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Generate this week's report
+          </button>
+        </div>
+
+        <!-- view: processing -->
+        <div class="demo-view hidden" id="view-proc">
+          <div class="proc">
+            <div class="proc-ring" aria-hidden="true"></div>
+            <h4>Relay is reading…</h4>
+            <div class="proc-step" id="proc-step">Fetching 1,284 tickets from 4 sources</div>
+            <div class="proc-bar"><i id="proc-fill"></i></div>
+          </div>
+        </div>
+
+        <!-- view: report -->
+        <div class="demo-view hidden" id="view-report">
+          <div class="report-head">
+            <div>
+              <h3>Weekly Product Report</h3>
+              <p>WEEK 34 · AUG 18–24 · 1,284 TICKETS</p>
+            </div>
+            <span class="report-badge">✓ DELIVERED</span>
+          </div>
+
+          <div class="theme">
+            <div class="theme-top"><b>🔐 SSO / SAML login failures<span class="theme-count">214 tickets</span></b><span class="trend up">▲ 38%</span></div>
+            <div class="theme-track"><div class="theme-fill tf-1" data-w="86%"></div></div>
+          </div>
+          <div class="theme">
+            <div class="theme-top"><b>📤 CSV export timeouts<span class="theme-count">96 tickets</span></b><span class="trend up">▲ 12%</span></div>
+            <div class="theme-track"><div class="theme-fill tf-2" data-w="52%"></div></div>
+          </div>
+          <div class="theme">
+            <div class="theme-top"><b>📱 Android push delays<span class="theme-count">61 tickets</span></b><span class="trend down">▼ 9%</span></div>
+            <div class="theme-track"><div class="theme-fill tf-3" data-w="34%"></div></div>
+          </div>
+          <div class="theme">
+            <div class="theme-top"><b>🧾 Billing proration questions<span class="theme-count">43 tickets</span></b><span class="trend down">▼ 4%</span></div>
+            <div class="theme-track"><div class="theme-fill tf-4" data-w="24%"></div></div>
+          </div>
+
+          <div class="report-quote">
+            "Our whole team can't get past SAML auth since this morning. This is now blocking renewal."
+            <span>— #48204 · Front · Enterprise account, $48k ARR</span>
+          </div>
+
+          <div class="report-action">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="#1E7A55" stroke-width="1.5"/><path d="M8 5v3.5l2.3 1.5" stroke="#1E7A55" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div><b>Recommended:</b> escalate SAML regression to P0 — 3 enterprise accounts affected, spike started after Tuesday's auth deploy.</div>
+          </div>
+
+          <button class="demo-back" id="back-btn">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H4M7.5 4l-4 4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            View source tickets
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LOGOS ============ -->
+<div class="logos">
+  <div class="wrap logos-inner reveal">
+    <span class="logos-label">Trusted by product teams at</span>
+    <div class="logos-names">
+      <span>Fernwood</span><span>Parallel</span><span>Brightloop</span><span>Hexad</span><span>Marlow&nbsp;&amp;&nbsp;Co</span><span>Statline</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HOW ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-eyebrow">How it works</div>
+      <h2>From inbox chaos to a Monday-morning brief.</h2>
+      <p class="sec-sub">Connect your help desk once. Relay handles the reading, grouping, and trend-spotting — you handle the deciding.</p>
+    </div>
+    <div class="how-grid">
+      <div class="step reveal" data-d="1">
+        <div class="step-num">01</div>
+        <h3>Connect your sources</h3>
+        <p>One-click, read-only OAuth into Zendesk, Intercom, Front, Help Scout, or Freshdesk. Relay pulls tickets, chats, and CSAT comments — nothing gets modified or moved.</p>
+        <div class="step-tag"><i></i>Setup time: ~4 minutes</div>
+      </div>
+      <div class="step reveal" data-d="2">
+        <div class="step-num">02</div>
+        <h3>Relay clusters the noise</h3>
+        <p>Every ticket is embedded and grouped by root cause, not keywords. "Can't log in," "SAML broken," and "Okta loop" become one theme — with volume, trend, and revenue attached.</p>
+        <div class="step-tag"><i></i>Runs continuously, dedupes automatically</div>
+      </div>
+      <div class="step reveal" data-d="3">
+        <div class="step-num">03</div>
+        <h3>Get the weekly report</h3>
+        <p>Every Monday: top themes, week-over-week deltas, the sharpest customer quotes, and a recommended action — in your inbox, Slack, or Notion. Read it in 3 minutes.</p>
+        <div class="step-tag"><i></i>Monday 9:00 AM, your timezone</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REPORT SHOWCASE ============ -->
+<section class="showcase" id="report">
+  <div class="wrap showcase-grid">
+    <div class="reveal">
+      <div class="sec-eyebrow">The report</div>
+      <h2>The email your whole product team actually opens.</h2>
+      <p class="sec-sub">Not a dashboard you forget to check. A brief that arrives, gets read, and ends the "what are customers even saying?" debate.</p>
+      <div class="show-list">
+        <div class="show-item">
+          <div class="show-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M2 14l4-5 3 3 5-7" stroke="#F0906B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5h3v3" stroke="#F0906B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><h4>Week-over-week deltas</h4><p>See what's spiking and what's fading. A regression shows up as a ▲ 38% before it shows up in churn.</p></div>
+        </div>
+        <div class="show-item">
+          <div class="show-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4h12M3 9h8M3 14h10" stroke="#F0906B" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div><h4>Verbatim quotes, linked to tickets</h4><p>Every claim traces back to real conversations. Click any theme to see the receipts — no hallucinated summaries.</p></div>
+        </div>
+        <div class="show-item">
+          <div class="show-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6.5" stroke="#F0906B" stroke-width="1.8"/><path d="M9 5.5V9l2.5 1.6" stroke="#F0906B" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div><h4>Revenue-weighted priority</h4><p>Sync account data and Relay ranks themes by ARR at risk — so 12 tickets from enterprise outrank 200 from free trials.</p></div>
+        </div>
+        <div class="show-item">
+          <div class="show-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2l2 4.2 4.5.6-3.3 3.2.8 4.5L9 12.4l-4 2.1.8-4.5L2.5 6.8 7 6.2 9 2z" stroke="#F0906B" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div><h4>One recommended action</h4><p>Each report ends with a single, opinionated "do this next" — grounded in volume, trend, and severity.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal" data-d="1">
+      <div class="email">
+        <div class="email-meta">
+          <div><b>From</b><span>Relay Digest &lt;report@relay.app&gt;</span></div>
+          <div><b>To</b><span>#product-weekly</span></div>
+          <div><b>Subject</b><span>📮 Week 34: SAML failures spike 38% — 3 enterprise accounts at risk</span></div>
+        </div>
+        <div class="email-body">
+          <h3>Acme Inc — Product Digest</h3>
+          <div class="wk">WEEK 34 · AUG 18–24 · GENERATED MON 9:00 AM</div>
+          <div class="email-kpis">
+            <div class="kpi"><b>1,284</b><span>TICKETS <em class="up" style="font-style:normal">▲6%</em></span></div>
+            <div class="kpi"><b>17</b><span>THEMES FOUND</span></div>
+            <div class="kpi"><b>4.1<span style="font-size:13px">/5</span></b><span>CSAT <em class="dn" style="font-style:normal">▼0.2</em></span></div>
+          </div>
+          <h5>Top themes this week</h5>
+          <div class="erow"><span class="rank">1</span><b>SSO / SAML login failures</b><span class="n">214</span><span class="t up">▲38%</span></div>
+          <div class="erow"><span class="rank">2</span><b>CSV export timeouts</b><span class="n">96</span><span class="t up">▲12%</span></div>
+          <div class="erow"><span class="rank">3</span><b>Android push delays</b><span class="n">61</span><span class="t dn">▼9%</span></div>
+          <div class="erow"><span class="rank">4</span><b>Billing proration questions</b><span class="n">43</span><span class="t dn">▼4%</span></div>
+          <h5>Emerging · first time above threshold</h5>
+          <div class="erow"><span class="rank">✦</span><b>Dark mode contrast complaints</b><span class="n">22</span><span class="t up">NEW</span></div>
+          <div class="email-rec"><b>→ Recommended:</b> escalate the SAML regression to P0. Onset correlates with Tuesday's auth deploy; $126k ARR across 3 accounts is affected. <u>View 214 tickets</u></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INTEGRATIONS ============ -->
+<section class="integrations" id="integrations">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-eyebrow">Integrations</div>
+      <h2>Plugs into the help desk you already have.</h2>
+      <p class="sec-sub">Read-only in, report out. Relay never writes to your queue, reassigns tickets, or talks to your customers.</p>
+    </div>
+    <div class="int-grid reveal" data-d="1">
+      <div class="int-chip"><i style="background:#1E7A55"></i>Zendesk</div>
+      <div class="int-chip"><i style="background:#2C5E9E"></i>Intercom</div>
+      <div class="int-chip"><i style="background:#B98A1D"></i>Front</div>
+      <div class="int-chip"><i style="background:#E4572E"></i>Help Scout</div>
+      <div class="int-chip"><i style="background:#3B9C6E"></i>Freshdesk</div>
+      <div class="int-chip"><i style="background:#6B5CA5"></i>Slack</div>
+      <div class="int-chip"><i style="background:#16130E"></i>Notion</div>
+      <div class="int-chip"><i style="background:#C43F1B"></i>Linear</div>
+    </div>
+    <p class="int-note reveal" data-d="2">Missing yours? <a href="#">Relay speaks webhook &amp; CSV too →</a></p>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIALS ============ -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-eyebrow">Field notes</div>
+      <h2>PMs stopped guessing.<br>Support stopped repeating themselves.</h2>
+    </div>
+    <div class="quotes-grid">
+      <div class="quote-card big reveal" data-d="1">
+        <div class="quote-mark">"</div>
+        <blockquote>We shipped a fix for export timeouts three weeks earlier than we would have. Relay flagged the spike on a Monday; by Friday it was in prod. That's the whole pitch, honestly — it turns complaints into a queue we can act on.</blockquote>
+        <div class="quote-who">
+          <div class="avatar" style="background:#E4572E">MK</div>
+          <div><b>Maya Kessler</b><span>Head of Product, Brightloop</span></div>
+        </div>
+      </div>
+      <div class="quote-card small reveal" data-d="2">
+        <div class="quote-mark">"</div>
+        <blockquote>I used to spend Friday afternoons tagging tickets in a spreadsheet so leadership would believe me. Now the report does the arguing for me — with numbers.</blockquote>
+        <div class="quote-who">
+          <div class="avatar" style="background:#2C5E9E">DO</div>
+          <div><b>Dario Okafor</b><span>Support Lead, Parallel</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <div class="sec-eyebrow" style="justify-content:center">Pricing</div>
+      <h2>Cheaper than the hours you're<br>already spending on this.</h2>
+      <p class="sec-sub" style="margin:0 auto">Every plan starts with a 14-day free trial. No card, no sales call, cancel in one click.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan reveal" data-d="1">
+        <h3>Solo</h3>
+        <p class="plan-for">For a founder wearing the support hat.</p>
+        <div class="plan-price"><b>$29</b><span>/ month</span></div>
+        <ul>
+          <li><b>1 help desk</b> connection</li>
+          <li>Up to <b>1,000 tickets</b> / month</li>
+          <li>Weekly email report</li>
+          <li>Theme trends &amp; verbatim quotes</li>
+          <li>90-day history</li>
+        </ul>
+        <a href="#" class="btn btn-ghost">Start free trial</a>
+      </div>
+      <div class="plan featured reveal" data-d="2">
+        <div class="plan-flag">MOST POPULAR</div>
+        <h3>Team</h3>
+        <p class="plan-for">For product &amp; support teams shipping weekly.</p>
+        <div class="plan-price"><b>$99</b><span>/ month</span></div>
+        <ul>
+          <li><b>Unlimited sources</b> &amp; seats</li>
+          <li>Up to <b>10,000 tickets</b> / month</li>
+          <li>Email + <b>Slack &amp; Notion</b> delivery</li>
+          <li><b>ARR-weighted priority</b> (CRM sync)</li>
+          <li>Emerging-theme &amp; spike alerts</li>
+          <li>Linear / Jira issue creation</li>
+          <li>Unlimited history</li>
+        </ul>
+        <a href="#" class="btn btn-primary">Start free trial</a>
+      </div>
+      <div class="plan reveal" data-d="3">
+        <h3>Scale</h3>
+        <p class="plan-for">For orgs with volume, audits, and opinions.</p>
+        <div class="plan-price"><b>Custom</b></div>
+        <ul>
+          <li>Everything in Team</li>
+          <li><b>Unlimited tickets</b> &amp; workspaces</li>
+          <li>SSO / SAML, SCIM, audit logs</li>
+          <li>Custom taxonomy &amp; taxonomy lock</li>
+          <li>EU data residency · DPA · SLA</li>
+          <li>Dedicated onboarding</li>
+        </ul>
+        <a href="#" class="btn btn-ghost">Talk to us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap faq-grid">
+    <div class="reveal">
+      <div class="sec-eyebrow">FAQ</div>
+      <h2>Fair questions.</h2>
+      <p class="sec-sub">Anything else? Write to <a href="mailto:hello@relay.app" style="color:var(--accent-deep);font-weight:600;border-bottom:1px dashed var(--accent)">hello@relay.app</a> — a human replies, usually within the hour.</p>
+    </div>
+    <div class="faq-list reveal" data-d="1">
+      <details open>
+        <summary>Does Relay modify anything in my help desk?<span class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#C43F1B" stroke-width="1.8" stroke-linecap="round"/></svg></span></summary>
+        <div class="faq-a">No. Connections are strictly read-only. Relay never edits, tags, closes, or replies to tickets. Your agents' workflow stays exactly as it is — Relay just listens.</div>
+      </details>
+      <details>
+        <summary>How accurate is the clustering, really?<span class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#C43F1B" stroke-width="1.8" stroke-linecap="round"/></svg></span></summary>
+        <div class="faq-a">In blind tests against human triage, Relay's themes matched 94% of the time. Every theme links to its source tickets, so you can audit any claim in one click. You can also merge, rename, or split themes — Relay learns your taxonomy.</div>
+      </details>
+      <details>
+        <summary>What happens to customer data?<span class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#C43F1B" stroke-width="1.8" stroke-linecap="round"/></svg></span></summary>
+        <div class="faq-a">Tickets are encrypted in transit and at rest, PII is redacted before analysis, and your data is never used to train shared models. Relay is SOC 2 Type II certified, GDPR-compliant, and offers EU residency on Scale. Delete your workspace and everything is gone within 30 days.</div>
+      </details>
+      <details>
+        <summary>Why weekly instead of a real-time dashboard?<span class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#C43F1B" stroke-width="1.8" stroke-linecap="round"/></svg></span></summary>
+        <div class="faq-a">Because dashboards are where insight goes to be ignored. A weekly rhythm matches how product teams actually plan. That said, Team and Scale plans include spike alerts — if something jumps 3× overnight, you'll hear about it before Monday.</div>
+      </details>
+      <details>
+        <summary>Can I try it on last month's tickets?<span class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#C43F1B" stroke-width="1.8" stroke-linecap="round"/></svg></span></summary>
+        <div class="faq-a">Yes — the trial backfills up to 90 days of history, so your first report arrives with real trends, not a cold start. Most teams see their first "oh, wow" theme within ten minutes of connecting.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<div class="final">
+  <div class="wrap">
+    <div class="final-card reveal">
+      <h2>Next Monday, know exactly what your customers are telling you.</h2>
+      <p>Connect your help desk in four minutes. Get your first report — with 90 days of backfilled trends — before your next standup.</p>
+      <div class="final-actions">
+        <a href="#" class="btn btn-paper btn-lg">Start your free trial
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#report" class="btn btn-lg" style="border-color:rgba(251,248,242,.3);color:#FBF8F2">See a sample report</a>
+      </div>
+      <div class="final-tiny">14 DAYS FREE · NO CARD · READ-ONLY · CANCEL ANYTIME</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap foot">
+    <a class="logo" href="#" style="font-size:19px">
+      <svg class="logo-mark" style="width:26px;height:26px" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="#16130E"/>
+        <path d="M8 11h9M8 16h6M8 21h9" stroke="#FAF6EF" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M20 13.5l5 2.5-5 2.5" stroke="#E4572E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Relay
+    </a>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Security</a>
+      <a href="#">Docs</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </nav>
+    <span class="foot-copy">© 2025 RELAY LABS · MADE FOR THE MONDAY STANDUP</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- scroll reveal ---------- */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, {threshold:.12, rootMargin:"0px 0px -40px 0px"});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+
+  /* ---------- stat count-up ---------- */
+  function countUp(el){
+    var target = parseInt(el.dataset.count, 10), dur = 1400, t0 = null;
+    function tick(t){
+      if(!t0) t0 = t;
+      var p = Math.min((t - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString("en-US");
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  var statIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ countUp(e.target); statIO.unobserve(e.target); }
+    });
+  }, {threshold:.5});
+  document.querySelectorAll("[data-count]").forEach(function(el){ statIO.observe(el); });
+
+  /* ---------- hero demo ---------- */
+  var vTickets = document.getElementById("view-tickets"),
+      vProc    = document.getElementById("view-proc"),
+      vReport  = document.getElementById("view-report"),
+      runBtn   = document.getElementById("run-btn"),
+      backBtn  = document.getElementById("back-btn"),
+      stepEl   = document.getElementById("proc-step"),
+      fillEl   = document.getElementById("proc-fill"),
+      running  = false;
+
+  var steps = [
+    ["Fetching 1,284 tickets from 4 sources", 22],
+    ["Redacting PII · embedding conversations", 46],
+    ["Clustering by root cause… 17 themes found", 71],
+    ["Computing week-over-week deltas", 88],
+    ["Ranking by volume × ARR at risk", 100]
+  ];
+
+  function show(view){
+    [vTickets, vProc, vReport].forEach(function(v){ v.classList.add("hidden"); });
+    view.classList.remove("hidden");
+  }
+
+  runBtn.addEventListener("click", function(){
+    if(running) return;
+    running = true;
+    show(vProc);
+    fillEl.style.width = "0%";
+    var i = 0;
+    function next(){
+      if(i < steps.length){
+        stepEl.textContent = steps[i][0];
+        fillEl.style.width = steps[i][1] + "%";
+        i++;
+        setTimeout(next, 620);
+      } else {
+        setTimeout(function(){
+          show(vReport);
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+              vReport.querySelectorAll(".theme-fill").forEach(function(f){
+                f.style.width = f.dataset.w;
+              });
+            });
+          });
+          running = false;
+        }, 420);
+      }
+    }
+    next();
+  });
+
+  backBtn.addEventListener("click", function(){
+    vReport.querySelectorAll(".theme-fill").forEach(function(f){ f.style.width = "0"; });
+    show(vTickets);
+  });
+
+  /* idle: gently highlight tickets in sequence */
+  var tickets = Array.prototype.slice.call(document.querySelectorAll("[data-t]")),
+      hi = 0;
+  setInterval(function(){
+    if(vTickets.classList.contains("hidden")) return;
+    tickets.forEach(function(t){ t.classList.remove("hot"); });
+    tickets[hi % tickets.length].classList.add("hot");
+    hi++;
+  }, 1600);
+
+})();
+</script>
+</body>
+</html>

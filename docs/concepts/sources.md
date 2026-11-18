@@ -6,7 +6,7 @@
 
 - Graphite, [“AI Tells”](https://graphite.io/research/ai-tells) (2026), CC BY 4.0. Per-model rates for 2025–26 models, the atlas, and the checker’s phrase list.
 - [RAID](https://github.com/liamdugan/raid) (Dugan et al., ACL 2024), MIT. Measured by shibbo for 2022–23 chat models against matched human texts.
-- shibbo's own runs through maker APIs and OpenRouter (Claude Fable 5.2, Claude Haiku 5.5, Claude Sonnet 5.5, DeepSeek-V3, DeepSeek-V4.1-Flash, Gemini 4 Argon, Gemini 4 Hydrogen, Gemma 2 27B, GPT-4o (August 2024), GPT-4o mini, GPT-6.1 Sol, GPT-6.1 Terra, Llama 3.1 70B, Llama 3.3 70B, MiMo-V2.6 Pro, MiniMax-M3.1 Flash, Nemotron 3.5 Super, Qwen 2.5 72B), on held-out Graphite topics against their human articles. [measure/](https://github.com/xvr2e7/shibbo/tree/main/measure).
+- shibbo's own runs through maker APIs and OpenRouter (Claude Fable 5.2, Claude Haiku 5.5, Claude Sonnet 5.5, DeepSeek-V3, DeepSeek-V4.1-Flash, Gemini 4 Argon, Gemini 4 Hydrogen, Gemma 2 27B, GPT-4o (August 2024), GPT-4o mini, GPT-6.1 Sol, GPT-6.1 Terra, Hy4, Hy4 flash, Llama 3.1 70B, Llama 3.3 70B, MiMo-V2.6 Pro, MiniMax-M3.1 Flash, Nemotron 3.5 Super, Qwen 2.5 72B, Qwen4-Max), on held-out Graphite topics against their human articles. [measure/](https://github.com/xvr2e7/shibbo/tree/main/measure).
 - Model and lab icons: [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT). The marks belong to their owners.
 
 ## Registry sources
@@ -138,7 +138,7 @@
 - [charles.unemployed, 20 AI Design Slop Indicators (Instagram reel)](https://www.instagram.com/reel/DfSbDWhR2bi/) (folk)
 <!-- /shibbo-ignore -->
 
-## Timeline sources (274)
+## Timeline sources (277)
 
 <!-- shibbo-ignore -->
 - [01-ai/Yi (GitHub README, news section)](https://github.com/01-ai/Yi)
@@ -239,6 +239,7 @@
 - [Hello GPT-4o](https://openai.com/index/hello-gpt-4o/)
 - [Hello Qwen2](https://qwenlm.github.io/blog/qwen2/)
 - [Human-LLM Coevolution: Evidence from Academic Writing (arXiv:2502.09606)](https://arxiv.org/abs/2502.09606)
+- [Hy4 正式发布](https://hunyuan.tencent.com/research/hy4?langVersion=zh)
 - [I/O: Building the next evolution of Google](https://blog.google/products/assistant/io-building-next-evolution-of-google/)
 - [Idiosyncrasies in Large Language Models (arXiv:2502.12150, ICML 2025)](https://arxiv.org/abs/2502.12150)
 - [Introducing 100K context windows](https://www.anthropic.com/news/100k-context-windows)
@@ -378,6 +379,7 @@
 - [Qwen3-Coder: Agentic Coding in the World](https://qwenlm.github.io/blog/qwen3-coder/)
 - [Qwen3: Think Deeper, Act Faster](https://qwenlm.github.io/blog/qwen3/)
 - [Qwen3.8 (GitHub README)](https://github.com/QwenLM/Qwen3.8)
+- [Qwen4-Max: Your New Teammate Has Arrived](https://qwen.ai/blog?id=qwen4-max)
 - [QwenLM/Qwen (GitHub README, News)](https://github.com/QwenLM/Qwen)
 - [QwenLM/Qwen3-VL](https://github.com/QwenLM/Qwen3-VL)
 - [QwQ-32B: Embracing the Power of Reinforcement Learning](https://qwenlm.github.io/blog/qwq-32b/)
@@ -393,6 +395,7 @@
 - [Sycophancy in GPT-4o: What happened and what we’re doing about it](https://openai.com/index/sycophancy-in-gpt-4o/)
 - [Technology Innovation Institute launches open-source Falcon 40B AI model for research and commercial use](https://mediaoffice.abudhabi/en/technology/technology-innovation-institute-launches-open-source-falcon-40b-almodel-for-research-and-commercial-use)
 - [Tencent Hunyuan Officially Releases Hy3, Advancing Agent Capabilities and Deeper Product Integration](https://www.tencent.com/en-us/articles/2202386.html)
+- [Tencent Launches Hy4 flash to Power High-Speed, Cost-Efficient AI Deployment for Everyday Workflows](https://www.tencent.com/tencent-launches-hy4-flash-to-power-high-speed-cost-efficient-ai-deployment-for-everyday-workflows/)
 - [Tencent Releases and Open-Sources Tencent Hy4 preview](https://www.tencent.com/tencent-releases-and-open-sources-ten)
 - [Tencent-Hunyuan/Hy3-preview (GitHub README)](https://github.com/Tencent-Hunyuan/Hy3-preview)
 - [The Curious Case of Neural Text Degeneration (arXiv:1904.09751, ICLR 2020)](https://arxiv.org/abs/1904.09751)

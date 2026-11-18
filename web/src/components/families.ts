@@ -13,12 +13,13 @@ const TABLE: Record<string, { name: string; brand: string }> = {
   minimax: { name: "MiniMax", brand: "minimax" },
   mimo: { name: "MiMo", brand: "xiaomi" },
   nemotron: { name: "Nemotron", brand: "nvidia" },
+  hunyuan: { name: "Hunyuan", brand: "tencent" },
   meta: { name: "Meta", brand: "meta" },
   mistral: { name: "Mistral", brand: "mistral" },
   mosaic: { name: "MPT", brand: "" },
   cohere: { name: "Cohere", brand: "cohere" },
 };
-const ALIAS: Record<string, string> = { openai: "gpt", anthropic: "claude", google: "gemini", zhipu: "glm", xai: "grok", xiaomi: "mimo", nvidia: "nemotron", alibaba: "qwen", kimi: "moonshot" };
+const ALIAS: Record<string, string> = { openai: "gpt", anthropic: "claude", google: "gemini", zhipu: "glm", xai: "grok", xiaomi: "mimo", nvidia: "nemotron", tencent: "hunyuan", alibaba: "qwen", kimi: "moonshot" };
 
 /** The family id the colour table knows, or "other". */
 export const canon = (f: string | null | undefined): string => {

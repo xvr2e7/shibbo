@@ -107,7 +107,7 @@ def release_by_id(mid):
 
 
 def family(mid):
-    for f, pat in (("claude", r"^claude"), ("gpt", r"^(gpt|o\d|openai)"), ("gemini", r"^(gemini|gemma|google)"), ("meta", r"llama|muse"), ("xai", r"grok"), ("mistral", r"mistral"), ("qwen", r"qwen"), ("deepseek", r"deepseek"), ("moonshot", r"kimi|moonshot"), ("zhipu", r"glm|zhipu"), ("minimax", r"minimax"), ("xiaomi", r"mimo"), ("nvidia", r"nemotron"), ("liquid", r"lfm")):
+    for f, pat in (("claude", r"^claude"), ("gpt", r"^(gpt|o\d|openai)"), ("gemini", r"^(gemini|gemma|google)"), ("meta", r"llama|muse"), ("xai", r"grok"), ("mistral", r"mistral"), ("qwen", r"qwen"), ("deepseek", r"deepseek"), ("moonshot", r"kimi|moonshot"), ("zhipu", r"glm|zhipu"), ("minimax", r"minimax"), ("xiaomi", r"mimo"), ("nvidia", r"nemotron"), ("tencent", r"^hy\d|hunyuan"), ("liquid", r"lfm")):
         if re.search(pat, mid.split("/")[-1]):
             return f
     return "other"

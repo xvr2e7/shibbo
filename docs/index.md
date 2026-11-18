@@ -50,7 +50,7 @@ The checker can't score how clear a text is either. It lists questions for a rea
 
 - Prose has a human baseline: people's web articles on the same topics. Shibbo's own runs on newer models use about 290 topics each, against Graphite's 9,974.
 - Interface and code have no human baseline. Their maps show how models differ from each other.
-- Behavior maps one part of an agent's work, the final report: 23 models write up the same 12 finished work logs. A judge model decides whether each report tells the user what the log shows, and nobody has checked its verdicts by hand yet. What an agent does during the work has no map.
+- Behavior maps one part of an agent's work, the final report: 26 models write up the same 12 finished work logs. A judge model decides whether each report tells the user what the log shows, and nobody has checked its verdicts by hand yet. What an agent does during the work has no map.
 
 ## Next
 
