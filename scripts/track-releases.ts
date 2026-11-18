@@ -39,7 +39,7 @@ const MAKERS: Record<string, string> = {
 const HF_ORGS = ["openai", "google", "meta-llama", "deepseek-ai", "Qwen", "mistralai", "moonshotai", "zai-org", "MiniMaxAI", "XiaomiMiMo", "tencent", "nvidia", "microsoft", "CohereLabs", "ibm-granite", "allenai"];
 // Variants that repeat a model already listed: tiers, modes, dated snapshots, fine-tunes for one field.
 const VARIANT = /(:free|:batch|:extended|:thinking|:online|:nitro|:floor)$|^~|^(stealth|openrouter)\//;
-const NOISE = /(^|-)(image|video|imagine|veo|imagen|lyria|tts|whisper|dall-e|sora|nano-banana|translate|mt\d?)(-|$)|-(legal|medical|finance|guard|safeguard|embed(ding)?|rerank|tts|audio|realtime|transcribe|search-preview|moderation)\b|-(gguf|awq|gptq|fp8|bnb|mlx|int4|int8|bf16|nvfp4|mxfp8|fp4|base(-\d+k)?)\b/i;
+const NOISE = /(^|-)(image|video|imagine|veo|imagen|lyria|tts|whisper|dall-e|sora|nano-banana|translate|mt\d?)(-|$)|-(legal|medical|finance|guard|safeguard|embed(ding)?|rerank|tts|audio|realtime|transcribe|search-preview|moderation)\b|-(gguf|awq|gptq|fp8|bnb|mlx|int4|int8|bf16|nvfp4|mxfp8|fp4|distill|base(-\d+k)?)\b/i;
 
 interface Seen { first_seen: string; source: string; name?: string; released?: string }
 interface Candidate { id: string; name: string; maker: string; released: string | null; first_seen: string; sources: string[]; url: string; price?: string; note?: string }
